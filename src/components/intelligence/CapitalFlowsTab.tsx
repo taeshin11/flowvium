@@ -3,15 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { useTranslatedText } from '@/hooks/useTranslatedText';
+import { TranslatedText as T } from '@/components/TranslatedText';
 
 // 2026-06-12: flow-analysis AI 텍스트(GROQ 영어 생성)가 전 locale 에 영어 그대로 노출되던 결함
 //   (사용자 "다른 언어로 들어와도 다 번역되지?"). 동적 텍스트는 <T> 경유 — /api/translate 가
 //   en 타깃 한글없는 원문은 skip 하므로 en 은 무비용.
-function T({ text }: { text: string }) {
-  const translated = useTranslatedText(text);
-  return <>{translated}</>;
-}
 import {
   Loader2, BarChart3, ArrowUpRight, ArrowDownRight, Globe,
   ArrowRight, GitMerge, Zap, RefreshCw,

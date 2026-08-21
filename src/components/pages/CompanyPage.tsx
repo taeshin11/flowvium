@@ -60,12 +60,8 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import dynamic from 'next/dynamic';
 
 const SupplyChainMap = dynamic(() => import('@/components/SupplyChainMap'), { ssr: false });
-import { useTranslatedText } from '@/hooks/useTranslatedText';
+import { TranslatedText as T } from '@/components/TranslatedText';
 
-function T({ text }: { text: string }) {
-  const translated = useTranslatedText(text);
-  return <>{translated}</>;
-}
 
 // 2026-06-12: 관련 종목 이름 표시 (사용자 "다 숫자코드로만 나와서 어딘지도 모르겠다" — KT&G 사건).
 //   UNIVERSE_SEARCH 권위 소스 (KR 한글명 포함, 1338종) — ReportPage displayName 과 동일 패턴.

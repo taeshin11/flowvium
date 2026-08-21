@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { cascadePatterns, type CascadeStep } from '@/data/cascades';
-import { useTranslatedText } from '@/hooks/useTranslatedText';
+import { TranslatedText as T } from '@/components/TranslatedText';
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,10 +19,6 @@ import {
 import ShareButtons from '@/components/ShareButtons';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
-function T({ text }: { text: string }) {
-  const translated = useTranslatedText(text);
-  return <>{translated}</>;
-}
 
 const roleColors: Record<string, { bg: string; text: string; border: string }> = {
   leader: { bg: 'bg-cf-primary/10', text: 'text-cf-primary', border: 'border-cf-primary' },

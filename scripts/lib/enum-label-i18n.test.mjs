@@ -67,6 +67,29 @@ for (const f of ['src/components/pages/CompanyPage.tsx', 'src/components/pages/C
     : ok('원시 action 렌더 없음');
 }
 
+// [3c] 데이터 설명문 번역 래퍼는 공용 하나만 — 08-20 에 공용으로 뺐는데 3개 파일이
+//   지역 정의를 그대로 들고 있었고, ComparePage 는 아예 안 써서 소개문이 영문이었다.
+{
+  const dup = ['src/components/intelligence/CapitalFlowsTab.tsx',
+               'src/components/pages/CascadeDetailPage.tsx',
+               'src/components/pages/CompanyPage.tsx',
+               'src/components/pages/ComparePage.tsx']
+    .filter((f) => /function T\(\{ text \}/.test(read(f)));
+  dup.length ? bad(`지역 T 정의가 남아 있다: ${dup.map((f) => f.split('/').pop()).join(', ')}`)
+             : ok('T 래퍼는 공용 TranslatedText 하나뿐');
+  /<T text=\{company\.description\}/.test(read('src/components/pages/ComparePage.tsx'))
+    ? ok('ComparePage 소개문이 번역 경로를 탄다')
+    : bad('ComparePage 소개문이 원문 그대로다 — /ko 에 영문 문단이 노출된다');
+}
+
+// [3d] 대문자화는 번역이 아니다 — 어제 capitalize 로 배운 것과 같은 실수가 toUpperCase 로 반복됐다.
+{
+  const cmp = read('src/components/pages/ComparePage.tsx');
+  /\.toUpperCase\(\)\}<\/span>/.test(cmp)
+    ? bad('원시 enum 을 toUpperCase 로 찍는다 — 16 로케일 전부 영문이 된다')
+    : ok('enum 을 대문자화해서 찍지 않는다');
+}
+
 // [4] 번역 키 — 전 16 로케일
 const LOCALES = ['ko','en','ja','zh-CN','zh-TW','es','fr','de','pt','ru','ar','hi','id','th','tr','vi'];
 const needSectors = ['crypto', 'technology', 'semiconductors', 'defense'];

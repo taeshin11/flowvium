@@ -39,6 +39,9 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { useRoleLabel } from '@/hooks/useRoleLabel';
 import { useSectorLabel } from '@/hooks/useSectorLabel';
 import { useActionLabel } from '@/hooks/useActionLabel';
+// 2026-08-22: 회사 소개문이 /ko 에서 영문 그대로였다. CompanyPage 는 이미 이 래퍼를 쓴다 —
+//   또 '한 곳만 고치고 나머지를 안 본' 경우다.
+import { TranslatedText as T } from '@/components/TranslatedText';
 
 const marketCapOrder = { titan: 5, mega: 4, large: 3, mid: 2, small: 1 };
 const roleColors: Record<string, string> = {
@@ -76,6 +79,13 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
   const roleLabel = useRoleLabel();
   const sectorLabel = useSectorLabel();
   const actionLabel = useActionLabel();
+  // 2026-08-22: 종전엔 `ibActivityLevel.toUpperCase()` 였다. 대문자화는 번역이 아니라
+  //   영어 표기 규칙이라 16개 로케일 전부에서 'HIGH' 로 보였다(어제 capitalize 와 같은 실수).
+  //   같은 값의 라벨이 newsGap 네임스페이스에 이미 있다.
+  const tNewsGap = useTranslations('newsGap');
+  const ibLevelLabel = (v?: string | null) =>
+    v === 'high' ? tNewsGap('activityHigh') : v === 'medium' ? tNewsGap('activityMedium')
+    : v === 'low' ? tNewsGap('activityLow') : String(v ?? '');
   const mcLabel: Record<string, string> = { titan: t('mcTitan'), mega: t('mcMega'), large: t('mcLarge'), mid: t('mcMid'), small: t('mcSmall') };
   // 2026-06-04: 정적 institutionalSignals/newsGapData → 라이브 API (시계열, 정적 금지).
   const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
@@ -152,7 +162,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
       {/* Description */}
       <div className="cf-card p-5">
         <h3 className="text-sm font-semibold text-cf-text-primary mb-2">{t('about')}</h3>
-        <p className="text-xs text-cf-text-secondary leading-relaxed line-clamp-5">{company.description}</p>
+        <p className="text-xs text-cf-text-secondary leading-relaxed line-clamp-5"><T text={company.description} /></p>
         <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
           <div className="flex items-start gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-cf-text-secondary mt-0.5 shrink-0" />
@@ -222,7 +232,7 @@ function CompanyColumn({ company, side }: { company: Company; side: 'left' | 'ri
               <ScoreBar value={ngEntry.mediaScore} color="#94a3b8" />
             </div>
             <p className="text-xs text-cf-text-secondary mt-2">
-              {t('ibActivityLabel')}: <span className={`font-medium ${ngEntry.ibActivityLevel === 'high' ? 'text-green-600' : ngEntry.ibActivityLevel === 'medium' ? 'text-yellow-600' : 'text-gray-500'}`}>{ngEntry.ibActivityLevel.toUpperCase()}</span>
+              {t('ibActivityLabel')}: <span className={`font-medium ${ngEntry.ibActivityLevel === 'high' ? 'text-green-600' : ngEntry.ibActivityLevel === 'medium' ? 'text-yellow-600' : 'text-gray-500'}`}>{ibLevelLabel(ngEntry.ibActivityLevel)}</span>
             </p>
           </div>
         ) : (
