@@ -38,6 +38,7 @@ import { buildCascadeUpstreamSet } from './lib/cascade-upstream.mjs';
 import { buildInsiderBuyMap } from './lib/insider-count.mjs';
 import { enrichStopLoss, nativeCurrencyForTicker as nativeCurrencyForTickerMjs } from './lib/stop-loss-enrich.mjs';
 import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
+import { diffFragment } from './lib/diff-fragment.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -9305,12 +9306,19 @@ async function generateViaOllama() {
     for (const [k, before] of Object.entries(_narrSnap)) {
       const after = getField(k);
       if (typeof before === 'string' && before && before !== after) {
-        narrativeDefectsForLearning.push({
-          ticker: 'NARRATIVE', defect_type: 'narrative_garble_sanitized',
-          llm_value: `${k}: "${before.slice(0, 80)}"`,
-          correct_value: `교정형 "${String(after ?? '').slice(0, 80)}" — 이 garble/오역(예 short squeeze→'짧은 매수') 반복 금지`,
-          severity: 'low',
-        });
+        // 2026-08-22: 예전엔 before/after 를 각각 slice(0,80) 했다. 교정은 대개 문장 뒤쪽에서
+        //   일어나므로 앞 80자는 서로 같았고, 결과적으로 *멀쩡한 문장*을 가리키며
+        //   "이 garble 반복 금지" 를 다음 프롬프트에 주입했다(최근 7일 주입 251회).
+        //   실제로 달라진 구간만 담는다 — 그래야 모델이 배울 게 생긴다.
+        const d = diffFragment(before, after, { max: 80 });
+        if (d) {
+          narrativeDefectsForLearning.push({
+            ticker: 'NARRATIVE', defect_type: 'narrative_garble_sanitized',
+            llm_value: `${k}: "${d.before}"`,
+            correct_value: `교정형 "${d.after}" — 이 garble/오역(예 short squeeze→'짧은 매수') 반복 금지`,
+            severity: 'low',
+          });
+        }
       }
     }
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
