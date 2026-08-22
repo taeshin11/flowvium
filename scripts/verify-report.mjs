@@ -5,6 +5,7 @@
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
 import fs from 'node:fs';
 import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex } from './lib/flow-contradiction.mjs';
+import { isMovementClaim } from './lib/flow-move-claim.mjs';
 
 // 2026-05-31: 최신 보고서 자동 선택. 이전엔 default 가 'report-2026-05-30-morning-ko.json'
 //   하드코딩 → verify-all / cron verify-loop 가 며칠째 stale 보고서만 검증 (silent 사각지대).
@@ -302,7 +303,11 @@ export async function verifyReport(file, { silent = false } = {}) {
     // (b3+) 2026-07-04 (사용자 "여전히 자산흐름이 안 느껴진다"): 이동형 claim(A→B / X vs Y) 이 있는데
     //   서사에 '어디서→어디로'가 전혀 없으면 결함 — 생성기 이동 백스톱 무력화 회귀 게이트.
     {
-      const moveClaim = (fe?.allClaims ?? []).find((c) => /→| vs /.test(String(c.text ?? '')));
+      // 2026-08-22: 종전 `/→| vs /` 는 *비교* 를 *이동* 으로 오판했다. 실측 — 이 결함 6건이
+      //   전부 같은 오탐이었다(ICI 라인: 미국주식 +91억 vs 해외주식 +74억 · 채권 +145억, 전부 유입).
+      //   이동이 없으니 서사에 이동 표현이 없는 게 맞다. 게다가 이 오탐이 hallucination_history 에
+      //   쌓여 프롬프트에 anti-pattern 으로 주입된다 — 없는 이동을 쓰라고 모델을 가르친다.
+      const moveClaim = (fe?.allClaims ?? []).find((c) => isMovementClaim(c));
       if (moveClaim) {
         const hasMove = /→|로테이션|빠져나와[^.]{0,40}(옮겨|이동|들어)/.test(narrText) ||
           (/(상환|이탈|순매도|유출|빠져나)/.test(narrText) && /(창설|유입|순매수|옮겨가|들어오|들어가)/.test(narrText) && /(채권|해외|미국주식|미국 외 주식|ETF)/.test(narrText));
