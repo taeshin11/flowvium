@@ -434,7 +434,8 @@
     "supplyDemand": "Supply",
     "supplyDemandTitle": "View Supply/Demand",
     "entryZone": "Buy Zone",
-    "priceEntry": "Buy Zone"
+    "priceEntry": "Buy Zone",
+    "tickersCached": "{n} tickers cached"
   },
   "newsGap": {
     "title": "News Gap Analyzer",
@@ -632,7 +633,8 @@
     "message": "Message",
     "tellUs": "Tell us what's on your mind...",
     "cancel": "Cancel",
-    "submitBtn": "Submit"
+    "submitBtn": "Submit",
+    "close": "Close feedback"
   },
   "common": {
     "loading": "Loading...",
@@ -1819,7 +1821,8 @@
     "alertCat_risk": "Danger",
     "topAccumUsSubtitle": "Volume-based accumulation signs before a run-up (US, watch only)",
     "accumUsNote": "US screener — abnormal volume / volatility contraction / close strength (no KRX few-account cross-check) · for observation",
-    "sectorCrypto": "Crypto"
+    "sectorCrypto": "Crypto",
+    "colShortVol": "Short Vol %"
   },
   "short": {
     "title": "Short Interest · Squeeze Radar",
@@ -1863,7 +1866,9 @@
     "daysUnit": "d",
     "noData": "No data",
     "noResults": "No results match the current filters",
-    "sourceNote": "Source: FINRA daily short vol · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h"
+    "sourceNote": "Source: FINRA daily short vol · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h",
+    "colDaysToCover": "Days to Cover",
+    "colShortVolFinra": "Short Vol % (FINRA)"
   },
   "compare": {
     "title": "Company Comparator",

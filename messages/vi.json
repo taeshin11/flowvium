@@ -434,7 +434,8 @@
     "supplyDemand": "Dòng chảy",
     "supplyDemandTitle": "Xem dòng chảy",
     "entryZone": "Vùng mua",
-    "priceEntry": "Vùng mua"
+    "priceEntry": "Vùng mua",
+    "tickersCached": "Đã lưu {n} mã"
   },
   "newsGap": {
     "title": "Phân tích khoảng trống tin tức",
@@ -632,7 +633,8 @@
     "message": "Tin nhắn",
     "tellUs": "Cho chúng tôi biết suy nghĩ của bạn...",
     "cancel": "Hủy",
-    "submitBtn": "Gửi"
+    "submitBtn": "Gửi",
+    "close": "Đóng phản hồi"
   },
   "common": {
     "loading": "Đang tải...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "Cảnh báo",
     "alertCat_risk": "Nguy hiểm",
     "topAccumUsSubtitle": "Dấu hiệu gom hàng dựa trên khối lượng trước khi tăng (Mỹ, chỉ theo dõi)",
-    "accumUsNote": "Bộ lọc Mỹ — khối lượng bất thường / co cụm biến động / sức mạnh giá đóng cửa (không đối chiếu KRX) · để theo dõi"
+    "accumUsNote": "Bộ lọc Mỹ — khối lượng bất thường / co cụm biến động / sức mạnh giá đóng cửa (không đối chiếu KRX) · để theo dõi",
+    "colShortVol": "% KL bán khống"
   },
   "short": {
     "title": "Bán khống · Short Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "ng",
     "noData": "Không có dữ liệu",
     "noResults": "Không có kết quả cho bộ lọc hiện tại",
-    "sourceNote": "Nguồn: FINRA hàng ngày · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h"
+    "sourceNote": "Nguồn: FINRA hàng ngày · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4h",
+    "colDaysToCover": "Số ngày mua lại",
+    "colShortVolFinra": "% KL bán khống (FINRA)"
   },
   "compare": {
     "title": "So sánh công ty",

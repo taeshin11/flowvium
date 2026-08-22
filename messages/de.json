@@ -434,7 +434,8 @@
     "supplyDemand": "Fluss",
     "supplyDemandTitle": "Fluss anzeigen",
     "entryZone": "Kaufzone",
-    "priceEntry": "Kaufzone"
+    "priceEntry": "Kaufzone",
+    "tickersCached": "{n} Ticker zwischengespeichert"
   },
   "newsGap": {
     "title": "Nachrichtenlücken-Analysator",
@@ -632,7 +633,8 @@
     "message": "Nachricht",
     "tellUs": "Teilen Sie uns Ihre Gedanken mit...",
     "cancel": "Abbrechen",
-    "submitBtn": "Absenden"
+    "submitBtn": "Absenden",
+    "close": "Feedback schließen"
   },
   "common": {
     "loading": "Wird geladen...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "Warnung",
     "alertCat_risk": "Gefahr",
     "topAccumUsSubtitle": "Volumenbasierte Akkumulationssignale vor einem Anstieg (USA, nur Beobachtung)",
-    "accumUsNote": "US-Screener — anormales Volumen / Volatilitätskontraktion / Schlussstärke (keine KRX-Gegenprüfung) · zur Beobachtung"
+    "accumUsNote": "US-Screener — anormales Volumen / Volatilitätskontraktion / Schlussstärke (keine KRX-Gegenprüfung) · zur Beobachtung",
+    "colShortVol": "Leerverkaufs-Vol. %"
   },
   "short": {
     "title": "Leerverkäufe · Short Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "T",
     "noData": "Keine Daten",
     "noResults": "Keine Ergebnisse für die aktuellen Filter",
-    "sourceNote": "Quelle: FINRA tägl. Leerverkauf · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4Std."
+    "sourceNote": "Quelle: FINRA tägl. Leerverkauf · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4Std.",
+    "colDaysToCover": "Tage zur Deckung",
+    "colShortVolFinra": "Leerverkaufs-Vol. % (FINRA)"
   },
   "compare": {
     "title": "Unternehmensvergleich",

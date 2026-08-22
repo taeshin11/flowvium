@@ -696,7 +696,7 @@ export default function ScreenerPage() {
                   <SortTh label={t('colChange')} k="changePct" />
                   <SortTh label={t('colAction')} k="action" />
                   <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colSize')}</th>
-                  <SortTh label="Short Vol %" k="shortVolPct" />
+                  <SortTh label={t('colShortVol')} k="shortVolPct" />
                   <SortTh label={t('colSqueeze')} k="squeezeScore" />
                   <SortTh label={t('colNewsGap')} k="newsGapScore" />
                   <SortTh label={t('colFilingDate')} k="filingDate" />

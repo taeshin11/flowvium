@@ -215,9 +215,9 @@ export default function ShortPage() {
               <SortTh label={t('colTicker')} k="ticker" />
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colCompany')}</th>
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colSector')}</th>
-              <SortTh label="Short Vol % (FINRA)" k="shortVolPct" />
+              <SortTh label={t('colShortVolFinra')} k="shortVolPct" />
               <SortTh label={t('colShortFloat')} k="shortFloatPct" />
-              <SortTh label="Days to Cover" k="shortRatio" />
+              <SortTh label={t('colDaysToCover')} k="shortRatio" />
               <SortTh label={t('colMom')} k="shortChangeMonthly" />
               <SortTh label="PER (TTM)" k="trailingPE" />
               <th className="px-3 py-2 text-left text-[10px] text-cf-text-secondary">{t('colInstAction')}</th>

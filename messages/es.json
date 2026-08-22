@@ -434,7 +434,8 @@
     "supplyDemand": "Flujo",
     "supplyDemandTitle": "Ver flujo",
     "entryZone": "Zona de compra",
-    "priceEntry": "Zona de compra"
+    "priceEntry": "Zona de compra",
+    "tickersCached": "{n} tickers en caché"
   },
   "newsGap": {
     "title": "Analizador de Brecha Informativa",
@@ -632,7 +633,8 @@
     "message": "Mensaje",
     "tellUs": "Cuéntanos lo que piensas...",
     "cancel": "Cancelar",
-    "submitBtn": "Enviar"
+    "submitBtn": "Enviar",
+    "close": "Cerrar comentarios"
   },
   "common": {
     "loading": "Cargando...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "Advertencia",
     "alertCat_risk": "Peligro",
     "topAccumUsSubtitle": "Señales de acumulación por volumen antes de una subida (EE. UU., solo observación)",
-    "accumUsNote": "Screener de EE. UU. — volumen anómalo / contracción de volatilidad / fuerza de cierre (sin verificación cruzada KRX) · para observación"
+    "accumUsNote": "Screener de EE. UU. — volumen anómalo / contracción de volatilidad / fuerza de cierre (sin verificación cruzada KRX) · para observación",
+    "colShortVol": "% Vol. en Corto"
   },
   "short": {
     "title": "Ventas en corto · Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "d",
     "noData": "Sin datos",
     "noResults": "Ningún resultado coincide con los filtros",
-    "sourceNote": "Fuente: FINRA vol. corto diario · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Caché 4h"
+    "sourceNote": "Fuente: FINRA vol. corto diario · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Caché 4h",
+    "colDaysToCover": "Días para Cubrir",
+    "colShortVolFinra": "% Vol. en Corto (FINRA)"
   },
   "compare": {
     "title": "Comparador de Empresas",

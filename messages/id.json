@@ -434,7 +434,8 @@
     "supplyDemand": "Aliran",
     "supplyDemandTitle": "Lihat aliran",
     "entryZone": "Zona beli",
-    "priceEntry": "Zona beli"
+    "priceEntry": "Zona beli",
+    "tickersCached": "{n} ticker di-cache"
   },
   "newsGap": {
     "title": "Penganalisis Kesenjangan Berita",
@@ -632,7 +633,8 @@
     "message": "Pesan",
     "tellUs": "Ceritakan pendapat Anda...",
     "cancel": "Batal",
-    "submitBtn": "Kirim"
+    "submitBtn": "Kirim",
+    "close": "Tutup masukan"
   },
   "common": {
     "loading": "Memuat...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "Peringatan",
     "alertCat_risk": "Bahaya",
     "topAccumUsSubtitle": "Tanda akumulasi berbasis volume sebelum lonjakan (AS, hanya pengamatan)",
-    "accumUsNote": "Screener AS — volume abnormal / kontraksi volatilitas / kekuatan penutupan (tanpa verifikasi silang KRX) · untuk pengamatan"
+    "accumUsNote": "Screener AS — volume abnormal / kontraksi volatilitas / kekuatan penutupan (tanpa verifikasi silang KRX) · untuk pengamatan",
+    "colShortVol": "% Volume Short"
   },
   "short": {
     "title": "Short Selling · Short Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "h",
     "noData": "Tidak ada data",
     "noResults": "Tidak ada hasil untuk filter saat ini",
-    "sourceNote": "Sumber: FINRA vol. short harian · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4j"
+    "sourceNote": "Sumber: FINRA vol. short harian · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Cache 4j",
+    "colDaysToCover": "Hari untuk Menutup",
+    "colShortVolFinra": "% Volume Short (FINRA)"
   },
   "compare": {
     "title": "Pembanding Perusahaan",

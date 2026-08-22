@@ -434,7 +434,8 @@
     "supplyDemand": "Akış",
     "supplyDemandTitle": "Akışı gör",
     "entryZone": "Alım bölgesi",
-    "priceEntry": "Alım bölgesi"
+    "priceEntry": "Alım bölgesi",
+    "tickersCached": "{n} hisse önbellekte"
   },
   "newsGap": {
     "title": "Haber Boşluğu Analiz Aracı",
@@ -632,7 +633,8 @@
     "message": "Mesaj",
     "tellUs": "Düşüncelerinizi paylaşın...",
     "cancel": "İptal",
-    "submitBtn": "Gönder"
+    "submitBtn": "Gönder",
+    "close": "Geri bildirimi kapat"
   },
   "common": {
     "loading": "Yükleniyor...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "Uyarı",
     "alertCat_risk": "Tehlike",
     "topAccumUsSubtitle": "Yükseliş öncesi hacme dayalı toplama sinyalleri (ABD, yalnızca gözlem)",
-    "accumUsNote": "ABD tarayıcısı — anormal hacim / volatilite daralması / kapanış gücü (KRX çapraz kontrolü yok) · gözlem için"
+    "accumUsNote": "ABD tarayıcısı — anormal hacim / volatilite daralması / kapanış gücü (KRX çapraz kontrolü yok) · gözlem için",
+    "colShortVol": "Açığa Satış Hacmi %"
   },
   "short": {
     "title": "Açığa Satış · Short Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "g",
     "noData": "Veri yok",
     "noResults": "Mevcut filtrelerle eşleşen sonuç yok",
-    "sourceNote": "Kaynak: FINRA günlük açığa satış · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Önbellek 4s"
+    "sourceNote": "Kaynak: FINRA günlük açığa satış · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Önbellek 4s",
+    "colDaysToCover": "Kapatma Günü",
+    "colShortVolFinra": "Açığa Satış Hacmi % (FINRA)"
   },
   "compare": {
     "title": "Şirket Karşılaştırıcı",

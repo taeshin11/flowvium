@@ -434,7 +434,8 @@
     "supplyDemand": "กระแส",
     "supplyDemandTitle": "ดูกระแส",
     "entryZone": "โซนซื้อ",
-    "priceEntry": "โซนซื้อ"
+    "priceEntry": "โซนซื้อ",
+    "tickersCached": "แคช {n} หลักทรัพย์"
   },
   "newsGap": {
     "title": "เครื่องมือวิเคราะห์ช่องว่างข่าว",
@@ -632,7 +633,8 @@
     "message": "ข้อความ",
     "tellUs": "บอกความคิดเห็นของคุณ...",
     "cancel": "ยกเลิก",
-    "submitBtn": "ส่ง"
+    "submitBtn": "ส่ง",
+    "close": "ปิดข้อเสนอแนะ"
   },
   "common": {
     "loading": "กำลังโหลด...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "เตือน",
     "alertCat_risk": "อันตราย",
     "topAccumUsSubtitle": "สัญญาณการสะสมตามปริมาณก่อนพุ่งขึ้น (สหรัฐฯ เฝ้าดูเท่านั้น)",
-    "accumUsNote": "สกรีนเนอร์สหรัฐฯ — ปริมาณผิดปกติ / การหดตัวของความผันผวน / ความแข็งแกร่งของราคาปิด (ไม่มีการตรวจสอบไขว้ KRX) · เพื่อการเฝ้าดู"
+    "accumUsNote": "สกรีนเนอร์สหรัฐฯ — ปริมาณผิดปกติ / การหดตัวของความผันผวน / ความแข็งแกร่งของราคาปิด (ไม่มีการตรวจสอบไขว้ KRX) · เพื่อการเฝ้าดู",
+    "colShortVol": "% ปริมาณขายชอร์ต"
   },
   "short": {
     "title": "Short Selling · Short Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "วัน",
     "noData": "ไม่มีข้อมูล",
     "noResults": "ไม่มีผลลัพธ์ตามตัวกรอง",
-    "sourceNote": "แหล่งที่มา: FINRA รายวัน · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · แคช 4ชม."
+    "sourceNote": "แหล่งที่มา: FINRA รายวัน · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · แคช 4ชม.",
+    "colDaysToCover": "วันคืนหุ้นยืม",
+    "colShortVolFinra": "% ปริมาณขายชอร์ต (FINRA)"
   },
   "compare": {
     "title": "เครื่องมือเปรียบเทียบบริษัท",

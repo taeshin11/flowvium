@@ -434,7 +434,8 @@
     "supplyDemand": "Поток",
     "supplyDemandTitle": "Просмотр потока",
     "entryZone": "Зона покупки",
-    "priceEntry": "Зона покупки"
+    "priceEntry": "Зона покупки",
+    "tickersCached": "В кэше {n} тикеров"
   },
   "newsGap": {
     "title": "Анализатор информационных пробелов",
@@ -632,7 +633,8 @@
     "message": "Сообщение",
     "tellUs": "Расскажите нам...",
     "cancel": "Отмена",
-    "submitBtn": "Отправить"
+    "submitBtn": "Отправить",
+    "close": "Закрыть отзыв"
   },
   "common": {
     "loading": "Загрузка...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "Предупреждение",
     "alertCat_risk": "Опасность",
     "topAccumUsSubtitle": "Сигналы накопления по объёму перед ростом (США, только наблюдение)",
-    "accumUsNote": "Скринер США — аномальный объём / сжатие волатильности / сила закрытия (без перекрёстной проверки KRX) · для наблюдения"
+    "accumUsNote": "Скринер США — аномальный объём / сжатие волатильности / сила закрытия (без перекрёстной проверки KRX) · для наблюдения",
+    "colShortVol": "Доля коротких %"
   },
   "short": {
     "title": "Короткие позиции · Short Squeeze",
@@ -1862,7 +1865,9 @@
     "daysUnit": "д",
     "noData": "Нет данных",
     "noResults": "Нет результатов для текущих фильтров",
-    "sourceNote": "Источник: FINRA ежедн. шорт · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Кэш 4ч"
+    "sourceNote": "Источник: FINRA ежедн. шорт · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · Кэш 4ч",
+    "colDaysToCover": "Дней на покрытие",
+    "colShortVolFinra": "Доля коротких % (FINRA)"
   },
   "compare": {
     "title": "Сравнение компаний",

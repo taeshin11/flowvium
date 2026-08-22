@@ -434,7 +434,8 @@
     "supplyDemand": "供需",
     "supplyDemandTitle": "查看供需",
     "entryZone": "建议买入区间",
-    "priceEntry": "建议买入区间"
+    "priceEntry": "建议买入区间",
+    "tickersCached": "已缓存 {n} 只股票"
   },
   "newsGap": {
     "title": "新闻盲区分析器",
@@ -632,7 +633,8 @@
     "message": "留言",
     "tellUs": "请告诉我们您的想法...",
     "cancel": "取消",
-    "submitBtn": "提交"
+    "submitBtn": "提交",
+    "close": "关闭反馈"
   },
   "common": {
     "loading": "加载中...",
@@ -679,7 +681,7 @@
   "footer": {
     "tagline": "逐步绘制全球供应链版图。",
     "builtBy": "由 THE ELIOT K FINANCIAL 精心打造",
-    "copyright": "© {year} Flowvium by THE ELIOT K FINANCIAL. All rights reserved.",
+    "copyright": "© {year} Flowvium by THE ELIOT K FINANCIAL. 保留所有权利。",
     "terms": "服务条款",
     "privacy": "隐私政策",
     "contact": "联系我们",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "投资警告",
     "alertCat_risk": "投资危险",
     "topAccumUsSubtitle": "暴涨前基于成交量的吸筹先行信号（美股·仅观察·非推荐）",
-    "accumUsNote": "美股筛选器 — 成交量激增·波动率收缩·收盘强度（无KRX少数账户交叉验证）·仅供观察"
+    "accumUsNote": "美股筛选器 — 成交量激增·波动率收缩·收盘强度（无KRX少数账户交叉验证）·仅供观察",
+    "colShortVol": "做空成交占比 %"
   },
   "short": {
     "title": "做空 · 空头逼仓",
@@ -1862,7 +1865,9 @@
     "daysUnit": "天",
     "noData": "无数据",
     "noResults": "无符合条件的标的",
-    "sourceNote": "来源: FINRA日度做空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 缓存4小时"
+    "sourceNote": "来源: FINRA日度做空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 缓存4小时",
+    "colDaysToCover": "回补天数",
+    "colShortVolFinra": "做空成交占比 % (FINRA)"
   },
   "compare": {
     "title": "公司比较",

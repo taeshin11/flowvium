@@ -434,7 +434,8 @@
     "supplyDemand": "수급",
     "supplyDemandTitle": "수급동향 보기",
     "entryZone": "매수 추천 구간",
-    "priceEntry": "매수 추천 구간"
+    "priceEntry": "매수 추천 구간",
+    "tickersCached": "{n}개 종목 캐시됨"
   },
   "newsGap": {
     "title": "뉴스 갭 분석기",
@@ -548,7 +549,8 @@
     "message": "메시지",
     "tellUs": "의견을 자유롭게 적어주세요...",
     "cancel": "취소",
-    "submitBtn": "제출"
+    "submitBtn": "제출",
+    "close": "피드백 닫기"
   },
   "common": {
     "loading": "로딩 중...",
@@ -595,7 +597,7 @@
   "footer": {
     "tagline": "전 세계 공급망을 하나의 연결 고리씩 매핑합니다.",
     "builtBy": "THE ELIOT K FINANCIAL가 정성껏 만들었습니다",
-    "copyright": "© {year} Flowvium by THE ELIOT K FINANCIAL. All rights reserved.",
+    "copyright": "© {year} Flowvium by THE ELIOT K FINANCIAL. 모든 권리 보유.",
     "terms": "이용약관",
     "privacy": "개인정보 처리방침",
     "contact": "문의하기",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "투자경고",
     "alertCat_risk": "투자위험",
     "topAccumUsSubtitle": "급등 전 거래량 기반 매집 선행조짐 (US·관찰 우선·추천 아님)",
-    "accumUsNote": "US 스크리너 — 거래량 급증·변동성 수축·종가강도 기반 (KRX 소수계좌 교차검증 없음) · 관찰용"
+    "accumUsNote": "US 스크리너 — 거래량 급증·변동성 수축·종가강도 기반 (KRX 소수계좌 교차검증 없음) · 관찰용",
+    "colShortVol": "공매도 거래비중 %"
   },
   "short": {
     "title": "공매도 · 숏 스퀴즈",
@@ -1862,7 +1865,9 @@
     "daysUnit": "일",
     "noData": "데이터 없음",
     "noResults": "조건에 맞는 종목이 없습니다",
-    "sourceNote": "출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 캐시 4시간"
+    "sourceNote": "출처: FINRA 일별 공매도 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 캐시 4시간",
+    "colDaysToCover": "공매도 커버 일수",
+    "colShortVolFinra": "공매도 거래비중 % (FINRA)"
   },
   "compare": {
     "title": "기업 비교",

@@ -17,7 +17,7 @@
  * 그래서 두 가지를 함께 본다: ① 배선이 공유 훅을 쓰는가 ② 번역 키가 전 로케일에 있는가.
  * 손수 맵을 다시 만들면 또 빠진다 — 맵의 존재 자체를 결함으로 본다.
  */
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, readdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -133,6 +133,36 @@ for (const l of LOCALES) {
 }
 missS.length ? bad(`섹터 키 누락 ${missS.length}건: ${missS.slice(0, 6).join(', ')}`) : ok('섹터 키 16 로케일 완비');
 missR.length ? bad(`role 키 누락 ${missR.length}건: ${missR.slice(0, 6).join(', ')}`) : ok('role 키 16 로케일 완비');
+
+// [5] 사용자에게 보이는 label/aria-label 에 영문을 박지 않았는가 — 눈검증에서 실제로 나왔다
+//   (SortTh label="Short Vol % (FINRA)" · "Days to Cover" · "Short Vol %").
+//   같은 파일의 다른 12개는 t() 를 쓰고 있었다 — 또 '일부만' 이다.
+//   금융 약어(PER·N-PORT 등)는 로케일 무관 표기이므로 대문자·숫자·괄호만으로 이뤄진 라벨은 뺀다.
+{
+  const tsx = [];
+  const walkSrc = (dir, d = 0) => {
+    if (d > 6) return;
+    let ents = []; try { ents = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of ents) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const p = resolve(dir, e.name);
+      if (e.isDirectory()) walkSrc(p, d + 1); else if (e.name.endsWith('.tsx')) tsx.push(p);
+    }
+  };
+  walkSrc(resolve(ROOT, 'src'));
+  const bad2 = [];
+  for (const p of tsx) {
+    let src = ''; try { src = readFileSync(p, 'utf8'); } catch { continue; }
+    for (const m of src.matchAll(/label="([^"]+)"/g)) {
+      const v = m[1];
+      if (/^[A-Z0-9%().\/\-\s]+$/.test(v)) continue;        // 약어·기호만 — 번역 대상 아님
+      if (/[a-z]{3,}\s+[A-Za-z]/.test(v)) bad2.push(`${p.split('/').pop()}: "${v}"`);
+    }
+  }
+  bad2.length
+    ? bad(`label/aria-label 에 영문 하드코딩 ${bad2.length}건: ${bad2.slice(0, 4).join(' · ')}`)
+    : ok('label/aria-label 에 영문 하드코딩 없음');
+}
 
 console.log(fail === 0 ? '\n✅ enum-label-i18n 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

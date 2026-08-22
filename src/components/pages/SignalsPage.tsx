@@ -194,7 +194,7 @@ export default function SignalsPage({
           ) : source === 'cached' ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium border border-blue-200">
               <Database className="w-3.5 h-3.5" />
-              {updatedTickers} tickers cached
+              {t('tickersCached', { n: updatedTickers })}
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium border border-gray-200">

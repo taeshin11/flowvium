@@ -434,7 +434,8 @@
     "supplyDemand": "تدفق",
     "supplyDemandTitle": "عرض تدفق",
     "entryZone": "منطقة الشراء",
-    "priceEntry": "منطقة الشراء"
+    "priceEntry": "منطقة الشراء",
+    "tickersCached": "{n} رمزًا مخزنًا مؤقتًا"
   },
   "newsGap": {
     "title": "محلل الفجوات الإخبارية",
@@ -632,7 +633,8 @@
     "message": "الرسالة",
     "tellUs": "أخبرنا برأيك...",
     "cancel": "إلغاء",
-    "submitBtn": "إرسال"
+    "submitBtn": "إرسال",
+    "close": "إغلاق الملاحظات"
   },
   "common": {
     "loading": "جارٍ التحميل...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "تحذير",
     "alertCat_risk": "خطر",
     "topAccumUsSubtitle": "علامات تجميع مبنية على الحجم قبل الارتفاع (الولايات المتحدة، للمراقبة فقط)",
-    "accumUsNote": "ماسح أمريكي — حجم غير طبيعي / انكماش التقلب / قوة الإغلاق (بدون تحقق متقاطع من KRX) · للمراقبة"
+    "accumUsNote": "ماسح أمريكي — حجم غير طبيعي / انكماش التقلب / قوة الإغلاق (بدون تحقق متقاطع من KRX) · للمراقبة",
+    "colShortVol": "نسبة البيع على المكشوف %"
   },
   "short": {
     "title": "البيع على المكشوف · ضغط الشورت",
@@ -1862,7 +1865,9 @@
     "daysUnit": "يوم",
     "noData": "لا توجد بيانات",
     "noResults": "لا توجد نتائج للفلاتر الحالية",
-    "sourceNote": "المصدر: FINRA يومي · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · ذاكرة تخزين 4س"
+    "sourceNote": "المصدر: FINRA يومي · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · ذاكرة تخزين 4س",
+    "colDaysToCover": "أيام التغطية",
+    "colShortVolFinra": "نسبة البيع على المكشوف % (FINRA)"
   },
   "compare": {
     "title": "مقارنة الشركات",

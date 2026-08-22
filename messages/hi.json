@@ -434,7 +434,8 @@
     "supplyDemand": "प्रवाह",
     "supplyDemandTitle": "प्रवाह देखें",
     "entryZone": "खरीद क्षेत्र",
-    "priceEntry": "खरीद क्षेत्र"
+    "priceEntry": "खरीद क्षेत्र",
+    "tickersCached": "{n} टिकर कैश्ड"
   },
   "newsGap": {
     "title": "न्यूज़ गैप विश्लेषक",
@@ -632,7 +633,8 @@
     "message": "संदेश",
     "tellUs": "अपने विचार बताएं...",
     "cancel": "रद्द करें",
-    "submitBtn": "जमा करें"
+    "submitBtn": "जमा करें",
+    "close": "फ़ीडबैक बंद करें"
   },
   "common": {
     "loading": "लोड हो रहा है...",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "चेतावनी",
     "alertCat_risk": "खतरा",
     "topAccumUsSubtitle": "उछाल से पहले वॉल्यूम-आधारित संचय संकेत (यूएस, केवल अवलोकन)",
-    "accumUsNote": "यूएस स्क्रीनर — असामान्य वॉल्यूम / अस्थिरता संकुचन / क्लोज स्ट्रेंथ (KRX क्रॉस-चेक नहीं) · अवलोकन हेतु"
+    "accumUsNote": "यूएस स्क्रीनर — असामान्य वॉल्यूम / अस्थिरता संकुचन / क्लोज स्ट्रेंथ (KRX क्रॉस-चेक नहीं) · अवलोकन हेतु",
+    "colShortVol": "शॉर्ट वॉल्यूम %"
   },
   "short": {
     "title": "शॉर्ट सेलिंग · स्क्वीज़",
@@ -1862,7 +1865,9 @@
     "daysUnit": "दिन",
     "noData": "डेटा नहीं",
     "noResults": "फ़िल्टर से कोई परिणाम नहीं",
-    "sourceNote": "स्रोत: FINRA दैनिक शॉर्ट · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · कैश 4घं"
+    "sourceNote": "स्रोत: FINRA दैनिक शॉर्ट · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · कैश 4घं",
+    "colDaysToCover": "कवर करने के दिन",
+    "colShortVolFinra": "शॉर्ट वॉल्यूम % (FINRA)"
   },
   "compare": {
     "title": "कंपनी तुलनाकर्ता",

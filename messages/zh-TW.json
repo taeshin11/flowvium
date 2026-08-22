@@ -434,7 +434,8 @@
     "supplyDemand": "供需",
     "supplyDemandTitle": "查看供需",
     "entryZone": "建議買入區間",
-    "priceEntry": "建議買入區間"
+    "priceEntry": "建議買入區間",
+    "tickersCached": "已快取 {n} 檔股票"
   },
   "newsGap": {
     "title": "新聞盲區分析器",
@@ -632,7 +633,8 @@
     "message": "訊息",
     "tellUs": "請告訴我們您的想法...",
     "cancel": "取消",
-    "submitBtn": "提交"
+    "submitBtn": "提交",
+    "close": "關閉回饋"
   },
   "common": {
     "loading": "載入中...",
@@ -679,7 +681,7 @@
   "footer": {
     "tagline": "逐步繪製全球供應鏈版圖。",
     "builtBy": "由 THE ELIOT K FINANCIAL 精心打造",
-    "copyright": "© {year} Flowvium by THE ELIOT K FINANCIAL. All rights reserved.",
+    "copyright": "© {year} Flowvium by THE ELIOT K FINANCIAL. 保留所有權利。",
     "terms": "服務條款",
     "privacy": "隱私權政策",
     "contact": "聯絡我們",
@@ -1818,7 +1820,8 @@
     "alertCat_warning": "投資警告",
     "alertCat_risk": "投資危險",
     "topAccumUsSubtitle": "暴漲前基於成交量的吸籌先行訊號（美股·僅觀察·非推薦）",
-    "accumUsNote": "美股篩選器 — 成交量激增·波動率收縮·收盤強度（無KRX少數帳戶交叉驗證）·僅供觀察"
+    "accumUsNote": "美股篩選器 — 成交量激增·波動率收縮·收盤強度（無KRX少數帳戶交叉驗證）·僅供觀察",
+    "colShortVol": "放空成交占比 %"
   },
   "short": {
     "title": "放空 · 軋空",
@@ -1862,7 +1865,9 @@
     "daysUnit": "天",
     "noData": "無數據",
     "noResults": "無符合條件的標的",
-    "sourceNote": "來源: FINRA日度放空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 快取4小時"
+    "sourceNote": "來源: FINRA日度放空 · SEC EDGAR 13F · Finnhub P/E · Yahoo v10 Short Float · 快取4小時",
+    "colDaysToCover": "回補天數",
+    "colShortVolFinra": "放空成交占比 % (FINRA)"
   },
   "compare": {
     "title": "公司比較",

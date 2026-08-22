@@ -73,7 +73,7 @@ export default function FeedbackWidget() {
               className="flex items-center justify-center w-8 h-8 rounded-lg
                          text-cf-text-secondary hover:text-cf-text-primary hover:bg-gray-100
                          transition-all duration-200"
-              aria-label="Close feedback"
+              aria-label={t('close')}
             >
               <X className="w-4 h-4" />
             </button>
