@@ -52,13 +52,17 @@ export async function requires(spec) {
   if (spec.dbTables?.length) {
     try {
       const { openDb } = await import('./db.mjs');
+      // 2026-08-22: openDb() 는 **캐시된 싱글턴**을 돌려준다(db.mjs:522 `if (_dbInstance) return`).
+      //   여기서 close() 하면 프로세스 전체의 공유 커넥션이 닫혀, 이후 openDb() 를 쓰는
+      //   같은 테스트가 "The database connection is not open" 으로 죽는다.
+      //   실제로 outcome-strictness.test.mjs 를 만들다 이 잠복 결함을 밟았다.
+      //   전제조건 확인이 뒷사람의 자원을 망가뜨리면 안 된다 — 열지 않았으면 닫지 않는다.
       const db = openDb();
       for (const table of spec.dbTables) {
         let n = 0;
         try { n = db.prepare(`SELECT COUNT(*) c FROM ${table}`).get().c; } catch { n = -1; }
         if (n <= 0) missing.push(`db:${table}(${n < 0 ? '테이블 없음' : '0행'})`);
       }
-      db.close();
     } catch (e) { missing.push(`db:열기실패(${String(e.message).slice(0, 30)})`); }
   }
 

@@ -5168,10 +5168,22 @@ function getPortfolioFeedback() {
       FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
       WHERE r.action='buy' AND r.generated_at >= date('now','-30 days') AND o.spy_return IS NOT NULL
     `).get();
+      // 2026-08-22: 판정 관용(evaluate-recommendations: high >= target*0.98)이 2% 일찍 발동한다.
+      //   실측 — hit_target 94건 중 실제 목표가 도달은 31건(33%), 나머지는 98~100% 구간이다.
+      //   그 수를 그대로 주입하면 모델이 "목표 94회 달성" 으로 학습한다. 실제는 31회다.
+      //   이 저장소는 같은 부류를 이미 한 번 고쳤다(위 5105행 주석: "80% 승률 허수 주입").
+      //   관용 폭을 바꾸는 건 성과 측정 정책이라 여기서 정하지 않는다 —
+      //   대신 두 수치를 다 말한다. 사실을 가리지 않는 것과 기준을 바꾸는 것은 다르다.
+      const strictRow = dbA.prepare(`
+        SELECT SUM(CASE WHEN o.high_seen >= r.target THEN 1 ELSE 0 END) strict, COUNT(*) n
+        FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
+        WHERE o.outcome='hit_target' AND o.high_seen IS NOT NULL AND r.target IS NOT NULL
+          AND r.generated_at >= date('now','-30 days')
+      `).get();
     dbA.close();
     const text =
       `[Portfolio Feedback — 최근 30일 ${total}건 buy 추천 평가]\n` +
-      `종결 승률 ${winRate}% (${closed}건) | hit ${counts.hit_target} / sold ${counts.sold}${soldAvg != null ? ` (avg ${soldAvg >= 0 ? '+' : ''}${soldAvg}%)` : ''} / stop ${counts.stop_loss} / NE ${counts.not_entered} (${neRate}%) / holding ${counts.still_holding}\n` +
+      `종결 승률 ${winRate}% (${closed}건) | hit ${counts.hit_target}${strictRow?.n ? ` (실제 목표도달 ${strictRow.strict ?? 0}/${strictRow.n} — 나머지는 목표의 98~100% 구간)` : ''} / sold ${counts.sold}${soldAvg != null ? ` (avg ${soldAvg >= 0 ? '+' : ''}${soldAvg}%)` : ''} / stop ${counts.stop_loss} / NE ${counts.not_entered} (${neRate}%) / holding ${counts.still_holding}\n` +
       `평균 PnL ${avgPnl ?? '-'}% / SPY alpha ${alphaRow?.alpha ?? '-'}% / beat ${alphaRow?.beat ?? 0}/${alphaRow?.n ?? 0}\n` +
       (chronicNE.length ? `만성 NE 회피 (entry zone 시장가 위 자제): ${chronicNE.map(c => `${c.ticker}(${c.cnt}회)`).join(', ')}\n` : '');
     const summary = {
