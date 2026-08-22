@@ -159,6 +159,27 @@
 downstream 보유 0건(NVDA 도 `down=[]`). 수정 후 첫 보고서에서 `↘ 수혜: SK하이닉스, MU, TSM`
 이 떠야 한다. ReportPage.tsx:1575 는 발간 JSON 을 읽으므로 라이브 API 로는 확인 불가.
 
+### '없는 필드를 읽는 코드' 자동 검사 (2026-08-22 신설)
+
+같은 부류를 세 번 만나고서야 도구로 만들었다 — preferSmallModel · ctx.news?.articles ·
+ctxRaw.cascade[].downstreamBeneficiaries. 셋 다 `?? []` 가 조용히 삼켜 몇 달간 무증상.
+
+근거는 정적 분석이 아니라 **실행 시점에 기록한 진짜 모양**이다:
+    context-coverage.describeContextShapes → logs/ctx-shapes.json (매 보고서 실행 갱신)
+    check-context-fields  소스의 필드 접근 ↔ 기록된 모양 대조 (verify-all 등록)
+
+**첫 실행 5건 중 4건이 진짜였다:**
+  · insiderMap `i.filings ?? i.count ?? 1` → 항상 1 → micro_insider_buying{gte:3} 구조적 불가.
+    라이브가 매도 48:매수 1 이라 행 수를 그냥 세면 매도를 매수 신호로 만든다 →
+    insider-direction 단일 출처로 **매수만** 센다. 실측 49건 → NGTF=1.
+  · nport 13F 루프 `nport.positions` 없음 → 개통 이래 미실행. byTicker 에 변화율이 없어
+    **연결하지 않고 제거**했다(절대 보유량을 변화량 누적기에 넣으면 지표가 오염된다).
+  · creditSpread — credit 은 신용*융자 잔고* 지 스프레드가 아니다. 항상 null. 명시로 교체.
+    HY OAS 는 FRED BAMLH0A0HYM2 수집이 필요 — 새 통합이라 안 함.
+  · fearGreed.us.score — 작동하지 않는 안전망. 제거.
+
+교훈: **`?? 폴백` 은 계측 없이 쓰면 사각지대를 만든다.** 폴백이 100% 발생하면 그건 결함이다.
+
 ### 판단이 필요해 남긴 것 (내가 정할 게 아님)
 
 - `Fear & Greed` 내비 표기 — 하위 라벨이 '국가별 Fear & Greed' 로 일부러 혼용 중이라
