@@ -187,7 +187,12 @@ async function runMonitor() {
       result.checks.sourceHealth = 'OK';
     } catch (e) {
       const out = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
-      result.checks.sourceHealth = e.signal === 'SIGTERM' ? 'TIMEOUT(hang)' : 'DEFECT';
+      // exit 1 = 개별 소스 degradation. Stooq 는 봇차단으로 **영구 404** 라 exit 1 이 상시 난다 —
+      //   그걸 DEFECT 로 적으면 신호가 늘 빨갛고, 상시 빨간 신호는 아무도 안 본다
+      //   (이 저장소가 verify.yml 을 workflow_dispatch 로 내린 것과 같은 이유).
+      //   스크립트의 자체 등급을 그대로 따른다: exit 2 = 핵심 소스 전멸만 DEFECT.
+      result.checks.sourceHealth = e.signal === 'SIGTERM' ? 'TIMEOUT(hang)'
+        : e.code === 2 ? 'DEFECT' : 'DEGRADED';
       // 핵심 소스 전멸(exit 2)만 결함으로 올린다 — 개별 소스 degradation 은 표에만 남긴다.
       if (e.code === 2) result.defects.push(`상류 소스 장애: ${out.split('\n').filter((l) => l.includes('❌')).slice(0, 3).join(' | ').slice(0, 200)}`);
     }

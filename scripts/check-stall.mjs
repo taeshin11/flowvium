@@ -28,6 +28,7 @@ import { findReportProcesses } from './lib/report-running.mjs';
 import { backupStatus } from './lib/backup-health.mjs';
 import { findStaleJobs, listProcesses, loadJobPolicy } from './lib/stale-jobs.mjs';
 import { dbHealth } from './lib/db-health.mjs';
+import { analyzeCorrectors } from './lib/corrector-drift.mjs';
 // 발행 예정 시각을 지난 뒤 업로드/전파에 실제로 걸리는 시간의 여유분. 예산(90분)이 아니라 '전파 지연' 몫이다.
 const PUBLISH_GRACE_MIN = 10;
 import { readLauncherModels } from './lib/report-launcher.mjs';
@@ -306,6 +307,49 @@ async function checkOnce() {
     }
   } catch (e) {
     issues.push(`DB 무결성 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
+  // [12] 교정기 드리프트 (2026-08-22 신설).
+  //      이 세션에서 근본원인 7건 중 5건이 같은 형태였다 —
+  //      **증상을 고치는 코드가 이미 있었고 그게 원인을 몇 달간 가렸다.**
+  //      통화 교정기 주석에는 2026-05-24 날짜가 박혀 있었다(석 달). 교정기가 있으면
+  //      증상이 화면에 안 보이니 아무도 생산자를 고치지 않는다. 나는 손으로 찾았다.
+  //      신호: **거의 매 보고서마다 발동하는 교정기는 교정 대상이 아니라 버그다.**
+  //      임계값은 실측 간극에서 잡았다(92% 넷 = 전부 실제 버그 / 15% 이하 = 정상 산발).
+  try {
+    const days = 7;
+    // 위 `db`(:75)는 :136 에서 이미 닫혔다 — [11] 처럼 자체 연결을 열고 반드시 닫는다.
+    const cdb = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
+    let drift = [];
+    let totalReports = 0;
+    try {
+      totalReports = cdb.prepare(
+        `SELECT COUNT(*) n FROM reports WHERE created_at >= datetime('now','-' || ? || ' days')`,
+      ).get(days)?.n ?? 0;
+      const rows = cdb.prepare(
+        `SELECT defect_type, report_id, llm_value FROM hallucination_history
+         WHERE detected_at >= datetime('now','-' || ? || ' days')`,
+      ).all(days);
+      // 최신 2개에서도 발동해야 표면화한다 — 고친 뒤에도 7일 창이 빌 때까지 울면 곧 무시된다.
+      //   실측 근거: 통화 하드코딩을 고치자 바로 다음 보고서에서 교정 6→0 이 됐다.
+      const recentReportIds = cdb.prepare(
+        'SELECT id FROM reports ORDER BY created_at DESC LIMIT 2',
+      ).all().map((r) => r.id);
+      drift = analyzeCorrectors(rows, { totalReports, recentReportIds }).filter((r) => r.flagged);
+    } finally {
+      cdb.close();
+    }
+    if (drift.length) {
+      for (const d of drift.slice(0, 3)) {
+        issues.push(`교정기 상시발동 — ${d.defectType} ${d.reportsHit}/${d.totalReports}보고서 `
+          + `(검출 ${d.detections}, 고유입력 ${(d.diversity * 100).toFixed(0)}%). ${d.hint}. `
+          + `교정은 드물어야 한다 — 매번이면 앞단이 틀린 것이다`);
+      }
+    } else {
+      info.push(`교정기 ✓ 상시발동 없음 (최근 ${days}일 보고서 ${totalReports}개 기준)`);
+    }
+  } catch (e) {
+    issues.push(`교정기 드리프트 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
   return { issues, info };
