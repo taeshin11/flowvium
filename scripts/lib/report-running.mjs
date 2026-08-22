@@ -71,7 +71,28 @@ export async function isReportPipelineRunning(root = process.cwd()) {
  *   hung 판정과 GPU 양보 판정이 둘 다 이 목록을 보므로, 오탐 하나가 두 판정을 동시에 망친다.
  * @returns {Array<{pid:number, ageSec:number, command:string}>}
  */
-export const REPORT_PROC_RE = /node(?:\.exe)?\s[^\n]*generate-report-local\.mjs/;
+export const GENERATOR_SCRIPT = 'generate-report-local.mjs';
+
+/**
+ * 이 명령줄이 "실제로 도는 생성기"인가. 문자열 부분매칭이나 정규식이 아니라 argv 구조를 본다.
+ *
+ * 2026-08-22: 종전 규칙 /node(?:\.exe)?\s[^\n]*generate-report-local\.mjs/ 는
+ *   `node` 와 파일명이 한 줄 어딘가에 같이 있기만 하면 통과했다. 그래서
+ *     /bin/zsh -c "node scripts/run-lib-tests.mjs … git add … scripts/generate-report-local.mjs"
+ *   같은 내 셸 한 줄이 생성기로 집계됐다(lib 스위트 간헐 실패로 드러남).
+ *   2026-08-21 에 같은 오탐을 보고 문자열→정규식으로 바꿨지만 함정은 그대로였다.
+ *
+ * 규칙: argv[0] 의 basename 이 node 이고, 그 뒤 인자 중 하나가 이 스크립트여야 한다.
+ *   셸(/bin/zsh -c …)은 argv[0] 이 node 가 아니므로 내용과 무관하게 제외된다.
+ */
+export function isGeneratorCommand(command) {
+  const toks = String(command ?? '').trim().split(/\s+/).filter(Boolean);
+  if (toks.length < 2) return false;
+  const exe = toks[0].split(/[\\/]/).pop();
+  if (!/^node(\.exe)?$/.test(exe)) return false;
+  return toks.slice(1).some(t => t.split(/[\\/]/).pop() === GENERATOR_SCRIPT);
+}
+
 export function findReportProcesses() {
-  return findProcesses(REPORT_PROC_RE);
+  return findProcesses(isGeneratorCommand);
 }

@@ -75,7 +75,12 @@ export function findProcesses(pattern, opts = {}) {
     const [, pid, etime, command] = m;
     // 2026-08-21: pattern 은 문자열 또는 정규식. 문자열 부분매칭만 되던 탓에 명령줄에 이름이
     //   *스치기만* 한 프로세스가 잡혔다(실측: 내 백그라운드 대기 셸이 'report-gen 2번째'로 집계됨).
-    if (pattern instanceof RegExp ? !pattern.test(command) : !command.includes(pattern)) continue;
+    // pattern: 함수(권장) | 정규식 | 문자열. 함수는 argv 구조를 보므로 '이름만 스친' 셸을
+    //   내용과 무관하게 걸러낸다 — 문자열·정규식은 그게 안 돼 오탐이 반복됐다.
+    const hit = typeof pattern === 'function' ? pattern(command)
+              : pattern instanceof RegExp ? pattern.test(command)
+              : command.includes(pattern);
+    if (!hit) continue;
     // 자기 자신과 부모는 세지 않는다. 종전 코드
     //     if (+pid === process.pid && !command.includes(pattern)) continue;
     //   는 앞 줄이 이미 includes 를 요구하므로 절대 참이 될 수 없는 죽은 가드였다.
