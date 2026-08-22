@@ -54,3 +54,37 @@ export function formatContextCoverage(r) {
   if (r.empty.length) parts.push(`내용없음 ${r.empty.length}(${r.empty.join(', ')})`);
   return parts.join(' · ');
 }
+
+/**
+ * describeContextShapes — 각 섹션이 *실제로 어떤 키를 갖는지* 기록한다.
+ *
+ * 왜(2026-08-22): 같은 부류의 버그를 이 저장소에서 세 번 만났다 —
+ *   ① preferSmallModel: 선언만 하고 라우팅에서 안 씀
+ *   ② ctx.news?.articles: 존재하지 않는 필드를 읽어 micro_news_positive 가 개통 이래 0 발화
+ *   ③ ctxRaw.cascade[].downstreamBeneficiaries: 그 스키마에 없는 필드 → 공급망 룰 발화 불가
+ *   셋 다 "읽는 쪽이 없는 필드를 읽고 `?? []` 가 조용히 삼킨" 경우다. 몇 달간 무증상이었다.
+ *
+ * 정적 분석으로 잡으려면 unwrap 체인(`newsCascade?.articles ?? []`)까지 재현해야 해서
+ *   깨지기 쉽다. 그래서 *실행 시점의 진짜 모양* 을 남긴다 —
+ *   매 보고서 실행마다 갱신되므로 항상 현재를 반영한다.
+ *   값은 담지 않는다(시크릿·대용량 회피). 키 이름과 종류만이다.
+ */
+export function describeContextShapes(ctx) {
+  const out = {};
+  if (!ctx || typeof ctx !== 'object') return out;
+  const keysOf = (o) => (o && typeof o === 'object' && !Array.isArray(o)) ? Object.keys(o).slice(0, 60) : [];
+  for (const [k, v] of Object.entries(ctx)) {
+    if (Array.isArray(v)) {
+      // 배열 섹션은 *원소* 의 키가 중요하다 — 버그 ③ 이 정확히 이 자리였다.
+      //   원소마다 키가 다를 수 있으므로 앞쪽 표본의 합집합을 쓴다.
+      const union = new Set();
+      for (const el of v.slice(0, 20)) for (const kk of keysOf(el)) union.add(kk);
+      out[k] = { kind: 'array', n: v.length, elementKeys: [...union].sort() };
+    } else if (v && typeof v === 'object') {
+      out[k] = { kind: 'object', keys: keysOf(v).sort() };
+    } else {
+      out[k] = { kind: v === null || v === undefined ? 'null' : typeof v };
+    }
+  }
+  return out;
+}

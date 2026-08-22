@@ -35,6 +35,7 @@ import { Agent, fetch as undiciFetch, setGlobalDispatcher } from 'undici';
 import * as SESSIONS from './lib/report-sessions.mjs';
 import { limiterFor } from './lib/llm-gate.mjs';
 import { buildCascadeUpstreamSet } from './lib/cascade-upstream.mjs';
+import { buildInsiderBuyMap } from './lib/insider-count.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -59,7 +60,7 @@ import { localizeSectorKo } from './lib/sector-label.mjs';
 import { reconcileSqueeze, correctScoreMentions } from './lib/squeeze-reconcile.mjs';
 import { earningsMissSignal } from './lib/earnings-miss.mjs';
 import { reconcileCompanyYoY, isMeasuredYoY } from './lib/yoy-reconcile.mjs';
-import { inspectContextSections, formatContextCoverage } from './lib/context-coverage.mjs';
+import { inspectContextSections, formatContextCoverage, describeContextShapes } from './lib/context-coverage.mjs';
 import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
@@ -3246,7 +3247,10 @@ function computeMacroEarlyWarning(ctxRaw, fx = {}, extras = {}) {
   const y10 = get(['us10y', 'yield_10y', 'dgs10'])?.actual, y2 = get(['us2y', 'yield_2y', 'dgs2'])?.actual;
   if (y10 != null && y2 != null) { const sp = y10 - y2; if (sp < 0) add(18, `장단기금리 역전 ${sp.toFixed(2)}%p`); else if (sp < 0.2) add(8, `금리커브 평탄 ${sp.toFixed(2)}%p`); }
   // 4. 심리 극단 (탐욕 반전 / 공포 capitulation)
-  const fgScore = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? (ctxRaw?.fearGreed?.us?.score);
+    // 2026-08-22: `?? ctxRaw?.fearGreed?.us?.score` 폴백 제거. fearGreed 섹션에 `us` 키가 없다
+    //   (실측 14키: dataQuality·…·prevScore·score·source·trend). 1차 경로가 죽어도 이 폴백은
+    //   똑같이 undefined 다 — 작동하지 않는 안전망은 코드를 실제보다 견고해 보이게 만든다.
+    const fgScore = (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null;
   if (fgScore != null) {
     if (fgScore >= 80) add(15, `F&G ${fgScore} 극단탐욕(반전위험)`); else if (fgScore <= 20) add(10, `F&G ${fgScore} 극단공포`);
     // 4b. F&G 급랭 (2026-06-12 신설) — 절대 임계(≤20)만으론 42→27 급랭(4일)을 못 봄. 변화 속도 반영.
@@ -3522,7 +3526,12 @@ async function computeHistoricalAnalog(ctxRaw) {
       curveSlopePp: fp.slope != null ? +fp.slope.toFixed(2) : null, // 수익률곡선 기울기 (매칭 차원, 음수=역전)
       rate3moChgPp: fp.tyChg3m != null ? fp.tyChg3m : null,         // 금리 3개월 변화 (매칭 차원)
       fearGreed: (ctxRaw?.fearGreed ?? ctxRaw?.fear_greed)?.score ?? null,  // 현재 overlay (미스 시 null)
-      creditSpread: ctxRaw?.credit?.hyOasPct ?? ctxRaw?.creditSpread ?? null, // 현재 overlay
+        // 2026-08-22: 종전 `ctxRaw?.credit?.hyOasPct ?? ctxRaw?.creditSpread` 는 둘 다 존재하지 않는다.
+        //   ctxRaw.credit 은 /api/credit-balance = **신용융자 잔고**(totalBalance·globalGdpRatio·
+        //   riskCounts)이지 신용스프레드가 아니고, creditSpread 라는 섹션도 없다(실측 25섹션).
+        //   즉 이 값은 개통 이래 항상 null 이었다. 읽는 척하지 않고 없음을 명시한다.
+        //   HY OAS 를 쓰려면 FRED BAMLH0A0HYM2 수집이 필요하다 — 새 데이터 통합이라 여기서 안 한다.
+        creditSpread: null,   // 미수집 (위 주석 참조)
     };
     const base = {
       fingerprint: {
@@ -6898,6 +6907,13 @@ async function generateViaOllama() {
   //   목록은 반드시 실제와 갈린다. 객체에서 파생시켜 새 섹션이 자동으로 검사 대상이 되게 한다.
   //   null(수집 실패)과 빈 컬렉션(응답은 왔으나 내용 없음)을 구분한다 — 대응이 다르다.
   const ctxCoverage = inspectContextSections(ctxRaw);
+    // 2026-08-22: 섹션의 *실제 키 모양* 을 남긴다. check-context-fields 가 이걸 근거로
+    //   '없는 필드를 읽는 코드' 를 잡는다(같은 부류 버그를 이 저장소에서 세 번 만났다).
+    //   값은 안 담는다 — 키 이름과 종류만.
+    try {
+      writeFileSync(resolve(ROOT, 'logs/ctx-shapes.json'),
+        JSON.stringify({ at: new Date().toISOString(), shapes: describeContextShapes(ctxRaw) }, null, 2));
+    } catch { /* 기록 실패는 보고서와 무관 */ }
   if (ctxCoverage.failed.length || ctxCoverage.empty.length) {
     console.warn(`  ⚠️  컨텍스트 ${formatContextCoverage(ctxCoverage)}`);
   } else {
@@ -6959,7 +6975,11 @@ async function generateViaOllama() {
       if (m.size) console.log(`  [news-match] 기사↔종목 매칭 ${m.size}종 (뉴스 sentiment 신호 복원)`);
       return m;
     })(),
-    insiderMap: new Map((ctxRaw?.insider ?? []).map(i => [i.ticker, i.filings ?? i.count ?? 1])),
+      // 2026-08-22: 종전엔 `i.filings ?? i.count ?? 1` 이었는데 insider 원소에 그 두 필드가 없다
+      //   (실행 시점 모양 실측 20키). 값이 항상 1 이라 micro_insider_buying{filings_gte:3} 이
+      //   구조적으로 발화 불가였다. 행 수를 세되 **매수만** 센다 — 라이브 분포가 매도 48:매수 1 이라
+      //   전체를 세면 내부자 매도를 매수 신호로 만든다. 방향은 insider-direction 단일 출처를 쓴다.
+      insiderMap: buildInsiderBuyMap(ctxRaw?.insider),
     newsGapMap: new Map((ctxRaw?.newsGap ?? []).filter(g => g.ticker && typeof g.gapScore === 'number').map(g => [g.ticker, g.gapScore])),  // 2026-06-12
     // 2026-08-21: 종전 `ctxRaw?.shorts`(복수)는 존재하지 않는 키였다 — 원본은 :3815 `short:`(단수)다.
     //   그래서 이 맵이 영구히 비었고 :5379 squeezeScore 가 항상 null 이라 후보 점수 룰이 침묵 미발화했다.
@@ -7252,7 +7272,13 @@ async function generateViaOllama() {
     inst13f.set(t, d);
   };
   for (const o of (Array.isArray(ctxRaw?.ownership) ? ctxRaw.ownership : [])) bump13f(o.ticker, Number(o.changePct ?? o.pct ?? 0), o.sharesChanged ?? 0);
-  for (const p of (Array.isArray(ctxRaw?.nport?.positions) ? ctxRaw.nport.positions : (Array.isArray(ctxRaw?.nport) ? ctxRaw.nport : []))) bump13f(p.ticker, Number(p.changePct ?? p.deltaPct ?? 0), p.sharesChanged ?? p.shareChange ?? 0);
+    // 2026-08-22: nport 13F 누적 가지 제거. check-context-fields 가 잡았다 —
+    //   ctxRaw.nport 실제 키는 byTicker·funds·fundCount·source·updatedAt 이고 `positions` 는 없다.
+    //   폴백 `Array.isArray(ctxRaw?.nport)` 도 객체라 false → 이 루프는 개통 이래 한 번도 안 돌았다.
+    //   byTicker 로 연결하지 *않는다*: 원소가 {ticker,totalValueUsd,totalShares,funds} 로
+    //   **변화율이 없다**. bump13f 는 변화량 누적기라(pct<0→reducers, netShares+=shares)
+    //   절대 보유량을 넣으면 순변화 지표가 오염된다. 없는 신호를 만들어내지 않는다.
+    //   nport-holdings 가 delta 를 제공하게 되면 그때 연결할 것.
   const macroCtx = {
     riskLevel: macroData?.riskLevel ?? null,
     //   ③ vix: .score(미존재) → .vix (buy 경로 line 6065 와 동일, earlyWarning 과 같은 오필드 버그였음)

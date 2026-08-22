@@ -83,6 +83,19 @@ const checks = [
     dimensions: ['전 종목 /company 핵심데이터 보유 (표본 아님, 전수)'],
   },
   {
+    // 2026-08-22 신설: 컨텍스트 섹션에 *없는 필드* 를 읽는 코드 탐지.
+    //   같은 부류 버그를 이 저장소에서 세 번 만났다 — preferSmallModel(선언만) ·
+    //   ctx.news?.articles(미존재 필드) · ctxRaw.cascade[].downstreamBeneficiaries(다른 객체).
+    //   셋 다 `?? []` 폴백이 조용히 삼켜 몇 달간 무증상이었다. 정적 목록이 아니라
+    //   *실행 시점에 기록한 실제 모양*(logs/ctx-shapes.json)과 대조한다.
+    //   모양 파일이 없으면(보고서 미실행) 판정하지 않고 통과한다.
+    name: 'context-fields',
+    script: 'scripts/check-context-fields.mjs',
+    desc: '컨텍스트 섹션에 없는 필드 접근 (silent undefined)',
+    critical: true,
+    dimensions: ['ctxRaw 섹션 스키마 ↔ 실제 필드 접근 정합'],
+  },
+  {
     // 2026-08-20: lib 테스트가 39개까지 늘었는데 verify-all 도 package.json 도 부르지 않았다 —
     //   손으로 돌릴 때만 실행되니 회귀가 나도 아무도 모르는 상태였다. 테스트가 있어도 안 돌면 없는 것.
     // 2026-08-22: --strict 추가. 테스트가 자기 전제조건을 선언하고 못 갖추면 스킵하는데
