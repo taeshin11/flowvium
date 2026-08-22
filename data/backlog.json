@@ -102,9 +102,9 @@
     "tag": "RPO"
   },
   "PH": {
-    "rpoUsd": 12500000000,
-    "rpoYoYPct": 13.6,
-    "end": "2026-03-31",
+    "rpoUsd": 12800000000,
+    "rpoYoYPct": 16.4,
+    "end": "2026-06-30",
     "tag": "RPO"
   },
   "DIS": {
@@ -1194,9 +1194,9 @@
     "tag": "RPO"
   },
   "AMAT": {
-    "rpoUsd": 2570000000,
-    "rpoYoYPct": 3.2,
-    "end": "2026-04-26",
+    "rpoUsd": 3271000000,
+    "rpoYoYPct": 32.4,
+    "end": "2026-07-26",
     "tag": "deferred"
   },
   "LRCX": {
@@ -2058,9 +2058,9 @@
     "tag": "deferred"
   },
   "BILL": {
-    "rpoUsd": 60000000,
-    "rpoYoYPct": -19.4,
-    "end": "2026-03-31",
+    "rpoUsd": 55600000,
+    "rpoYoYPct": -23.9,
+    "end": "2026-06-30",
     "tag": "RPO"
   },
   "OLN": {
