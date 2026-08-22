@@ -5405,6 +5405,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
   // ── Stage 1 (light): 모든 livePrices ticker 에 대해 macro/sector/region/insider/squeeze/news/boost ──
   const allTickers = [...livePrices.keys()];
   console.log(`  [buy-cand Stage 1] ${allTickers.length} ticker 가벼운 score 계산...`);
+    const stage1CtxNullCount = { total: 0, fields: {} };
   const stage1Scored = [];
   for (const ticker of allTickers) {
     if (banList.has(ticker)) continue;
@@ -5451,6 +5452,8 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       boostListMember: boostList.has(ticker),
       banListMember: banList.has(ticker),
     };
+      stage1CtxNullCount.total++;
+      for (const [f, v] of Object.entries(ctx)) if (v === null || v === undefined) stage1CtxNullCount.fields[f] = (stage1CtxNullCount.fields[f] ?? 0) + 1;
     let cumScore = 0;
     const reasons = [];
     // 2026-06-13: 사전수집 재무가 있으면 fundamental 룰을 stage-1 에서 평가 (top-50 깔때기 제거).
@@ -5473,6 +5476,22 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     //   Stage 1 은 같은 값을 ctx 에 넣어 이미 쓰고 있었다 — 투영에서만 빠진 데이터 흐름 결함이다.
     if (cumScore > 0) stage1Scored.push({ ticker, sector: meta.sector ?? 'Unknown', market: isKR ? 'kr' : 'us', stage1Score: cumScore, reasons, price: pd.price, change1d: pd.change1d ?? null });
   }
+    // 2026-08-22: '평가했는데 조건 미충족' 과 '입력이 없어 평가 불가' 를 구분해 알린다.
+    //   실측 배경 — 최근 12개 보고서에서 macro 카테고리 기여도가 0.8% 였고 macro_low_risk 는
+    //   0회 발화였다. 원인은 조건이 안 맞아서가 아니라 buyMacroCtx.riskLevel 이 항상 null 이기
+    //   때문이다(:6895 주석 — Wave1 macroData 가 아직 없어 fg/vix 만 쓴다). 즉 후보 선정이
+    //   거시 분석보다 먼저 돈다. 순서를 바꾸는 건 투자 로직 결정이라 여기서 하지 않는다.
+    //   대신 '이 단계에서 평가 불가' 를 조용히 넘기지 않는다 — 안 보이면 아무도 못 고친다.
+    if (stage1CtxNullCount.total > 0) {
+      const dead = Object.entries(stage1CtxNullCount.fields)
+        .filter(([, n]) => n === stage1CtxNullCount.total)
+        .map(([f]) => f);
+      if (dead.length) {
+        console.warn(`  ⚠️  [buy-cand] 전 종목에서 null 인 입력 ${dead.length}종 — 이 입력을 쓰는 룰은 `
+          + `이 단계에서 평가 자체가 불가: ${dead.join(', ')}`);
+      }
+    }
+
   stage1Scored.sort((a, b) => b.stage1Score - a.stage1Score);
   const stage2Cands = sliceWithKrQuota(stage1Scored, 100, 30); // top 100 → Stage 2 (KR 30 슬롯 보장)
 
