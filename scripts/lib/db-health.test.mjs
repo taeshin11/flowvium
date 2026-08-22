@@ -29,6 +29,11 @@ let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);
 const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
 
+// 2026-08-22: 이 테스트도 자기 전제조건을 선언한다. CI(깨끗한 clone)엔 데이터가 든 DB 도
+//   대조할 백업도 없다 — 실제로 이 선언을 빠뜨린 채 CI 시뮬을 돌렸다가 내 기전에 내가 걸렸다.
+import { requires } from './test-env.mjs';
+await requires({ dbTables: ['reports'], backup: true });
+
 const M = await import('./db-health.mjs').catch((e) => { bad(`db-health.mjs 없음: ${String(e.message).slice(0,50)}`); return null; });
 if (!M) { console.log('\n❌ 1건 실패'); process.exit(1); }
 

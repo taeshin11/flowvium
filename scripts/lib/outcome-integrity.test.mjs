@@ -25,7 +25,7 @@ import { fileURLToPath } from 'url';
 //   CI(깨끗한 clone)엔 데이터가 든 DB 가 없다 — 그걸 '실패' 로 세면 CI 가 상시 빨갛고,
 //   상시 빨간 CI 는 아무도 안 본다. --strict 에서는 스킵도 실패로 센다.
 import { requires } from './test-env.mjs';
-await requires({ dbRows: { recommendation_outcomes: 50 } });
+await requires({ dbTables: ['recommendation_outcomes'] });
 
 import Database from 'better-sqlite3';
 

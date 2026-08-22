@@ -29,8 +29,9 @@ export const SKIP_CODE = 77;
  * @param {{
  *   envFile?: boolean,              // .env.local 존재
  *   env?: string[],                 // .env.local 로드 후 해당 키가 값이 있는가
- *   dbRows?: Record<string, number>,// 테이블별 최소 행 수
+ *   dbTables?: string[],            // 이 테이블들이 비어 있지 않은가
  *   http?: string[],                // 응답하는 URL (2s 상한)
+ *   backup?: boolean,               // 대조할 로컬 백업 스냅샷이 있는가
  * }} spec
  */
 export async function requires(spec) {
@@ -43,17 +44,29 @@ export async function requires(spec) {
     for (const k of spec.env) if (!process.env[k]) missing.push(`env:${k}`);
   }
 
-  if (spec.dbRows && Object.keys(spec.dbRows).length) {
+  // 2026-08-22 정정: 처음엔 `dbRows: { table: 50 }` 처럼 최소 행 수를 받았는데, 그 50 은
+  //   내가 손으로 정한 숫자였다 — 하드코딩과 다르지 않고 근거도 없었다.
+  //   이 검사가 실제로 묻는 것은 "데이터가 든 DB 인가, 빈 스키마인가" 다(CI 는 정확히 0이다).
+  //   그러니 임의의 하한이 아니라 **비어 있지 않은가** 를 묻는 게 맞다.
+  //   '이 단언을 하기에 표본이 충분한가' 는 각 테스트 자신의 판단이지 전제조건이 아니다.
+  if (spec.dbTables?.length) {
     try {
       const { openDb } = await import('./db.mjs');
       const db = openDb();
-      for (const [table, min] of Object.entries(spec.dbRows)) {
+      for (const table of spec.dbTables) {
         let n = 0;
         try { n = db.prepare(`SELECT COUNT(*) c FROM ${table}`).get().c; } catch { n = -1; }
-        if (n < min) missing.push(`db:${table}>=${min}(실제 ${n < 0 ? '테이블 없음' : n})`);
+        if (n <= 0) missing.push(`db:${table}(${n < 0 ? '테이블 없음' : '0행'})`);
       }
       db.close();
     } catch (e) { missing.push(`db:열기실패(${String(e.message).slice(0, 30)})`); }
+  }
+
+  if (spec.backup) {
+    try {
+      const { newestBackup } = await import('./db-health.mjs');
+      if (!newestBackup()) missing.push('backup:로컬 스냅샷 없음');
+    } catch (e) { missing.push(`backup:판독실패(${String(e.message).slice(0, 30)})`); }
   }
 
   for (const url of spec.http ?? []) {
