@@ -52,6 +52,23 @@ function meaningTokens(s) {
 }
 
 /**
+ * 두 회사명이 같은 회사를 가리키는가. 의미 토큰이 하나라도 겹치면 같다고 본다.
+ *
+ * 2026-08-22: 하네스가 `"Visa"→"Visa Inc."` 같은 **정상 축약형**까지 모델 결함으로 적어 왔다
+ *   (harness_usNameMismatch 최근 7일 32건 중 대부분). 표시명을 권위값으로 통일하는 것은 옳지만,
+ *   축약형을 쓴 걸 환각으로 기록하면 결함 추세가 노이즈로 덮인다.
+ *   같은 판정이 cascade-asset.mjs 안에도 비공개로 있었다 — 두 벌이면 갈리므로 여기로 모은다.
+ */
+export function sameCompany(a, b) {
+  if (!a || !b) return true;               // 비교할 게 없으면 다르다고 단정하지 않는다
+  const A = meaningTokens(a), B = meaningTokens(b);
+  if (!A.size || !B.size) return true;
+  for (const w of B) if (A.has(w)) return true;
+  for (const w of A) if (B.has(w)) return true;
+  return false;
+}
+
+/**
  * 두 권위를 대조해 표시명을 고른다.
  * @param {{sec?:string, yahoo?:string, ticker?:string, isFund?:boolean}} o
  * @returns {{name:string, source:'yahoo'|'sec', conflict:boolean}}

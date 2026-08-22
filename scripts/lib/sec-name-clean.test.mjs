@@ -98,6 +98,22 @@ M.secTitleCase('BANK OF NEW YORK MELLON CORP') === 'Bank of New York Mellon Corp
     : bad(`isFund 플래그가 무시된다: ${JSON.stringify(b)}`);
 }
 
+// [5c] 같은 회사인지 판정 — 축약형을 '다른 회사'로 세면 안 된다
+{
+  for (const [a, b] of [['Visa Inc.','Visa'], ['NVIDIA Corporation','NVIDIA'],
+                        ['Ross Stores, Inc.','Ross Stores'], ['Eli Lilly and Company','Eli Lilly'],
+                        ['Meta Platforms, Inc.','Meta Platforms']]) {
+    M.sameCompany(a, b) ? ok(`같은 회사: "${a}" ~ "${b}"`) : bad(`축약형을 다른 회사로 본다: "${a}" vs "${b}"`);
+  }
+  for (const [a, b] of [['Fiserv, Inc.','Fidelity National Information Services'],
+                        ['Copart','Cypress Semiconductor'],
+                        ['Paramount Global','Banzai International, Inc.']]) {
+    !M.sameCompany(a, b) ? ok(`다른 회사로 판정: "${a}" vs "${b}"`) : bad(`다른 회사를 같다고 본다: "${a}" vs "${b}"`);
+  }
+  // 법인격 접미만 다른 경우
+  M.sameCompany('Waters Corporation', 'Waters Corp') ? ok('법인격 접미 차이는 같은 회사') : bad('접미 차이를 다른 회사로 본다');
+}
+
 // [6] 빌더가 이 모듈을 쓰는가
 {
   const { readFileSync } = await import('fs');

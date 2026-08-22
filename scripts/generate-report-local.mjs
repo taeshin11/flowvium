@@ -40,6 +40,7 @@ import { enrichStopLoss, nativeCurrencyForTicker as nativeCurrencyForTickerMjs }
 import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 import { diffFragment } from './lib/diff-fragment.mjs';
 import { peakRiskAction } from './lib/peak-risk-action.mjs';
+import { sameCompany } from './lib/sec-name-clean.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -570,10 +571,13 @@ function applyLocalHarness(r, livePrices) {
   }
 
   // 6f. US ticker → name 권위 맵 (company-names.json 499 + 큐레이션) — CPRT/SMCI/MU 류 환각 차단
+  //   2026-08-22: 표시명을 권위값으로 통일하는 건 그대로 두되 **기록**은 다른 회사일 때만 한다.
+  //   종전에는 `"Visa"→"Visa Inc."` 같은 정상 축약형까지 모델 결함으로 적어
+  //   harness_usNameMismatch 가 주당 32건 쌓였다(대부분 노이즈). 진짜 결함이 그 안에 묻힌다.
   for (const p of r.portfolio) {
     const expected = US_NAME_LOOKUP[p.ticker?.toUpperCase()];
     if (expected && p.name !== expected) {
-      audit.fixes.usNameMismatch.push(`${p.ticker}:portfolio "${p.name}"→"${expected}"`);
+      if (!sameCompany(expected, p.name)) audit.fixes.usNameMismatch.push(`${p.ticker}:portfolio "${p.name}"→"${expected}"`);
       p.name = expected;
     }
   }
@@ -581,7 +585,7 @@ function applyLocalHarness(r, livePrices) {
     for (const c of r.companyChanges) {
       const expected = US_NAME_LOOKUP[c.ticker?.toUpperCase()];
       if (expected && c.name !== expected) {
-        audit.fixes.usNameMismatch.push(`${c.ticker}:companyChanges "${c.name}"→"${expected}"`);
+        if (!sameCompany(expected, c.name)) audit.fixes.usNameMismatch.push(`${c.ticker}:companyChanges "${c.name}"→"${expected}"`);
         c.name = expected;
       }
     }
