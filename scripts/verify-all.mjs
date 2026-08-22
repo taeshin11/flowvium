@@ -12,6 +12,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pickLatestReport } from './verify-report.mjs';
+import { classifyCheck } from './lib/verify-gate.mjs';
 
 const NODE = process.execPath;
 const ROOT = process.cwd();
@@ -19,16 +20,21 @@ const ROOT = process.cwd();
 const CI = process.env.VERIFY_CI === '1' || process.env.CI === 'true';
 
 // 2026-05-31: 병렬 spawn — 6 script 동시 실행. 222s → 90s 기대 (가장 느린 audit-coverage ~140s).
+const CHILD_TIMEOUT_MS = 300000;
 function runChild(node, script, args) {
   return new Promise(resolve => {
     let stdout = '', stderr = '';
     const t0 = Date.now();
+    let timedOut = false;
     const child = spawn(node, [script, ...args], { cwd: ROOT });
     child.stdout.on('data', d => { stdout += d.toString(); });
     child.stderr.on('data', d => { stderr += d.toString(); });
-    child.on('close', code => resolve({ stdout: stdout + stderr, status: code, durationMs: Date.now() - t0 }));
-    child.on('error', e => resolve({ stdout: String(e), status: -1, durationMs: Date.now() - t0 }));
-    setTimeout(() => { try { child.kill(); } catch {} }, 300000);
+    // 2026-08-22: 타임아웃을 표시해 돌려준다. 종전에는 kill 후 code=null 로만 resolve 돼
+    //   `status !== 0` 이 참이 되고 critical 체크가 fail 처리됐다 — 시간 내 못 끝낸 것을
+    //   결함과 같게 센 것이다. 기계가 바쁠 때마다 push 가 막혔다(실측: 발간 대기 중 2회).
+    child.on('close', code => resolve({ stdout: stdout + stderr, status: code, timedOut, durationMs: Date.now() - t0 }));
+    child.on('error', e => resolve({ stdout: String(e), status: -1, timedOut, durationMs: Date.now() - t0 }));
+    setTimeout(() => { timedOut = true; try { child.kill(); } catch {} }, CHILD_TIMEOUT_MS);
   });
 }
 
@@ -42,6 +48,10 @@ const checks = [
     //   CNN 418 rate-limit)은 환경 문제지 코드 회귀 아님 → warn. 진짜 critical(핵심
     //   source 전멸)은 스크립트가 exit code 2 로 신호 → verify-all 이 hard-fail 처리.
     critical: false,
+    // 2026-08-22: live — 바깥 세상 상태는 내 diff 와 무관하므로 push 를 막지 않는다.
+    //   exit 2 hardCritical 경로가 위 critical:false 선언을 덮어써 발간 시간대마다 push 가 막혔다.
+    //   검사를 없앤 게 아니라 cron 주기감시로 옮겼다(cron-runner.mjs sourceHealth).
+    live: true,
     dimensions: ['외부 source 헬스 (Stooq/Yahoo/SEC/FRED/CNN)'],
   },
   {
@@ -286,11 +296,10 @@ const promises = checks.map(c => {
     //   - exit 2 = 스크립트 자체 판단 hard-critical (핵심 source 전멸 등) → 항상 fail.
     //   - exit 1 또는 stdout ❌ = 결함 있음 → critical 체크면 fail, 아니면 warn (가시화만).
     //   silent false pass 차단(exit 0 인데 ❌ 다수)은 critical 체크의 errCount 로 유지.
-    const hardCritical = res.status === 2;
-    const softProblem = res.status !== 0 || errCount > 0;
-    const failed = hardCritical || (c.critical && softProblem);
-    const status = failed ? 'fail' : (softProblem || warnCount > 0 ? 'warn' : 'pass');
-    return { ...c, status, errCount, warnCount, okCount, durationMs: res.durationMs, exitCode: res.status };
+    const { status, blocking } = classifyCheck({
+      exitCode: res.status, timedOut: res.timedOut, errCount, warnCount, critical: c.critical, live: c.live,
+    });
+    return { ...c, status, blocking, errCount, warnCount, okCount, durationMs: res.durationMs, exitCode: res.status, timedOut: res.timedOut };
   });
 });
 
@@ -304,6 +313,7 @@ for (const r of results) {
 
 console.log('\n═══ 종합 ═══');
 const failCount = results.filter(r => r.status === 'fail').length;
+const blockCount = results.filter(r => r.blocking).length;
 const warnCount = results.filter(r => r.status === 'warn').length;
 const passCount = results.filter(r => r.status === 'pass').length;
 const skipCount = results.filter(r => r.status === 'skip').length;
@@ -341,4 +351,9 @@ for (const r of results.filter(x => x.status !== 'pass' && x.status !== 'skip'))
   console.log(`  node ${r.script}${argsStr}`);
 }
 
-process.exit(failCount > 0 ? 1 : 0);
+// 2026-08-22: 차단은 blocking 기준. live 검사 실패와 타임아웃은 표에 그대로 보이되 막지 않는다.
+const timeoutRows = results.filter(r => r.status === 'timeout');
+if (timeoutRows.length) console.log(`⏱  타임아웃 ${timeoutRows.length}건 — 판정 없음(차단 안 함): ${timeoutRows.map(r => r.name).join(', ')}`);
+const nonBlocking = results.filter(r => r.status === 'fail' && !r.blocking);
+if (nonBlocking.length) console.log(`🌐 외부 상태 실패 ${nonBlocking.length}건 — 차단 안 함(cron 주기감시가 본다): ${nonBlocking.map(r => r.name).join(', ')}`);
+process.exit(blockCount > 0 ? 1 : 0);

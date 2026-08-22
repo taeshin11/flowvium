@@ -174,6 +174,25 @@ async function runMonitor() {
       for (const l of out.split('\n')) if (l.includes('🚨')) result.defects.push(l.replace(/.*🚨\s*/, '').trim());
     }
   }
+
+  // 2026-08-22: 상류 소스 헬스(Yahoo/SEC/FRED/CNN)를 주기 감시로 옮겼다.
+  //   종전에는 pre-push 의 verify-all 에서만 돌았고, 그 자리에서 exit 2 로 push 를 막았다.
+  //   바깥 세상 상태는 코드 diff 와 무관한데 발간 시간대마다 경합으로 push 가 막혔다(실측 2회).
+  //   verify-all 은 계속 돌리되 차단하지 않고(live:true), 무인 구간은 여기서 본다.
+  //   20분마다는 돌리지 않는다 — 외부 API 를 하루 72회 두드리면 429 를 자초한다(이번에 겪었다).
+  const SOURCE_HEALTH_MS = 3 * 60 * 60 * 1000;
+  if (!deployWindow && Date.now() - (_lastRun.sourceHealth ?? 0) > SOURCE_HEALTH_MS) {
+    try {
+      await execFileAsync('node', ['scripts/audit-data-sources.mjs'], { timeout: 120000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
+      result.checks.sourceHealth = 'OK';
+    } catch (e) {
+      const out = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
+      result.checks.sourceHealth = e.signal === 'SIGTERM' ? 'TIMEOUT(hang)' : 'DEFECT';
+      // 핵심 소스 전멸(exit 2)만 결함으로 올린다 — 개별 소스 degradation 은 표에만 남긴다.
+      if (e.code === 2) result.defects.push(`상류 소스 장애: ${out.split('\n').filter((l) => l.includes('❌')).slice(0, 3).join(' | ').slice(0, 200)}`);
+    }
+    recordRun('sourceHealth');
+  }
   // 2026-06-12 GPU 열 감시 (사용자 "GPU 96%/82°C — 컴퓨터 꺼지지 않게 조치 철저히"; 6/7 hard
   //   freeze 기여 의심): 83°C+ 결함 표면화, 87°C+ 이고 보고서 파이프라인이 아니면 ollama 모델
   //   강제 언로드(load shed). 웹측 semaphore(llm-local)와 이중 방어.
