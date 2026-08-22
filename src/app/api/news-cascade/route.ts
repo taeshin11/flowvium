@@ -807,10 +807,12 @@ ${supplyChainCtx}
 Analyze the cascade effects on financial markets. If supply chain relationships are provided above, use them to identify specific ticker-level impacts with correct direction and timing.
 
 GROUNDING RULE — do not invent tickers.
-Use a ticker ONLY when it appears in the supply-chain context above, or is named in the headline itself.
-For Korean stocks this is strict: emit a 6-digit code ONLY if that exact code appears above.
-If you cannot ground a ticker, name the sub-sector instead. A sub-sector name is always acceptable;
-a fabricated code is not — it renders as a clickable symbol and sends the reader to a different company.
+A ticker must be COPIED from the supply-chain context above, or be a symbol explicitly written in the headline.
+A company being *mentioned by name* does NOT license you to supply its ticker from memory.
+Korean 6-digit codes: emit one ONLY if that exact code is written above. Otherwise write the sub-sector.
+Recalled codes are wrong often enough that we drop them — e.g. a Korean IPO article produced
+'035990.KS', '028910.KS', '012390.KS', none of which exist. Naming the sub-sector loses nothing;
+a fabricated code renders as a clickable symbol and sends the reader to a different company.
 Respond in JSON only:
 {
   "summary": "1-2 sentence summary",
@@ -818,7 +820,7 @@ Respond in JSON only:
   "importance": "high|medium|low",
   "cascades": [
     {
-      "asset": "EITHER a bare ticker symbol OR a sub-sector name — never both, never a company name. Korean stocks MUST use the bare 6-digit code with market suffix, e.g. '005930.KS', '247540.KQ' — do NOT write 'KRX:005930' and do NOT add the company name in parentheses. US stocks: bare symbol only, e.g. 'NVDA', 'TSM'. Sub-sector examples: 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries'",
+      "asset": "EITHER a bare ticker symbol OR a sub-sector name — never both, never a company name. Korean stocks: use a 6-digit code ONLY when that exact code is written in the context above — copy it verbatim with its market suffix (e.g. '005930.KS', '247540.KQ'). If no code is given, write the sub-sector name instead; never reconstruct a Korean code from memory. Do NOT write 'KRX:005930' and do NOT add the company name in parentheses. US stocks: bare symbol only, e.g. 'NVDA', 'TSM'. Sub-sector examples: 'AI Semiconductors', 'Fiber Optics', 'Power Infrastructure', 'Data Centers', 'Defense', 'Biotech', 'EV Batteries'",
       "direction": "positive|negative|neutral",
       "magnitude": "high|medium|low",
       "reason": "1 sentence citing the supply chain link or market mechanism",
