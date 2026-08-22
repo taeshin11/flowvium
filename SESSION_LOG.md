@@ -130,6 +130,35 @@
 → 이름 주장이 붙은 KR 항목을 버리는 규칙 때문에 커버리지를 잃을까 걱정했는데,
    프롬프트가 애초에 맨 티커를 내므로 그 분기를 타지 않는다. 우려 해소.
 
+### 매수 추천 파이프라인 실측 (2026-08-22, 사용자 질문 "5개 축 다 고려했나")
+
+최근 12개 보고서·후보 382행 기준 카테고리 기여도:
+
+    fundamental 36.9% · price 23.3% · technical 15.5% · guru 14.4% · micro 8.8% · macro 0.8% · rotation 0.2%
+
+축별 결론 — **기술적·기업 상황은 반영, 거시는 사실상 0, 공급망은 배선이 죽어 있었다.**
+
+죽은 배선 2개(둘 다 수정·푸시):
+  [A] generate-report-local:6955 이 `ctxRaw.cascade`(news-cascade **기사**)에서
+      downstreamBeneficiaries 를 읽었다. 그 스키마엔 그 필드가 없다(실측 12키 전수).
+      올바른 소스는 ctxRaw.supplyChainSignals(:3887). → Set 항상 비어 룰 발화 불가.
+  [B] supply-chain-signals/route.ts:320 이 `downstreamBeneficiaries: []` 를 박고
+      inferDownstream 을 안 불렀다(:190·:570·:608 은 부른다). 2026-06-15 본문파싱 개선 시 회귀.
+      → A 만 고쳐도 데이터가 없어 여전히 안 울린다.
+  실측: 수정 전 보유 0/20 → 수정 후 1/20, NVDA → 000660.KS · MU · TSM (Set 3종)
+
+거시(0.8%)는 **순서 문제**다 — `buyMacroCtx.riskLevel: null` (:6895 주석: "Wave 1 macroData 가
+아직 없음"). 후보 선정이 거시·섹터 분석보다 먼저 돈다. 순서 변경은 투자 로직 결정이라
+하지 않고, 대신 '평가 불가' 를 매 실행 경고로 드러냈다:
+    ⚠️ [buy-cand] 전 종목에서 null 인 입력 3종 … macroRiskLevel, sectorStance, regionStance
+
+성과(판정 1,340건): 종결 721건 +1.86% vs SPY -0.02% (+1.88%p) · 승률 54.7% · 손익비 약 4:1
+                    **not_entered 244건(18%)** — 가장 큰 누수.
+
+**미검증(14:30 오후 보고서에서 확인할 것)**: 현재 발간본의 supplyChainChanges 10건은
+downstream 보유 0건(NVDA 도 `down=[]`). 수정 후 첫 보고서에서 `↘ 수혜: SK하이닉스, MU, TSM`
+이 떠야 한다. ReportPage.tsx:1575 는 발간 JSON 을 읽으므로 라이브 API 로는 확인 불가.
+
 ### 판단이 필요해 남긴 것 (내가 정할 게 아님)
 
 - `Fear & Greed` 내비 표기 — 하위 라벨이 '국가별 Fear & Greed' 로 일부러 혼용 중이라
