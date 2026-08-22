@@ -367,9 +367,23 @@ log('동적 세그먼트 refresh 등록: 매시 7분 4 ticker rotating (실패 �
 //   (백엔드 census 중 발견). 자가호스팅 일원화 원칙대로 cron-runner 에 재배선.
 async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
   if (await isReportPipelineRunning()) { log(`[${label}] skip — 보고서 파이프라인 실행 중`); return; }
+  // 2026-08-22: 소요시간을 기록한다. check-stall [10] 의 좀비 판정 임계값(기본 100분 등)이
+  //   지금은 내가 손으로 정한 값인데, 그걸 실측 분포에서 유도하려고 로그를 뒤져 보니
+  //   '시작' 마커가 3건뿐이고 '완료' 가 35건이라 **소요시간을 계산할 데이터가 아예 없었다.**
+  //   없는 유도를 지어내는 대신 데이터를 남기기 시작한다 — 며칠 쌓이면 그때 유도한다.
+  const startedAt = Date.now();
   try {
     await execFileAsync('node', script.split(' '), { timeout: timeoutMs, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }); // script 문자열에 인자(예: '--apply') 허용
-    log(`[${label}] 완료`);
+    const elapsedS = ((Date.now() - startedAt) / 1000).toFixed(1);
+    log(`[${label}] 완료 (${elapsedS}s)`);
+    try {
+      const durP = resolve(process.cwd(), 'logs/maintenance-durations.json');
+      let dur = {}; try { dur = JSON.parse(readFileSync(durP, 'utf8')); } catch { /* 최초 */ }
+      const arr = Array.isArray(dur[label]) ? dur[label] : [];
+      arr.push({ at: new Date().toISOString(), s: Number(elapsedS) });
+      dur[label] = arr.slice(-50);   // 잡당 최근 50회 — 분포를 보기엔 충분하고 파일은 작게
+      writeFileSync(durP, JSON.stringify(dur, null, 2));
+    } catch { /* 기록 실패 비치명 */ }
     // 2026-06-17 (전수조사 #6): 잡 실행 heartbeat — 데이터 변경 여부와 무관하게 '돌았다'를 기록.
     //   runMonitor 의 freshness 검사가 이 타임스탬프로 silent 미실행을 감지.
     try {
