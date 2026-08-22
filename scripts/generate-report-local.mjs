@@ -37,6 +37,7 @@ import { limiterFor } from './lib/llm-gate.mjs';
 import { buildCascadeUpstreamSet } from './lib/cascade-upstream.mjs';
 import { buildInsiderBuyMap } from './lib/insider-count.mjs';
 import { enrichStopLoss, nativeCurrencyForTicker as nativeCurrencyForTickerMjs } from './lib/stop-loss-enrich.mjs';
+import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -1557,21 +1558,11 @@ async function fetchStooqBatch(tickers) {
 
 // 2026-06-06: Yahoo v7 quote batch (crumb 인증) — Stooq batch CSV 가 JS/PoW 봇챌린지로 영구 차단됨
 //   (NVDA NaN → 보고서 abort 사건). Yahoo v7 401 은 crumb 로 우회. 1요청 ~50심볼 배치 + 실 52w 동반.
-let _yCrumb = null;
-async function getYahooCrumb() {
-  if (_yCrumb) return _yCrumb;
-  const UA = { 'User-Agent': 'Mozilla/5.0' };
-  const r = await fetch('https://fc.yahoo.com', { headers: UA, signal: AbortSignal.timeout(8000) });
-  const cookie = (r.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
-  const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
-  _yCrumb = { crumb: await cr.text(), cookie };
-  return _yCrumb;
-}
 async function fetchYahooQuoteBatch(tickers) {
   const out = new Map();
   if (!tickers.length) return out;
   let cr; try { cr = await getYahooCrumb(); } catch { return out; }
-  if (!cr.crumb || cr.crumb.length > 30) return out; // crumb 실패 시 빈 맵 (fallback 가 처리)
+  if (!cr) return out; // crumb 획득 실패 → 빈 맵 (호출부 fallback 가 처리)
   const UA = { 'User-Agent': 'Mozilla/5.0', Cookie: cr.cookie };
   for (let i = 0; i < tickers.length; i += 50) {
     const chunk = tickers.slice(i, i + 50);

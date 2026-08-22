@@ -114,3 +114,6 @@ scripts/rag.bak-*
 data/flowvium.db
 data/flowvium.db-wal
 data/flowvium.db-shm
+# Yahoo 세션 쿠키 + crumb 캐시 (2026-08-22) — 자격증명이므로 저장소에 넣지 않는다
+logs/yahoo-crumb.json
+logs/.crumb-test*.json

@@ -15,6 +15,7 @@
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { decodeDataEntities } from './lib/decode-data-entities.mjs';
+import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 
 const NO_NET = process.argv.includes('--no-net');
 
@@ -80,10 +81,9 @@ function normalizeSector(ySector, yIndustry, krTicker) {
 }
 
 async function getCrumb() {
-  const r = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
-  const cookie = (r.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
-  const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': 'Mozilla/5.0', Cookie: cookie }, signal: AbortSignal.timeout(8000) });
-  return { crumb: await cr.text(), cookie };
+  const c = await getYahooCrumb();
+  if (!c) { console.error('  crumb 획득 실패 — Yahoo 수집 불가 (getcrumb 비200/형식 불일치)'); process.exit(1); }
+  return c;
 }
 
 async function fetchProfile(ticker, crumb, cookie) {

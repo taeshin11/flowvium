@@ -8,6 +8,7 @@
  *
  * cron 등록 권장: 매일 새벽 1회. exit code 0 = 모두 OK, 1 = 일부 fail, 2 = critical fail.
  */
+import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 const PAD = (s, n) => String(s ?? '').padEnd(n);
 
 const SOURCES = [
@@ -47,12 +48,11 @@ const SOURCES = [
     critical: true,
     test: async () => {
       const UA = { 'User-Agent': 'Mozilla/5.0' };
-      const fc = await fetch('https://fc.yahoo.com', { headers: UA, signal: AbortSignal.timeout(8000) });
-      const cookie = (fc.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
-      const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
-      const crumb = await cr.text();
-      if (!crumb || crumb.length > 30) throw new Error('crumb 획득 실패');
+      const c = await getYahooCrumb({ onWarn: () => {} });
+      if (!c) throw new Error('crumb 획득 실패 (getcrumb 비200 또는 형식 불일치)');
+      const { crumb, cookie } = c;
       const r = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=NVDA,MSFT&crumb=${encodeURIComponent(crumb)}`, { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
+      if (r.status === 401) invalidateCrumb();  // 캐시된 crumb 이 죽었다 — 버려서 다음 실행이 새로 받게
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       const px = j?.quoteResponse?.result?.[0]?.regularMarketPrice;

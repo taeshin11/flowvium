@@ -14,6 +14,7 @@
  *       node scripts/build-company-profiles.mjs --tickers=WDAY,APH (특정 종목 — 보고서 신규 종목 hook)
  */
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 
 const OUT = 'data/company-profiles.json';
 const onlyMissing = process.argv.includes('--missing');
@@ -47,10 +48,9 @@ console.log(`[profiles] 대상 ${tickersArg ? todo.length + ' (--tickers)' : tar
 if (!todo.length) { console.log('[profiles] 수집 대상 없음'); process.exit(0); }
 
 async function getCrumb() {
-  const r = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
-  const cookie = (r.headers.getSetCookie?.() || []).map(c => c.split(';')[0]).join('; ');
-  const cr = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': 'Mozilla/5.0', Cookie: cookie }, signal: AbortSignal.timeout(8000) });
-  return { crumb: await cr.text(), cookie };
+  const c = await getYahooCrumb();
+  if (!c) { console.error('  crumb 획득 실패 — Yahoo 수집 불가 (getcrumb 비200/형식 불일치)'); process.exit(1); }
+  return c;
 }
 
 async function fetchProfile(ticker, crumb, cookie) {

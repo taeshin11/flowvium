@@ -9,6 +9,7 @@
  * 소스: Yahoo v7 quote + crumb (stock-supply/ishares-holdings 와 동일 검증 패턴). 실패 시 exit 1.
  */
 import { saveEtfSoSnapshots } from './lib/db.mjs';
+import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 
 // 자산군 대표 + GICS 섹터 전체 22종 (2026-07-04 사용자 "섹터간에도" — 섹터 실측 창설/상환 커버):
 //   미국주식(SPY/QQQ/IWM), 채권(TLT/HYG/LQD), 금(GLD), EM/중국/한국/일본(EEM/FXI/EWY/EWJ),
@@ -18,10 +19,9 @@ const BASKET = ['SPY', 'QQQ', 'IWM', 'TLT', 'HYG', 'LQD', 'GLD', 'EEM', 'FXI', '
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
 async function main() {
-  const cr = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) });
-  const cookie = (cr.headers.getSetCookie?.() ?? []).map((c) => c.split(';')[0]).join('; ');
-  const crumb = await (await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': UA, Cookie: cookie }, signal: AbortSignal.timeout(10000) })).text();
-  if (!crumb || crumb.includes('<')) throw new Error('crumb 획득 실패');
+  const c = await getYahooCrumb();
+  if (!c) throw new Error('crumb 획득 실패 (getcrumb 비200 또는 형식 불일치)');
+  const { crumb, cookie } = c;
   const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${BASKET.join(',')}&fields=sharesOutstanding,regularMarketPrice&crumb=${encodeURIComponent(crumb)}`;
   const j = await (await fetch(url, { headers: { 'User-Agent': UA, Cookie: cookie }, signal: AbortSignal.timeout(15000) })).json();
   const results = j?.quoteResponse?.result ?? [];

@@ -10,6 +10,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -211,15 +212,15 @@ async function retierWithLiveCaps(metaObj) {
   if (!usTickers.length) return 0;
   try {
     const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
-    const cr = await fetch('https://fc.yahoo.com', { headers: { 'User-Agent': ua }, signal: AbortSignal.timeout(8000) });
-    const cookie = (cr.headers.getSetCookie?.() ?? []).map(c => c.split(';')[0]).join('; ');
-    const crumb = await (await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(8000) })).text();
-    if (!crumb || crumb.includes('<')) { console.warn('  [retier] crumb 실패 — 정적 티어 유지'); return 0; }
+    const c = await getYahooCrumb();
+    if (!c) { console.warn('  [retier] crumb 실패 — 정적 티어 유지'); return 0; }
+    const { crumb, cookie } = c;
     let changed = 0;
     for (let i = 0; i < usTickers.length; i += 100) {
       const batch = usTickers.slice(i, i + 100).map(t => t.replace(/\./g, '-'));
       const u = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(batch.join(','))}&fields=marketCap&crumb=${encodeURIComponent(crumb)}`;
       const r = await fetch(u, { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(12000) });
+      if (r.status === 401) { invalidateCrumb(); console.warn('  [retier] crumb 만료(401) — 정적 티어 유지'); return changed; }
       if (!r.ok) continue;
       const j = await r.json();
       for (const q of j?.quoteResponse?.result ?? []) {
