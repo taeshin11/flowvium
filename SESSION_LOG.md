@@ -34,6 +34,10 @@
 | `49cd693e` | 탐지한 환각이 `logger.warn` 에서 끝남 | probe→hallucination_history 적재의 마지막 칸이 비어 있었음 | 수확 20건, 재실행 시 중복 0(멱등) |
 | `cc425b16` | **내가 `git reset --hard` 로 라이브 DB 파괴** | `data/flowvium.db` 가 git 추적 중(문서는 gitignore 라 주장) | 백업 복구 후 reports 48→205 원상 |
 
+| `4bff3201` | 깨끗한 clone 에서 보고서 잡 5개 기동 불가 | `.sh` 16개가 실행권한 없이 커밋됨 | fresh clone 재현 → 수정 후 실행가능 |
+| `73c11b31` | 라이브 DB 파괴를 모니터가 못 봄 | check-stall 이 DB 를 열지만 최신 보고서 한 줄만 읽음 | 파괴본 투입 시 회귀 28건 검출 |
+| `f1da95c0` | **/ko/blog 제목·요약 전부 영문** | `blog-translate`·`translate-headlines` 가 `skipVllm:true` 로 로컬 건너뜀 + 429 를 로그 없이 삼킴 | ko 캐시 0/8 적중 · 관련 로그 0건 |
+
 ### 이번에 배운 것 (다음 세션이 반드시 알아야 함)
 
 1. **타임아웃은 취소가 아니다.** `Promise.race` 는 기다리기를 그만둘 뿐, 밑의 fs 연산은
@@ -51,7 +55,15 @@
    role 라벨(CompanyPage 만), 섹터·행동 라벨(페이지마다 손수 맵).
    교정: 라벨·판정 배선은 **컴포넌트 안에 두지 말고 훅/모듈로 뺀다.**
    그리고 '손수 만든 맵의 존재 자체' 를 테스트가 결함으로 본다 — 다시 만들면 또 빠진다.
-6. **눈검증이 코드 grep 을 이긴다.** 이번 세션의 가장 큰 결함(티커↔회사명 환각 발간)은
+6. **게이트가 '등록' 만 보고 '사실' 을 안 볼 수 있다.** `check-llm-routing` 의 allowlist 에
+   `blog-translate.ts` 가 "로컬 우선 체인의 클라우드 leg" 로 등록돼 있었는데, 그 파일엔
+   로컬 호출이 하나도 없었다. 게이트는 통과, 화면은 영문. 등록과 사실의 대조가 필요하다
+   (`local-first-translate.test.mjs` 가 그 역할).
+7. **주석이 코드보다 낙관적인 사례가 이 저장소에 반복된다.** 오늘만 네 건 —
+   `db.mjs:4`("git ignore" 인데 추적 중) · `blog-translate`("vLLM → GROQ" 인데 skipVllm)
+   · `translate-headlines`("Ollama → Groq" 인데 skipVllm) · news-cascade("asset 은 ticker").
+   **주석의 주장은 검사 대상이다** — 테스트로 대조하지 않으면 아무도 확인하지 않는다.
+8. **눈검증이 코드 grep 을 이긴다.** 이번 세션의 가장 큰 결함(티커↔회사명 환각 발간)은
    발간본 화면의 영문 태그 하나를 이상하게 여긴 데서 시작했다. grep 으로는 안 잡혔다 —
    값이 코드가 아니라 LLM 출력이었기 때문이다. 노출되는 LLM 필드에는 probe 를 붙인다.
 
