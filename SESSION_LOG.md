@@ -27,9 +27,12 @@
 | `4ed0efcb` | 유휴 시 "가동률 0%" 오경보 | duty 를 이벤트 *사이* 로만 계산 | 실제 98.3% |
 | `fe2f755f` | `stall=TIMEOUT(hang)` ×17, **모니터 6시간 실명** | 내가 넣은 `[9] 백업` 검사가 Drive 에 `readdirSync` 를 상한 없이 | launchd 실측 10분+ 미완료 → 29초 정상 종료 |
 | `b3dd826d` | 예약 백업 잡이 **5시간 좀비** | 상한 넘겨 버린 Drive 연산이 libuv 스레드풀 4칸(전부) 영구 점유 → 종료 직전 *로컬* unlink 조차 스케줄 불가 | `sample` 로 libuv-worker ×4 커널 대기 확인 |
-
 | `54c20b00` | /ko 뉴스 태그에 티커↔회사명 환각 발간 | `cascades[].asset` 이 UI 배지로 나가는데 cross-check probe 0 | DART 3,984사 대조 — KR 4건 중 3건 이름 오류 |
 | `890a17b4` | /ko 화면에 원시 enum 25건 노출 | 라벨 배선이 컴포넌트 안에만 있어 소비처마다 어긋남 | audit-pages english_leak 25 → 3 |
+| `4bff3201` | **깨끗한 clone 에서 보고서 잡 5개가 안 뜬다** | `.sh` 16개가 git 에 실행권한 없이(100644) 커밋됨. launchd 가 argv[0] 로 직접 실행 | fresh clone 재현 → chmod 후 실행 가능 확인 |
+| `015371a3` | 회귀 테스트 92개가 **GitHub 에서 한 번도 안 돎** | ci.yml 이 lint·tsc·grep 만 실행. 로컬 훅은 cron 자동커밋 푸시를 안 탐 | CI 시뮬 85통과/7스킵/0실패 |
+| `49cd693e` | 탐지한 환각이 `logger.warn` 에서 끝남 | probe→hallucination_history 적재의 마지막 칸이 비어 있었음 | 수확 20건, 재실행 시 중복 0(멱등) |
+| `cc425b16` | **내가 `git reset --hard` 로 라이브 DB 파괴** | `data/flowvium.db` 가 git 추적 중(문서는 gitignore 라 주장) | 백업 복구 후 reports 48→205 원상 |
 
 ### 이번에 배운 것 (다음 세션이 반드시 알아야 함)
 
@@ -59,6 +62,9 @@
   `git credential-osxkeychain store` 로 저장.
 - 🔴 **Cloudflare 터널 토큰 회전**: `~/Library/LaunchAgents/com.spinai.flowvium-tunnel.plist`
   ProgramArguments 에 **평문**으로 있고 접두부가 전사에 노출됨.
+- 🔴 **PAT 재발급 시 `workflow` 스코프 포함** — 없으면 `.github/workflows/` 를 밀 수 없다.
+  실제로 CI 개선 커밋이 원격에 거부돼 로컬에 보류 중이다(`ci: lib 회귀 스위트 …`).
+  토큰은 어차피 전사 노출로 폐기 대상이므로 재발급할 때 체크만 하면 된다.
 - 🟡 **node 에 전체 디스크 접근 권한**: 시스템 설정 → 개인정보 보호 및 보안 →
   전체 디스크 접근 권한 → `/Users/spinai-mini/.local/node/bin/node`.
   **정정(08-22 06:30 실측)**: "원격 백업이 항상 실패한다" 는 내 앞선 기술은 틀렸다.
@@ -75,6 +81,27 @@
 - 열 조절기 `MIN_PAUSE` 변경·SMC 팬 제어 도구 설치 — 하드웨어 리스크.
 - 차용어 모호 nav 값 강제 번역(de 8·id 6·fr 6·pt 5·vi 2·es 2·tr 1) — 단어별 판단 필요.
 - `data/flowvium.db`(159MB)가 git 에 추적 중이고 `.gitignore` 에 없음 — `db.mjs` 헤더 주석과 모순. **보고만 하고 안 건드림**(되돌리기 어려운 변경).
+
+### 내가 낸 사고 — 라이브 DB 파괴 (2026-08-22 10:11)
+
+커밋 순서를 바꾸려고 `git reset --hard <이전커밋>` 을 했다. `data/flowvium.db` 가 **git 추적 중**
+이라 커밋본으로 되돌아갔다.
+
+    사고 전  reports=205 · recommendations=1481 · outcomes=1340 · buy_candidates=4382
+    사고 후  reports=48  · recommendations=254  · outcomes=214  · buy_candidates=0
+    복구     ~/flowvium_backups/flowvium-2026-08-22.db (07:40) · integrity_check=ok · 전 테이블 원상
+
+**오늘 아침 고쳐 둔 백업이 이걸 살렸다.** 그 전 상태(23일 끊긴 백업)였다면 복구 불가였다.
+
+유실: 07:40~10:11 창의 `sell-outcomes` 1회 · Redis 로그 캡(500) 회전으로 수확 대기 결함 19건.
+
+교훈 — 내 실수지만 **구조가 그 실수를 가능하게 했다.** 그리고 이미 문서와 어긋나 있었다:
+`scripts/lib/db.mjs:4` 가 "(git ignore)" 라고 *주장* 하는데 `.gitignore` 엔 항목이 없었다.
+주석이 코드보다 낙관적이면 아무도 확인하지 않는다. 추적 해제 + `.gitignore` + 검사 신설.
+`--strict` 스위트가 파괴를 즉시 잡았다(outcome-integrity·outcome-loop·rule-ic·market-lessons 4건 실패).
+
+**다음 세션 규칙: 이 저장소에서 `git reset --hard` / `git checkout <ref> -- .` 을 쓰기 전에
+반드시 `git status`로 추적 중인 런타임 산출물이 있는지 먼저 본다.**
 
 ### 강제 재분석 실측 (2026-08-22 08:52, 캐시 삭제 후 live)
 
