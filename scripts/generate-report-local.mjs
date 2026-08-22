@@ -36,6 +36,7 @@ import * as SESSIONS from './lib/report-sessions.mjs';
 import { limiterFor } from './lib/llm-gate.mjs';
 import { buildCascadeUpstreamSet } from './lib/cascade-upstream.mjs';
 import { buildInsiderBuyMap } from './lib/insider-count.mjs';
+import { enrichStopLoss, nativeCurrencyForTicker as nativeCurrencyForTickerMjs } from './lib/stop-loss-enrich.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -401,12 +402,6 @@ function loadEntryCalibration() {
 }
 const ENTRY_CALIBRATION = loadEntryCalibration();
 
-function nativeCurrencyForTickerMjs(ticker) {
-  const t = (ticker ?? '').toUpperCase();
-  if (t.endsWith('.KS') || t.endsWith('.KQ')) return '₩';
-  if (t.endsWith('.AS') || t.endsWith('.PA') || t.endsWith('.DE')) return '€';
-  return '$';
-}
 
 function emptyHarnessAudit() {
   return {
@@ -3173,33 +3168,6 @@ function enrichRationales(portfolioItems, signalDigest, locale = 'ko') {
   }
   if (enriched > 0) console.log(`  [후처리] rationale 보강: ${enriched}개`);
   return portfolioItems;
-}
-
-/**
- * Post-processing: append specific price/RSI levels to stopLossRationale entries.
- */
-function enrichStopLoss(stopLossRationale, livePrices, technicalData, locale = 'ko') {
-  const isEn = !['ko', 'ja', 'zh-CN', 'zh-TW', 'zh'].includes(locale);
-  let enriched = 0;
-  for (const entry of (stopLossRationale ?? [])) {
-    if (!entry.ticker || (entry.rationale ?? '').length >= 100) continue;
-    const lp = livePrices.get(entry.ticker);
-    const tech = technicalData.get(entry.ticker);
-    const parts = [];
-    if (lp?.price) {
-      const stopPrice = (lp.price * 0.93).toFixed(lp.price > 100 ? 2 : 4);
-      parts.push(isEn
-        ? `cur $${lp.price} → stop ~$${stopPrice} (-7%)`
-        : `현재 $${lp.price} → 손절선 ~$${stopPrice} (-7%)`);
-    }
-    if (tech) parts.push(tech);
-    if (parts.length === 0) continue;
-    const append = parts.slice(0, 2).join(' / ');
-    entry.rationale = entry.rationale ? `${entry.rationale} | ${append}` : append;
-    enriched++;
-  }
-  if (enriched > 0) console.log(`  [후처리] stopLossRationale 구체화: ${enriched}개`);
-  return stopLossRationale;
 }
 
 /**
