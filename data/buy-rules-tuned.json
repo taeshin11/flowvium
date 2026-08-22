@@ -1,8 +1,8 @@
 {
   "version": 1,
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-08-19T22:21:21.587Z",
-  "sampleSize": 293,
+  "tunedAt": "2026-08-22T19:20:00.100Z",
+  "sampleSize": 430,
   "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
   "rules": [
     {
@@ -195,7 +195,7 @@
     },
     {
       "id": "guru_buffett_moat",
-      "score": 7,
+      "score": 8,
       "category": "guru",
       "condition": {
         "type": "buffettMoat",
@@ -290,7 +290,7 @@
     },
     {
       "id": "micro_news_gap",
-      "score": 7,
+      "score": 8,
       "category": "micro",
       "condition": {
         "type": "newsGap",
@@ -444,15 +444,29 @@
     }
   ],
   "outcomeStats": {
-    "total": 293,
+    "total": 430,
     "hits": 93,
     "stops": 76,
-    "ne": 62,
+    "ne": 199,
     "holding": 62,
     "hitRate": 55,
-    "avgPnl": 15.1,
-    "avgAlpha": 12.9,
+    "avgPnl": 3.4,
+    "avgAlpha": 0.1,
     "bySector": [
+      {
+        "sector": "Industrials",
+        "hit": 1,
+        "stop": 0,
+        "total": 9,
+        "hitRate": 100
+      },
+      {
+        "sector": "industrials",
+        "hit": 1,
+        "stop": 0,
+        "total": 6,
+        "hitRate": 100
+      },
       {
         "sector": "it-software",
         "hit": 37,
@@ -464,35 +478,35 @@
         "sector": "Semiconductors",
         "hit": 3,
         "stop": 1,
-        "total": 7,
+        "total": 10,
         "hitRate": 75
       },
       {
         "sector": "Materials",
         "hit": 4,
         "stop": 2,
-        "total": 8,
+        "total": 9,
         "hitRate": 66.66666666666666
       },
       {
         "sector": "Technology",
         "hit": 33,
         "stop": 27,
-        "total": 166,
+        "total": 204,
         "hitRate": 55.00000000000001
       },
       {
         "sector": "Automotive",
         "hit": 2,
         "stop": 8,
-        "total": 10,
+        "total": 13,
         "hitRate": 20
       },
       {
         "sector": "Insurance",
         "hit": 1,
         "stop": 5,
-        "total": 6,
+        "total": 7,
         "hitRate": 16.666666666666664
       },
       {
@@ -503,10 +517,31 @@
         "hitRate": 16.666666666666664
       },
       {
+        "sector": "IT Services",
+        "hit": 0,
+        "stop": 2,
+        "total": 6,
+        "hitRate": 0
+      },
+      {
+        "sector": "ai-cloud",
+        "hit": 0,
+        "stop": 0,
+        "total": 8,
+        "hitRate": 0
+      },
+      {
         "sector": "semiconductors",
         "hit": 0,
         "stop": 11,
-        "total": 11,
+        "total": 47,
+        "hitRate": 0
+      },
+      {
+        "sector": "Consumer Defensive",
+        "hit": 0,
+        "stop": 0,
+        "total": 6,
         "hitRate": 0
       },
       {
@@ -519,29 +554,29 @@
     ],
     "bestTickers": [
       {
-        "ticker": "TSM",
-        "avg": 64.58714285714284,
-        "n": 21
-      },
-      {
-        "ticker": "005490.KS",
-        "avg": 51.98333333333334,
-        "n": 6
+        "ticker": "TSLA",
+        "avg": 16.508000000000003,
+        "n": 5
       },
       {
         "ticker": "000660.KS",
-        "avg": 21.64461538461538,
-        "n": 13
-      },
-      {
-        "ticker": "TSLA",
-        "avg": 16.608333333333334,
-        "n": 6
+        "avg": 15.964285714285714,
+        "n": 7
       },
       {
         "ticker": "082920.KQ",
         "avg": 15.22,
         "n": 6
+      },
+      {
+        "ticker": "TRGP",
+        "avg": 8.236666666666666,
+        "n": 6
+      },
+      {
+        "ticker": "NVDA",
+        "avg": 8.036470588235295,
+        "n": 17
       }
     ],
     "worstTickers": [
@@ -561,14 +596,14 @@
         "n": 14
       },
       {
-        "ticker": "051910.KS",
-        "avg": 1.7974999999999999,
-        "n": 4
+        "ticker": "TSM",
+        "avg": -0.8633333333333334,
+        "n": 18
       },
       {
-        "ticker": "META",
-        "avg": 3.25,
-        "n": 2
+        "ticker": "MSFT",
+        "avg": 1.6750000000000005,
+        "n": 8
       }
     ]
   },
