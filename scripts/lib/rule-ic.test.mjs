@@ -12,6 +12,12 @@
  *   · 강한 룰 목록을 코드에 박으면 그 자체가 하드코딩이고 다음 분기에 틀린다.
  *     실측 성과에서 매번 유도해야 한다.
  */
+// 2026-08-22: 이 테스트가 무엇을 필요로 하는지 스스로 선언한다. 없으면 스킵(코드 77).
+//   CI(깨끗한 clone)엔 데이터가 든 DB 가 없다 — 그걸 '실패' 로 세면 CI 가 상시 빨갛고,
+//   상시 빨간 CI 는 아무도 안 본다. --strict 에서는 스킵도 실패로 센다.
+import { requires } from './test-env.mjs';
+await requires({ dbRows: { buy_candidates: 50, recommendation_outcomes: 50 } });
+
 const M = await import('./rule-ic.mjs').catch(() => null);
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);

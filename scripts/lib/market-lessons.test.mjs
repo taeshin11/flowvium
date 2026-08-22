@@ -11,6 +11,12 @@
  *     · high 확신이 medium 보다 나쁨 (역전)
  *   이 값들을 손으로 적으면 다음 달에 틀린 값이 남는다. DB 에서 매번 유도해야 한다.
  */
+// 2026-08-22: 이 테스트가 무엇을 필요로 하는지 스스로 선언한다. 없으면 스킵(코드 77).
+//   CI(깨끗한 clone)엔 데이터가 든 DB 가 없다 — 그걸 '실패' 로 세면 CI 가 상시 빨갛고,
+//   상시 빨간 CI 는 아무도 안 본다. --strict 에서는 스킵도 실패로 센다.
+import { requires } from './test-env.mjs';
+await requires({ dbRows: { recommendation_outcomes: 50 } });
+
 const M = await import('./market-lessons.mjs').catch(() => null);
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);

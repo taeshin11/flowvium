@@ -21,6 +21,12 @@ import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
 
+// 2026-08-22: 이 테스트가 무엇을 필요로 하는지 스스로 선언한다. 없으면 스킵(코드 77).
+//   CI(깨끗한 clone)엔 .env.local·라이브 LLM·데이터가 든 DB 가 없다 — 그걸 '실패' 로 세면
+//   CI 가 상시 빨갛고, 상시 빨간 CI 는 아무도 안 본다. --strict 에서는 스킵도 실패로 센다.
+import { requires } from './test-env.mjs';
+await requires({ env: ['FLOWVIUM_BACKUP_DIR'] });
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);

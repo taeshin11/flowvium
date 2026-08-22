@@ -85,9 +85,13 @@ const checks = [
   {
     // 2026-08-20: lib 테스트가 39개까지 늘었는데 verify-all 도 package.json 도 부르지 않았다 —
     //   손으로 돌릴 때만 실행되니 회귀가 나도 아무도 모르는 상태였다. 테스트가 있어도 안 돌면 없는 것.
+    // 2026-08-22: --strict 추가. 테스트가 자기 전제조건을 선언하고 못 갖추면 스킵하는데
+    //   (test-env.mjs), 로컬·pre-push 에서는 전부 갖춰져 있어야 정상이다. 여기서 스킵이 나오면
+    //   그건 환경이 깨졌다는 신호이므로 실패로 센다 — 조용한 스킵이 회귀를 가린다.
+    //   CI(깨끗한 clone)만 스킵을 허용한다.
     name: 'lib-tests',
     script: 'scripts/run-lib-tests.mjs',
-    args: ['--quiet'],
+    args: ['--quiet', '--strict'],
     desc: 'scripts/lib 단위 테스트 전수',
     critical: true,
     dimensions: ['lib 모듈 단위 불변식(스코프 분리·번역사전·세션 드리프트·엔티티 등)'],

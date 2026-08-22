@@ -11,12 +11,15 @@
  *
  * 키가 없는 값은 원본을 그대로 둔다 — t() 는 없는 키에 예외를 던지므로 존재 확인이 먼저다.
  */
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslations, useMessages } from 'next-intl';
 
 export function useRoleLabel(): (v?: string | null) => string {
   const tRole = useTranslations('roles');
-  const roleMsgs = (useMessages() as { roles?: Record<string, unknown> } | undefined)?.roles ?? {};
+  // useMessages() 결과에서 파생한 객체를 그대로 deps 에 넣으면 매 렌더 새 참조가 되어
+  //   useCallback 이 무의미해진다(ESLint react-hooks/exhaustive-deps 가 지적). useMemo 로 고정한다.
+  const messages = useMessages() as { roles?: Record<string, unknown> } | undefined;
+  const roleMsgs = useMemo(() => messages?.roles ?? {}, [messages]);
   return useCallback((v?: string | null): string => {
     const k = String(v ?? '');
     return Object.prototype.hasOwnProperty.call(roleMsgs, k) ? tRole(k) : k.replace(/_/g, ' ');
