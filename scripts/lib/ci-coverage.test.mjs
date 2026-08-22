@@ -29,12 +29,15 @@ ci ? ok('ci.yml 을 읽었다') : bad('.github/workflows/ci.yml 이 없다');
 
 /run-lib-tests\.mjs/.test(ci)
   ? ok('CI 가 lib 회귀 스위트를 실행한다')
-  : bad('CI 가 lib 스위트를 안 돌린다 — 원격에서 회귀가 전혀 안 잡힌다');
+  : bad('CI 가 lib 스위트를 안 돌린다 — 원격에서 회귀가 전혀 안 잡힌다. '
+      + '2026-08-22 현재 알려진 원인: PAT 에 `workflow` 스코프가 없어 .github/workflows/ci.yml '
+      + '변경이 원격에 거부된다(로컬 워킹트리에는 반영돼 있다). 토큰 재발급 시 스코프를 넣으면 해소된다.');
 
 // 스위트는 DB 스키마가 있어야 도는 테스트가 있다. CI 가 그걸 만들어 주는지도 본다.
 /openDb\(\)/.test(ci)
   ? ok('CI 가 DB 스키마를 초기화한다')
-  : bad('CI 에 DB 스키마 초기화가 없다 — 데이터 없는 테스트마저 오류로 죽는다');
+  : bad('CI 에 DB 스키마 초기화가 없다 — 데이터 없는 테스트마저 오류로 죽는다 '
+      + '(위와 같은 원인: 워크플로 변경이 원격에 못 올라갔다)');
 
 const va = read('scripts/verify-all.mjs');
 /run-lib-tests\.mjs[\s\S]{0,200}--strict/.test(va)
