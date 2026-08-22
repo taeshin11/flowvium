@@ -26,6 +26,13 @@ const ok = (m) => { okN++; console.log(`✅ ${m}`); };
 
 // skipVllm allowlist — *자체 로컬(Ollama/localChat) 폴백이 코드에 실재*함을 확인하고 등록한 표면만.
 //   신규 등록 시 반드시 그 파일의 폴백 경로를 눈으로 확인할 것 (등록 사유 주석 필수).
+// ⚠️ 2026-08-22: 이 allowlist 는 '로컬 우선 체인의 클라우드 leg' 라는 **주장**을 등록할 뿐,
+//   그 파일에 실제로 로컬 leg 이 있는지는 확인하지 않는다. 실제로 blog-translate.ts 와
+//   translate-headlines.ts 가 여기 등록돼 있으면서 로컬 호출이 하나도 없었고
+//   (ko 블로그 캐시 0/8 적중 · 관련 로그 0건), /ko/blog 가 통째로 영문이었다.
+//   등록과 사실의 대조는 scripts/lib/local-first-translate.test.mjs 가 한다 —
+//   `skipVllm: true` 를 쓰면서 localChat/localChatNoBleed 가 없는 파일을 유도해 잡는다.
+//   여기에 새 항목을 추가할 때는 그 테스트도 함께 통과하는지 확인할 것.
 const SKIPVLLM_ALLOW = {
   'src/app/api/translate/route.ts': '공유 번역 — callAI 빈결과 시 로컬 Ollama 폴백(라우트 내)',
   'src/app/api/news-cascade/route.ts': '뉴스 번역 — localChatNoBleed 1차, callAI 는 2차(빈결과 허용)',
@@ -45,7 +52,12 @@ function walk(dir, out = []) {
   }
   return out;
 }
+// 2026-08-22: 테스트 파일 제외. 이 게이트가 검사하는 것은 *런타임 라우팅* 인데,
+//   그 라우팅을 검사하는 테스트는 정의상 같은 패턴 문자열을 담는다
+//   (local-first-translate.test.mjs 가 `skipVllm: true` 를 정규식으로 들고 있다).
+//   패턴을 검사하는 파일이 그 패턴을 담았다고 걸리면, 검사기를 만들수록 게이트가 빨개진다.
 const files = walk(`${ROOT}/src`).concat(walk(`${ROOT}/scripts`)).map((p) => p.replace(`${ROOT}/`, ''))
+  .filter((p) => !/\.test\.(mjs|ts|tsx)$/.test(p))
   .filter((f) => !f.endsWith('check-llm-routing.mjs'));  // 자기 자신(패턴 문자열 보유) 제외
 
 console.log('## [1] skipVllm:true 표면 (allowlist 외 = 유일 LLM 건너뛰기)\n');

@@ -2,12 +2,19 @@
  * 공통 번역 helper — 영어 뉴스 헤드라인/요약을 16개 언어로 batch 번역.
  * news-cascade, company-news, insider-trades, earnings 등에서 재사용.
  *
- * AI provider 우선순위: Ollama (로컬, 무료) → Groq → Gemini → Claude → fallback
- * (callAI 가 자동 처리 — skipVllm:true 로 EXAONE 제외 — 다국어 약함)
+ * AI provider 우선순위: 로컬 LLM → Groq → Gemini → Claude → fallback
+ *
+ * 2026-08-22 정정: 위 주석은 "Ollama (로컬) → ..." 라고 *주장* 했는데 코드는
+ *   `skipVllm: true` 로 로컬을 건너뛰고 곧장 클라우드로 갔다. 주석이 코드보다 낙관적이었다.
+ *   붙어 있던 근거("EXAONE 제외 — 다국어 약함")도 낡았다 — 현재 로컬은 Qwen3 이고
+ *   news-cascade 가 같은 경로(localChat)로 16개 언어를 성공적으로 번역한다.
+ *   CLAUDE.md 규칙: 번역 소비처는 **전부** 로컬 우선, cloud 는 fallback.
+ *   GPU 포화 시 localChat 이 null 을 돌려주므로 자동으로 클라우드로 넘어간다.
  *
  * 캐시는 caller 가 Redis 로 처리. 이 모듈은 stateless.
  */
 import { callAI } from '@/lib/ai-providers';
+import { localChat } from '@/lib/llm-local';
 import { logger } from '@/lib/logger';
 
 export const LOCALE_NAMES: Record<string, string> = {
@@ -67,13 +74,14 @@ ${JSON.stringify(payload, null, 2)}
 Output (JSON array only):`;
 
   try {
-    const r = await callAI(prompt, {
-      tag,
-      maxTokens: 6000,
-      temperature: 0.3,
-      skipVllm: true,
-      timeoutMs: 30000,
-    });
+    // 로컬 우선. GPU 포화면 localChat 이 null → 아래 클라우드로 넘어간다(스스로 조절된다).
+    let text = await localChat(prompt, { temperature: 0.3, maxTokens: 6000, timeoutMs: 30000 });
+    if (!text) {
+      const r = await callAI(prompt, { tag, maxTokens: 6000, temperature: 0.3, skipVllm: true, timeoutMs: 30000 });
+      text = r.text;
+      if (!text) logger.warn(tag, 'translate_all_providers_empty', { locale, items: items.length });
+    }
+    const r = { text };
     if (!r.text) return items;
     const jsonMatch = r.text.match(/\[\s*\{[\s\S]*\}\s*\]/);
     if (!jsonMatch) return items;
