@@ -9317,7 +9317,10 @@ async function generateViaOllama() {
         //   "이 garble 반복 금지" 를 다음 프롬프트에 주입했다(최근 7일 주입 251회).
         //   실제로 달라진 구간만 담는다 — 그래야 모델이 배울 게 생긴다.
         const d = diffFragment(before, after, { max: 80 });
-        if (d) {
+        // 덧붙이기만 한 변화는 교정이 아니라 보강이다(예: flow-contract 결정론 append).
+        //   실측 2026-08-22 저녁: 그걸 "이 garble 반복 금지: 점으로 작용하고 있다." 로 적었다 —
+        //   모델에게 고칠 게 없는 걸 가르치는 기록이다.
+        if (d && d.kind === 'edit') {
           narrativeDefectsForLearning.push({
             ticker: 'NARRATIVE', defect_type: 'narrative_garble_sanitized',
             llm_value: `${k}: "${d.before}"`,

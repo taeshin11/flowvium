@@ -14,7 +14,12 @@
  * @param {string} before 교정 전
  * @param {string} after  교정 후
  * @param {{max?:number, ctx?:number}} opts max: 각 조각 최대 길이, ctx: 앞뒤 문맥 글자수
- * @returns {{before:string, after:string}|null} 차이가 없으면 null
+ * @returns {{before:string, after:string, kind:'append'|'prepend'|'edit'}|null} 차이가 없으면 null
+ *
+ * kind 를 같이 준다: 뒤/앞에 **덧붙이기만** 한 변화는 교정이 아니라 보강이다.
+ *   실측(2026-08-22 저녁): `[flow-contract] 이동 서사 미충족 → macroAnalysis 결정론 append` 로
+ *   코드가 문장을 덧붙인 것이 garble 로 적재돼 "이 garble 반복 금지: 점으로 작용하고 있다." 가 됐다.
+ *   무엇을 고치라는 건지 없는 기록이다 — 호출부가 kind 로 걸러 쓴다.
  */
 export function diffFragment(before, after, opts = {}) {
   const { max = 80, ctx = 12 } = opts;
@@ -35,5 +40,6 @@ export function diffFragment(before, after, opts = {}) {
     const frag = str.slice(from, str.length - e + ctx);
     return frag.length <= max ? frag : `${frag.slice(0, max - 1)}…`;
   };
-  return { before: cut(b), after: cut(a) };
+  const kind = a.startsWith(b) ? 'append' : a.endsWith(b) ? 'prepend' : 'edit';
+  return { before: cut(b), after: cut(a), kind };
 }

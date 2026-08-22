@@ -69,6 +69,18 @@ M.diffFragment('같은 문장', '같은 문장') === null
     ? ok('상한을 지키면서도 차이는 포함한다') : bad('잘라내다 차이를 잃었다');
 }
 
+// [5b] 덧붙이기만 한 변화는 교정이 아니다 — 실측: 코드가 macroAnalysis 에 문장을 append 했는데
+//   "이 garble 반복 금지: 점으로 작용하고 있다." 로 적재됐다. 무엇을 고치라는 건지 없는 기록이다.
+{
+  const base = '완만한 성장 속에서 금리커브가 정상 기울기를 유지하며 지지점으로 작용하고 있다.';
+  const app = M.diffFragment(base, base + ' 실제 돈의 흐름은 미국주식 ETF +91억달러다.');
+  app?.kind === 'append' ? ok('뒤에 덧붙인 변화는 append 로 표시') : bad(`append 를 구분 못 한다: ${JSON.stringify(app)}`);
+  const pre = M.diffFragment(base, '거시 요약: ' + base);
+  pre?.kind === 'prepend' ? ok('앞에 덧붙인 변화는 prepend') : bad(`prepend 를 구분 못 한다: ${JSON.stringify(pre)}`);
+  const edit = M.diffFragment('KOSPI 6,913(+0.9%) 상승과', 'KOSPI(+0.9%) 상승과');
+  edit?.kind === 'edit' ? ok('실제 교정은 edit') : bad(`edit 를 append 로 본다: ${JSON.stringify(edit)}`);
+}
+
 // [6] 실제 기록 지점이 이걸 쓰는가
 {
   const { readFileSync } = await import('fs');
