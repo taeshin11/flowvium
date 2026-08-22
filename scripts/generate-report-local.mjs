@@ -40,6 +40,7 @@ import { enrichStopLoss, nativeCurrencyForTicker as nativeCurrencyForTickerMjs }
 import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 import { diffFragment } from './lib/diff-fragment.mjs';
 import { peakRiskAction } from './lib/peak-risk-action.mjs';
+import { reconcileReportIndexLevels } from './lib/index-level-check.mjs';
 import { sameCompany } from './lib/sec-name-clean.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
@@ -268,23 +269,13 @@ function krTickerToName(report) {
   return n;
 }
 
-// 2026-06-17 (사용자가 글씨 정독해 catch한 "KOSPI 8,864" 환각, 재발): ^KS11 피드는 KOSPI/KOSDAQ *절대*
-//   지수레벨을 공급 안 함 → 내러티브의 "KOSPI 8,864"류 콤마형 절대값은 100% 환각(모델이 train-memory/앵커링
-//   으로 같은 8,864 반복 생성. 프롬프트 가드·anti-pattern 으론 stochastic — 결정론 strip 이 유일 보장).
-//   krTickerToName 패턴 동일: 발간 前 강제 제거 → 게이트가 매 보고서 차단(=발간 0)되는 것 방지.
-//   콤마형(N,NNN)만 strip(상대표현 "200일선"·연도 미매치). 지수명만 남겨 문장 유지("KOSPI 8,864 횡보"→"KOSPI 횡보").
-function stripFabricatedIndexLevels(report) {
-  let n = 0;
-  const RE = /(KOSPI|코스피|KOSDAQ|코스닥)\s*[0-9]{1,2},[0-9]{3}/g;
-  const fix = (s) => (typeof s === 'string' ? s.replace(RE, (_m, idx) => { n++; return idx; }) : s);
-  for (const f of ['thesis', 'macroAnalysis', 'technicalAnalysis', 'fundamentalAnalysis', 'topOpportunity', 'hedgingSuggestion', 'portfolioRiskNote']) {
-    if (report[f]) report[f] = fix(report[f]);
-  }
-  if (report.marketNarrative && typeof report.marketNarrative === 'object') {
-    for (const f of ['why', 'story', 'watch', 'sessionNote']) if (report.marketNarrative[f]) report.marketNarrative[f] = fix(report.marketNarrative[f]);
-  }
-  return n;
-}
+// 2026-06-17 ~ 08-23: 지수 절대레벨 처리는 lib/index-level-check.mjs 로 옮겼다.
+//   여기 있던 stripFabricatedIndexLevels 는 "^KS11 피드가 절대레벨을 공급 안 하므로 콤마형은
+//   100% 환각"이라는 전제로 무조건 지웠다. **그 전제가 틀렸다** — ^KS11 은 regularMarketPrice
+//   6912.95 를 준다. 게다가 아래 buildIndexLevelsBlock 이 그 값을 [Index Levels] 로 프롬프트에
+//   넣고 "그대로 인용하라"고 시킨다. 즉 인용하라고 시켜 놓고 인용한 값을 지우고 있었다.
+//   지금은 실측과 대조한다: 맞으면 유지, 틀리면 실측으로 교정, 실측이 없을 때만 strip.
+
 // 2026-06-14: 자유 텍스트 안의 KR ticker(\d{6}.KS/.KQ)도 회사명으로 — 사용자 "ks종목 이름으로 안나오지?"
 //   (whyMatters/summary 등 산문에 ticker 가 박혀 나오던 사각지대. krDisplay 는 단일 토큰 전용이라 누락됐음.)
 function krText(str) {
@@ -3296,6 +3287,9 @@ async function buildIndexLevelsBlock() {
   const parts = [];
   const missing = [];   // 2026-06-17: 결측 지수 — silent omit 대신 *명시적 금지*로 환각 차단
   const map = {};  // 2026-06-16: 구조화 등락% — narrative-fix 가 내러티브 지수등락 환각 대조에 사용
+  // 2026-08-23: 절대레벨도 함께 돌려준다. 종전엔 등락%만 있어서 후처리가 내러티브의 지수레벨을
+  //   실측과 대조할 수 없었고, 그래서 KOSPI 콤마값을 **무조건 지웠다**(맞는 값까지).
+  const levels = {};
   for (let i = 0; i < specs.length; i++) {
     const r = results[i];
     const [label, , dec] = specs[i];
@@ -3304,6 +3298,7 @@ async function buildIndexLevelsBlock() {
     const chg = r.chgPct != null ? ` (${r.chgPct >= 0 ? '+' : ''}${r.chgPct.toFixed(1)}%)` : '';
     parts.push(`${label} ${lvl}${chg}`);
     if (r.chgPct != null) map[label] = r.chgPct;
+    levels[label] = r.cur;
   }
   let text = parts.length ? parts.join(', ') : '';
   // 2026-06-17 (사용자가 글씨 정독해 catch한 "KOSPI 8,864" 환각): ^KS11 등 결측 지수를 그냥 생략하면 3B 가
@@ -3312,7 +3307,7 @@ async function buildIndexLevelsBlock() {
   //   지수가 available 이어도 모델이 콤마형 절대값을 창작 → sanitizer 가 매번 strip. 전역 리마인더로 상향.
   if (text) text += ` | ※지수 절대레벨은 위 [Index Levels] 수치만 그대로 인용하라. 그 외 콤마형 절대값(N,NNN)을 절대 창작·추정 금지(train-memory 앵커링 환각).`;
   if (missing.length) text += `${text ? ' | ' : ''}⚠️ ${missing.join('/')} 절대 지수레벨 미가용(데이터 없음) — 이 지수들의 *절대 포인트 숫자를 절대 적지 말 것*(콤마형 레벨 금지). 오직 상대지표(전일대비%·200일선 대비%·20일 변화%·고점대비%)로만 서술하라.`;
-  return { text, map };
+  return { text, map, levels };
 }
 
 // ── 2026-06-12: 종합 판정 엔진 (사용자 "하락 전조·상승 전조·공포 매수·구루 방식·과거 유사상황
@@ -6853,7 +6848,7 @@ async function generateViaOllama() {
   //   그래서 ctx.indexLevelsMap 이 undefined 였고, region-flow 가 스탠스 판정 입력에 넣으려던
   //   KOSPI 당일 등락이 프로덕션에서 한 번도 실행되지 않았다(코드는 있는데 효과 0).
   //   지수 블록을 먼저 가져와서 넘긴다 — 네트워크 호출 1건이라 순서를 앞당겨도 비용 차이가 없다.
-  const { text: indexLevels, map: indexLevelsMap } = await buildIndexLevelsBlock();
+  const { text: indexLevels, map: indexLevelsMap, levels: indexLevelsAbs } = await buildIndexLevelsBlock();
   if (indexLevels) console.log(`  [index-levels] ${indexLevels}`);
   const ctx = buildCtxSummary({ ...ctxRaw, indexLevelsMap });
   {
@@ -9304,8 +9299,14 @@ async function generateViaOllama() {
     const { nFix: nSan } = sanitizeReport(finalReport, localeArg);  // localeArg: ja/zh 는 한자 보존, 그 외 한자 차단
     const { nFix: nCB } = fixDuplicateCentralBankEvents(finalReport);
     const nKrName = krTickerToName(finalReport); // 2026-06-17: 내러티브 KR 티커코드 → 회사명 (000660.KS→SK하이닉스)
-    const nIdx = stripFabricatedIndexLevels(finalReport); // 2026-06-17: "KOSPI 8,864"류 절대 지수레벨 환각 결정론 제거(피드 미공급)
-    if (nSan || nCB || nKrName || nIdx) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 + 지수절대값환각 ${nIdx}건 교정`);
+    // 2026-08-23: 무조건 strip → 실측 대조로 바꿨다. 종전 근거("피드가 절대레벨을 공급 안 함")가
+    //   사실이 아니었다 — ^KS11 이 6912.95 를 준다. 같은 파이프라인이 그 값을 프롬프트에 넣고
+    //   "그대로 인용하라"고 시켜 놓고, 인용한 값을 후처리가 지우고, 그 삭제를 모델의 환각으로
+    //   기록해 다음 프롬프트에 "반복 금지"로 주입했다(주 53건). 맞으면 두고, 틀리면 실측으로 고친다.
+    const { fixes: idxFixes } = reconcileReportIndexLevels(finalReport, indexLevelsAbs);
+    const nIdx = idxFixes.length;
+    if (idxFixes.length) console.log(`  [index-level] 실측 대조 교정 ${idxFixes.length}건: ${idxFixes.slice(0, 3).join(', ')}`);
+    if (nSan || nCB || nKrName || nIdx) console.log(`  [sanitize] 전역 문자열 garble ${nSan}건 + 중복중앙은행 ${nCB}건 + KR티커→이름 ${nKrName}건 + 지수레벨 실측대조 ${nIdx}건 교정`);
     // 2026-06-23 (H1 closed loop): snapshot 대비 *실제 바뀐* 필드를 defect 로 변환 — 다음 보고서 prompt
     //   [⚠️ AVOID THESE HALLUCINATIONS] 에 before→after inject → 모델이 garble 자체를 학습(sanitizer 가림 종식).
     const getField = (k) => k.startsWith('marketNarrative.') ? finalReport.marketNarrative?.[k.split('.')[1]] : finalReport[k];
