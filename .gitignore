@@ -105,3 +105,12 @@ scripts/rag.bak-*
 #   NEXT_DIST_DIR=.next-staging 으로 빌드해 성공했을 때만 교체하고, 직전본을 .next.prev 로 남긴다.
 .next-staging/
 .next.prev/
+
+# 2026-08-22: 라이브 SQLite 는 절대 추적하지 않는다.
+#   추적돼 있던 탓에 `git reset --hard <이전커밋>` 한 번에 프로덕션 DB 가 커밋본으로
+#   되돌아갔다(reports 205→48 · outcomes 1340→214). ~/flowvium_backups 스냅샷으로 복구.
+#   scripts/lib/db.mjs:4 는 이미 "(git ignore)" 라고 적고 있었다 — 주석만 맞고 실제가 틀렸다.
+#   복구 경로는 HANDOFF.md 가 백업에서 하도록 정의한다(git 이 아니다).
+data/flowvium.db
+data/flowvium.db-wal
+data/flowvium.db-shm
