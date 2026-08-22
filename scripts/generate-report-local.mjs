@@ -39,6 +39,7 @@ import { buildInsiderBuyMap } from './lib/insider-count.mjs';
 import { enrichStopLoss, nativeCurrencyForTicker as nativeCurrencyForTickerMjs } from './lib/stop-loss-enrich.mjs';
 import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 import { diffFragment } from './lib/diff-fragment.mjs';
+import { peakRiskAction } from './lib/peak-risk-action.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -8807,15 +8808,16 @@ async function generateViaOllama() {
       }
       if (macroGlobalWarning) warnings.push(macroGlobalWarning);
       const updated = { ...p };
-      // HIGH peak risk (score≥4, RSI>75) → force watch instead of buy
-      if (risk && risk.totalWeight >= 4) {
-        const rsiSignal = risk.signals.find(s => /RSI\s*\d+/.test(s.label));
-        const rsiVal = rsiSignal ? parseInt(rsiSignal.label.match(/RSI\s*(\d+)/)?.[1] ?? '0', 10) : 0;
-        if (rsiVal >= 75) {
-          updated.action = 'watch';
-          updated.critiqueNote = (updated.critiqueNote ? updated.critiqueNote + ' | ' : '') + `RSI ${rsiVal} 과매수 — 진입 대기`;
-          console.log(`  [후처리] ${p.ticker} RSI ${rsiVal} 과매수 → buy→watch 전환`);
-        }
+      // 2026-08-22: 강등 판정을 peak-risk-action.mjs 하나로 모았다. 종전에는 여기(숫자)와
+      //   applyLocalHarness 6h(riskNote 산문 정규식) 두 곳으로 갈려 있었고, 6h 가 읽는 산문은
+      //   같은 파이프라인의 코드가 쓴 문장이었다(:2200). 코드가 쓴 글을 코드가 되읽어 고치고
+      //   그 교정을 모델 결함(harness_actionCritiqueMismatch)으로 적어 왔다 — 최근 7일 27건.
+      //   여기서 미리 watch 로 정하면 6h 는 action!=='buy' 라 아예 지나간다.
+      const pr = peakRiskAction(risk);
+      if (pr) {
+        updated.action = pr.action;
+        if (pr.note) updated.critiqueNote = (updated.critiqueNote ? updated.critiqueNote + ' | ' : '') + pr.note;
+        console.log(`  [후처리] ${p.ticker} ${pr.reason} → buy→${pr.action} 전환`);
       }
       if (!warnings.length) return updated;
       const warning = warnings.join(' | ');
