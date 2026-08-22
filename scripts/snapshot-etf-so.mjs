@@ -21,9 +21,9 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 async function main() {
   const c = await getYahooCrumb();
   if (!c) throw new Error('crumb 획득 실패 (getcrumb 비200 또는 형식 불일치)');
-  const { crumb, cookie } = c;
+  const { crumb, cookie, ua } = c;   // crumb 을 발급받은 UA 로
   const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${BASKET.join(',')}&fields=sharesOutstanding,regularMarketPrice&crumb=${encodeURIComponent(crumb)}`;
-  const j = await (await fetch(url, { headers: { 'User-Agent': UA, Cookie: cookie }, signal: AbortSignal.timeout(15000) })).json();
+  const j = await (await fetch(url, { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(15000) })).json();
   const results = j?.quoteResponse?.result ?? [];
   const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10); // KST
   const rows = results

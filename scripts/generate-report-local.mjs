@@ -1563,7 +1563,7 @@ async function fetchYahooQuoteBatch(tickers) {
   if (!tickers.length) return out;
   let cr; try { cr = await getYahooCrumb(); } catch { return out; }
   if (!cr) return out; // crumb 획득 실패 → 빈 맵 (호출부 fallback 가 처리)
-  const UA = { 'User-Agent': 'Mozilla/5.0', Cookie: cr.cookie };
+  const UA = { 'User-Agent': cr.ua, Cookie: cr.cookie };   // crumb 을 발급받은 UA 로 보내야 401 이 안 난다
   for (let i = 0; i < tickers.length; i += 50) {
     const chunk = tickers.slice(i, i + 50);
     const symMap = new Map(chunk.map(t => [t.replace(/\./g, '-'), t])); // BRK.B → BRK-B, 역매핑

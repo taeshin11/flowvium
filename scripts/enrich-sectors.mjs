@@ -86,10 +86,10 @@ async function getCrumb() {
   return c;
 }
 
-async function fetchProfile(ticker, crumb, cookie) {
+async function fetchProfile(ticker, crumb, cookie, ua) {
   try {
     const r = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=assetProfile&crumb=${encodeURIComponent(crumb)}`,
-      { headers: { 'User-Agent': 'Mozilla/5.0', Cookie: cookie }, signal: AbortSignal.timeout(10000) });
+      { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
     const p = (await r.json())?.quoteSummary?.result?.[0]?.assetProfile;
     if (!p) return null;
@@ -119,13 +119,13 @@ console.log(`  [seed] company-profiles 로 보강 ${seeded}종 | 잔여 ${stillM
 let fetched = 0;
 const failed = [];
 if (!NO_NET && stillMissing.length) {
-  const { crumb, cookie } = await getCrumb();
+  const { crumb, cookie, ua } = await getCrumb();
   if (!crumb) { console.error('crumb 실패 — seed 결과만 저장'); }
   else {
     const CONC = 4;
     for (let i = 0; i < stillMissing.length; i += CONC) {
       const batch = stillMissing.slice(i, i + CONC);
-      const res = await Promise.all(batch.map(async t => ({ t, pf: await fetchProfile(t, crumb, cookie) })));
+      const res = await Promise.all(batch.map(async t => ({ t, pf: await fetchProfile(t, crumb, cookie, ua) })));
       for (const { t, pf } of res) {
         const sec = pf ? normalizeSector(pf.sector, pf.industry, isKr(t)) : null;
         if (sec) {

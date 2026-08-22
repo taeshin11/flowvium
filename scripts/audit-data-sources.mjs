@@ -47,10 +47,10 @@ const SOURCES = [
     name: 'Yahoo v7 quote (crumb batch)',
     critical: true,
     test: async () => {
-      const UA = { 'User-Agent': 'Mozilla/5.0' };
       const c = await getYahooCrumb({ onWarn: () => {} });
       if (!c) throw new Error('crumb 획득 실패 (getcrumb 비200 또는 형식 불일치)');
-      const { crumb, cookie } = c;
+      const { crumb, cookie, ua } = c;
+      const UA = { 'User-Agent': ua };   // crumb 을 발급받은 UA 로
       const r = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=NVDA,MSFT&crumb=${encodeURIComponent(crumb)}`, { headers: { ...UA, Cookie: cookie }, signal: AbortSignal.timeout(8000) });
       if (r.status === 401) invalidateCrumb();  // 캐시된 crumb 이 죽었다 — 버려서 다음 실행이 새로 받게
       if (!r.ok) throw new Error(`HTTP ${r.status}`);

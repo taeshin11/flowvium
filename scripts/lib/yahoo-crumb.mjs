@@ -22,7 +22,12 @@ import { fileURLToPath } from 'url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 export const DEFAULT_CACHE = resolve(ROOT, 'logs/yahoo-crumb.json');
 const TTL_MS = 6 * 60 * 60 * 1000;   // 쿠키 수명보다 짧게. 만료 전에 401 이 나면 invalidate 로 즉시 버린다.
-const UA = { 'User-Agent': 'Mozilla/5.0' };
+/**
+ * crumb/쿠키는 이걸 발급받을 때 쓴 User-Agent 에 묶인다. 호출부가 제각각 다른 UA 로
+ * 요청하면 같은 crumb 이어도 401 이 난다 — 그래서 UA 도 함께 돌려주고 호출부는 그걸 쓴다.
+ */
+export const YAHOO_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+const UA = { 'User-Agent': YAHOO_UA };
 
 /**
  * 진짜 crumb 인지. Yahoo crumb 은 공백 없는 짧은 토큰(보통 11자 안팎, `.`/`/`/`\` 이스케이프 포함).
@@ -45,9 +50,10 @@ function readCache(file) {
     if (!existsSync(file)) return null;
     const j = JSON.parse(readFileSync(file, 'utf8'));
     if (!j?.crumb || !j?.cookie || !j?.at) return null;
+    if (j.ua !== YAHOO_UA) return null;   // UA 가 바뀌면 그 crumb 은 더 이상 유효하지 않다
     if (Date.now() - j.at > TTL_MS) return null;
     if (!isValidCrumb(j.crumb)) return null;
-    return { crumb: j.crumb, cookie: j.cookie };
+    return { crumb: j.crumb, cookie: j.cookie, ua: YAHOO_UA };
   } catch { return null; }
 }
 
@@ -67,7 +73,7 @@ export function invalidateCrumb(cacheFile = DEFAULT_CACHE) {
 
 /**
  * @param {{cacheFile?:string, fetchImpl?:Function, onWarn?:Function, freshMemory?:boolean}} opts
- * @returns {Promise<{crumb:string,cookie:string}|null>} 실패면 null (호출부 fallback 로).
+ * @returns {Promise<{crumb:string,cookie:string,ua:string}|null>} 실패면 null (호출부 fallback 로).
  */
 export async function getYahooCrumb(opts = {}) {
   const { cacheFile = DEFAULT_CACHE, fetchImpl = fetch, onWarn = (m) => console.warn(`  [yahoo-crumb] ${m}`) } = opts;
@@ -103,7 +109,7 @@ export async function getYahooCrumb(opts = {}) {
     onWarn(`crumb 모양이 아님(HTTP ${status}): ${JSON.stringify(String(crumb).slice(0, 40))}`);
     return null;
   }
-  _mem = { crumb, cookie };
+  _mem = { crumb, cookie, ua: YAHOO_UA };
   writeCache(cacheFile, _mem);
   return _mem;
 }

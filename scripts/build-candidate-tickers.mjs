@@ -211,10 +211,9 @@ async function retierWithLiveCaps(metaObj) {
   const usTickers = Object.keys(metaObj).filter(t => !/\.(KS|KQ)$/.test(t) && metaObj[t].cap !== 'etf');
   if (!usTickers.length) return 0;
   try {
-    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
     const c = await getYahooCrumb();
     if (!c) { console.warn('  [retier] crumb 실패 — 정적 티어 유지'); return 0; }
-    const { crumb, cookie } = c;
+    const { crumb, cookie, ua } = c;   // crumb 을 발급받은 UA 로 보내야 401 이 안 난다
     let changed = 0;
     for (let i = 0; i < usTickers.length; i += 100) {
       const batch = usTickers.slice(i, i + 100).map(t => t.replace(/\./g, '-'));

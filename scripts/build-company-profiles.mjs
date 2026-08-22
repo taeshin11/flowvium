@@ -53,10 +53,10 @@ async function getCrumb() {
   return c;
 }
 
-async function fetchProfile(ticker, crumb, cookie) {
+async function fetchProfile(ticker, crumb, cookie, ua) {
   // Yahoo 는 BRK-B 형식 (dot → dash 이미 candidate 형식이 dash)
   const r = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=assetProfile,quoteType&crumb=${encodeURIComponent(crumb)}`,
-    { headers: { 'User-Agent': 'Mozilla/5.0', Cookie: cookie }, signal: AbortSignal.timeout(10000) });
+    { headers: { 'User-Agent': ua, Cookie: cookie }, signal: AbortSignal.timeout(10000) });
   if (!r.ok) return { _status: r.status };
   const j = await r.json();
   const res = j?.quoteSummary?.result?.[0];
@@ -73,13 +73,13 @@ async function fetchProfile(ticker, crumb, cookie) {
   };
 }
 
-const { crumb, cookie } = await getCrumb();
+const { crumb, cookie, ua } = await getCrumb();
 if (!crumb || crumb.includes('<')) { console.error('[profiles] crumb 획득 실패 — Yahoo 차단?'); process.exit(1); }
 
 let ok = 0, fail = 0, rate = 0;
 for (const [i, t] of todo.entries()) {
   try {
-    const p = await fetchProfile(t, crumb, cookie);
+    const p = await fetchProfile(t, crumb, cookie, ua);
     if (p && !p._status && (p.summary || p.industry)) { prev[t] = p; ok++; }
     else if (p?._status === 429) { rate++; await new Promise(r => setTimeout(r, 5000)); }
     else fail++;
