@@ -2039,6 +2039,7 @@
     "late_mover": "Chậm trễ"
   },
   "blog": {
-    "strategy": "Chiến lược"
+    "strategy": "Chiến lược",
+    "read": "Đọc"
   }
 }

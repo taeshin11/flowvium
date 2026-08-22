@@ -63,5 +63,21 @@ const bt = (() => { try { return readFileSync(resolve(ROOT, 'src/lib/blog-transl
   ? bad('429/quota 를 로그 없이 삼키고 원문을 돌려준다 — 실패가 보이지 않는다')
   : ok('쿼터 소진을 로그로 남긴다');
 
+// 평문 필드(제목·메타설명)에 마크다운을 넣으면 안 된다.
+//   2026-08-22 내가 만든 회귀: 본문 섹션과 같은 프롬프트("Preserve all markdown")를 제목에도 써서
+//   /ko/blog 화면에 `## ` 접두가 22줄 보였다. 게다가 호출 지점이 두 곳인데 한 곳만 고쳐
+//   목록 페이지는 계속 깨진 채였다 — 같은 파일 안에서도 '한 곳만 고침' 이 났다.
+{
+  const bt2 = readFileSync(resolve(ROOT, 'src/lib/blog-translate.ts'), 'utf8');
+  const calls = [...bt2.matchAll(/translateSection\(redis, locale, slug, 900[01], \w+, langName([^)]*)\)/g)];
+  const missing = calls.filter((m) => !/true/.test(m[1]));
+  calls.length >= 4 && missing.length === 0
+    ? ok(`제목·메타설명 호출 ${calls.length}곳 전부 평문 모드`)
+    : bad(`평문 모드가 아닌 제목/메타 호출 ${missing.length}건 (총 ${calls.length}) — 화면에 '## ' 가 남는다`);
+  /plain && translated/.test(bt2)
+    ? ok('평문 필드 계약(마크다운·개행 불가)을 코드가 강제한다')
+    : bad('모델이 지시를 어겨도 그대로 캐시된다 — 180일 TTL 이라 오래 남는다');
+}
+
 console.log(fail === 0 ? '\n✅ local-first-translate 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

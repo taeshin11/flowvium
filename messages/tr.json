@@ -2039,6 +2039,7 @@
     "late_mover": "Geç Hareket Eden"
   },
   "blog": {
-    "strategy": "Strateji"
+    "strategy": "Strateji",
+    "read": "Oku"
   }
 }

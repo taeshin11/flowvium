@@ -2040,6 +2040,7 @@
     "late_mover": "Late Mover"
   },
   "blog": {
-    "strategy": "Strategy"
+    "strategy": "Strategy",
+    "read": "Read"
   }
 }

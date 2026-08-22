@@ -2039,6 +2039,7 @@
     "late_mover": "Pemain Akhir"
   },
   "blog": {
-    "strategy": "Strategi"
+    "strategy": "Strategi",
+    "read": "Baca"
   }
 }

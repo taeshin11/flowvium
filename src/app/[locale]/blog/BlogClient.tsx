@@ -73,7 +73,7 @@ export default function BlogClient({ posts }: { posts: BlogPost[] }) {
                 })}
               </span>
               <span className="text-sm text-cf-primary font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                Read
+                {tBlog('read')}
                 <ArrowRight className="w-4 h-4" />
               </span>
             </div>

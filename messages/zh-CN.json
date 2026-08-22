@@ -2039,6 +2039,7 @@
     "late_mover": "尾盘异动"
   },
   "blog": {
-    "strategy": "策略"
+    "strategy": "策略",
+    "read": "阅读"
   }
 }

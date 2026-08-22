@@ -2039,6 +2039,7 @@
     "late_mover": "Später Mover"
   },
   "blog": {
-    "strategy": "Strategie"
+    "strategy": "Strategie",
+    "read": "Lesen"
   }
 }

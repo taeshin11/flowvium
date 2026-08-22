@@ -2039,6 +2039,7 @@
     "late_mover": "遅れて動く銘柄"
   },
   "blog": {
-    "strategy": "戦略"
+    "strategy": "戦略",
+    "read": "読む"
   }
 }

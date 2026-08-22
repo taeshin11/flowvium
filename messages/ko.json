@@ -2039,6 +2039,7 @@
     "late_mover": "늦게 움직이는 종목"
   },
   "blog": {
-    "strategy": "전략"
+    "strategy": "전략",
+    "read": "읽기"
   }
 }
