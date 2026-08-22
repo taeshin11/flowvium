@@ -27,6 +27,7 @@ import { checkResourcePressure } from './lib/resource-pressure.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
 import { backupStatus } from './lib/backup-health.mjs';
 import { findStaleJobs, listProcesses, loadJobPolicy } from './lib/stale-jobs.mjs';
+import { dbHealth } from './lib/db-health.mjs';
 // 발행 예정 시각을 지난 뒤 업로드/전파에 실제로 걸리는 시간의 여유분. 예산(90분)이 아니라 '전파 지연' 몫이다.
 const PUBLISH_GRACE_MIN = 10;
 import { readLauncherModels } from './lib/report-launcher.mjs';
@@ -279,6 +280,32 @@ async function checkOnce() {
     }
   } catch (e) {
     issues.push(`좀비 잡 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
+  // [11] 라이브 DB 무결성 (2026-08-22 신설).
+  //      내가 `git reset --hard` 로 추적 중이던 data/flowvium.db 를 커밋본으로 되돌려
+  //      reports 205→48 · buy_candidates 4382→0 이 됐는데 검사 10종 중 아무도 못 봤다.
+  //      여기 73행에서 DB 를 *열긴* 하지만 최신 보고서 한 줄만 읽는다.
+  //      백업의 복원가능성([9])은 보면서 정작 라이브 DB 자체는 감시 밖이었다.
+  //      판정 근거는 백업과의 대조다 — 백업은 git 이 못 건드리는 독립 사본이고
+  //      라이브에서 떠간 것이라 정상이면 언제나 live ≥ backup 이다. 임계값을 손으로 안 정한다.
+  try {
+    const h = await dbHealth(ROOT);
+    if (h.quickCheck !== 'ok') {
+      issues.push(`DB 무결성 — quick_check=${h.quickCheck}. 파일이 손상됐거나 못 읽는다`);
+    } else if (h.regressions.length) {
+      const top = h.regressions.slice(0, 3).map((r) => `${r.table} ${r.live}<${r.backup}(-${r.lost})`).join(' · ');
+      issues.push(`DB 회귀 — 라이브가 백업보다 적다: ${top}. `
+        + `git reset/checkout 이 DB 를 되돌렸거나 데이터가 소실됐다. `
+        + `복구: cp ${h.backupPath} data/flowvium.db (웹 재기동 필요)`);
+    } else if (h.note) {
+      info.push(`DB ✓ quick_check ok · ${h.note}`);
+    } else {
+      info.push(`DB ✓ quick_check ok (${h.ms}ms) · 백업 대비 회귀 없음 `
+        + `(라이브 ${(h.liveBytes / 1048576).toFixed(0)}MB · 백업 ${(h.backupBytes / 1048576).toFixed(0)}MB)`);
+    }
+  } catch (e) {
+    issues.push(`DB 무결성 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
   return { issues, info };
