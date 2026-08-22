@@ -111,7 +111,16 @@
       "energy-transition": "能源轉型",
       "financials-fintech": "金融／金融科技",
       "materials-critical-minerals": "材料／關鍵礦產",
-      "crypto": "加密貨幣"
+      "crypto": "加密貨幣",
+      "general": "綜合",
+      "macro": "總體經濟",
+      "biotech": "生技",
+      "cloud": "雲端",
+      "hardware": "硬體",
+      "infrastructure": "基礎建設",
+      "mining": "採礦",
+      "other": "其他",
+      "pharma": "製藥"
     },
     "relationships": {
       "supplier": "供應商",

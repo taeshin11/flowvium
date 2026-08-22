@@ -111,7 +111,16 @@
       "energy-transition": "Энергетический переход",
       "financials-fintech": "Финансы / Финтех",
       "materials-critical-minerals": "Материалы / Критические минералы",
-      "crypto": "Криптовалюты"
+      "crypto": "Криптовалюты",
+      "general": "Общее",
+      "macro": "Макро",
+      "biotech": "Биотех",
+      "cloud": "Облако",
+      "hardware": "Оборудование",
+      "infrastructure": "Инфраструктура",
+      "mining": "Горнодобыча",
+      "other": "Прочее",
+      "pharma": "Фарма"
     },
     "relationships": {
       "supplier": "Поставщик",

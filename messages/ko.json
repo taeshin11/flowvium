@@ -111,7 +111,16 @@
       "energy-transition": "에너지 전환",
       "financials-fintech": "금융 / 핀테크",
       "materials-critical-minerals": "소재 / 핵심광물",
-      "crypto": "암호화폐"
+      "crypto": "암호화폐",
+      "general": "일반",
+      "macro": "거시경제",
+      "biotech": "바이오테크",
+      "cloud": "클라우드",
+      "hardware": "하드웨어",
+      "infrastructure": "인프라",
+      "mining": "광업",
+      "other": "기타",
+      "pharma": "제약"
     },
     "relationships": {
       "supplier": "공급업체",

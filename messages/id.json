@@ -111,7 +111,16 @@
       "energy-transition": "Transisi Energi",
       "financials-fintech": "Keuangan / Fintech",
       "materials-critical-minerals": "Bahan / Mineral Kritis",
-      "crypto": "Kripto"
+      "crypto": "Kripto",
+      "general": "Umum",
+      "macro": "Makro",
+      "biotech": "Bioteknologi",
+      "cloud": "Cloud",
+      "hardware": "Perangkat Keras",
+      "infrastructure": "Infrastruktur",
+      "mining": "Pertambangan",
+      "other": "Lainnya",
+      "pharma": "Farmasi"
     },
     "relationships": {
       "supplier": "Pemasok",

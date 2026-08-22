@@ -111,7 +111,16 @@
       "energy-transition": "انتقال الطاقة",
       "financials-fintech": "الخدمات المالية / التكنولوجيا المالية",
       "materials-critical-minerals": "المواد / المعادن الحيوية",
-      "crypto": "العملات المشفرة"
+      "crypto": "العملات المشفرة",
+      "general": "عام",
+      "macro": "الاقتصاد الكلي",
+      "biotech": "التقنية الحيوية",
+      "cloud": "الحوسبة السحابية",
+      "hardware": "الأجهزة",
+      "infrastructure": "البنية التحتية",
+      "mining": "التعدين",
+      "other": "أخرى",
+      "pharma": "الأدوية"
     },
     "relationships": {
       "supplier": "مورّد",

@@ -111,7 +111,16 @@
       "energy-transition": "การเปลี่ยนผ่านพลังงาน",
       "financials-fintech": "การเงิน / ฟินเทค",
       "materials-critical-minerals": "วัสดุ / แร่ธาตุสำคัญ",
-      "crypto": "คริปโท"
+      "crypto": "คริปโท",
+      "general": "ทั่วไป",
+      "macro": "มหภาค",
+      "biotech": "ไบโอเทค",
+      "cloud": "คลาวด์",
+      "hardware": "ฮาร์ดแวร์",
+      "infrastructure": "โครงสร้างพื้นฐาน",
+      "mining": "เหมืองแร่",
+      "other": "อื่น ๆ",
+      "pharma": "เภสัชกรรม"
     },
     "relationships": {
       "supplier": "ผู้จัดหา",

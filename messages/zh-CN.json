@@ -111,7 +111,16 @@
       "energy-transition": "能源转型",
       "financials-fintech": "金融 / 金融科技",
       "materials-critical-minerals": "材料 / 关键矿产",
-      "crypto": "加密货币"
+      "crypto": "加密货币",
+      "general": "综合",
+      "macro": "宏观",
+      "biotech": "生物科技",
+      "cloud": "云计算",
+      "hardware": "硬件",
+      "infrastructure": "基础设施",
+      "mining": "采矿",
+      "other": "其他",
+      "pharma": "制药"
     },
     "relationships": {
       "supplier": "供应商",

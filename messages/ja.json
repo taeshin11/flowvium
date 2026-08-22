@@ -111,7 +111,16 @@
       "energy-transition": "エネルギー転換",
       "financials-fintech": "金融 / ファインテック",
       "materials-critical-minerals": "素材／重要鉱物",
-      "crypto": "暗号資産"
+      "crypto": "暗号資産",
+      "general": "一般",
+      "macro": "マクロ",
+      "biotech": "バイオ",
+      "cloud": "クラウド",
+      "hardware": "ハードウェア",
+      "infrastructure": "インフラ",
+      "mining": "鉱業",
+      "other": "その他",
+      "pharma": "製薬"
     },
     "relationships": {
       "supplier": "サプライヤー",

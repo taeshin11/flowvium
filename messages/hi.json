@@ -111,7 +111,16 @@
       "energy-transition": "ऊर्जा संक्रमण",
       "financials-fintech": "वित्तीय / फिनटेक",
       "materials-critical-minerals": "सामग्री / महत्वपूर्ण खनिज",
-      "crypto": "क्रिप्टो"
+      "crypto": "क्रिप्टो",
+      "general": "सामान्य",
+      "macro": "मैक्रो",
+      "biotech": "बायोटेक",
+      "cloud": "क्लाउड",
+      "hardware": "हार्डवेयर",
+      "infrastructure": "अवसंरचना",
+      "mining": "खनन",
+      "other": "अन्य",
+      "pharma": "फार्मा"
     },
     "relationships": {
       "supplier": "आपूर्तिकर्ता",

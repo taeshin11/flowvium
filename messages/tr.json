@@ -111,7 +111,16 @@
       "energy-transition": "Enerji Dönüşümü",
       "financials-fintech": "Finans / Fintek",
       "materials-critical-minerals": "Hammadeler / Kritik Mineraller",
-      "crypto": "Kripto"
+      "crypto": "Kripto",
+      "general": "Genel",
+      "macro": "Makro",
+      "biotech": "Biyoteknoloji",
+      "cloud": "Bulut",
+      "hardware": "Donanım",
+      "infrastructure": "Altyapı",
+      "mining": "Madencilik",
+      "other": "Diğer",
+      "pharma": "İlaç"
     },
     "relationships": {
       "supplier": "Tedarikçi",

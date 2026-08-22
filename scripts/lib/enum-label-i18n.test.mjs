@@ -92,7 +92,36 @@ for (const f of ['src/components/pages/CompanyPage.tsx', 'src/components/pages/C
 
 // [4] 번역 키 — 전 16 로케일
 const LOCALES = ['ko','en','ja','zh-CN','zh-TW','es','fr','de','pt','ru','ar','hi','id','th','tr','vi'];
-const needSectors = ['crypto', 'technology', 'semiconductors', 'defense'];
+// 2026-08-22: 필요한 섹터 키를 손으로 나열하지 않는다 — 나열하면 새 값이 생길 때마다 샌다.
+//   실제 데이터가 쓰는 값에서 유도한다. blog 배지에 'general' 이 영문으로 남은 걸
+//   눈검증에서 발견하고 전수 유도로 바꿨다(같이 'macro' 도 빠져 있었다).
+const dataSrc = ['src/data/blog-posts.ts', 'src/data/sectors.ts'].map(read).join('\n');
+const usedSectors = [...new Set([
+  ...[...dataSrc.matchAll(/sector:\s*['"]([a-z0-9-]+)['"]/g)].map((m) => m[1]),
+  ...[...read('src/data/sectors.ts').matchAll(/id:\s*['"]([a-z0-9-]+)['"]/g)].map((m) => m[1]),
+])].filter((x) => x !== 'all');
+// 런타임 API 가 내보내는 섹터 값도 같은 규칙을 받아야 한다 — 소스 리터럴만 보면
+//   /ko/short 처럼 API 데이터로 그리는 화면이 영문으로 샌다(눈검증에서 실제로 발견:
+//   infrastructure · other · mining · cloud · biotech · pharma · hardware).
+//   특히 'other' 는 내가 ShortPage 의 손수 맵을 훅으로 바꾸면서 되돌린 회귀였다.
+//   라이브 응답이 필요하므로 전제조건으로 선언한다 — CI 에서는 이 부분만 건너뛴다.
+let liveSectors = [];
+try {
+  const r = await fetch('http://127.0.0.1:3000/api/short-interest', { signal: AbortSignal.timeout(8000) });
+  if (r.ok) {
+    const j = await r.json();
+    liveSectors = [...new Set((j.entries ?? []).map((e) => e.sector).filter(Boolean))];
+  }
+} catch { /* 라이브 없음 — 아래에서 건너뛴다 */ }
+if (liveSectors.length) {
+  ok(`라이브 API 섹터 값 ${liveSectors.length}종도 대상에 포함`);
+} else {
+  console.log('  SKIP-부분  라이브 short-interest 미응답 — API 섹터 값 검사 생략');
+}
+const needSectors = [...new Set([...usedSectors, ...liveSectors])];
+usedSectors.length > 10
+  ? ok(`데이터가 실제로 쓰는 섹터 값 ${usedSectors.length}종을 유도했다`)
+  : bad(`섹터 값 유도 실패(${usedSectors.length}종) — 앵커가 낡았다`);
 const needRoles = ['leader', 'supplier', 'customer', 'partner', 'competitor'];
 let missS = [], missR = [];
 for (const l of LOCALES) {

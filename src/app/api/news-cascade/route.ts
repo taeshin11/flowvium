@@ -805,6 +805,12 @@ function buildCascadePrompt(title: string): string {
   return `News headline: "${title}"
 ${supplyChainCtx}
 Analyze the cascade effects on financial markets. If supply chain relationships are provided above, use them to identify specific ticker-level impacts with correct direction and timing.
+
+GROUNDING RULE — do not invent tickers.
+Use a ticker ONLY when it appears in the supply-chain context above, or is named in the headline itself.
+For Korean stocks this is strict: emit a 6-digit code ONLY if that exact code appears above.
+If you cannot ground a ticker, name the sub-sector instead. A sub-sector name is always acceptable;
+a fabricated code is not — it renders as a clickable symbol and sends the reader to a different company.
 Respond in JSON only:
 {
   "summary": "1-2 sentence summary",

@@ -111,7 +111,16 @@
       "energy-transition": "Chuyển đổi năng lượng",
       "financials-fintech": "Tài chính / Fintech",
       "materials-critical-minerals": "Vật liệu / Khoáng sản chiến lược",
-      "crypto": "Tiền mã hóa"
+      "crypto": "Tiền mã hóa",
+      "general": "Tổng quan",
+      "macro": "Vĩ mô",
+      "biotech": "Công nghệ sinh học",
+      "cloud": "Điện toán đám mây",
+      "hardware": "Phần cứng",
+      "infrastructure": "Hạ tầng",
+      "mining": "Khai khoáng",
+      "other": "Khác",
+      "pharma": "Dược phẩm"
     },
     "relationships": {
       "supplier": "Nhà cung cấp",

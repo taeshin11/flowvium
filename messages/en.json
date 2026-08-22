@@ -111,7 +111,16 @@
       "energy-transition": "Energy Transition",
       "financials-fintech": "Financials / Fintech",
       "materials-critical-minerals": "Materials / Critical Minerals",
-      "crypto": "Crypto"
+      "crypto": "Crypto",
+      "general": "General",
+      "macro": "Macro",
+      "biotech": "Biotech",
+      "cloud": "Cloud",
+      "hardware": "Hardware",
+      "infrastructure": "Infrastructure",
+      "mining": "Mining",
+      "other": "Other",
+      "pharma": "Pharma"
     },
     "relationships": {
       "supplier": "Supplier",
