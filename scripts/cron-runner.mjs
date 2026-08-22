@@ -403,8 +403,11 @@ const MAINT_JOBS = [
   //   news-cascade 의 asset 검증기가 실제 환각을 잡는데(unknown_kr_code 등) 그 발견이
   //   logger.warn 에서 끝나 추세로 안 쌓였다 — CLAUDE.md 규칙 2의 마지막 칸이 비어 있었다.
   //   요청 경로에서 SQLite 를 열면 보고서 생성과 락을 다투므로 수확만 주기로 돌린다.
-  //   로그는 500개 캡(Redis)이라 주기가 길면 유실된다. 커밋할 산출물은 없다(DB 는 gitignore 대상).
-  { label: 'harvest-log-defects',  script: 'scripts/harvest-log-defects.mjs',        timeoutMs: 60000,   commitPaths: [],                                     schedules: ['35 * * * *'],                 maxAgeH: 3 },
+  //   로그는 500개 캡(Redis)이라 주기가 길면 유실된다 — 실측으로 500건이 덮는 시간이
+  //   **41.8분**(12건/분)이었다. 매시간은 부족해서 20분 간격으로 당겼다(실측 대비 2배 여유).
+  //   그래도 유실되면 harvest 가 로그로 알린다(detectLogGap) — 조용한 유실은 '결함 없음' 과
+  //   구분되지 않는다. 커밋할 산출물은 없다(DB 는 gitignore 대상).
+  { label: 'harvest-log-defects',  script: 'scripts/harvest-log-defects.mjs',        timeoutMs: 60000,   commitPaths: [],                                     schedules: ['5,25,45 * * * *'],             maxAgeH: 2 },
   { label: 'dart-corpcodes',       script: 'scripts/fetch-dart-corp-codes.mjs',      timeoutMs: 300000,  commitPaths: ['data/dart-corp-codes.json'],          schedules: ['5 17 * * *'],                 maxAgeH: 30 },
   // 2026-07-04: 슬롯 0분→20분 — 07:00/16:00 KST 정각이 morning/afternoon 리포트 종료창(~xx:00:06)과 겹쳐
   //   lock skip 4연속(44h stale, 모니터는 감지만 하던 사각지대). 리포트 종료 후 여유 확보.

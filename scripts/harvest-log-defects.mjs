@@ -12,15 +12,22 @@
  * 종료코드: 0(수확 성공 또는 수확할 것 없음) · 1(DB 오류). Redis 미접속은 0 + 사유 출력.
  */
 import { openDb } from './lib/db.mjs';
-import { readRecentLogs, toDefectRows } from './lib/log-defect-harvest.mjs';
+import { readRecentLogs, toDefectRows, detectLogGap, readHarvestMark, writeHarvestMark } from './lib/log-defect-harvest.mjs';
 
 const log = (...a) => console.log('[harvest]', ...a);
 
 const entries = await readRecentLogs(500);
 if (entries === null) { log('Redis 접속 정보 없음 — 수확 건너뜀'); process.exit(0); }
 
+// 수확 주기 사이에 로그가 넘쳐 유실됐는가. 조용한 유실은 '결함 없음' 과 구분되지 않는다.
+//   실측(2026-08-22): 로그 500건이 덮는 시간이 41.8분(12건/분)이었다. 매시간 수확은 부족하다.
+const mark = await readHarvestMark();
+const gap = detectLogGap(entries, mark);
+if (gap) log(`⚠️ 로그 유실 — 마지막 수확 이후 ${gap.gapMinutes}분치가 캡(500)에 밀려 사라졌다 `
+  + `(현재 가장 오래된 항목 ${gap.oldest}). 수확 주기를 더 당기거나 로거 캡을 올려야 한다.`);
+
 const rows = toDefectRows(entries);
-if (!rows.length) { log(`로그 ${entries.length}건 · 새 결함 0건`); process.exit(0); }
+if (!rows.length) { log(`로그 ${entries.length}건 · 새 결함 0건`); await writeHarvestMark(); process.exit(0); }
 
 const db = openDb();
 try {
@@ -50,3 +57,4 @@ try {
   console.error('[harvest] 실패:', e?.message ?? e);
   process.exit(1);
 } finally { db.close(); }
+await writeHarvestMark();

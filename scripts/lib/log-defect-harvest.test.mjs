@@ -24,7 +24,7 @@ let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);
 const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
 
-const { toDefectRows, severityOf } = await import('./log-defect-harvest.mjs');
+const { toDefectRows, severityOf, detectLogGap } = await import('./log-defect-harvest.mjs');
 
 // 실제 로그에서 관측된 엔트리 그대로
 const entries = [
@@ -55,6 +55,24 @@ severityOf('unknown_kr_code:035550') === 'high' && severityOf('dropped_ticker_hi
   ? ok('심각도 구분: 존재하지 않는 코드=high · 근거 없는 힌트 제거=low')
   : bad('심각도가 구분되지 않는다 — 전부 같은 무게면 우선순위가 사라진다');
 
+// 유실 감지 — 조용한 유실은 '결함 없음' 과 구분되지 않는다.
+//   실측(2026-08-22): 로그 500건이 덮는 시간이 41.8분(12건/분)이었다. 매시간 수확은 부족하다.
+//   "주기가 충분하다" 는 내 가정이 틀렸고, 재 보고 나서야 알았다.
+{
+  const now = Date.now();
+  const logs = [{ t: new Date(now - 40 * 60000).toISOString(), event: 'x' }];
+  detectLogGap(logs, now - 10 * 60000) === null
+    ? ok('마지막 수확 이후가 로그에 다 남아 있으면 유실 없음')
+    : bad('유실이 없는데 있다고 본다');
+  const g = detectLogGap(logs, now - 60 * 60000);
+  g && g.gapMinutes === 20
+    ? ok(`캡에 밀려 사라진 구간을 분 단위로 알린다 (${g.gapMinutes}분)`)
+    : bad(`유실 구간 계산이 틀렸다: ${JSON.stringify(g)}`);
+  detectLogGap([], now - 60 * 60000) === null && detectLogGap(logs, null) === null
+    ? ok('로그가 비었거나 마커가 없으면 판정하지 않는다 (모르는 걸 아는 척하지 않는다)')
+    : bad('근거 없이 유실을 단정한다');
+}
+
 // 표면 분리: 보고서 프롬프트 주입에서 cascade_* 가 빠져야 한다
 const db = readFileSync(resolve(ROOT, 'scripts/lib/db.mjs'), 'utf8');
 /getRecentHallucinationsForPromptInject[\s\S]{0,1600}?NOT LIKE 'cascade_%'/.test(db)
@@ -66,6 +84,15 @@ const cron = readFileSync(resolve(ROOT, 'scripts/cron-runner.mjs'), 'utf8');
 /harvest-log-defects/.test(cron)
   ? ok('수확기가 cron-runner 에 등록돼 있다')
   : bad('수확기를 만들었는데 아무도 안 부른다 — 손으로 돌릴 때만 도는 dead-end');
+// 주기가 실측 회전(41.8분)보다 짧아야 한다 — 매시간이면 매 주기 18분치를 잃는다.
+{
+  const m = cron.match(/harvest-log-defects[^\n]*schedules:\s*\['([^']+)'\]/);
+  const spec = m?.[1] ?? '';
+  const mins = (spec.split(' ')[0] ?? '').split(',').filter(Boolean).length;
+  mins >= 3
+    ? ok(`수확 주기가 시간당 ${mins}회 (실측 로그 회전 41.8분보다 촘촘)`)
+    : bad(`수확 주기가 시간당 ${mins}회 — 로그 회전(41.8분)보다 성기면 매 주기 유실된다: '${spec}'`);
+}
 
 console.log(fail === 0 ? '\n✅ log-defect-harvest 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

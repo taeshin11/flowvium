@@ -25,6 +25,7 @@ import { resolve } from 'path';
 import { ROOT } from './project-root.mjs';
 
 const LOG_KEY = 'flowvium:log:recent';   // src/lib/logger.ts 의 REDIS_KEY 와 같은 값
+const MARK_KEY = 'flowvium:log-harvest:last';  // 마지막 수확 시각 — 유실 감지용
 
 /** 결함 사유 → 심각도. 발간되면 사용자가 틀린 값을 보는 것은 high. */
 export function severityOf(defect) {
@@ -73,14 +74,51 @@ function loadEnv() {
 }
 
 /** Redis 로그 리스트를 읽어 파싱한다. 접속 불가면 null(= 수확 불가, 실패 아님). */
+/**
+ * 수확 주기 사이에 로그가 넘쳐 유실됐는지 본다.
+ *
+ * 2026-08-22 실측: 로그 리스트는 500개 캡인데 그 500건이 덮는 시간이 **41.8분**(12건/분)이었다.
+ *   수확을 매시간 돌리면 매 주기 약 18분치가 조용히 사라진다 —
+ *   "주기가 충분하다" 는 내 가정이 틀렸다. 트래픽에 따라 회전 속도는 더 빨라질 수 있다.
+ *   그래서 주기를 20분으로 당기고(실측 42분 대비 2배 여유), *그래도* 유실되면 알리게 한다.
+ *   조용한 유실은 "결함이 없다" 와 구분되지 않는다.
+ */
+export function detectLogGap(entries, lastMark) {
+  if (!entries?.length || !lastMark) return null;
+  const oldest = Math.min(...entries.map((e) => Date.parse(e.t)).filter(Number.isFinite));
+  if (!Number.isFinite(oldest)) return null;
+  const gapMs = oldest - lastMark;
+  return gapMs > 0 ? { gapMinutes: Math.round(gapMs / 60000), oldest: new Date(oldest).toISOString() } : null;
+}
+
 export async function readRecentLogs(limit = 500) {
+  const r = await redisClient();
+  if (!r) return null;
+  const items = await r.lrange(LOG_KEY, 0, limit - 1);
+  return items.map((x) => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
+    .filter(Boolean);
+}
+
+/** Redis 클라이언트. 접속 정보가 없으면 null(= 수확 불가, 실패 아님). */
+async function redisClient() {
   const env = loadEnv();
   const url = env.UPSTASH_REDIS_REST_URL ?? process.env.UPSTASH_REDIS_REST_URL;
   const token = env.UPSTASH_REDIS_REST_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
   const { Redis } = await import('@upstash/redis');
-  const r = new Redis({ url, token });
-  const items = await r.lrange(LOG_KEY, 0, limit - 1);
-  return items.map((x) => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
-    .filter(Boolean);
+  return new Redis({ url, token });
+}
+
+/** 마지막 수확 시각(ms). 없으면 null. */
+export async function readHarvestMark() {
+  const r = await redisClient();
+  if (!r) return null;
+  const n = Number(await r.get(MARK_KEY));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+export async function writeHarvestMark(at = Date.now()) {
+  const r = await redisClient();
+  if (!r) return;
+  await r.set(MARK_KEY, String(at), { ex: 7 * 24 * 3600 });
 }
