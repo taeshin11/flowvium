@@ -34,6 +34,7 @@ import vm from 'vm';
 import { Agent, fetch as undiciFetch, setGlobalDispatcher } from 'undici';
 import * as SESSIONS from './lib/report-sessions.mjs';
 import { limiterFor } from './lib/llm-gate.mjs';
+import { buildCascadeUpstreamSet } from './lib/cascade-upstream.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -6952,7 +6953,12 @@ async function generateViaOllama() {
       else console.warn('  [squeeze-map] 실측 스퀴즈 점수 0종 — 공매도 소스 확인 필요');
       return m;
     })(),
-    cascadeUpstreamSet: new Set((ctxRaw?.cascade ?? []).flatMap(c => (c.downstreamBeneficiaries ?? []).map(d => d.ticker ?? d))),
+    // 2026-08-22: 죽은 배선 수리. 종전엔 `ctxRaw.cascade`(= news-cascade **기사** 배열, :3882)에서
+    //   downstreamBeneficiaries 를 읽었는데 그 스키마엔 그 필드가 없다(실측 12개 키 전수 확인).
+    //   그 필드를 만드는 건 /api/supply-chain-signals 이고 ctxRaw 에는 supplyChainSignals 로
+    //   따로 담긴다(:3887). *다른 객체* 를 읽고 있었다 → Set 이 언제나 비어
+    //   micro_cascade_upstream 룰이 구조적으로 발화 불가였다(최근 12보고서 발화 0회).
+    cascadeUpstreamSet: buildCascadeUpstreamSet(ctxRaw),
     // 2026-06-13: 전 종목 사전수집 재무 (사용자 "미리미리 수집") — build-financials-cache 산출.
     //   stage-1 에서 전 종목 펀더멘털(매출YoY/영업이익률/ROE) 평가 → top-50 깔때기 제약 제거.
     finCacheMap: (() => {

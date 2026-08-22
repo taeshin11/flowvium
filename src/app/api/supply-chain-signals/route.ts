@@ -315,17 +315,24 @@ async function fetchEdgar8KAtom(): Promise<SupplyChainSignal[]> {
       if (detail.amount) parts.push(detail.amount);
       const detailStr = parts.join(' · ');
       if (!detail.summary && detail.region) needSummary.push({ accNo: c.accNo, region: detail.region });
+        // 2026-08-22: downstream 추론 복원. 2026-06-15 에 본문 파싱 경로를 추가하면서
+        //   inferDownstream 호출을 가져오지 않아 여기서 나온 신호는 downstream 이 항상 비었다
+        //   (:190 · :570 · :608 은 부른다). 그 탓에 매수 룰 micro_cascade_upstream 이
+        //   최근 12개 보고서에서 0회 발화했다 — 공급망이 종목 선정에 전혀 안 쓰이고 있었다.
+        //   추론 근거는 cascadePatterns 이므로 카탈로그에 없는 티커는 여전히 빈 배열이다(정상).
+        const sigType = detail.kind === 'financing' ? 'supply_risk' : 'contract_win';
+        const down8k = inferDownstream(c.ticker, sigType);
       signals.push({
         ticker: c.ticker,
         companyName: c.name,
-        signalType: detail.kind === 'financing' ? 'supply_risk' : 'contract_win',
+          signalType: sigType,
         conviction: detail.kind === 'financing' ? 52 : 66,
         direction: 'neutral',
         headline: `8-K [${kindLabel}]: ${c.name}${detailStr ? ' — ' + detailStr : ' — 주요 계약(Item 1.01)'}`,
         source: 'sec-8k',
         date: c.date,
-        downstreamBeneficiaries: [],
-        upstreamRisks: [],
+          downstreamBeneficiaries: down8k.beneficiaries,
+          upstreamRisks: down8k.risks,
         whyMatters: detail.summary
           || (detail.kind === 'financing' ? '자본조달 공시(지분/채권) — 재무구조 변화, 매출 직결 아님'
             : '사업 계약 공시 — 인수·공급·파트너십 등 사업 변화 신호'),
