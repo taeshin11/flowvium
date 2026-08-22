@@ -140,11 +140,11 @@
     "fy": "2025"
   },
   "PH": {
-    "revUsd": 19850000000,
-    "revYoYPct": -0.4,
-    "opMarginPct": 21.9,
+    "revUsd": 21499000000,
+    "revYoYPct": 8.3,
+    "opMarginPct": 23.6,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "DIS": {
     "revUsd": 94425000000,
@@ -1273,6 +1273,13 @@
     "roePct": 10.3,
     "fy": "2025"
   },
+  "AEP": {
+    "revUsd": 21702000000,
+    "revYoYPct": 8.7,
+    "opMarginPct": 24.5,
+    "roePct": null,
+    "fy": "2025"
+  },
   "SRE": {
     "revUsd": 12418000000,
     "revYoYPct": 5.1,
@@ -1687,11 +1694,11 @@
     "fy": "2025"
   },
   "SYY": {
-    "revUsd": 81370000000,
-    "revYoYPct": 3.2,
-    "opMarginPct": 3.8,
-    "roePct": 99.9,
-    "fy": "2025"
+    "revUsd": 84553000000,
+    "revYoYPct": 3.9,
+    "opMarginPct": 3.7,
+    "roePct": 65.9,
+    "fy": "2026"
   },
   "KR": {
     "revUsd": 147642000000,
@@ -3997,11 +4004,11 @@
     "fy": "2025"
   },
   "BILL": {
-    "revUsd": 1462570000,
-    "revYoYPct": 13.4,
-    "opMarginPct": -5.5,
-    "roePct": 0.6,
-    "fy": "2025"
+    "revUsd": 1653160000,
+    "revYoYPct": 13,
+    "opMarginPct": -4.4,
+    "roePct": -0.3,
+    "fy": "2026"
   },
   "OLN": {
     "revUsd": 6780800000,
