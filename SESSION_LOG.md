@@ -262,6 +262,52 @@ ctxRaw.cascade[].downstreamBeneficiaries. 셋 다 `?? []` 가 조용히 삼켜 �
 
 lib 스위트 102 → 105 (`--strict` 전부 통과). check-stall 11/11.
 
+### 오탐률 추적 2차 — 결함 3건 더 (2026-08-22 저녁)
+
+**(4) 멀쩡한 문장을 "garble" 로 모델에 가르치고 있었다** — 최근 7일 **최대 주입 항목**
+  `narrative_garble_sanitized` 검출 50 · 12개 보고서 전부 · **주입 251회**.
+  실물: `llm_value` 와 `correct_value` 가 **같은 문장**이었다.
+    LLM    : thesis: "오늘 한국 시장에서는 외국인 투자자가 6,727억 원을 순매수하며 …"
+    CORRECT: 교정형 "오늘 한국 시장에서는 …" — 이 garble 반복 금지
+  원인은 before/after 를 각각 `.slice(0, 80)` 한 것. 교정은 대개 문장 **뒤쪽**에서 일어나
+  앞 80자는 서로 같다. harness_ 접두어가 없어 **실제로 주입된다**(db.mjs:1377 은 harness_/cascade_ 만 제외).
+  → `diff-fragment.mjs`: 공통 접두/접미를 걷어내고 바뀐 구간만 담는다. 차이 없으면 기록 안 함.
+  · 설계 의도는 옳았다("모델이 garble 자체를 학습"). 자르는 위치가 틀렸을 뿐이다.
+
+**(5) 코드가 쓴 산문을 코드가 정규식으로 되읽어 모델 탓** — `harness_actionCritiqueMismatch` 27건
+  전부 `buy→watch (note 매칭)`. 걸린 문장 `⚠️ 고점 주의 — 신규 매수 자제: RSI 78(과매수권)` 은
+  코드가 쓴다(`:2200`). 강등 자체는 옳고 **귀속**이 틀렸다.
+  더 나쁜 것: 하네스 패턴이 등급별로 고르지 않다 —
+    `⚠️ 고점 주의…`(w2-3) 걸림 / `🟠 고점 경고…`(w4-7) 안 걸림 / `🔴 덤핑 고위험…`(w≥8) 안 걸림.
+    요약이 상위 2~3개 신호만 담아 `과매수` 라벨마저 잘릴 수 있다.
+    → **경미한 과열은 강등되고 심한 과열은 buy 로 남는 역전**이 코드상 가능했다.
+    실측: 최근 14일 🟠/🔴 발생 **0건** — 잠재 결함이지 발생 이력은 없다(과장 금지).
+  → `peak-risk-action.mjs`: 과열 맵에 들어온 것 자체가 신호이고 등급이 높다고 느슨할 수 없다 → 전부 watch.
+    후처리에서 미리 정하므로 하네스 6h 는 `action!=='buy'` 라 지나간다.
+
+**(6) SEC 법인명 title-case 가 약어를 깨서 발간본에 나갔다** — 유일하게 **독자에게 보인** 것
+  `harness_usNameMismatch` 32건 중 EOG 9건이 `"EOG Resources"→"Eog Resources Inc"` 였다.
+  발간본 **6건**에 `"name":"Eog Resources Inc"` 가 실제로 나갔다.
+  원인: `build-company-names.mjs:48` 의 `s.toLowerCase().replace(/\b\w/g, …)`.
+  SEC 원본은 전부 대문자라 통째 소문자화하면 약어가 죽는다. 접미 코드 제거도 `/\/\w+$/` 라
+  `"AMPHENOL CORP /DE/"`(끝이 `/`)를 못 잡아 16건이 `Corp /De/` 로 남아 있었다.
+  · Yahoo 로 통째 교체하지 않은 이유: 875개 대조 결과 이름이 통째로 다른 9건 중
+    **PARA 는 Yahoo 쪽이 틀렸다**(티커 재배정 → "Banzai International"). 맹신하면 새 오류가 들어온다.
+  → 두 권위 교차검증: 같은 회사면 Yahoo 표기 채택, 어긋나면 SEC 남기고 conflict 로 올림.
+    ETF/ETN 은 SEC 에 **발행사**로 등록되므로(VXX→"Barclays Bank PLC") `quoteType` 으로 구분해 상품명 사용.
+  결과 905개(+1, 손실 0) · 160개 개선 · 충돌 0건.
+    `Nvidia Corp→NVIDIA Corporation` `Kla Corp→KLA Corporation` `Abbvie→AbbVie`
+    `Coca Cola Co→The Coca-Cola Company` `Amphenol Corp /De/→Amphenol Corporation`
+  · 부수 발견: 채움 조건의 `&& sec[t]` 탓에 SEC 목록에서 빠진 티커가 통째로 누락됐다(SATS/EchoStar).
+  · 나머지 22건은 `"Visa"→"Visa Inc."` 류 **정상 축약형**이었다 → `sameCompany()` 로 기록에서 제외.
+    같은 판정이 cascade-asset.mjs 에도 따로 있어 한 곳으로 모았다.
+
+이 세션에서 반복된 형태(6건 중 4건): **증상을 고치는 코드가 이미 있고, 그게 원인을 몇 달간 가렸다.**
+  통화 교정기(2026-05-24 주석), 하네스 6h, garble 적재, 이름 override 전부 같은 구조다.
+  교정기가 있으면 증상이 안 보이므로 아무도 생산자를 안 고친다.
+
+lib 스위트 102 → **108** (`--strict` 전부 통과). verify-all fail 0. check-stall 11/11.
+
 ### 매수 추천 성과 — 정정된 최종 수치
 
     2026-07 이후 종결 167건 · 평균 +1.98% · SPY +2.01% · **초과 -0.03%p** · 승률 50.0%
