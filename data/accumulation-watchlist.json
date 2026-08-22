@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-08-21T07:20:30.092Z",
+  "generatedAt": "2026-08-22T03:40:44.828Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 5,
+  "count": 3,
   "strongCount": 1,
-  "watchCount": 4,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -26,42 +26,8 @@
       "official": null
     },
     {
-      "ticker": "215600.KQ",
-      "name": "신라젠",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.0× 상승(지속 매집)",
-        "거래량 6.4× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 6.5,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 821222,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "100790.KQ",
-      "name": "미래에셋벤처투자",
-      "tier": "watch",
-      "score": 35,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 0.3,
-      "runup5dPct": -17.5,
-      "medDollarVolUsd": 8665075,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "190650.KQ",
-      "name": "코리아에셋투자증권",
+      "ticker": "054780.KQ",
+      "name": "키이스트",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
@@ -71,9 +37,9 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 1.3,
-      "runup5dPct": 1.5,
-      "medDollarVolUsd": 44095,
+      "runup20dPct": 1.8,
+      "runup5dPct": -4.9,
+      "medDollarVolUsd": 33923,
       "smartAccum": true,
       "official": null
     },
