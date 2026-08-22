@@ -53,7 +53,10 @@ export function loadAssetAuthority(root) {
     const names = JSON.parse(readFileSync(resolve(root, 'data/company-names.json'), 'utf8'));
     for (const [t, n] of Object.entries(names)) if (typeof n === 'string') usNames.set(t.toUpperCase(), n);
   } catch { /* US 이름 대조는 건너뛴다 */ }
-  return { krNames, usNames };
+  // 이름 → 티커 역인덱스. '주장이 *다른 실재 회사* 인가' 를 묻기 위해 필요하다(아래 참조).
+  const usByName = new Map();
+  for (const [t, n] of usNames) { const k = normName(n); if (k && !usByName.has(k)) usByName.set(k, t); }
+  return { krNames, usNames, usByName };
 }
 
 /** 회사명 비교용 정규화 — 법인 접미사와 구두점을 걷어낸다. */
@@ -72,6 +75,30 @@ const normName = (s) => String(s).toLowerCase()
  * 완벽한 판정은 아니다 — 토큰이 우연히 겹치는 환각은 통과한다. 다만 괄호 속 이름은
  * 화면에 싣지 않으므로(항상 버린다) 남는 위험은 '그 항목을 살려둔다' 까지다.
  */
+/**
+ * 괄호 속 주장이 *다른 실재 회사* 로 되짚어지는가 — **심각도 판정에만** 쓴다.
+ *
+ * 처음엔 이걸 통과/폐기의 기준으로 삼으려 했다. 'GOLD (XAU/USD)' 와 'CME (Corn Futures)' 가
+ *   이름 불일치로 버려지는 게 과하다고 봤기 때문이다(괄호 속이 회사명이 아니라 서술이다).
+ *   그런데 그러자 'CPRT (Cypress Semiconductor)' 까지 통과했다 — company-names.json 은
+ *   SEC 추출 ~499개라 Cypress 가 없어 되짚어지지 않는다. CPRT 부류를 놓치면 이 검증의
+ *   존재 이유가 사라진다(CLAUDE.md 가 그 사건 때문에 규칙을 만들었다).
+ *
+ * 그래서 판정은 보수적으로 되돌린다 — **권위 소스의 이름과 양립하지 않는 주장이 붙으면 버린다.**
+ *   근거: 버리는 건 asset 만이 아니라 그 항목의 reason 이다. 주장을 검증할 수 없으면
+ *   그 reason 이 이 티커에 관한 것인지도 보증할 수 없다. KR 규칙과 같은 논리다.
+ *   비용: 'GOLD (XAU/USD)' 같은 서술 주석이 붙은 항목을 잃는다(관측 20건 중 2건).
+ *   그 비용을 감수하는 이유 — 'GOLD' 를 Barrick Gold 라 라벨한 채 금 시세 얘기를 붙이는 것도
+ *   틀린 표시다. 그리고 조인 프롬프트가 맨 티커를 요구하므로 이 분기 자체가 드물어졌다(실측).
+ *
+ * 되짚기는 남겨 둔다 — '확실히 다른 회사'(high)와 '검증 불가'(medium)를 구분해
+ *   hallucination_history 에 다른 무게로 적재하기 위해서다. 둘 다 버리는 건 같다.
+ */
+function claimsDifferentCompany(auth, ticker, claim) {
+  const other = auth.usByName?.get(normName(claim));
+  return Boolean(other && other !== ticker);
+}
+
 function compatibleName(known, claim) {
   if (!known || !claim) return true;
   const a = new Set(normName(known).split(' ').filter((w) => w.length > 1));
@@ -131,7 +158,8 @@ export function normalizeCascadeAsset(raw, auth) {
     const acronym = known ? normName(known).split(' ').map((w) => w[0] ?? '').join('').toUpperCase() : '';
     const sameAsTicker = claimed.toUpperCase() === ticker || claimed.toUpperCase() === acronym;
     if (known && claimed && !sameAsTicker && !compatibleName(known, claimed)) {
-      return { kind: 'invalid', asset: null, defect: `us_name_mismatch:${ticker}:${claimed.slice(0, 40)}` };
+      const kind = claimsDifferentCompany(auth, ticker, claimed) ? 'us_name_mismatch' : 'unverifiable_name_claim';
+      return { kind: 'invalid', asset: null, defect: `${kind}:${ticker}:${claimed.slice(0, 40)}` };
     }
     return { kind: 'ticker', asset: ticker, label: known ?? (claimed || ticker) };
   }
@@ -154,7 +182,8 @@ export function normalizeCascadeAsset(raw, auth) {
       const acronym = known ? normName(known).split(' ').map((w) => w[0] ?? '').join('').toUpperCase() : '';
       const benign = !claim || claim.toUpperCase() === base || claim.toUpperCase() === acronym;
       if (known && !benign && !compatibleName(known, claim)) {
-        return { kind: 'invalid', asset: null, defect: `us_name_mismatch:${base}:${claim.slice(0, 40)}` };
+        const kind = claimsDifferentCompany(auth, base, claim) ? 'us_name_mismatch' : 'unverifiable_name_claim';
+        return { kind: 'invalid', asset: null, defect: `${kind}:${base}:${claim.slice(0, 40)}` };
       }
       return { kind: 'ticker', asset: base, label: known ?? base, ...(claim ? { defect: `dropped_name_claim:${claim.slice(0, 30)}` } : {}) };
     }

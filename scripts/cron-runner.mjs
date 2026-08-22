@@ -399,6 +399,12 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
 //   같은 정의를 공유(중복 나열 drift 방지). maxAgeH = runMonitor 기대주기(초과=미실행 의심/catchup 대상).
 //   각 항목 이력·사유는 git blame 참조(2026-06-12~17 신설분).
 const MAINT_JOBS = [
+  // 2026-08-22: 런타임 로그의 LLM 결함을 hallucination_history 로 옮긴다.
+  //   news-cascade 의 asset 검증기가 실제 환각을 잡는데(unknown_kr_code 등) 그 발견이
+  //   logger.warn 에서 끝나 추세로 안 쌓였다 — CLAUDE.md 규칙 2의 마지막 칸이 비어 있었다.
+  //   요청 경로에서 SQLite 를 열면 보고서 생성과 락을 다투므로 수확만 주기로 돌린다.
+  //   로그는 500개 캡(Redis)이라 주기가 길면 유실된다. 커밋할 산출물은 없다(DB 는 gitignore 대상).
+  { label: 'harvest-log-defects',  script: 'scripts/harvest-log-defects.mjs',        timeoutMs: 60000,   commitPaths: [],                                     schedules: ['35 * * * *'],                 maxAgeH: 3 },
   { label: 'dart-corpcodes',       script: 'scripts/fetch-dart-corp-codes.mjs',      timeoutMs: 300000,  commitPaths: ['data/dart-corp-codes.json'],          schedules: ['5 17 * * *'],                 maxAgeH: 30 },
   // 2026-07-04: 슬롯 0분→20분 — 07:00/16:00 KST 정각이 morning/afternoon 리포트 종료창(~xx:00:06)과 겹쳐
   //   lock skip 4연속(44h stale, 모니터는 감지만 하던 사각지대). 리포트 종료 후 여유 확보.

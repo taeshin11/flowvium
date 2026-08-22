@@ -1376,6 +1376,12 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
       -- 2026-06-17: harness_* 는 하네스가 결정론적으로 자동수정하므로 모델에 재학습시킬 필요 없음.
       --   inject 예산(15슬롯)을 실제 escape 한 환각에 집중시키기 위해 제외 (check-stall 트렌드도 동일 제외).
       AND defect_type NOT LIKE 'harness_%'
+      -- 2026-08-22: cascade_* 는 *다른 표면*(뉴스 cascade 분석)의 결함이다. 보고서 프롬프트에
+      --   넣으면 두 가지가 잘못된다: ① 보고서 모델에게 상관없는 걸 가르친다
+      --   ② 15슬롯 예산을 최신순으로 채우므로 보고서 관련 환각을 밀어낸다.
+      --   실제로 수확 직후 20건이 한꺼번에 들어와 예산을 통째로 먹을 뻔했다.
+      --   적재는 유지한다 — 추세·모니터용이고, 주입은 해당 표면의 프롬프트가 따로 한다.
+      AND defect_type NOT LIKE 'cascade_%'
     GROUP BY ticker, defect_type, llm_value
     ORDER BY MAX(detected_at) DESC, repeat_count DESC
     LIMIT ?
