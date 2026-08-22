@@ -24,10 +24,21 @@ let N;
 try { N = await import('./company-name.mjs'); }
 catch (e) { console.log(`  FAIL  모듈 없음: ${e.message}`); process.exit(1); }
 
-// [1] 권위 소스가 이긴다 — meta.name 이 오염돼 있어도
-for (const [t, want] of [['AMD','Advanced Micro Devices'], ['AVGO','Broadcom Inc.'], ['LRCX','Lam Research Corp']]) {
-  const got = N.resolveCompanyName(t);
-  got === want ? ok(`${t} → ${got}`) : bad(`${t} → ${JSON.stringify(got)} (기대 ${want})`);
+// [1] 권위 소스가 이긴다 — meta.name 이 오염돼 있어도.
+//   2026-08-22: 기대값을 문자열로 박아 두었더니 권위 파일이 더 정확해질 때 테스트가 깨졌다
+//   (LRCX "Lam Research Corp" → "Lam Research Corporation"). 검사할 것은 표기가 아니라
+//   **권위 파일을 따르는가**와 **제품/사업부문 이름을 회사명이라 하지 않는가** 이다.
+{
+  const { readFileSync } = await import('fs');
+  const AUTH = JSON.parse(readFileSync(new URL('../../data/company-names.json', import.meta.url), 'utf8'));
+  const POLLUTED = { AMD: { name: 'EPYC Server CPUs' }, AVGO: { name: 'Networking ASICs' }, LRCX: { name: 'Conductor Etch' } };
+  for (const t of ['AMD', 'AVGO', 'LRCX']) {
+    const got = N.resolveCompanyName(t, { meta: POLLUTED });
+    got === AUTH[t]
+      ? ok(`${t} → ${got} (권위 파일과 일치)`)
+      : bad(`${t} → ${JSON.stringify(got)} — 권위 파일은 ${JSON.stringify(AUTH[t])}`);
+    got !== POLLUTED[t].name ? ok(`${t} 제품명(${POLLUTED[t].name}) 거부`) : bad(`${t} 제품명을 회사명으로 썼다`);
+  }
 }
 
 // [2] 한국 종목은 krNames 에서
