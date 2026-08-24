@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex } from './lib/flow-contradiction.mjs';
 import { isMovementClaim } from './lib/flow-move-claim.mjs';
+import { detectIndexLevelMismatch } from './lib/index-level-check.mjs';
 
 // 2026-05-31: 최신 보고서 자동 선택. 이전엔 default 가 'report-2026-05-30-morning-ko.json'
 //   하드코딩 → verify-all / cron verify-loop 가 며칠째 stale 보고서만 검증 (silent 사각지대).
@@ -1032,15 +1033,19 @@ export async function verifyReport(file, { silent = false } = {}) {
     //     "KOSPI 8,864" — KOSPI 실값 ~2,500-3,200). 우리 ^KS11 피드는 절대값을 공급 안 함(null/unavailable)
     //     → 내러티브의 절대 지수레벨은 전부 ungrounded 환각(소스 없는 특정숫자=CLAUDE.md 환각). 상대지표(%·일선)는 정상.
     //     연도(19xx/20xx)·% ·일선·p 인접은 제외(상대표현/연도라 정상).
-    const idxM = fullNarr.match(/(KOSPI|코스피|KOSDAQ|코스닥)\s*([0-9]{1,2},[0-9]{3}|[0-9]{4})(?!\s*(일|%|p\b|년|pt|선))/);
-    if (idxM) {
-      const num = parseInt(idxM[2].replace(/,/g, ''), 10);
-      if (num >= 1000 && !(num >= 1990 && num <= 2099)) {  // 지수레벨(연도 제외)
-        defects.push({ ticker: 'NARRATIVE', defect_type: 'index_value_fabrication',
-          llm_value: `"${idxM[0]}" — 지수 절대레벨(^KS11 피드 null=ungrounded 환각)`,
-          correct_value: '우리 데이터엔 KOSPI/KOSDAQ 절대값 없음 → 상대지표(200일선 대비%·20일변화%·고점대비%)만 사용. 절대 지수레벨 명시 금지.', severity: 'high' });
-        log(`  ❌ 지수값환각: "${idxM[0]}"`); nFound++;
-      }
+    const idxBad = detectIndexLevelMismatch(fullNarr, r.indexLevelsAbs ?? {});
+    if (idxBad && !idxBad.unverifiable) {
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'index_value_fabrication',
+        llm_value: `"${idxBad.raw}" — 실측 ${idxBad.label} ${idxBad.actual} 와 불일치`,
+        correct_value: `${idxBad.label} 실측값 ${idxBad.actual} 를 쓰거나 상대지표(200일선 대비%·20일변화%·고점대비%)만 사용.`, severity: 'high' });
+      log(`  ❌ 지수값 불일치: "${idxBad.raw}" (실측 ${idxBad.actual})`); nFound++;
+    } else if (idxBad?.unverifiable) {
+      // 실측이 없으면 확인 불가다. 확인 불가를 환각으로 단정해 발간을 막으면 안 된다 —
+      //   2026-08-24 에 그렇게 30시간 발간이 멈췄다. 보이되 막지 않는다(severity low).
+      defects.push({ ticker: 'NARRATIVE', defect_type: 'index_value_unverifiable',
+        llm_value: `"${idxBad.raw}" — 생성시점 실측 레벨이 보고서에 없어 대조 불가`,
+        correct_value: 'buildIndexLevelsBlock 의 levels 가 보고서에 저장되는지 확인(indexLevelsAbs).', severity: 'low' });
+      log(`  ⚠️  지수값 확인 불가: "${idxBad.raw}" (생성시점 실측 미저장)`);
     }
 
     if (!nFound) log('  ✅ 내러티브 그라운딩 이상 없음');

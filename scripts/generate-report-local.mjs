@@ -9303,6 +9303,10 @@ async function generateViaOllama() {
     //   사실이 아니었다 — ^KS11 이 6912.95 를 준다. 같은 파이프라인이 그 값을 프롬프트에 넣고
     //   "그대로 인용하라"고 시켜 놓고, 인용한 값을 후처리가 지우고, 그 삭제를 모델의 환각으로
     //   기록해 다음 프롬프트에 "반복 금지"로 주입했다(주 53건). 맞으면 두고, 틀리면 실측으로 고친다.
+    // 발간 게이트(verify-report)가 나중에 같은 기준으로 대조하려면 생성 시점 실측이 보고서에 있어야 한다.
+    //   2026-08-24 사고: 후처리만 실측 대조로 바꾸고 게이트는 옛 규칙이라 맞는 값이 환각으로 잡혀
+    //   발간이 30시간 막혔다(6회 중 5회). 판정 근거를 보고서에 실어 두 곳이 같은 값을 본다.
+    finalReport.indexLevelsAbs = indexLevelsAbs;
     const { fixes: idxFixes } = reconcileReportIndexLevels(finalReport, indexLevelsAbs);
     const nIdx = idxFixes.length;
     if (idxFixes.length) console.log(`  [index-level] 실측 대조 교정 ${idxFixes.length}건: ${idxFixes.slice(0, 3).join(', ')}`);
@@ -9593,7 +9597,10 @@ async function generateViaOllama() {
           'flow_valence_contradiction', 'flow_direction_inversion', 'return_as_flow',
           'name_mismatch', 'sector_mismatch', 'sector_keyword_mismatch',
           'latin_garble', 'latin_bleed', 'cjk_bleed',
-          'index_value_fabrication',  // 2026-06-17: KOSPI 8,864 환각(피드 미공급 절대 지수레벨) — 발간 차단
+          // 2026-08-24: 판정 근거가 바뀌었다. '콤마형 지수레벨 = 환각'(피드 미공급 전제)이 아니라
+          //   **생성시점 실측과 불일치**일 때만 이 유형이 난다. 확인 불가는 index_value_unverifiable
+          //   (low, 비차단) 로 분리했다 — 확인 불가를 차단으로 다루다 발간이 30시간 멈췄다.
+          'index_value_fabrication',
         ]);
         const blocking = defects.filter(d => PUBLISH_BLOCKING.has(d.defect_type));
         if (blocking.length > 0) {

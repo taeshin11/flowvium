@@ -93,3 +93,38 @@ export function reconcileReportIndexLevels(report, levels = {}) {
   }
   return { fixes };
 }
+
+/**
+ * 발간 게이트용 판정 — 내러티브에 적힌 지수레벨이 실측과 어긋나는가.
+ *
+ * 2026-08-23~24 사고: 후처리(reconcileIndexLevels)는 실측 대조로 바꿨는데 발간 게이트
+ *   (verify-report.mjs index_value_fabrication)는 옛 전제("피드가 절대값을 공급 안 함 →
+ *   전부 환각")를 그대로 써서 **맞는 값을 환각으로 보고 발간을 30시간 막았다**(6회 중 5회).
+ *   생산자만 바꾸고 소비처를 확인하지 않은 내 잘못이다. 그래서 판정을 여기 하나로 모은다 —
+ *   게이트와 후처리가 같은 함수를 쓰면 갈릴 수가 없다.
+ *
+ * 연도(19xx/20xx)·상대표현(일선/%/p/pt) 인접은 지수레벨이 아니다(기존 게이트 예외 보존).
+ *
+ * @param {string} text  내러티브 전체
+ * @param {Record<string, number>} levels 생성 시점 실측 레벨
+ * @returns {{label:string, claimed:number, actual:number|null, raw:string, unverifiable:boolean}|null}
+ *          null = 문제 없음. unverifiable=true = 실측이 없어 확인 불가(단정하지 않는다).
+ */
+export function detectIndexLevelMismatch(text, levels = {}) {
+  if (typeof text !== 'string' || !text) return null;
+  const RE_G = new RegExp(`(${NAMES})\\s*([0-9]{1,2},[0-9]{3}(?:\\.[0-9]+)?|[0-9]{4}(?:\\.[0-9]+)?)(?!\\s*(일|%|p\\b|년|pt|선))`, 'g');
+  for (const m of text.matchAll(RE_G)) {
+    const label = ALIAS[m[1]];
+    const claimed = parseFloat(String(m[2]).replace(/,/g, ''));
+    if (!Number.isFinite(claimed) || claimed < 100) continue;
+    if (claimed >= 1990 && claimed <= 2099 && !String(m[2]).includes(',')) continue;   // 연도
+    const actual = levels?.[label];
+    if (!Number.isFinite(actual) || actual <= 0) {
+      return { label, claimed, actual: null, raw: m[0], unverifiable: true };
+    }
+    if (!matches(claimed, actual)) {
+      return { label, claimed, actual, raw: m[0], unverifiable: false };
+    }
+  }
+  return null;
+}
