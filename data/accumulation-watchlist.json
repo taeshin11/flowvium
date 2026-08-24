@@ -1,63 +1,28 @@
 {
-  "generatedAt": "2026-08-23T22:20:22.971Z",
+  "generatedAt": "2026-08-24T07:20:24.917Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 1,
   "strongCount": 1,
-  "watchCount": 2,
+  "watchCount": 0,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "056730.KQ",
       "name": "CNT85",
       "tier": "strong",
-      "score": 37,
+      "score": 33,
       "coFire": 3,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "종가 일중 상단 60%",
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -12,
-      "runup5dPct": -3.3,
+      "runup20dPct": -11.4,
+      "runup5dPct": -5.8,
       "medDollarVolUsd": 8080,
       "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "054780.KQ",
-      "name": "키이스트",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 1.8,
-      "runup5dPct": -4.9,
-      "medDollarVolUsd": 33923,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "263750.KQ",
-      "name": "펄어비스",
-      "tier": "watch",
-      "score": 32,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -6,
-      "runup5dPct": 2.2,
-      "medDollarVolUsd": 9265804,
-      "smartAccum": true,
       "official": null
     }
   ]
