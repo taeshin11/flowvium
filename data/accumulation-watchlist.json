@@ -1,30 +1,12 @@
 {
-  "generatedAt": "2026-08-25T03:20:55.013Z",
+  "generatedAt": "2026-08-25T07:20:24.068Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
-  "strongCount": 1,
+  "count": 3,
+  "strongCount": 0,
   "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "056730.KQ",
-      "name": "CNT85",
-      "tier": "strong",
-      "score": 33,
-      "coFire": 3,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -11.4,
-      "runup5dPct": -3,
-      "medDollarVolUsd": 7776,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "466100.KQ",
       "name": "클로봇",
@@ -36,9 +18,9 @@
         "변동성 수축(coiling) — 돌파 압축",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 6.3,
-      "runup5dPct": -12.5,
-      "medDollarVolUsd": 5591740,
+      "runup20dPct": 9.9,
+      "runup5dPct": -9.6,
+      "medDollarVolUsd": 5825671,
       "smartAccum": true,
       "official": null
     },
@@ -54,8 +36,8 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -13.5,
-      "runup5dPct": -1,
+      "runup20dPct": -13,
+      "runup5dPct": -0.4,
       "medDollarVolUsd": 445814,
       "smartAccum": true,
       "official": null
@@ -67,13 +49,13 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 3.5× 급증(가격 평탄)",
+        "거래량 추세 2.0× 상승",
+        "거래량 3.6× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 3.9,
-      "runup5dPct": 3.5,
-      "medDollarVolUsd": 10405887,
+      "runup20dPct": 6.8,
+      "runup5dPct": 6.4,
+      "medDollarVolUsd": 10580542,
       "smartAccum": true,
       "official": null
     }
