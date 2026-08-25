@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-08-24T13:00:48.650Z",
+  "generatedAt": "2026-08-25T09:20:59.822Z",
   "universe": "US",
-  "scanned": 374,
-  "count": 8,
+  "scanned": 289,
+  "count": 6,
   "strongCount": 0,
-  "watchCount": 8,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -15,125 +15,96 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 2.2,
-      "runup5dPct": 3.7,
+      "runup20dPct": -1.2,
+      "runup5dPct": 2.7,
       "medDollarVolUsd": 4001792,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CATO",
-      "name": "Cato Corporation (The)",
+      "ticker": "CWH",
+      "name": "Camping World Holdings, Inc.",
       "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 5.4× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -11.5,
-      "runup5dPct": -14.1,
-      "medDollarVolUsd": 170568,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "WDH",
-      "name": "Waterdrop Inc.",
-      "tier": "watch",
-      "score": 27,
+      "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -10.7,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 177300,
+      "runup20dPct": 4.9,
+      "runup5dPct": 3.2,
+      "medDollarVolUsd": 14313922,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "FTK",
-      "name": "Flotek Industries, Inc.",
+      "ticker": "BHFAM",
+      "name": "Brighthouse Financial, Inc. - D",
       "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -4.5,
-      "runup5dPct": -31.1,
-      "medDollarVolUsd": 8464674,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ENVX",
-      "name": "Enovix Corporation",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -14.4,
-      "runup5dPct": -23,
-      "medDollarVolUsd": 29353821,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GEMI",
-      "name": "Gemini Space Station, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -0.2,
-      "runup5dPct": 9.2,
-      "medDollarVolUsd": 6507804,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "TFIN",
-      "name": "Triumph Financial, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": -2.5,
-      "runup5dPct": -4.2,
-      "medDollarVolUsd": 16092299,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "FLXS",
-      "name": "Flexsteel Industries, Inc.",
-      "tier": "watch",
-      "score": 16,
+      "score": 24,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.9× 상승",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 3.6× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 8.2,
-      "runup5dPct": 10.3,
-      "medDollarVolUsd": 3337664,
+      "runup20dPct": 0.6,
+      "runup5dPct": 5.9,
+      "medDollarVolUsd": 329660,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "KELYA",
+      "name": "Kelly Services, Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 6.8,
+      "runup5dPct": 4.4,
+      "medDollarVolUsd": 4841856,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ZIP",
+      "name": "ZipRecruiter, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 6.8,
+      "runup5dPct": -6.6,
+      "medDollarVolUsd": 2559276,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BOW",
+      "name": "Bowhead Specialty Holdings Inc.",
+      "tier": "watch",
+      "score": 19,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": 8.1,
+      "runup5dPct": 0.9,
+      "medDollarVolUsd": 4981291,
       "smartAccum": false,
       "official": null
     }
