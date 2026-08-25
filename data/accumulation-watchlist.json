@@ -1,29 +1,12 @@
 {
-  "generatedAt": "2026-08-25T07:20:24.068Z",
+  "generatedAt": "2026-08-25T22:20:24.273Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "466100.KQ",
-      "name": "클로봇",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "변동성 수축(coiling) — 돌파 압축",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 9.9,
-      "runup5dPct": -9.6,
-      "medDollarVolUsd": 5825671,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "078130.KQ",
       "name": "국일제지",
