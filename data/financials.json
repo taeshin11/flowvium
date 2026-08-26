@@ -3353,11 +3353,11 @@
     "fy": "2025"
   },
   "TECH": {
-    "revUsd": 1219635000,
-    "revYoYPct": 5.2,
-    "opMarginPct": 8.4,
-    "roePct": 3.8,
-    "fy": "2025"
+    "revUsd": 1215039000,
+    "revYoYPct": -0.4,
+    "opMarginPct": 20.7,
+    "roePct": null,
+    "fy": "2026"
   },
   "WAT": {
     "revUsd": 3165286000,
