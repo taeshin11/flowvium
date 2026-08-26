@@ -74,5 +74,29 @@ if (!M) { console.log('\n❌ 실패'); process.exit(1); }
   /\.env\.local|ELEVENLABS_API_KEY/.test(src) ? ok('키를 env 에서 읽는다') : bad('키 출처가 불명확하다');
 }
 
+// [6] 언어별 앵커 음성이 env 로 고정되는가 (2026-08-27 선정: ko=Salang, en=Adam)
+//   같은 대본을 6종 한국어 + 2종 영어로 뽑아 들려드리고 사용자가 고른 결과다.
+//   ID 를 코드에 박으면 음성을 바꿀 때마다 코드를 고쳐야 하고, 공유 음성은 제작자가 내릴 수도 있다.
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(resolve(ROOT, 'scripts/lib/tts.mjs'), 'utf8');
+  /ELEVENLABS_VOICE_ID_KO|ELEVENLABS_VOICE_ID_EN/.test(src)
+    ? ok('언어별 음성 ID 를 env 에서 읽는다')
+    : bad('언어별 음성 지정 경로가 없다');
+  /mYk0rAapHek2oTw18z8x|pNInz6obpgDQGcFmaJgB/.test(src)
+    ? bad('음성 ID 가 코드에 박혀 있다 — 교체 시 코드를 고쳐야 한다')
+    : ok('음성 ID 하드코딩 없음');
+
+  // locale 로 음성이 갈리는가 (키 없이도 선택 로직은 검증 가능해야 한다)
+  if (typeof M.voiceForLocale !== 'function') bad('voiceForLocale() 없음 — locale→음성 매핑이 테스트 불가');
+  else {
+    const ko = M.voiceForLocale('ko', { ELEVENLABS_VOICE_ID_KO: 'KO_ID', ELEVENLABS_VOICE_ID_EN: 'EN_ID' });
+    const en = M.voiceForLocale('en', { ELEVENLABS_VOICE_ID_KO: 'KO_ID', ELEVENLABS_VOICE_ID_EN: 'EN_ID' });
+    ko === 'KO_ID' && en === 'EN_ID' ? ok('locale 로 음성이 갈린다') : bad(`매핑 오류: ko=${ko} en=${en}`);
+    const ja = M.voiceForLocale('ja', { ELEVENLABS_VOICE_ID_EN: 'EN_ID' });
+    ja === 'EN_ID' ? ok('미지정 로케일은 영어 앵커로 폴백') : bad(`폴백 없음: ja=${ja}`);
+  }
+}
+
 console.log(fail === 0 ? '\n✅ tts 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

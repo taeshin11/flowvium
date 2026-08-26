@@ -50,17 +50,28 @@ async function macProvider(text, { voice = 'Yuna', rate = 200, outPath }) {
  *   맥 TTS 에 없던 부분이라 앵커 톤에 쓸 값어치가 있다.
  *   모델은 고정하지 않는다: 안정적 내레이션은 multilingual v2, 표현력은 v3.
  */
-async function elevenProvider(text, { voice, model = 'eleven_multilingual_v2', outPath, apiKey }) {
+async function elevenProvider(text, opts = {}) {
+  const { voice, model = 'eleven_multilingual_v2', outPath, apiKey } = opts;
   const key = apiKey ?? envValue('ELEVENLABS_API_KEY');
   if (!key) {
     throw new Error('ELEVENLABS_API_KEY 없음 — .env.local 에 추가하라(대화·CLI 인자로 넘기지 말 것)');
   }
   const voiceId = voice || envValue('ELEVENLABS_VOICE_ID');
   if (!voiceId) throw new Error('voice 미지정 — ELEVENLABS_VOICE_ID 를 .env.local 에 넣거나 voice 로 전달하라');
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`, {
+  // 2026-08-27: voice_settings 를 명시한다. 종전에는 안 보내서 음성의 기본값을 그대로 썼는데,
+  //   Salang 기본값이 similarity_boost=0.75 · use_speaker_boost=true 였다.
+  //   similarity 가 높으면 원본 녹음의 특성을 그대로 재현한다 — 배경 잡음까지 같이 온다.
+  //   speaker_boost 는 그걸 더 키운다. 사용자가 "뒤쪽에 백색소음" 을 지적해 노출된 문제다.
+  //   기본값을 바꾸지 않고 *호출자가 지정할 수 있게* 연다 — 어떤 값이 맞는지는 귀로 정할 일이다.
+  const settings = opts?.voiceSettings ?? null;
+  // output_format 미지정 시 API 기본은 mp3_44100_128. 인코딩 아티팩트를 줄이려면 192 로.
+  const fmt = opts?.outputFormat ?? envValue('ELEVENLABS_OUTPUT_FORMAT') ?? '';
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`
+    + (fmt ? `?output_format=${encodeURIComponent(fmt)}` : '');
+  const r = await fetch(url, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-    body: JSON.stringify({ text, model_id: model }),
+    body: JSON.stringify({ text, model_id: model, ...(settings ? { voice_settings: settings } : {}) }),
     signal: AbortSignal.timeout(120000),
   });
   if (!r.ok) {
@@ -70,6 +81,21 @@ async function elevenProvider(text, { voice, model = 'eleven_multilingual_v2', o
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, Buffer.from(await r.arrayBuffer()));
   return outPath;
+}
+
+/**
+ * 로케일 → 앵커 음성. 2026-08-27 선정: ko=Salang(차분·명료·따뜻), en=Adam(단호).
+ *   같은 대본을 한국어 6종·영어 2종으로 뽑아 들려드리고 사용자가 고른 결과다.
+ *
+ * ID 는 .env.local 에 둔다 — 코드에 박으면 교체 때마다 코드를 고쳐야 하고,
+ *   공유 라이브러리 음성은 제작자가 내릴 수도 있어 언젠가 반드시 바뀐다.
+ * 미지정 로케일은 영어 앵커로 폴백한다(FlowVium 은 16개 로케일을 낸다).
+ */
+export function voiceForLocale(locale, env = process.env) {
+  const base = String(locale ?? '').toLowerCase().split('-')[0];
+  const pick = (n) => env?.[n] || envValue(n);
+  if (base === 'ko') return pick('ELEVENLABS_VOICE_ID_KO') || pick('ELEVENLABS_VOICE_ID_EN');
+  return pick('ELEVENLABS_VOICE_ID_EN') || pick('ELEVENLABS_VOICE_ID');
 }
 
 const PROVIDERS = { mac: macProvider, elevenlabs: elevenProvider };
@@ -96,6 +122,8 @@ export async function listElevenVoices() {
  */
 export async function synthesize(text, opts = {}) {
   const name = opts.provider ?? envValue('TTS_PROVIDER') ?? 'mac';
+  // locale 을 주면 언어별 앵커 음성을 자동 선택한다(voice 를 직접 주면 그게 우선).
+  if (!opts.voice && opts.locale) opts = { ...opts, voice: voiceForLocale(opts.locale) };
   const fn = PROVIDERS[name];
   if (!fn) throw new Error(`알 수 없는 TTS 공급자: ${name} (가능: ${listProviders().join(', ')})`);
   if (!opts.outPath) throw new Error('outPath 필요');

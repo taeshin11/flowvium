@@ -54,7 +54,14 @@ try {
   const t0 = Date.now();
   await synthesize(text, { provider, voice, model, outPath: out, rate: Number(arg('--rate', 200)) });
   const { statSync } = await import('fs');
-  console.log(`✅ ${out}  (${(statSync(out).size / 1024).toFixed(0)}KB, ${((Date.now() - t0) / 1000).toFixed(1)}s, ${text.length}자)`);
+  // 2026-08-27: 오디오 길이를 찍는다. 종전엔 *생성 소요시간*만 찍어서, 그걸 낭독 길이로 착각해
+  //   "영어권 음성이 한국어를 뭉갠다" 는 틀린 결론을 냈다(실제로는 전부 31~39초로 비슷했다).
+  //   숫자를 보고 판단하는 자리에 다른 숫자를 놓으면 판단이 통째로 틀어진다.
+  const { spawnSync } = await import('child_process');
+  const info = spawnSync('afinfo', [out], { encoding: 'utf8' }).stdout ?? '';
+  const dur = Number((info.match(/estimated duration:\s*([\d.]+)/i) ?? [])[1] ?? 0);
+  console.log(`✅ ${out}`);
+  console.log(`   낭독 ${dur.toFixed(1)}초 · ${text.length}자 · ${(statSync(out).size / 1024).toFixed(0)}KB · 생성 ${((Date.now() - t0) / 1000).toFixed(1)}초`);
 } catch (e) {
   console.error(`❌ ${e.message}`);
   process.exit(1);

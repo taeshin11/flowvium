@@ -1,5 +1,5 @@
 {
-  "_comment": "뉴스 피드 단일 소스 (2026-08-20). 종전에는 src/app/api/news-cascade/route.ts 안에만 있어서 보고서 생성 시에만 수집됐다 — 실측 결과 발행→수집 지연 중앙값 125분, p90 287분이었고, 수집 시각 분포가 보고서 세션(05:30·10:30·14:30·20:00·22:30)에 정확히 몰려 있었다. 병목은 소스가 아니라 주기였다. 독립 폴러(scripts/poll-news.mjs)가 같은 목록을 쓰도록 분리한다. 목록이 두 곳으로 갈라지면 한쪽만 고쳐 조용히 어긋난다 — 이번 세션에서 반복해 본 실패 유형이다.",
+  "_comment": "뉴스 피드 단일 소스 (2026-08-20). 종전에는 src/app/api/news-cascade/route.ts 안에만 있어서 보고서 생성 시에만 수집됐다 — 실측 결과 발행→수집 지연 중앙값 125분, p90 287분이었고, 수집 시각 분포가 보고서 세션(05:30·10:30·14:30·20:00·22:30)에 정확히 몰려 있었다. 병목은 소스가 아니라 주기였다. 독립 폴러(scripts/poll-news.mjs)가 같은 목록을 쓰도록 분리한다. 목록이 두 곳으로 갈라지면 한쪽만 고쳐 조용히 어긋난다 — 이번 세션에서 반복해 본 실패 유형이다. | 2026-08-27: 종합 이슈(정치·사회·연예) 확장 — 영상 채널 소재이자 리포트 맥락. 정치/사회는 규제·정책으로 시장에 닿고 연예는 엔터주에 닿는다. 카테고리는 별도 컬럼 없이 source 이름이 담는다(기존 관례).",
   "financialSignal": "\\b(stock|market|rate|bond|yield|fed|fomc|earning|gdp|inflation|cpi|pce|dollar|usd|euro|yen|equity|index|s&p|nasdaq|dow|trade|tariff|oil|gold|crypto|bitcoin|bank|econom|invest|etf|fund|sector|tech|growth|recession|debt|deficit|treasur|fiscal|monetar|interest|employment|jobs|payroll|retail|sales|profit|revenue|quarter|analyst|forecast|outlook|powell|ecb|boe|boj|imf|world bank|china|europe|emerging|hedge|risk|volatilit|vix|ipo|merger|acquisition|dividend|buyback|short|long|bull|bear|rally|sell-off|correction|commodit|copper|aluminum|energy|supply|demand|manufactur|pmi|ism|claims|unemploy|consumer|sentiment|housing|mortgage|credit|spread|oas|liquidit|capital|portfolio)",
   "feeds": [
     {
@@ -68,6 +68,96 @@
       "source": "SCMP Business",
       "requireFinancial": false,
       "region": "cn"
+    },
+    {
+      "url": "https://www.yna.co.kr/rss/politics.xml",
+      "source": "연합뉴스 정치",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.yna.co.kr/rss/society.xml",
+      "source": "연합뉴스 사회",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.yna.co.kr/rss/entertainment.xml",
+      "source": "연합뉴스 연예",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.yna.co.kr/rss/sports.xml",
+      "source": "연합뉴스 스포츠",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.yna.co.kr/rss/international.xml",
+      "source": "연합뉴스 국제",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.hankyung.com/feed/politics",
+      "source": "한국경제 정치",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://www.hankyung.com/feed/society",
+      "source": "한국경제 사회",
+      "requireFinancial": false,
+      "region": "kr"
+    },
+    {
+      "url": "https://feeds.npr.org/1001/rss.xml",
+      "source": "NPR 톱뉴스",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://feeds.npr.org/1014/rss.xml",
+      "source": "NPR 정치",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://feeds.nbcnews.com/nbcnews/public/news",
+      "source": "NBC 톱뉴스",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://www.cbsnews.com/latest/rss/main",
+      "source": "CBS 톱뉴스",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://rss.politico.com/politics-news.xml",
+      "source": "Politico 정치",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://variety.com/feed/",
+      "source": "Variety 연예",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://www.hollywoodreporter.com/feed/",
+      "source": "Hollywood Reporter 연예",
+      "requireFinancial": false,
+      "region": "us"
+    },
+    {
+      "url": "https://www.theverge.com/rss/index.xml",
+      "source": "The Verge 테크",
+      "requireFinancial": false,
+      "region": "us"
     }
   ]
 }
