@@ -78,5 +78,24 @@ h.regressions.length === 0
 const cs = readFileSync(resolve(ROOT, 'scripts/check-stall.mjs'), 'utf8');
 /dbHealth/.test(cs) ? ok('check-stall 이 호출한다') : bad('검사기를 만들었는데 모니터가 안 부른다 — 소비처 0');
 
+
+// FTS 그림자 테이블은 회귀로 보지 않는다 (2026-08-27).
+//   실측: news_archive_fts_data 783<789, news_archive_fts_idx 769<775 로 감소해 회귀로 잡혔다.
+//   이건 SQLite FTS 의 내부 세그먼트 병합 결과지 데이터 유실이 아니다 — 본체 news_archive 는 그대로다.
+//   audit-coverage 는 이미 '%_fts%','%_data','%_idx','%_docs' 를 스캔에서 제외한다. 같은 규칙을 쓴다.
+{
+  const H = await import('./db-health.mjs');
+  const live = { news_archive: 100, news_archive_fts_data: 783, news_archive_fts_idx: 769, reports: 205 };
+  const backup = { news_archive: 100, news_archive_fts_data: 789, news_archive_fts_idx: 775, reports: 205 };
+  const regs = H.findRegressions(live, backup, new Set());
+  regs.length === 0
+    ? ok('FTS 그림자 테이블 감소는 회귀 아님')
+    : bad(`FTS 내부 구조를 회귀로 본다: ${regs.map(r => r.table).join(', ')}`);
+  const real = H.findRegressions({ ...live, reports: 200 }, backup, new Set());
+  real.some(r => r.table === 'reports')
+    ? ok('본체 테이블 감소는 계속 회귀로 잡는다')
+    : bad('진짜 유실을 놓친다 — 과잉 제외');
+}
+
 console.log(fail === 0 ? '\n✅ db-health 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

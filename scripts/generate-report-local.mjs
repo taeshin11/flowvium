@@ -41,6 +41,7 @@ import { getYahooCrumb, invalidateCrumb } from './lib/yahoo-crumb.mjs';
 import { diffFragment } from './lib/diff-fragment.mjs';
 import { peakRiskAction } from './lib/peak-risk-action.mjs';
 import { reconcileReportIndexLevels } from './lib/index-level-check.mjs';
+import { canonicalTermGlossary } from './lib/narrative-fix.mjs';
 import { sameCompany } from './lib/sec-name-clean.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
@@ -3305,6 +3306,11 @@ async function buildIndexLevelsBlock() {
   //   기억기반 절대값을 창작(8,864). silent omit < 명시적 negative 지시. 결측 지수는 절대 레벨 금지를 못박는다.
   // 2026-07-01 (finance 모델 전환 후 "KOSPI 8,421" 류 재발 — train-anchoring 이 기존 결측-only 지시를 우회):
   //   지수가 available 이어도 모델이 콤마형 절대값을 창작 → sanitizer 가 매번 strip. 전역 리마인더로 상향.
+  // 2026-08-27: 표기 규칙을 함께 알린다. 실측(7일 95건 분해)에서 '컨'→'콘' 정규화가 21건으로
+  //   단일 최대였는데, 모델은 우리 선호 표기를 들은 적이 없었다. 후처리가 매번 고치고 그걸
+  //   결함으로 적재해 프롬프트에 '반복 금지' 로 주입하던 구조 — 지수레벨 사건과 같다.
+  //   목록은 정규화기(narrative-fix)와 같은 상수에서 나온다. 여기 따로 박으면 갈린다.
+  if (text) text += ` | ${canonicalTermGlossary()}`;
   if (text) text += ` | ※지수 절대레벨은 위 [Index Levels] 수치만 그대로 인용하라. 그 외 콤마형 절대값(N,NNN)을 절대 창작·추정 금지(train-memory 앵커링 환각).`;
   if (missing.length) text += `${text ? ' | ' : ''}⚠️ ${missing.join('/')} 절대 지수레벨 미가용(데이터 없음) — 이 지수들의 *절대 포인트 숫자를 절대 적지 말 것*(콤마형 레벨 금지). 오직 상대지표(전일대비%·200일선 대비%·20일 변화%·고점대비%)로만 서술하라.`;
   return { text, map, levels };
@@ -5927,7 +5933,7 @@ function getRecentlySoldTickers(db, lookbackHours = 36) {
              (SELECT COUNT(DISTINCT report_id) FROM sell_recommendations s2
                WHERE s2.generated_at >= s.generated_at) AS sessionsAgo
       FROM sell_recommendations s
-      WHERE generated_at >= datetime('now', ?)
+      WHERE datetime(generated_at) >= datetime('now', ?)
       GROUP BY ticker
     `).all(`-${lookbackHours} hours`);
     const map = new Map();
@@ -5947,7 +5953,7 @@ function getRecentBuyEntries(db, lookbackHours = 48) {
     const rows = db.prepare(`
       SELECT ticker, entry_low, entry_high, generated_at
       FROM recommendations
-      WHERE generated_at >= datetime('now', ?)
+      WHERE datetime(generated_at) >= datetime('now', ?)
         AND (action IS NULL OR action = 'buy')
         AND entry_low IS NOT NULL AND entry_high IS NOT NULL
       ORDER BY generated_at DESC

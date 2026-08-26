@@ -107,7 +107,7 @@ const epHealth = db.prepare(`
     SUM(CASE WHEN ok=1 THEN 1 ELSE 0 END) AS ok_cnt,
     MAX(captured_at) AS last_capture
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now', '-7 days')
+  WHERE datetime(captured_at) >= datetime('now', '-7 days')
   GROUP BY endpoint ORDER BY ok_cnt DESC
 `).all();
 epHealth.forEach(e => {

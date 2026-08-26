@@ -74,12 +74,12 @@ console.log(`     news_id, ticker, pub_date, pnl_1d/5d/30d, alpha_5d\n`);
 // 사용 통계
 const recent7d = db.prepare(`
   SELECT
-    (SELECT COUNT(*) FROM reports WHERE generated_at >= datetime('now','-7 days')) AS reports,
-    (SELECT COUNT(*) FROM recommendations WHERE generated_at >= datetime('now','-7 days')) AS recommendations,
-    (SELECT COUNT(*) FROM recommendation_outcomes WHERE evaluated_at >= datetime('now','-7 days')) AS outcomes,
-    (SELECT COUNT(*) FROM news_archive WHERE captured_at >= datetime('now','-7 days')) AS news,
-    (SELECT COUNT(*) FROM macro_snapshots WHERE captured_at >= datetime('now','-7 days')) AS macro_snaps,
-    (SELECT COUNT(*) FROM endpoint_snapshots WHERE captured_at >= datetime('now','-7 days')) AS endpoint_snaps
+    (SELECT COUNT(*) FROM reports WHERE datetime(generated_at) >= datetime('now','-7 days')) AS reports,
+    (SELECT COUNT(*) FROM recommendations WHERE datetime(generated_at) >= datetime('now','-7 days')) AS recommendations,
+    (SELECT COUNT(*) FROM recommendation_outcomes WHERE datetime(evaluated_at) >= datetime('now','-7 days')) AS outcomes,
+    (SELECT COUNT(*) FROM news_archive WHERE datetime(captured_at) >= datetime('now','-7 days')) AS news,
+    (SELECT COUNT(*) FROM macro_snapshots WHERE datetime(captured_at) >= datetime('now','-7 days')) AS macro_snaps,
+    (SELECT COUNT(*) FROM endpoint_snapshots WHERE datetime(captured_at) >= datetime('now','-7 days')) AS endpoint_snaps
 `).get();
 console.log('═══ 최근 7일 적재량 ═══');
 console.log(`  reports:             ${recent7d.reports}`);

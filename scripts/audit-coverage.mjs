@@ -11,6 +11,7 @@ import Database from 'better-sqlite3';
 import { endpointsFromPageAudit } from './lib/page-endpoint-coverage.mjs';
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+import { buildTickerEndpoints } from './lib/snapshot-endpoints.mjs';
 const ROOT = _PROJECT_ROOT;
 const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
 
@@ -111,7 +112,7 @@ const EXPECTED_PAGE_ENDPOINTS = {
 
 const captured = db.prepare(`
   SELECT DISTINCT endpoint FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-3 days')
+  WHERE datetime(captured_at) >= datetime('now','-3 days')
 `).all().map(r => r.endpoint);
 const capSet = new Set(captured);
 // /api/X?param 도 /api/X 로 normalize
@@ -129,7 +130,7 @@ for (const [page, eps] of Object.entries(EXPECTED_PAGE_ENDPOINTS)) {
 // ═══════ Probe 3: domain archive 적재 비교 (보고서마다 적재되어야 할 것) ═══════
 console.log('\n## [3] domain archive 적재율 (매 보고서마다 있어야 함)\n');
 
-const totalReports = db.prepare(`SELECT COUNT(*) c FROM reports WHERE generated_at >= datetime('now','-7 days')`).get().c;
+const totalReports = db.prepare(`SELECT COUNT(*) c FROM reports WHERE datetime(generated_at) >= datetime('now','-7 days')`).get().c;
 const archiveTables = [
   { name: 'recommendations',         expected: totalReports * 6,  perReport: '6-8 종목' },
   { name: 'endpoint_snapshots',      expected: totalReports * 24, perReport: '24 endpoint' },
@@ -230,7 +231,7 @@ console.log('\n## [3b] endpoint HTTP status (4XX/5XX 비율 ≥50% = 라우트 �
 const statusDist = db.prepare(`
   SELECT endpoint, http_status, COUNT(*) c
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-7 days')
+  WHERE datetime(captured_at) >= datetime('now','-7 days')
   GROUP BY endpoint, http_status
 `).all();
 const epStatus = new Map(); // endpoint → { ok, err4, err5, total }
@@ -248,7 +249,7 @@ for (const r of statusDist) {
 const latestStatus = db.prepare(`
   SELECT s.endpoint, s.http_status, s.ok, s.response_json
   FROM endpoint_snapshots s
-  JOIN (SELECT endpoint, MAX(captured_at) mx FROM endpoint_snapshots WHERE captured_at >= datetime('now','-7 days') GROUP BY endpoint) l
+  JOIN (SELECT endpoint, MAX(captured_at) mx FROM endpoint_snapshots WHERE datetime(captured_at) >= datetime('now','-7 days') GROUP BY endpoint) l
     ON s.endpoint = l.endpoint AND s.captured_at = l.mx
 `).all();
 const latestOk = new Map(); // endpoint → { httpOk, bodyOk }
@@ -265,8 +266,17 @@ for (const r of latestStatus) {
 // 2026-06-17 전수조사 #10: 최근 24h 실패 횟수 — '최근 1 스냅샷만 ok' 회복판정이 '매 세션 실패하다 마지막만
 //   ok' 인 flapping 라우트를 warn 으로 가리던 escape 차단. 24h 내 2회+ 실패면 회복 아님(err 유지).
 const recentFail24 = new Map();
-for (const r of db.prepare(`SELECT endpoint, COUNT(*) c FROM endpoint_snapshots WHERE captured_at >= datetime('now','-1 day') AND (http_status < 200 OR http_status >= 300) GROUP BY endpoint`).all()) {
+for (const r of db.prepare(`SELECT endpoint, COUNT(*) c FROM endpoint_snapshots WHERE datetime(captured_at) >= datetime('now','-1 day') AND (http_status < 200 OR http_status >= 300) GROUP BY endpoint`).all()) {
   recentFail24.set(r.endpoint, r.c);
+}
+// 2026-08-27: 최근 24h '시도' 횟수. 실패만 세면 '이제 호출하지 않는 엔드포인트'와
+//   '지금도 죽어 있는 라우트'를 구분할 수 없다. 실측 사건: /api/company-financials/XLF 는
+//   ETF 라 기업재무가 없어 매번 404 였는데, 우리 쪽을 고쳐 호출을 멈춘 뒤에도 7일 창의 과거
+//   실패 9건이 계속 'err(라우트 죽음 의심)' 으로 push 를 막았다. 죽은 라우트라면 계속 호출되며
+//   실패가 갱신되므로 이 조건으로 놓치지 않는다.
+const recentAttempt24 = new Map();
+for (const r of db.prepare(`SELECT endpoint, COUNT(*) c FROM endpoint_snapshots WHERE datetime(captured_at) >= datetime('now','-1 day') GROUP BY endpoint`).all()) {
+  recentAttempt24.set(r.endpoint, r.c);
 }
 for (const [ep, s] of epStatus) {
   if (s.total < 3) continue; // 표본 부족
@@ -274,7 +284,11 @@ for (const [ep, s] of epStatus) {
   const latestHttpOk = latestOk.get(ep)?.httpOk === true;
   const fail24 = recentFail24.get(ep) ?? 0;
   const recovered = latestHttpOk && fail24 < 2; // 회복 = 최근 ok + 24h 내 반복실패 없음 (flapping 제외)
-  if (errPct >= 50 && !recovered) {
+  const attempts24 = recentAttempt24.get(ep) ?? 0;
+  if (errPct >= 50 && attempts24 === 0) {
+    // 24h 내 호출이 아예 없다 = 현재 파이프라인이 쓰지 않는 엔드포인트. 과거 실패는 이력이지 라이브 장애가 아니다.
+    warn(`${(ep ?? '?').padEnd(40)} 7일 ${errPct.toFixed(0)}% 실패였으나 최근 24h 호출 0회 — 현재 미사용(이력 aging out 대기)`);
+  } else if (errPct >= 50 && !recovered) {
     const reason = latestHttpOk ? `최근 24h ${fail24}회 실패 (flapping — 마지막만 ok)` : '라우트 죽음 의심';
     err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — ${reason}`);
   } else if (errPct >= 50 && recovered) {
@@ -292,7 +306,7 @@ for (const [ep, s] of epStatus) {
 const errCandidates = db.prepare(`
   SELECT endpoint, response_json
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-7 days')
+  WHERE datetime(captured_at) >= datetime('now','-7 days')
     AND http_status = 200
     AND (response_json LIKE '%"error":"%' OR response_json LIKE '%"error":{%')
 `).all();
@@ -318,7 +332,7 @@ console.log('\n## [3c] portfolio ticker ↔ company-* snapshot 정합성\n');
 const recentReports = db.prepare(`
   SELECT id, generated_at, full_json
   FROM reports
-  WHERE generated_at >= datetime('now','-7 days')
+  WHERE datetime(generated_at) >= datetime('now','-7 days')
   ORDER BY generated_at DESC
 `).all();
 
@@ -346,7 +360,10 @@ for (const r of recentReports) {
     const m = s.endpoint.match(/\/(company-financials|company-kr)\/(.+)$/);
     if (m) snappedTickers.add(m[2].toUpperCase());
   }
-  const expected = portfolioTickers.length;
+  // 2026-08-27: 기대치를 생산자와 같은 규칙으로 센다. ETF 는 기업재무가 없어 스냅샷을 안 찍는데
+  //   (snapshot-endpoints.buildTickerEndpoints), 여기서 전 티커를 기대하면 ETF 든 보고서마다 오탐이다.
+  //   검사의 목적(포트폴리오 티커가 스냅샷 단계에 안 넘어가는 버그)은 그대로 유지된다.
+  const expected = buildTickerEndpoints(portfolioTickers).length;
   const got = snappedTickers.size;
   totalExpected += expected;
   totalSnapshotted += got;
@@ -412,8 +429,8 @@ try {
            COUNT(DISTINCT s.generated_at) sells
     FROM recommendations r
     JOIN sell_recommendations s ON r.ticker = s.ticker
-    WHERE r.generated_at >= datetime('now','-7 days')
-      AND s.generated_at >= datetime('now','-7 days')
+    WHERE r.datetime(generated_at) >= datetime('now','-7 days')
+      AND s.datetime(generated_at) >= datetime('now','-7 days')
       AND (s.sell_type LIKE '%margin%' OR s.sell_type LIKE '%fund%' OR s.rationale LIKE '%악화%')
     GROUP BY r.ticker
     HAVING buys >= 1 AND sells >= 1
@@ -450,7 +467,7 @@ try {
 // ═══════ Probe 6: buy_candidates 적재 (Karpathy source — 선택 12 외 후보 보존) ═══════
 console.log('\n## [6] buy_candidates 적재 — 선택 외 후보 보존 (Karpathy 학습 source)\n');
 try {
-  const bcRows = db.prepare(`SELECT COUNT(*) c, COUNT(DISTINCT report_id) r FROM buy_candidates WHERE generated_at >= datetime('now','-14 days')`).get();
+  const bcRows = db.prepare(`SELECT COUNT(*) c, COUNT(DISTINCT report_id) r FROM buy_candidates WHERE datetime(generated_at) >= datetime('now','-14 days')`).get();
   if (bcRows.c === 0) {
     warn(`buy_candidates 14일간 0건 — saveBuyCandidates 미연결 의심`);
   } else {
@@ -480,7 +497,7 @@ try {
   const rows = db.prepare(`
     SELECT report_id, ticker, price_at_gen, entry_low, entry_high
     FROM recommendations
-    WHERE generated_at >= datetime('now','-7 days')
+    WHERE datetime(generated_at) >= datetime('now','-7 days')
       AND price_at_gen IS NOT NULL
       AND entry_low IS NOT NULL AND entry_high IS NOT NULL
   `).all();
@@ -520,7 +537,7 @@ try {
   }
   const rows = db.prepare(`
     SELECT DISTINCT ticker FROM recommendations
-    WHERE generated_at >= datetime('now','-30 days') AND ticker LIKE '%.K%'
+    WHERE datetime(generated_at) >= datetime('now','-30 days') AND ticker LIKE '%.K%'
   `).all();
   const bad = [];
   for (const r of rows) {
@@ -616,12 +633,12 @@ try {
 // 같은 (ticker, defect_type) 의 detect 횟수가 최근 cycle 마다 감소하면 학습 효과 있음.
 console.log('\n## [9] Karpathy 학습 효과 (anti-pattern inject 후 재발 감소)\n');
 try {
-  const week = db.prepare(`SELECT COUNT(*) c FROM hallucination_history WHERE detected_at >= datetime('now','-7 days')`).get();
-  const today = db.prepare(`SELECT COUNT(*) c FROM hallucination_history WHERE detected_at >= datetime('now','-1 days')`).get();
+  const week = db.prepare(`SELECT COUNT(*) c FROM hallucination_history WHERE datetime(detected_at) >= datetime('now','-7 days')`).get();
+  const today = db.prepare(`SELECT COUNT(*) c FROM hallucination_history WHERE datetime(detected_at) >= datetime('now','-1 days')`).get();
   const byType = db.prepare(`
     SELECT defect_type, COUNT(*) c, AVG(injected_count) avg_injected
     FROM hallucination_history
-    WHERE detected_at >= datetime('now','-7 days')
+    WHERE datetime(detected_at) >= datetime('now','-7 days')
     GROUP BY defect_type ORDER BY c DESC
   `).all();
   if (week.c === 0) {
@@ -642,7 +659,7 @@ try {
     const repeat = db.prepare(`
       SELECT ticker, defect_type, COUNT(*) repeat_count
       FROM hallucination_history
-      WHERE detected_at >= datetime('now','-7 days') AND ticker IS NOT NULL
+      WHERE datetime(detected_at) >= datetime('now','-7 days') AND ticker IS NOT NULL
         AND defect_type NOT LIKE 'harness_%' AND defect_type NOT LIKE '%_sanitized'
       GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 10
     `).all();
@@ -668,7 +685,7 @@ console.log('\n## [4] 응답 drift (정적 데이터 의심)\n');
 const driftCheck = db.prepare(`
   SELECT endpoint, COUNT(DISTINCT response_json) unique_resp, COUNT(*) total
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-7 days')
+  WHERE datetime(captured_at) >= datetime('now','-7 days')
   GROUP BY endpoint
   HAVING total >= 5
 `).all();

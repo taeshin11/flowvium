@@ -65,5 +65,17 @@ M.buildTickerEndpoints([], { isEtf }).length === 0 && M.buildTickerEndpoints(nul
     : bad('만들었는데 실제 경로는 옛 인라인 분기를 쓴다');
 }
 
+// [8] 소비처도 같은 규칙을 쓰는가 — 생산자만 바꾸면 소비처가 오탐한다(이 세션에 두 번 겪었다).
+//   audit-coverage 의 portfolio↔snapshot 검사는 "모든 포트폴리오 티커에 스냅샷이 있어야 한다"고 본다.
+//   ETF 를 안 부르기로 했으면 기대치도 같은 규칙으로 세야 한다. 아니면 매 보고서 오탐이다.
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(new URL('../audit-coverage.mjs', import.meta.url), 'utf8')
+    .split('\n').filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+  /buildTickerEndpoints/.test(src)
+    ? ok('audit-coverage 가 생산자와 같은 규칙으로 기대치를 센다')
+    : bad('소비처가 옛 가정(모든 티커에 스냅샷)을 쓴다 — ETF 마다 오탐');
+}
+
 console.log(fail === 0 ? '\n✅ ticker-endpoints 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

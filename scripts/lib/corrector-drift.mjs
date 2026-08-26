@@ -32,7 +32,10 @@ const LOW_DIVERSITY = 0.4;
 
 /**
  * @param {Array<{defect_type:string, report_id:string, llm_value?:string}>} rows
- * @param {{totalReports:number, recentReportIds?:string[]}} opts
+ * @param {{totalReports:number, reportIds?:string[], recentReportIds?:string[]}} opts
+ *        reportIds: 창 안의 보고서 id 집합. 주면 그 밖의 결함 행은 세지 않는다 —
+ *          분자(결함의 detected_at 창)와 분모(reports 의 created_at 창)를 따로 세면 경계에서
+ *          어긋나 "31/30보고서" 같은 값이 나온다(2026-08-27 실측).
  *        totalReports: 같은 기간의 전체 보고서 수
  *        recentReportIds: 최신 보고서 id 몇 개. 주면 **거기서도 발동해야** 표면화한다 —
  *          고친 뒤에도 7일 창이 빌 때까지 계속 경보하면 그 경보는 곧 무시된다.
@@ -40,12 +43,15 @@ const LOW_DIVERSITY = 0.4;
  * @returns {Array<{defectType:string, detections:number, reportsHit:number, totalReports:number,
  *                  hitRate:number, diversity:number, flagged:boolean, hint:string}>}
  */
-export function analyzeCorrectors(rows, { totalReports = 0, recentReportIds = null } = {}) {
+export function analyzeCorrectors(rows, { totalReports = 0, reportIds = null, recentReportIds = null } = {}) {
+  const inWindow = reportIds?.length ? new Set(reportIds) : null;
   const recent = recentReportIds?.length ? new Set(recentReportIds) : null;
   const byType = new Map();
   for (const r of rows ?? []) {
     const t = r?.defect_type;
     if (!t) continue;
+    // 창 밖 보고서의 결함은 세지 않는다 — 분자·분모를 같은 집합으로 맞춘다.
+    if (inWindow && r.report_id && !inWindow.has(r.report_id)) continue;
     if (!byType.has(t)) byType.set(t, { reports: new Set(), values: new Set(), n: 0 });
     const e = byType.get(t);
     e.n += 1;

@@ -39,7 +39,7 @@ function fwdReturn(days, hitDate, nTrading) {
 const db = openDb();
 const hits = db.prepare(`
   SELECT ticker, rule_id, side, price_at_hit, substr(generated_at,1,10) AS hit_date
-  FROM shadow_hits WHERE generated_at <= datetime('now', '-${MIN_AGE_DAYS} days')
+  FROM shadow_hits WHERE datetime(generated_at) <= datetime('now', '-${MIN_AGE_DAYS} days')
 `).all();
 console.log(`평가 대상 shadow 발화: ${hits.length}건 (${MIN_AGE_DAYS}일 경과분)`);
 if (!hits.length) { console.log('⚠️ 아직 평가할 발화 없음 — 리포트가 쌓이면 자동 누적'); process.exit(0); }

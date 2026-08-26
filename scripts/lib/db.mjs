@@ -1372,7 +1372,7 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
   const rows = db.prepare(`
     SELECT id, ticker, defect_type, llm_value, correct_value, severity, COUNT(*) repeat_count
     FROM hallucination_history
-    WHERE detected_at >= datetime('now', '-' || ? || ' days')
+    WHERE datetime(detected_at) >= datetime('now', '-' || ? || ' days')
       -- 2026-06-17: harness_* 는 하네스가 결정론적으로 자동수정하므로 모델에 재학습시킬 필요 없음.
       --   inject 예산(15슬롯)을 실제 escape 한 환각에 집중시키기 위해 제외 (check-stall 트렌드도 동일 제외).
       AND defect_type NOT LIKE 'harness_%'
@@ -1392,7 +1392,7 @@ export function getRecentHallucinationsForPromptInject(days = 7, maxItems = 15) 
       UPDATE hallucination_history
       SET injected_count = injected_count + 1
       WHERE COALESCE(ticker,'') = COALESCE(?,'') AND defect_type = ? AND COALESCE(llm_value,'') = COALESCE(?,'')
-        AND detected_at >= datetime('now', '-' || ? || ' days')
+        AND datetime(detected_at) >= datetime('now', '-' || ? || ' days')
     `).run(r.ticker, r.defect_type, r.llm_value, days);
   }
   return rows;
@@ -1473,12 +1473,12 @@ export function getModelDefectRates(days = 30) {
   try {
     const reports = db.prepare(`
       SELECT COALESCE(model, 'unknown') model, COUNT(*) reports
-      FROM reports WHERE generated_at >= datetime('now', '-' || ? || ' days') GROUP BY model
+      FROM reports WHERE datetime(generated_at) >= datetime('now', '-' || ? || ' days') GROUP BY model
     `).all(days);
     const defects = db.prepare(`
       SELECT COALESCE(r.model, 'unknown') model, COUNT(*) defects
       FROM hallucination_history h JOIN reports r ON h.report_id = r.id
-      WHERE h.detected_at >= datetime('now', '-' || ? || ' days') AND h.defect_type NOT LIKE 'harness_%'
+      WHERE h.datetime(detected_at) >= datetime('now', '-' || ? || ' days') AND h.defect_type NOT LIKE 'harness_%'
       GROUP BY r.model
     `).all(days);
     const dMap = new Map(defects.map((d) => [d.model, d.defects]));
@@ -1760,8 +1760,8 @@ export function getPreviousFearGreedScore(hoursMin = 12, daysMax = 7) {
   const row = db.prepare(`
     SELECT score FROM fg_archive
     WHERE country='us'
-      AND captured_at <= datetime('now', '-' || ? || ' hours')
-      AND captured_at >= datetime('now', '-' || ? || ' days')
+      AND datetime(captured_at) <= datetime('now', '-' || ? || ' hours')
+      AND datetime(captured_at) >= datetime('now', '-' || ? || ' days')
     ORDER BY captured_at DESC LIMIT 1
   `).get(hoursMin, daysMax);
   return row?.score ?? null;
@@ -1781,7 +1781,7 @@ export function getEntryFeedbackStats() {
     FROM recommendations r
     JOIN recommendation_outcomes o ON o.recommendation_id = r.id
     WHERE r.action = 'buy'
-      AND o.evaluated_at >= datetime('now', '-30 days')
+      AND o.datetime(evaluated_at) >= datetime('now', '-30 days')
     GROUP BY r.ticker
     HAVING total >= 3
     ORDER BY ne DESC

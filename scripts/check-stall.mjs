@@ -324,18 +324,22 @@ async function checkOnce() {
     let totalReports = 0;
     try {
       totalReports = cdb.prepare(
-        `SELECT COUNT(*) n FROM reports WHERE created_at >= datetime('now','-' || ? || ' days')`,
+        `SELECT COUNT(*) n FROM reports WHERE datetime(created_at) >= datetime('now','-' || ? || ' days')`,
       ).get(days)?.n ?? 0;
       const rows = cdb.prepare(
         `SELECT defect_type, report_id, llm_value FROM hallucination_history
-         WHERE detected_at >= datetime('now','-' || ? || ' days')`,
+         WHERE datetime(detected_at) >= datetime('now','-' || ? || ' days')`,
       ).all(days);
       // 최신 2개에서도 발동해야 표면화한다 — 고친 뒤에도 7일 창이 빌 때까지 울면 곧 무시된다.
       //   실측 근거: 통화 하드코딩을 고치자 바로 다음 보고서에서 교정 6→0 이 됐다.
+      // 분모와 같은 보고서 집합을 넘긴다 — 따로 세면 경계에서 어긋난다(실측 "31/30보고서").
+      const windowReportIds = cdb.prepare(
+        `SELECT id FROM reports WHERE datetime(created_at) >= datetime('now','-' || ? || ' days')`,
+      ).all(days).map((r) => r.id);
       const recentReportIds = cdb.prepare(
         'SELECT id FROM reports ORDER BY created_at DESC LIMIT 2',
       ).all().map((r) => r.id);
-      drift = analyzeCorrectors(rows, { totalReports, recentReportIds }).filter((r) => r.flagged);
+      drift = analyzeCorrectors(rows, { totalReports, reportIds: windowReportIds, recentReportIds }).filter((r) => r.flagged);
     } finally {
       cdb.close();
     }

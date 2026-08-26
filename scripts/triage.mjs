@@ -123,7 +123,7 @@ try {
   const { openDb } = await import('./lib/db.mjs');
   const db = openDb();
   const rows = db.prepare(`SELECT endpoint, COUNT(*) n, SUM(CASE WHEN http_status>=400 OR ok=0 THEN 1 ELSE 0 END) bad
-    FROM endpoint_snapshots WHERE captured_at > datetime('now','-1 day')
+    FROM endpoint_snapshots WHERE datetime(captured_at) > datetime('now','-1 day')
     GROUP BY endpoint HAVING bad>0 ORDER BY bad DESC LIMIT 6`).all();
   line(`[8] 스냅샷(24h) ${rows.length ? '⚠️ ' : '✅'} 실패 endpoint ${rows.length}종`);
   rows.forEach((r) => {

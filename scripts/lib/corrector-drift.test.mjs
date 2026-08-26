@@ -98,6 +98,25 @@ M.analyzeCorrectors([], { totalReports: 0 }).length === 0 ? ok('빈 입력 안�
     : bad('살아 있는 신호까지 죽였다 — 과잉 억제');
 }
 
+// [5c] 적중 보고서 수가 전체 보고서 수를 넘을 수 없다 (2026-08-27 실측 "31/30보고서").
+//   분자는 hallucination_history.detected_at 창, 분모는 reports.created_at 창을 따로 세면
+//   경계에서 어긋난다(보고서는 창 밖, 그 결함은 창 안). 같은 보고서 집합으로 세야 한다.
+{
+  const rows = [
+    { defect_type: 'x', report_id: 'inWindow1', llm_value: '1' },
+    { defect_type: 'x', report_id: 'inWindow2', llm_value: '2' },
+    { defect_type: 'x', report_id: 'outsideWindow', llm_value: '3' },
+    { defect_type: 'x', report_id: 'inWindow1', llm_value: '4' },
+    { defect_type: 'x', report_id: 'inWindow2', llm_value: '5' },
+    { defect_type: 'x', report_id: 'inWindow1', llm_value: '6' },
+  ];
+  const r = M.analyzeCorrectors(rows, { totalReports: 2, reportIds: ['inWindow1', 'inWindow2'] })[0];
+  r.reportsHit <= r.totalReports
+    ? ok(`적중(${r.reportsHit}) ≤ 전체(${r.totalReports}) — 창 밖 보고서 제외됨`)
+    : bad(`분자가 분모를 넘는다: ${r.reportsHit}/${r.totalReports}`);
+  r.hitRate <= 1 ? ok('적중률이 100% 를 넘지 않는다') : bad(`적중률 ${(r.hitRate*100).toFixed(0)}%`);
+}
+
 // [6] 모니터가 이걸 쓰는가 — 만들고 안 쓰면 없는 것과 같다
 {
   const { readFileSync } = await import('fs');

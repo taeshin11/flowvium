@@ -53,6 +53,11 @@ export function shrinkableTables(root) {
 export function findRegressions(live, backup, shrinkable) {
   const out = [];
   for (const [table, b] of Object.entries(backup ?? {})) {
+    // 2026-08-27: SQLite FTS 그림자 테이블은 회귀 대상이 아니다.
+    //   실측: news_archive_fts_data 783<789 · _fts_idx 769<775 로 줄어 회귀로 잡혔는데,
+    //   FTS 내부 세그먼트 병합 결과지 데이터 유실이 아니다(본체 news_archive 는 그대로).
+    //   audit-coverage 도 같은 패턴을 스캔에서 제외한다 — 두 곳이 같은 규칙을 쓴다.
+    if (/_fts(_data|_idx|_docs|_content|_config)?$/.test(String(table))) continue;
     if (shrinkable?.has(table)) continue;
     const l = live?.[table];
     if (typeof l !== 'number' || typeof b !== 'number') continue;

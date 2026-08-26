@@ -16,7 +16,7 @@ const byEp = db.prepare(`
     MAX(captured_at) last_at,
     AVG(LENGTH(response_json)) avg_size
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-7 days')
+  WHERE datetime(captured_at) >= datetime('now','-7 days')
   GROUP BY endpoint
   ORDER BY endpoint
 `).all();
@@ -54,7 +54,7 @@ for (const r of recentReports) {
 const fails = db.prepare(`
   SELECT endpoint, http_status, COUNT(*) c
   FROM endpoint_snapshots
-  WHERE ok=0 AND captured_at >= datetime('now','-7 days')
+  WHERE ok=0 AND datetime(captured_at) >= datetime('now','-7 days')
   GROUP BY endpoint, http_status
   ORDER BY c DESC LIMIT 10
 `).all();
@@ -66,7 +66,7 @@ for (const r of fails) console.log(`  ❌ ${r.endpoint?.padEnd(34)} HTTP ${r.htt
 const allCaps = db.prepare(`
   SELECT report_id, GROUP_CONCAT(endpoint, '|') eps
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-7 days')
+  WHERE datetime(captured_at) >= datetime('now','-7 days')
   GROUP BY report_id
 `).all();
 const missCount = {};
@@ -88,7 +88,7 @@ const sizeDist = db.prepare(`
     ROUND(MAX(LENGTH(response_json)) / 1024.0, 1) max_kb,
     ROUND(MIN(LENGTH(response_json)) / 1024.0, 1) min_kb
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-3 days')
+  WHERE datetime(captured_at) >= datetime('now','-3 days')
   GROUP BY endpoint
   ORDER BY avg_kb DESC
 `).all();
@@ -102,7 +102,7 @@ console.log('\n=== 최근 7일 source 분포 (상위 endpoint) ===');
 const srcDist = db.prepare(`
   SELECT endpoint, source, COUNT(*) c
   FROM endpoint_snapshots
-  WHERE captured_at >= datetime('now','-7 days')
+  WHERE datetime(captured_at) >= datetime('now','-7 days')
   GROUP BY endpoint, source
   ORDER BY endpoint, c DESC
 `).all();

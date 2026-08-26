@@ -28,7 +28,7 @@ const pending = db.prepare(`
   SELECT id, ticker, generated_at, current_price, sell_type
   FROM sell_recommendations
   WHERE current_price IS NOT NULL AND current_price > 0
-    AND generated_at <= datetime('now', '-' || ? || ' days')
+    AND datetime(generated_at) <= datetime('now', '-' || ? || ' days')
     AND id NOT IN (SELECT sell_rec_id FROM sell_outcomes)
   ORDER BY generated_at
 `).all(MIN_DAYS);
