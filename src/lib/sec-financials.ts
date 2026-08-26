@@ -133,6 +133,38 @@ interface FactCfg {
   };
 }
 
+/**
+ * 은행 택소노미 총수익 = 순이자이익 + 비이자이익.
+ *
+ * 2026-08-27: /api/company-financials/TFC 가 404 였다. Truist 는 아래 표준 매출 개념 5종을
+ *   **하나도 쓰지 않는다**(SEC companyfacts CIK 0000092230 실측):
+ *     실제 태그 InterestIncomeExpenseNet 14.4B(2025-12-31) + NoninterestIncome 5.9B = 20.3B
+ *     (= Truist 2025 총수익)
+ *   아래 주석은 RevenuesNetOfInterestExpense 가 은행을 커버한다고 적었지만, 그건 그 태그를 쓰는
+ *   은행(JPM·BAC 실측 확인) 얘기다. 모든 은행이 쓰지 않는다.
+ *
+ *   특정 종목용 분기가 아니라 은행 회계 관례의 일반 규칙이며, 표준·IFRS 경로가 **전부 실패했을
+ *   때만** 쓰인다(JPM·BAC 는 표준 개념이 있어 기존 경로로 간다 — 회귀 없음).
+ */
+const BANK_NET_INTEREST = 'InterestIncomeExpenseNet';
+const BANK_NON_INTEREST = 'NoninterestIncome';
+
+/**
+ * 회계연도 기준 두 계열 합산. 양쪽이 **다 있는 해만** 낸다 —
+ * 한쪽만으로 총수익을 만들면 과소계상이다. end/form/fp 는 늦은 쪽을 보존한다.
+ */
+function mergeAdditiveFY(a: Map<number, USDEntry>, b: Map<number, USDEntry>): Map<number, USDEntry> {
+  // Map 직접 순회는 이 tsconfig target 에서 막힌다(TS2802) — 이 파일의 기존 관례대로 forEach.
+  const out = new Map<number, USDEntry>();
+  a.forEach((ea, fy) => {
+    const eb = b.get(fy);
+    if (!eb) return;
+    const base = ea.end >= eb.end ? ea : eb;
+    out.set(fy, { ...base, val: ea.val + eb.val });
+  });
+  return out;
+}
+
 const GAAP_CFG: FactCfg = {
   ns: 'us-gaap', annualForm: ['10-K', '20-F', '40-F'], quarterForm: '10-Q',
   concepts: {
@@ -482,6 +514,22 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       revFYs = lastNFYEntries(facts, cfg.concepts.revenue, 5, cfg, curr);
       latestRevEntry = bestFYEntry(facts, cfg.concepts.revenue, cfg, curr);
       if (latestRevEntry) logger.info('sec.financials', 'ifrs_fallback', { ticker, curr });
+    }
+    if (!latestRevEntry) {
+      // 은행 택소노미 fallback — 표준·IFRS 개념이 전부 없을 때만(위 mergeAdditiveFY 주석 참조).
+      cfg = GAAP_CFG;
+      curr = detectCurrency(facts, cfg);
+      const ni = lastNFYEntries(facts, [BANK_NET_INTEREST], 5, cfg, curr);
+      const nii = lastNFYEntries(facts, [BANK_NON_INTEREST], 5, cfg, curr);
+      const merged = mergeAdditiveFY(ni, nii);
+      if (merged.size > 0) {
+        revFYs = merged;
+        const mergedList: USDEntry[] = [];
+        merged.forEach((e) => mergedList.push(e));
+        mergedList.sort((x, y) => y.end.localeCompare(x.end));
+        latestRevEntry = mergedList[0] ?? null;
+        logger.info('sec.financials', 'bank_taxonomy_fallback', { ticker, curr, years: merged.size });
+      }
     }
     const { rates: fxRates } = curr !== 'USD' ? await getFxRates() : { rates: FX_TO_USD };
     const fx = fxRates[curr] ?? FX_TO_USD[curr] ?? 1;  // 라이브 FRED 환율(실패 시 정적 fallback)
