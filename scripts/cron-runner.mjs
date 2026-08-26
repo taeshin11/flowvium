@@ -20,6 +20,7 @@ import { promisify } from 'util';
 import { resolveLauncher } from './lib/report-launcher.mjs';   // 2026-08-20: cmd /c run-report.bat 고정 → 맥에서 ENOENT.
 import { resolveLlm } from './lib/llm-config.mjs';
 import { isReportPipelineRunning as isReportRunningShared } from './lib/report-running.mjs';
+import { shouldDeferUnscheduled } from './lib/report-sessions.mjs';
 import { listenerUptimeMs } from './lib/service-uptime.mjs';
 //   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
@@ -531,6 +532,11 @@ async function runShockCheck() {
     log(`[shock] 🚨 시장 쇼크 감지 (score ${r.score}): ${r.signals.join(' | ')}`);
     if (Date.now() - lastShockTrigger < SHOCK_COOLDOWN_MS) { log('[shock] 쿨다운 중 — 보고서 트리거 skip'); return; }
     if (await isReportPipelineRunning()) { log('[shock] 보고서 이미 실행 중 — skip'); return; }
+    // 2026-08-26: 정기 실행 직전이면 비켜준다. 이 안전망들은 20분마다 돌아 항상 :20 에 뜨는데
+    //   정기 트리거는 :30 이라, 락을 잡으면 정기 실행이 [SKIP] 된다(실측 3일간 3회).
+    //   08-26 은 연쇄였다 — shock 이 midnight 를 굶기자 catchup 이 그 부재를 메우려다 morning 을 굶겼다.
+    const defer = shouldDeferUnscheduled();
+    if (defer.defer) { log(`[shock] 비켜감 — ${defer.reason}`); return; }
     lastShockTrigger = Date.now();
     log('[shock] 비정기 보고서 트리거 → run-report.bat');
     (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(resolveLauncher())
@@ -607,6 +613,11 @@ async function runCatchupCheck() {
     if (newestSession === curSession) { log(`[catchup] 현재 세션(${curSession}) 이미 발간됨 — 정상 경과 ${(ageMs / 3600000).toFixed(1)}h, skip(중복 방지)`); return; }
     if (Date.now() - lastCatchupTrigger < SHOCK_COOLDOWN_MS) { log('[catchup] 쿨다운 중 — skip'); return; }
     if (await isReportPipelineRunning()) { log('[catchup] 보고서 이미 실행 중 — skip'); return; }
+    // 2026-08-26: 정기 실행 직전이면 비켜준다. 이 안전망들은 20분마다 돌아 항상 :20 에 뜨는데
+    //   정기 트리거는 :30 이라, 락을 잡으면 정기 실행이 [SKIP] 된다(실측 3일간 3회).
+    //   08-26 은 연쇄였다 — shock 이 midnight 를 굶기자 catchup 이 그 부재를 메우려다 morning 을 굶겼다.
+    const defer = shouldDeferUnscheduled();
+    if (defer.defer) { log(`[catchup] 비켜감 — ${defer.reason}`); return; }
     lastCatchupTrigger = Date.now();
     log(`[catchup] 🚨 최신 보고서 ${(ageMs / 3600000).toFixed(1)}h stale — 누락 backfill 트리거 → ${resolveLauncher().path.split('/').pop()}`);
     (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(resolveLauncher())

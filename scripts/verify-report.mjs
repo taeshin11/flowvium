@@ -1040,12 +1040,12 @@ export async function verifyReport(file, { silent = false } = {}) {
         correct_value: `${idxBad.label} 실측값 ${idxBad.actual} 를 쓰거나 상대지표(200일선 대비%·20일변화%·고점대비%)만 사용.`, severity: 'high' });
       log(`  ❌ 지수값 불일치: "${idxBad.raw}" (실측 ${idxBad.actual})`); nFound++;
     } else if (idxBad?.unverifiable) {
-      // 실측이 없으면 확인 불가다. 확인 불가를 환각으로 단정해 발간을 막으면 안 된다 —
-      //   2026-08-24 에 그렇게 30시간 발간이 멈췄다. 보이되 막지 않는다(severity low).
-      defects.push({ ticker: 'NARRATIVE', defect_type: 'index_value_unverifiable',
-        llm_value: `"${idxBad.raw}" — 생성시점 실측 레벨이 보고서에 없어 대조 불가`,
-        correct_value: 'buildIndexLevelsBlock 의 levels 가 보고서에 저장되는지 확인(indexLevelsAbs).', severity: 'low' });
-      log(`  ⚠️  지수값 확인 불가: "${idxBad.raw}" (생성시점 실측 미저장)`);
+      // 실측이 없으면 확인 불가다. 확인 불가를 결함으로 세면 안 된다 — 2026-08-24 에
+      //   그렇게 30시간 발간이 멈췄다. 경고로만 남긴다.
+      //   "레벨이 저장되는가" 는 런타임이 아니라 테스트가 정적으로 보장한다
+      //   (lib/index-level-gate.test.mjs [7]: finalReport.indexLevelsAbs 배선 검사).
+      //   생성 시점 이전에 만들어진 옛 보고서에는 없는 게 정상이므로 결함일 수 없다.
+      log(`  ⚠️  지수값 확인 불가: "${idxBad.raw}" (생성시점 실측 미저장 — 옛 보고서면 정상)`);
     }
 
     if (!nFound) log('  ✅ 내러티브 그라운딩 이상 없음');

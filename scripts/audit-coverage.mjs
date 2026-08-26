@@ -31,6 +31,11 @@ console.log('## [1] silent NULL audit (column 있는데 항상 NULL)\n');
 //   각 항목은 audit 으로 검증된 "왜 NULL 인가" 의 결론(증거 동반). earnings_archive 는 실버그라 fix(1fa371d),
 //   아래는 구조적이라 [L2] 처럼 정직하게 acknowledged 처리해 verification 정확도 확보(사용자 "권고 말고 고쳐").
 const STRUCTURAL_NULLS = {
+  // 2026-08-26 실측: signal_type/direction 은 *분석* 필드다. source 별 NULL 비율 —
+  //   company-change 0% / news-cascade·Yahoo·Seeking Alpha·연합뉴스 100%.
+  //   원시 뉴스 피드 행은 분석 전이라 비는 게 정상이고, 한 테이블에 원시+분석이 섞여 85% 가 된다.
+  'news_archive.signal_type': '분석 필드 — company-change 행만 채움(0%null), 원시 피드 행은 분석 전이라 NULL 이 정상',
+  'news_archive.direction': '분석 필드 — company-change 행만 채움(0%null), 원시 피드 행은 분석 전이라 NULL 이 정상',
   'news_archive.pub_date': 'company-change 행은 기사 아님→날짜 N/A (news-cascade 행은 pub_date 100%)',
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',
   'asset_flow_archive.return_1d': 'capital-flows 가 1w/4w/13w 제공, 1d 미제공(소스 부재)',

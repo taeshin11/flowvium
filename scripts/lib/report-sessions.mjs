@@ -143,3 +143,46 @@ export function sessionBudgetMin(id) {
 export function maxSessionBudgetMin() {
   return Math.max(...sessionIds().map(sessionBudgetMin).filter(Number.isFinite));
 }
+
+/**
+ * 다음 정기 보고서 실행까지 남은 분. (KST 트리거 기준, 자정 넘김 처리)
+ *
+ * 2026-08-26 신설. 비정기 안전망(shock/catchup)이 정기 실행 직전에 떠서 락을 잡으면
+ *   정기 실행이 [SKIP] 된다. 그걸 판단하려면 "다음 정기가 언제인가"를 알아야 한다.
+ */
+export function minutesToNextScheduledRun(now = Date.now()) {
+  const kstNow = new Date(now + 9 * 3600000);
+  const nowMin = kstNow.getUTCHours() * 60 + kstNow.getUTCMinutes();
+  let best = Infinity;
+  for (const id of sessionIds()) {
+    const t = getTriggerKst(id);
+    if (typeof t !== 'string' || !/^\d{1,2}:\d{2}$/.test(t)) continue;
+    const [h, m] = t.split(':').map(Number);
+    let diff = (h * 60 + m) - nowMin;
+    if (diff < 0) diff += 24 * 60;          // 오늘 지났으면 내일 같은 시각
+    if (diff < best) best = diff;
+  }
+  return Number.isFinite(best) ? best : Infinity;
+}
+
+/**
+ * 비정기 발간(shock/catchup)을 지금 시작해도 되는가.
+ *
+ * 사건(2026-08-26): 두 안전망이 20분마다 돌아 항상 :20 에 뜨는데 정기 트리거는 :30 이다.
+ *   생성이 세션 예산(90분)까지 걸릴 수 있어 **정기 실행이 락 싸움에서 매번 진다.**
+ *   실측 3일간 3회: 08-24/08-25 midnight [SKIP](shock 22:20), 08-26 morning [SKIP](catchup 05:20).
+ *   특히 08-26 은 연쇄였다 — shock 이 midnight 를 굶기자 catchup 이 그 부재를 메우려다 morning 을 굶겼다.
+ *
+ * 규칙: 이 실행이 정기 트리거 시각까지 락을 붙들 것 같으면 시작하지 않는다.
+ *   정기 실행이 곧 그 일을 하므로 안전망이 나설 이유가 없다.
+ *   임계는 세션 예산에서 파생한다 — 숫자를 박으면 예산이 바뀔 때 갈린다.
+ */
+export function shouldDeferUnscheduled(now = Date.now()) {
+  const mins = minutesToNextScheduledRun(now);
+  const budget = maxSessionBudgetMin();
+  if (mins < budget) {
+    return { defer: true, minutesToNext: mins,
+      reason: `정기 실행까지 ${mins}분 (세션 예산 ${budget}분) — 비정기가 락을 붙들면 정기가 SKIP 된다` };
+  }
+  return { defer: false, minutesToNext: mins, reason: `정기 실행까지 ${mins}분 — 여유 있음` };
+}
