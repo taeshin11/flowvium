@@ -1,64 +1,10 @@
 {
-  "generatedAt": "2026-08-26T22:20:24.086Z",
+  "generatedAt": "2026-08-27T07:20:35.931Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 0,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "054780.KQ",
-      "name": "키이스트",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 6.4,
-      "runup5dPct": -0.9,
-      "medDollarVolUsd": 31137,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "078130.KQ",
-      "name": "국일제지",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -9.9,
-      "runup5dPct": -0.3,
-      "medDollarVolUsd": 445814,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "237690.KQ",
-      "name": "에스티팜",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 3.8× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 11.7,
-      "runup5dPct": 10.8,
-      "medDollarVolUsd": 10593088,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
