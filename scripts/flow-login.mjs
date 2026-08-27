@@ -25,7 +25,9 @@ console.log(`  진입 시도… → ${await enterApp(page)}`);
 console.log('\n  👉 열린 창에서 구글 계정으로 로그인하세요. (Flow 를 쓸 계정으로)');
 console.log('     로그인이 확인되면 자동으로 다음 단계를 안내합니다.\n');
 
-const DEADLINE = Date.now() + 10 * 60 * 1000;
+// 사람이 로그인할 시간을 넉넉히 준다. 10분은 짧아서 한 번 만료됐고,
+//   그때마다 다시 띄우면 사용자가 같은 일을 반복하게 된다.
+const DEADLINE = Date.now() + Number(process.env.FLOW_LOGIN_WAIT_MIN ?? 45) * 60 * 1000;
 let signed = false;
 while (Date.now() < DEADLINE) {
   if (ctx.pages().length === 0) { console.log('  창이 닫혔습니다.'); break; }
@@ -45,7 +47,7 @@ while (Date.now() < DEADLINE) {
 }
 
 if (!signed) {
-  console.log('❌ 로그인 확인 안 됨 (10분 대기 종료)');
+  console.log('❌ 로그인 확인 안 됨 (대기 종료). 다시: node scripts/flow-login.mjs --inspect');
   await ctx.close().catch(() => {});
   process.exit(1);
 }

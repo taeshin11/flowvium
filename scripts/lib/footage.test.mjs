@@ -84,25 +84,58 @@ const M = await import('./footage.mjs');
   else bad('빈 입력에서 사다리가 생긴다');
 }
 
-// ── 3. 후보 고르기 — 가로·고해상도·사용가능 라이선스 우선 ────────────────────
+// ── 3. 후보 고르기 — **적합도가 먼저다** ────────────────────────────────────
+//
+// 2026-08-27 실측으로 뒤집힌 설계: 처음엔 "가로·고해상도 우선" 으로 정렬했다. 그랬더니
+//   검색엔진이 매긴 적합도 순위를 코드가 뭉개 버렸다.
+//     "presidential protection detail" → 8936px 짜리 해안선 도면("Detail Of Shore Protection")
+//     "Secret Service 조사" 장면        → 19세기 아동 초상화
+//   Commons·Openverse 는 이미 적합도 순으로 준다. 그 순서를 존중하고, 크기는 **동점일 때만** 본다.
+//
+// 그리고 minWidth 1280 이 정답을 잘라냈다 —
+//   "Secret Service agents conducting investigation" 이 1255px 로 25px 모자라 탈락했다.
+//   1920 렌더에서 1255px 은 1.5배 확대라 조금 무를 뿐이고, **틀린 그림보다 낫다.**
 {
   const cands = [
-    { id: 'nc',      width: 3840, height: 2160, license: 'by-nc', url: 'x' },
-    { id: 'tiny',    width:  320, height:  240, license: 'cc0',   url: 'x' },
-    { id: '세로',     width: 1080, height: 1920, license: 'cc0',   url: 'x' },
-    { id: 'good',    width: 2400, height: 1350, license: 'by',    url: 'x' },
-    { id: 'better',  width: 3840, height: 2160, license: 'cc0',   url: 'x' },
+    { id: 'nc',   rank: 0, width: 3840, height: 2160, license: 'by-nc', url: 'x' },
+    { id: 'tiny', rank: 1, width:  620, height:  480, license: 'cc0',   url: 'x' },
+    { id: '세로',  rank: 2, width: 1080, height: 1920, license: 'cc0',   url: 'x' },
+    { id: '적합',  rank: 3, width: 1400, height:  900, license: 'by',    url: 'x' },
+    { id: '거대',  rank: 9, width: 8000, height: 4500, license: 'cc0',   url: 'x' },
   ];
-  const p = M.pickFootage(cands, { minWidth: 1280 });
-  if (p?.id === 'better') ok('4K·CC0·가로 후보를 고른다');
-  else bad(`고른 것: ${p?.id}`);
+  const p = M.pickFootage(cands, {});
+  if (p?.id === '적합') ok('적합도 상위를 고른다 (거대한 저순위에 밀리지 않는다)');
+  else bad(`고른 것: ${p?.id} — 해상도가 적합도를 이겼다`);
 
-  if (M.pickFootage([{ id: 'nc', width: 3840, height: 2160, license: 'by-nc', url: 'x' }], {}) === null)
+  const tie = [
+    { id: '작음', rank: 2, width: 1300, height: 800, license: 'cc0', url: 'x' },
+    { id: '큼',   rank: 2, width: 2600, height: 1600, license: 'cc0', url: 'x' },
+  ];
+  if (M.pickFootage(tie, {})?.id === '큼') ok('순위가 같으면 큰 쪽');
+  else bad('동점에서 작은 쪽을 골랐다');
+
+  if (M.pickFootage([{ id: 'a', rank: 0, width: 1255, height: 830, license: 'cc0', url: 'x' }], {})?.id === 'a')
+    ok('1255px 는 쓴다 (1280 문턱이 정답을 잘랐던 회귀)');
+  else bad('1255px 를 버렸다');
+
+  if (M.pickFootage([{ id: 'a', rank: 0, width: 620, height: 480, license: 'cc0', url: 'x' }], {}) === null)
+    ok('너무 작은 것(620px)은 버린다');
+  else bad('620px 를 채택했다');
+
+  if (M.pickFootage([{ id: 'nc', rank: 0, width: 3840, height: 2160, license: 'by-nc', url: 'x' }], {}) === null)
     ok('쓸 수 있는 후보가 없으면 null (카드로 폴백)');
   else bad('NC 만 있는데 골랐다');
 
   if (M.pickFootage([], {}) === null && M.pickFootage(null, {}) === null) ok('빈 후보 안전');
   else bad('빈 후보에서 non-null');
+
+  // 동영상은 사진을 이긴다 — 사용자가 "사진 말고 영상" 을 요구했다.
+  const mixed = [
+    { id: '사진', kind: 'image', rank: 0, width: 4000, height: 2500, license: 'cc0', url: 'x' },
+    { id: '영상', kind: 'video', rank: 4, width: 1920, height: 1080, license: 'cc0', url: 'x' },
+  ];
+  if (M.pickFootage(mixed, {})?.id === '영상') ok('동영상이 사진보다 우선');
+  else bad('사진을 골랐다');
 }
 
 // ── 4. 크레딧 — CC BY / BY-SA 는 표기 의무가 있다 ─────────────────────────────

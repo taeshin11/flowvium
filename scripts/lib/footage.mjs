@@ -78,16 +78,33 @@ export function queryLadder(terms) {
   return out;
 }
 
-/** 후보 중 하나. 가로·고해상도·자유로운 라이선스 순. 쓸 게 없으면 null → 호출부가 카드로 폴백. */
+/**
+ * 후보 중 하나를 고른다. **적합도가 먼저다.**
+ *
+ * 2026-08-27 실측으로 뒤집힌 설계: 처음엔 "가로·고해상도 우선" 으로 정렬했는데, 그러면
+ *   검색엔진이 매긴 적합도 순위를 코드가 뭉갠다. 실제로 이렇게 나왔다 —
+ *     "presidential protection detail" → 8936px 해안선 도면(Detail Of Shore Protection)
+ *     "Secret Service 조사" 장면        → 19세기 아동 초상화
+ *   Commons·Openverse 는 이미 적합도 순으로 준다(rank). 그 순서를 따르고 크기는 동점일 때만 본다.
+ *
+ * minWidth 기본값이 1280 이던 시절 "Secret Service agents conducting investigation"(1255px)이
+ *   25px 모자라 탈락했다. 1920 렌더에서 1255px 은 1.5배 확대라 조금 무를 뿐이고,
+ *   **틀린 그림보다 낫다.** 문턱을 900 으로 내린다.
+ *
+ * 동영상은 사진을 이긴다 — 정지 그림으로는 뉴스 화면이 안 된다.
+ */
 export function pickFootage(candidates, opts = {}) {
-  const { minWidth = 1280 } = opts;
+  const { minWidth = 900 } = opts;
   const usable = (candidates ?? []).filter(
     (c) => c && c.url && licenseUsable(c.license)
       && Number(c.width) >= minWidth && Number(c.width) > Number(c.height),
   );
   if (usable.length === 0) return null;
-  const freedom = (l) => (/(cc0|pdm|zero|public domain)/i.test(String(l)) ? 0 : 1);
-  usable.sort((a, b) => freedom(a.license) - freedom(b.license) || Number(b.width) - Number(a.width));
+  const isVideo = (c) => (c.kind === 'video' ? 0 : 1);
+  const rank = (c) => (Number.isFinite(c.rank) ? c.rank : 999);
+  usable.sort((a, b) => isVideo(a) - isVideo(b)
+    || rank(a) - rank(b)
+    || Number(b.width) - Number(a.width));
   return usable[0];
 }
 
@@ -130,8 +147,8 @@ const j = async (url, headers = {}) => {
 export async function searchOpenverse(terms, { limit = 8 } = {}) {
   const q = encodeURIComponent(terms.join(' '));
   const d = await j(`https://api.openverse.org/v1/images/?q=${q}&page_size=${limit}&license=cc0,pdm,by,by-sa&size=large&aspect_ratio=wide&mature=false`);
-  return (d?.results ?? []).map((r) => ({
-    kind: 'image', url: r.url, width: r.width, height: r.height,
+  return (d?.results ?? []).map((r, i) => ({
+    kind: 'image', rank: i, url: r.url, width: r.width, height: r.height,
     license: [r.license, r.license_version].filter(Boolean).join(' '),
     title: r.title, author: r.creator, source: `Openverse/${r.source}`, pageUrl: r.foreign_landing_url,
   }));
@@ -141,12 +158,14 @@ export async function searchOpenverse(terms, { limit = 8 } = {}) {
 export async function searchCommons(terms, { limit = 8 } = {}) {
   const q = encodeURIComponent(terms.join(' '));
   const d = await j(`https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${q}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1920`);
+  // Commons 의 generator=search 는 index 로 적합도 순서를 준다. 객체 순회 순서에 기대지 않는다.
   return Object.values(d?.query?.pages ?? []).map((p) => {
     const i = p.imageinfo?.[0] ?? {};
     const meta = i.extmetadata ?? {};
     const strip = (v) => String(v?.value ?? '').replace(/<[^>]*>/g, '').trim() || null;
     return {
-      kind: 'image', url: i.thumburl ?? i.url, width: i.width, height: i.height,
+      kind: 'image', rank: Number.isFinite(p.index) ? p.index : 999,
+      url: i.thumburl ?? i.url, width: i.width, height: i.height,
       license: strip(meta.LicenseShortName), title: p.title?.replace(/^File:/, ''),
       author: strip(meta.Artist), source: 'Wikimedia Commons', pageUrl: i.descriptionurl,
     };
@@ -158,11 +177,11 @@ export async function searchPexelsVideo(terms, { limit = 8, apiKey = process.env
   if (!apiKey) return [];
   const q = encodeURIComponent(terms.join(' '));
   const d = await j(`https://api.pexels.com/videos/search?query=${q}&per_page=${limit}&orientation=landscape&size=medium`, { Authorization: apiKey });
-  return (d?.videos ?? []).map((v) => {
+  return (d?.videos ?? []).map((v, i) => {
     const f = (v.video_files ?? []).filter((x) => x.width >= 1280 && /mp4/i.test(x.file_type))
       .sort((a, b) => a.width - b.width)[0];
     return f && {
-      kind: 'video', url: f.link, width: f.width, height: f.height,
+      kind: 'video', rank: i, url: f.link, width: f.width, height: f.height,
       license: 'Pexels License', title: v.url, author: v.user?.name,
       source: 'Pexels', pageUrl: v.url, duration: v.duration,
     };
