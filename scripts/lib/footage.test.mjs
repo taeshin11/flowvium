@@ -84,6 +84,40 @@ const M = await import('./footage.mjs');
   else bad('빈 입력에서 사다리가 생긴다');
 }
 
+
+// ── 2c. 실제 대상 우선 (2026-08-27 사용자 지적) ──────────────────────────────
+//
+// "뉴스니까 실제 인터넷에서 검색되는 실제 사진이나 영상도 좀 있어야 한다."
+// 맞다. 생성 b-roll 이나 일반 스톡은 "그 사건" 이 아니다. Dolly Parton 부고에는
+//   국회의사당이 아니라 **Dolly Parton 사진**이 필요하다.
+//
+// 내가 프롬프트에 "사람 이름 쓰지 마라(아카이브에 없다)" 고 박아둔 게 틀렸다.
+//   실측: Commons+Openverse 에서 Dolly Parton 20건 / Donald Trump 20건 / Secret Service 20건이
+//   **전부 상업 이용 가능 라이선스**로 나온다.
+//
+// 그래서 장면마다 두 종류의 질의를 갖는다:
+//   entity — 헤드라인의 실제 대상(인물·기관·장소). 이게 있으면 **먼저** 쓴다.
+//   visual — 일반 b-roll. entity 로 못 찾았을 때, 그리고 2·3번째 컷을 채울 때 쓴다.
+{
+  const q = M.sceneQueries({ entity: 'Dolly Parton', visual: 'concert stage lights', title: 'Dolly Legacy' });
+  if (q.length === 2 && q[0].join(' ') === 'Dolly Parton') ok(`entity 가 먼저: ${JSON.stringify(q.map(x => x.join(' ')))}`);
+  else bad(`순서 이상: ${JSON.stringify(q.map(x => x.join(' ')))}`);
+  if (q[1].join(' ').includes('concert')) ok('visual 이 뒤따른다');
+  else bad(`visual 누락: ${JSON.stringify(q)}`);
+
+  const noEnt = M.sceneQueries({ visual: 'ballot box' });
+  if (noEnt.length === 1 && noEnt[0].join(' ') === 'ballot box') ok('entity 가 없으면 visual 만');
+  else bad(`entity 없는 경우 이상: ${JSON.stringify(noEnt)}`);
+
+  // 인물명은 불용어 제거·축약에서 살아남아야 한다 — "of" 같은 건 빼되 이름은 지킨다.
+  const q2 = M.sceneQueries({ entity: 'United States Secret Service' });
+  if (q2[0].length >= 2 && q2[0].join(' ').toLowerCase().includes('secret')) ok(`기관명 보존: ${q2[0].join(' ')}`);
+  else bad(`기관명 손상: ${JSON.stringify(q2)}`);
+
+  if (M.sceneQueries({}).length === 0) ok('둘 다 없으면 빈 배열');
+  else bad('빈 장면에서 질의를 만든다');
+}
+
 // ── 3. 후보 고르기 — **적합도가 먼저다** ────────────────────────────────────
 //
 // 2026-08-27 실측으로 뒤집힌 설계: 처음엔 "가로·고해상도 우선" 으로 정렬했다. 그랬더니
@@ -243,25 +277,168 @@ const M = await import('./footage.mjs');
   else bad('전부 걸러 카드로 떨어뜨렸다');
 }
 
-// ── 4. 크레딧 — CC BY / BY-SA 는 표기 의무가 있다 ─────────────────────────────
+
+// ── 3f. 사진이 아닌 파일 (2026-08-27 실측: 검은 화면 5초가 발행될 뻔했다) ─────
+//
+// "Dolly Parton" 질의에 **"Dolly Parton Signature.png"**(1051x430, 투명 배경 서명)가 1순위로
+//   뽑혀 영상 첫 5초가 통째로 검게 나왔다(휘도 0). 투명 PNG 는 배경 없이 합성되면 검다.
+//
+// Commons 관행상 **사진은 JPEG, 도형·로고·서명·다이어그램은 PNG/SVG** 다.
+//   확장자를 매체 종류 신호로 쓴다 — 금지가 아니라 **후순위**로 둔다(사진이 없으면 쓰는 게 낫다).
 {
-  const c = M.creditLine({ title: 'Capitol at Dusk', author: 'Jane Doe', license: 'CC BY-SA 3.0', source: 'Wikimedia Commons', pageUrl: 'https://commons.example/x' });
-  if (c && c.includes('Jane Doe') && c.includes('CC BY-SA 3.0')) ok('저작자 · 라이선스 표기');
-  else bad(`크레딧 부실: ${c}`);
-  if (M.creditLine({ license: 'cc0', title: 'x' }) === null) ok('CC0/PD 는 표기 의무 없음 → null');
-  else bad('CC0 인데 크레딧을 만든다');
+  const G = M.isGraphicFile;
+  if (G('https://x/Dolly_Parton_Signature.png') && G('https://x/Flag.svg') && G('https://x/anim.gif'))
+    ok('png·svg·gif 는 그래픽으로 본다');
+  else bad('그래픽 판정 실패');
+  if (!G('https://x/photo.jpg') && !G('https://x/photo.jpeg?utm_source=a') && !G('https://x/p.webp'))
+    ok('jpg·jpeg·webp 는 사진 (쿼리스트링 포함)');
+  else bad('사진을 그래픽으로 오판');
+
+  const c = [
+    { id: '서명', rank: 0, width: 1051, height: 430, license: 'Public domain', url: 'https://x/Sig.png', title: 'Dolly Parton Signature' },
+    { id: '사진', rank: 2, width: 1920, height: 1080, license: 'by 3.0', url: 'https://x/live.jpg', title: 'Dolly Parton live' },
+  ];
+  if (M.pickFootage(c, { terms: ['Dolly', 'Parton'] })?.id === '사진') ok('서명 PNG 보다 사진 JPEG 를 고른다');
+  else bad('서명 PNG 를 골랐다 — 검은 화면이 나간다');
+
+  // 2026-08-27 정정: 처음엔 "그래픽만 있으면 차선책으로 쓴다" 로 짰다. 실물을 보고 뒤집었다 —
+  //   서명 PNG 를 어두운 배경에 얹으니 **검은 잉크가 어두운 배경에 묻혀** 화면이 통째로 죽었다.
+  //   서명·로고·도표는 어떤 배경에서도 자료화면이 안 된다. 그라디언트 카드가 낫다.
+  //   컷이 하나 줄어드는 건 감수한다 — splitShots 가 확보한 그림 수에 맞춰 컷을 정한다.
+  const only = [{ id: 'g', rank: 0, width: 1600, height: 900, license: 'cc0', url: 'https://x/a.png', title: 'x' }];
+  if (M.pickFootage(only, {}) === null) ok('그래픽만 있으면 쓰지 않는다 (카드로 간다)');
+  else bad('그래픽을 자료화면으로 썼다 — 화면이 죽는다');
+  if (M.pickFootage(only, { allowGraphics: true })?.id === 'g') ok('명시적으로 허용하면 쓴다');
+  else bad('허용해도 안 쓴다');
+
+  if (M.isIllustration('Signature of Dolly Parton') && M.isIllustration('Autograph card'))
+    ok('서명·사인은 자료화면이 아니다');
+  else bad('서명을 통과시켰다');
 }
 
-// ── 5. 로컬 클립 매칭 — 사람이 넣어둔 파일을 키워드로 찾는다 ──────────────────
+
+// ── 3g. Pexels 화질 고르기 (2026-08-27 실측) ────────────────────────────────
+// Pexels 는 같은 영상을 여러 해상도로 준다: 426x240 / 640x360 / 960x540 / 1280x720 /
+//   1920x1080 / 2560x1440 / 3840x2160. **정렬 순서가 화질 순이 아니다** — 응답은
+//   hd → uhd → sd → sd → uhd → sd → hd 처럼 뒤섞여 온다.
+// 처음엔 "1280 이상 중 가장 작은 것" 을 골라 720p 를 집었다. 우리 영상은 1080p 다.
 {
-  const files = ['capitol-dome-night.mp4', 'nashville-crowd.mp4', 'stock-market-floor.mov', 'readme.txt'];
-  const hit = M.matchLocal(files, ['capitol', 'dome']);
-  if (hit === 'capitol-dome-night.mp4') ok('키워드 2개 겹치는 클립 선택');
-  else bad(`매칭 결과: ${hit}`);
+  const files = [
+    { link: 'a', width: 1280, height: 720, file_type: 'video/mp4' },
+    { link: 'b', width: 3840, height: 2160, file_type: 'video/mp4' },
+    { link: 'c', width: 1920, height: 1080, file_type: 'video/mp4' },
+    { link: 'd', width: 640, height: 360, file_type: 'video/mp4' },
+  ];
+  // 1080 을 채우되 4K 를 통째로 받지는 않는다 — 편당 24컷이면 내려받기가 부담이다.
+  if (M.pickVideoFile(files, 1920)?.link === 'c') ok('1080p 를 고른다 (4K 를 통째로 받지 않는다)');
+  else bad(`고른 것: ${M.pickVideoFile(files, 1920)?.link}`);
+  // 1080 이 없으면 그 위에서 가장 작은 것.
+  const noHd = files.filter((f) => f.width !== 1920);
+  if (M.pickVideoFile(noHd, 1920)?.link === 'b') ok('1080 이 없으면 그 위 최소치');
+  else bad(`대체 선택 이상: ${M.pickVideoFile(noHd, 1920)?.link}`);
+  // 전부 작으면 그중 가장 큰 것 — 없는 것보다 낫다.
+  if (M.pickVideoFile([files[0], files[3]], 1920)?.link === 'a') ok('전부 작으면 최대치');
+  else bad('작은 것만 있을 때 처리 이상');
+  if (M.pickVideoFile([], 1920) === null && M.pickVideoFile(null, 1920) === null) ok('빈 입력 안전');
+  else bad('빈 입력 이상');
+}
+
+
+// ── 3h. 표기 의무 없는 소재 우선 (2026-08-27) ────────────────────────────────
+//
+// 사용자 우려: "저작권 걸린다". 정정할 부분이 있다 — 지금 소재는 이미 라이선스가 있어
+//   저작권 문제가 아니고, 부담은 **표기 의무**다(CC BY/BY-SA 는 크레딧을 달아야 한다).
+//   실제로 편당 9~12건이 쌓여 영상 설명란이 크레딧으로 채워진다.
+//   그리고 CC BY-SA 소재로 2차 생성물을 만들면 **동일조건변경허락이 결과물까지 전파**된다.
+//
+// → CC0/PD 를 앞순위로 둔다. 표기 의무도 없고 파생물 제약도 없다.
+//   금지가 아니라 **우선순위**다 — CC0/PD 가 없으면 CC BY 라도 쓰는 게 카드보다 낫다.
+{
+  const c = [
+    { id: 'bysa', rank: 0, width: 4000, height: 2500, license: 'CC BY-SA 4.0', url: 'https://x/a.jpg', title: 'Dolly Parton live' },
+    { id: 'cc0',  rank: 3, width: 1600, height: 1000, license: 'CC0',          url: 'https://x/b.jpg', title: 'Dolly Parton stage' },
+  ];
+  if (M.pickFootage(c, { terms: ['Dolly', 'Parton'], preferFree: true })?.id === 'cc0')
+    ok('preferFree 면 CC0 를 먼저 (표기 의무 0)');
+  else bad('CC0 를 두고 CC BY-SA 를 골랐다');
+  if (M.pickFootage(c, { terms: ['Dolly', 'Parton'] })?.id === 'bysa')
+    ok('기본값은 종전대로 적합도 우선');
+  else bad('기본 동작이 바뀌었다');
+  const onlyBySa = [c[0]];
+  if (M.pickFootage(onlyBySa, { preferFree: true })?.id === 'bysa')
+    ok('CC0 가 없으면 CC BY-SA 라도 쓴다 (카드보다 낫다)');
+  else bad('CC0 없다고 버렸다');
+  if (M.attributionFree('CC0') && M.attributionFree('Public domain') && M.attributionFree('pdm 1.0'))
+    ok('CC0·PD 는 표기 의무 없음');
+  else bad('표기 의무 판정 실패');
+  if (!M.attributionFree('CC BY 4.0') && !M.attributionFree('by-sa 3.0'))
+    ok('CC BY 계열은 표기 의무 있음');
+  else bad('CC BY 를 무의무로 판정');
+}
+
+// ── 4. 크레딧 — 표기 의무가 **있는 것만** 만든다 ────────────────────────────
+//
+// 실측(2026-08-27): 전 컷이 Pexels 인데 "표기 의무 14건" 이 찍혔다.
+//   Pexels/Pixabay/Unsplash 라이선스는 **출처 표기 의무가 없다**. 없는 의무를 만들어
+//   설명란을 채우면, 진짜 표기해야 할 CC BY 항목이 그 안에 묻힌다.
+{
+  const c = M.creditLine({ title: 'Capitol at Dusk', author: 'Jane Doe', license: 'CC BY-SA 3.0',
+                           source: 'Wikimedia Commons', pageUrl: 'https://commons.example/x' });
+  if (c && c.includes('Jane Doe') && c.includes('CC BY-SA 3.0')) ok('CC BY-SA 는 저작자·라이선스 표기');
+  else bad(`크레딧 부실: ${c}`);
+  if (M.creditLine({ license: 'cc0', title: 'x' }) === null) ok('CC0 는 표기 의무 없음 → null');
+  else bad('CC0 인데 크레딧을 만든다');
+  if (M.creditLine({ license: 'Public domain', title: 'x' }) === null) ok('PD 도 null');
+  else bad('PD 크레딧 생성');
+  for (const l of ['Pexels License', 'Pixabay License', 'Unsplash License']) {
+    if (M.creditLine({ license: l, title: 'x', author: 'y' }) === null) ok(`${l} → 표기 의무 없음`);
+    else bad(`${l} 인데 크레딧을 만든다 — 진짜 표기 대상이 묻힌다`);
+  }
+  if (M.attributionFree('Pexels License') && M.attributionFree('Pixabay License')) ok('스톡 자체 라이선스도 무의무로 인식');
+  else bad('스톡 라이선스 판정 실패');
+}
+
+// ── 5. 로컬 클립 매칭 ────────────────────────────────────────────────────────
+//
+// 2026-08-27 실측 사고: "United States Postal Service" 장면과 "Donald Trump" 장면에
+//   **us-capitol-dome.mp4**(국회의사당 생성 클립)가 깔렸다.
+//   "United States" 의 **us**(2글자)가 파일명의 "us-" 에 부분일치한 것이다.
+//   짧은 토막의 부분일치는 아무 데나 걸린다 — 단어 경계로 보고, 짧은 키워드는 무시한다.
+{
+  const files = ['capitol-dome-night.mp4', 'nashville-crowd.mp4', 'stock-market-floor.mov',
+                 'us-capitol-dome.mp4', 'readme.txt'];
+  if (M.matchLocal(files, ['capitol', 'dome']) === 'capitol-dome-night.mp4') ok('키워드 2개 겹치는 클립 선택');
+  else bad(`매칭 결과: ${M.matchLocal(files, ['capitol', 'dome'])}`);
+
+  // 실제 원인은 entity 가 아니라 visual 쪽이었다: visual "US mail truck" 의 **US**(2글자)가
+  //   파일명 "us-capitol-dome.mp4" 의 "us-" 에 부분일치했다.
+  if (M.matchLocal(files, ['US', 'mail', 'truck']) === null)
+    ok('짧은 토막(US)의 부분일치로 엉뚱한 클립을 집지 않는다');
+  else bad(`오매칭: ${M.matchLocal(files, ['US', 'mail', 'truck'])} — 우편 장면에 국회의사당`);
+  if (M.matchLocal(files, ['United', 'States', 'Postal', 'Service']) === null) ok('기관명도 오매칭 없음');
+  else bad('기관명 오매칭');
+
+  if (M.matchLocal(files, ['Donald', 'Trump']) === null) ok('무관한 대상은 null');
+  else bad(`오매칭: ${M.matchLocal(files, ['Donald', 'Trump'])}`);
+
+  if (M.matchLocal(files, ['nashville']) === 'nashville-crowd.mp4') ok('단어 경계로 정확히 맞으면 매칭');
+  else bad('정상 매칭 실패');
+
   if (M.matchLocal(files, ['zzz']) === null) ok('안 맞으면 null');
   else bad('아무거나 집었다');
   if (M.matchLocal(files, ['readme']) === null) ok('영상 확장자가 아니면 무시');
   else bad('txt 를 클립으로 집었다');
+}
+
+// ── 6. .env.local 에서 키를 읽는가 ───────────────────────────────────────────
+// 실측: PEXELS_API_KEY 를 .env.local 에 넣었는데 파이프라인이 process.env 만 봐서
+//   동영상 소스가 조용히 0건이었다. 키가 있는데 안 쓰이면 "소스가 없다" 와 구분이 안 된다.
+{
+  if (typeof M.envValue === 'function') {
+    const v = M.envValue('PEXELS_API_KEY');
+    if (v && v.length > 20) ok(`.env.local 에서 키를 읽는다 (${v.length}자)`);
+    else bad(`키를 못 읽는다: ${JSON.stringify(v)}`);
+  } else bad('envValue 없음');
 }
 
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');

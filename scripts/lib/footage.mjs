@@ -16,6 +16,24 @@
 
 const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv)$/i;
 
+/**
+ * .env.local 에서 값을 읽는다(process.env 우선).
+ * 실측(2026-08-27): PEXELS_API_KEY 를 .env.local 에 넣었는데 이 모듈이 process.env 만 봐서
+ *   동영상 소스가 **조용히 0건**이었다. 키가 있는데 안 쓰이면 "소스가 없다" 와 구분이 안 된다.
+ */
+export function envValue(name) {
+  if (process.env[name]) return process.env[name];
+  try {
+    const env = readFileSync(resolve(ROOT, '.env.local'), 'utf8');
+    const m = env.match(new RegExp(`^${name}\\s*=\\s*(.+)$`, 'm'));
+    return m ? m[1].trim().replace(/^['"]|['"]$/g, '') : '';
+  } catch { return ''; }
+}
+
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { ROOT } from './project-root.mjs';
+
 const STOP = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'from',
   'is', 'are', 'was', 'were', 'be', 'it', 'its', 'this', 'that', 'as', 'by', 'has', 'have',
@@ -67,6 +85,45 @@ export function searchTerms(scene, opts = {}) {
 }
 
 /**
+ * 사진이 아니라 그래픽 파일인가.
+ *
+ * Commons 관행: **사진은 JPEG**, 도형·로고·서명·다이어그램은 **PNG/SVG** 다.
+ * 실측(2026-08-27): "Dolly Parton" 질의에 "Dolly Parton Signature.png"(1051x430, 투명 배경)가
+ *   1순위로 뽑혀 영상 첫 5초가 통째로 검게 나갔다 — 투명 PNG 는 배경 없이 합성되면 검다.
+ *
+ * 금지가 아니라 **후순위**다. 사진이 하나도 없으면 그래픽이라도 회색 카드보다 낫다.
+ */
+export function isGraphicFile(url) {
+  return /\.(png|svg|gif|tiff?)(\?|$)/i.test(String(url ?? ''));
+}
+
+/**
+ * 장면 → 검색 질의들. **실제 대상이 먼저다.**
+ *
+ * 뉴스 화면은 "그 사건" 이어야 한다. Dolly Parton 부고에 국회의사당을 깔면 뉴스가 아니다.
+ * 처음엔 프롬프트에 "사람 이름 쓰지 마라 — 아카이브에 없다" 고 박아뒀는데 **틀렸다.**
+ *   실측(2026-08-27): Commons+Openverse 에서 Dolly Parton / Donald Trump / Secret Service 모두
+ *   20건씩, **전부 상업 이용 가능 라이선스**로 나온다.
+ *
+ *   entity — 헤드라인의 실제 대상(인물·기관·장소). 있으면 먼저 쓴다.
+ *   visual — 일반 b-roll. entity 로 못 찾았을 때, 그리고 2·3번째 컷을 채울 때 쓴다.
+ *
+ * 고유명사는 축약·불용어 제거에서 지켜야 하므로 max 를 넉넉히 준다
+ * ("United States Secret Service" 를 3단어로 자르면 다른 걸 찾는다).
+ */
+export function sceneQueries(scene) {
+  const out = [];
+  const ent = scene?.entity && String(scene.entity).trim();
+  if (ent) {
+    const t = searchTerms({ visual: ent }, { max: 4 });
+    if (t.length) out.push(t);
+  }
+  const vis = searchTerms(scene, { max: 3 });
+  if (vis.length && (!out.length || vis.join(' ') !== out[0].join(' '))) out.push(vis);
+  return out;
+}
+
+/**
  * 넓은 질의 → 좁은 질의 순서. 3단어가 0건이면 2단어, 그것도 0건이면 1단어로 내려간다.
  * 한 번 던지고 포기하면 배경이 전부 카드로 떨어진다(실측: 8장면 전부 카드).
  * 첫 단어는 끝까지 남긴다 — LLM 이 중요한 명사를 앞에 놓기 때문이다.
@@ -101,7 +158,7 @@ export function titleRelevant(title, terms) {
  * 실측: "courtroom bench" 에 "Drawing of an overview of the courtroom" 법정 스케치가 채택됐다.
  * 특정 입력을 겨냥한 분기가 아니라 매체 종류 판정이라 모든 후보에 같이 적용한다.
  */
-const ART_WORDS = /\b(drawing|sketch|painting|portrait|illustration|engraving|lithograph|etching|map|diagram|chart|blueprint|schematic|logo|icon|emblem|seal|coat of arms|poster|cartoon|comic|woodcut|manuscript)\b/i;
+const ART_WORDS = /\b(drawing|sketch|painting|portrait|illustration|engraving|lithograph|etching|map|diagram|chart|blueprint|schematic|logo|icon|emblem|seal|coat of arms|poster|cartoon|comic|woodcut|manuscript|signature|autograph)\b/i;
 export function isIllustration(title) {
   return ART_WORDS.test(String(title ?? ''));
 }
@@ -122,15 +179,23 @@ export function isIllustration(title) {
  * 동영상은 사진을 이긴다 — 정지 그림으로는 뉴스 화면이 안 된다.
  */
 export function pickFootage(candidates, opts = {}) {
-  const { minWidth = 900, terms = null } = opts;
+  const { minWidth = 900, terms = null, allowGraphics = false, preferFree = false } = opts;
   const base = (candidates ?? []).filter(
     (c) => c && c.url && licenseUsable(c.license)
-      && Number(c.width) >= minWidth && Number(c.width) > Number(c.height),
+      && Number(c.width) >= minWidth && Number(c.width) > Number(c.height)
+      // 서명·로고·도표는 **어떤 배경에서도** 자료화면이 안 된다. 실측(2026-08-27):
+      //   "Dolly Parton Signature.png" 를 어두운 배경에 얹으니 검은 잉크가 묻혀 화면이 죽었다.
+      //   컷이 하나 줄어드는 게 낫다 — splitShots 가 확보한 그림 수에 맞춰 컷을 정한다.
+      && (allowGraphics || !isGraphicFile(c.url)),
   );
   if (base.length === 0) return null;
   const isVideo = (c) => (c.kind === 'video' ? 0 : 1);
   const rank = (c) => (Number.isFinite(c.rank) ? c.rank : 999);
+  // preferFree: 표기 의무 없는 소재(CC0·PD)를 앞으로. 금지가 아니라 우선순위다 —
+  //   CC0 가 없으면 CC BY 라도 쓰는 게 회색 카드보다 낫다.
+  const free = (c) => (preferFree && !attributionFree(c.license) ? 1 : 0);
   const order = (arr) => arr.slice().sort((a, b) => isVideo(a) - isVideo(b)
+    || free(a) - free(b)
     || rank(a) - rank(b)
     || Number(b.width) - Number(a.width));
 
@@ -177,11 +242,29 @@ export function splitShots(duration, maxShots, minShot = 3.0) {
   return shots;
 }
 
+/**
+ * 표기 의무가 없는 라이선스인가(CC0 · Public domain).
+ *
+ * 이게 중요한 이유가 둘이다:
+ *   · 크레딧이 편당 9~12건씩 쌓여 영상 설명란을 채운다.
+ *   · CC BY-SA 소재로 2차 생성물을 만들면 **동일조건변경허락이 결과물까지 전파된다** —
+ *     Flow 로 움직이게 만든 클립에도 같은 조건이 붙는다.
+ */
+export function attributionFree(license) {
+  const s = String(license ?? '').toLowerCase();
+  if (!licenseUsable(license)) return false;
+  // 스톡 사이트 자체 라이선스도 표기 의무가 없다(Pexels/Pixabay/Unsplash 모두 명시).
+  return /(cc0|pdm|zero|public domain|no known copyright|pexels|pixabay|unsplash)/.test(s)
+    || s.split(/[^a-z0-9]+/)[0] === 'pd';
+}
+
 /** CC BY / BY-SA 는 표기 의무가 있다. CC0·PD 는 없다 → null. */
 export function creditLine(item) {
   if (!item || !licenseUsable(item.license)) return null;
   const l = String(item.license);
-  if (/(cc0|pdm|zero|public domain|no known copyright)/i.test(l)) return null;
+  // 판정을 attributionFree 하나로 모은다 — 종전엔 여기와 attributionFree 가 각자 판단해서
+  //   Pexels(무의무)에 크레딧이 붙었다. 없는 의무가 쌓이면 진짜 표기 대상이 그 안에 묻힌다.
+  if (attributionFree(l)) return null;
   const bits = [`"${item.title ?? 'untitled'}"`];
   if (item.author) bits.push(`by ${item.author}`);
   bits.push(`— ${l}`);
@@ -192,13 +275,17 @@ export function creditLine(item) {
 
 /** assets/broll 파일명에서 키워드가 가장 많이 겹치는 클립. 영상 확장자만 본다. */
 export function matchLocal(files, terms) {
-  const keys = (terms ?? []).map((t) => String(t).toLowerCase()).filter(Boolean);
+  // 2026-08-27 사고: 우편 장면과 트럼프 장면에 us-capitol-dome.mp4(국회의사당)가 깔렸다.
+  //   visual "US mail truck" 의 **US**(2글자)가 파일명의 "us-" 에 부분일치한 것이다.
+  //   짧은 토막의 부분일치는 아무 데나 걸린다 → 4글자 이상만, 그리고 **단어 경계**로 본다.
+  const keys = (terms ?? []).map((t) => String(t).toLowerCase()).filter((t) => t.length >= 4);
   if (keys.length === 0) return null;
   let best = null, bestScore = 0;
   for (const f of files ?? []) {
     if (!VIDEO_EXT.test(f)) continue;
-    const name = String(f).toLowerCase();
-    const score = keys.filter((k) => name.includes(k)).length;
+    // 파일명을 단어로 쪼갠다: capitol-dome-night.mp4 → [capitol, dome, night, mp4]
+    const words = new Set(String(f).toLowerCase().replace(VIDEO_EXT, '').split(/[^a-z0-9]+/).filter(Boolean));
+    const score = keys.filter((k) => words.has(k)).length;
     if (score > bestScore) { best = f; bestScore = score; }
   }
   return bestScore > 0 ? best : null;
@@ -241,14 +328,31 @@ export async function searchCommons(terms, { limit = 8 } = {}) {
   }).filter((c) => c.url && /\.(jpe?g|png|webp)(\?|$)/i.test(c.url));
 }
 
+/**
+ * Pexels 의 여러 화질 중 하나를 고른다.
+ *
+ * 실측(2026-08-27): 같은 영상이 426x240 / 640x360 / 960x540 / 1280x720 / 1920x1080 /
+ *   2560x1440 / 3840x2160 로 온다. **응답 순서가 화질 순이 아니다**(hd→uhd→sd→sd→uhd…).
+ *   처음엔 "1280 이상 중 최소" 를 골라 720p 를 집었는데 우리 영상은 1080p 다.
+ * 4K 를 통째로 받지는 않는다 — 편당 24컷이면 내려받기가 부담이다.
+ */
+export function pickVideoFile(files, targetWidth = 1920) {
+  const mp4 = (files ?? []).filter((f) => f?.link && /mp4/i.test(String(f.file_type ?? 'mp4')));
+  if (mp4.length === 0) return null;
+  const exact = mp4.filter((f) => Number(f.width) === targetWidth);
+  if (exact.length) return exact.sort((a, b) => Number(b.height) - Number(a.height))[0];
+  const above = mp4.filter((f) => Number(f.width) > targetWidth);
+  if (above.length) return above.sort((a, b) => Number(a.width) - Number(b.width))[0];
+  return mp4.sort((a, b) => Number(b.width) - Number(a.width))[0];
+}
+
 /** Pexels — 유일한 자동 **동영상** 소스. 키가 없으면 조용히 빈 배열(폴백은 이미지). */
-export async function searchPexelsVideo(terms, { limit = 8, apiKey = process.env.PEXELS_API_KEY } = {}) {
+export async function searchPexelsVideo(terms, { limit = 8, apiKey = envValue('PEXELS_API_KEY') } = {}) {
   if (!apiKey) return [];
   const q = encodeURIComponent(terms.join(' '));
   const d = await j(`https://api.pexels.com/videos/search?query=${q}&per_page=${limit}&orientation=landscape&size=medium`, { Authorization: apiKey });
   return (d?.videos ?? []).map((v, i) => {
-    const f = (v.video_files ?? []).filter((x) => x.width >= 1280 && /mp4/i.test(x.file_type))
-      .sort((a, b) => a.width - b.width)[0];
+    const f = pickVideoFile(v.video_files, 1920);
     return f && {
       kind: 'video', rank: i, url: f.link, width: f.width, height: f.height,
       license: 'Pexels License', title: v.url, author: v.user?.name,

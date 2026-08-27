@@ -35,25 +35,40 @@ export function splitSentences(text) {
 export function fitScript(scenes, opts = {}) {
   const { budgetChars, tolerance = 1.1 } = opts;
   const list = Array.isArray(scenes) ? scenes : [];
-  const before = list.reduce((n, s) => n + String(s?.say ?? '').length, 0);
+  const len = (x) => String(x?.say ?? '').length;
+  const before = list.reduce((n, s) => n + len(s), 0);
   if (list.length === 0 || !budgetChars || before <= budgetChars * tolerance) {
     return { scenes: list, trimmed: 0, before, after: before };
   }
 
-  const per = budgetChars / list.length;
-  let trimmed = 0;
-  const out = list.map((s) => {
-    const sents = splitSentences(s?.say);
-    if (sents.length <= 1) return s;            // 한 문장짜리는 손대지 않는다 — 자르면 반토막이다
-    let kept = sents[0];                        // 최소 1문장은 항상 남긴다
-    for (let i = 1; i < sents.length; i++) {
-      if (kept.length + 1 + sents[i].length > per) break;
-      kept += ` ${sents[i]}`;
-    }
-    if (kept.length < String(s.say).length) trimmed++;
-    return { ...s, say: kept };
-  });
+  // 장면마다 budget/n 로 균등하게 자르면 예산이 남아돈다 — 실측(2026-08-27): 예산 1467자에
+  //   2024자가 들어왔는데 **682자(46%)** 만 남아 90초 목표가 45.7초가 됐다. 첫 문장 뒤에 올
+  //   문장이 균등몫을 넘으면 그 장면은 거기서 멈추고, 남은 몫은 어느 장면도 못 쓴다.
+  // → **가장 긴 장면부터 한 문장씩** 덜어낸다. 예산 바로 위에서 멈추므로 낭비가 없다.
+  const parts = list.map((s) => splitSentences(s?.say));
+  const keep = parts.map((p) => p.length);
+  const joined = (i) => parts[i].slice(0, keep[i]).join(' ');
+  const total = () => keep.reduce((n, _, i) => n + joined(i).length, 0);
 
-  const after = out.reduce((n, s) => n + String(s?.say ?? '').length, 0);
+  let guard = 0;
+  while (total() > budgetChars && guard++ < 10_000) {
+    // 자를 수 있는(문장이 2개 이상 남은) 장면 중 가장 긴 것.
+    let pick = -1, max = -1;
+    for (let i = 0; i < parts.length; i++) {
+      if (keep[i] <= 1) continue;                 // 최소 1문장은 남긴다 — 빈 대본은 TTS 가 던진다
+      const l = joined(i).length;
+      if (l > max) { max = l; pick = i; }
+    }
+    if (pick < 0) break;                          // 전부 1문장 — 더는 못 줄인다(반토막 내지 않는다)
+    keep[pick] -= 1;
+  }
+
+  let trimmed = 0;
+  const out = list.map((s, i) => {
+    if (keep[i] === parts[i].length) return s;
+    trimmed++;
+    return { ...s, say: joined(i) };
+  });
+  const after = out.reduce((n, s) => n + len(s), 0);
   return { scenes: out, trimmed, before, after };
 }

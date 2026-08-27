@@ -369,3 +369,30 @@ export async function setVideoModel(page, model = FREE_VIDEO_MODEL) {
   if (!(await closeDefaults(page))) return `${shown} (패널 안 닫힘)`;
   return shown;
 }
+
+/**
+ * 생성된 미디어를 파일로 받는다.
+ *
+ * 결과 URL 은 labs.google 의 인증이 필요한 리다이렉트다(media.getMediaUrlRedirect).
+ * 브라우저 컨텍스트의 request 를 쓰면 **로그인 쿠키가 그대로 실린다** — 별도 인증이 필요 없다.
+ */
+export async function downloadMedia(page, url, dest) {
+  const res = await page.request.get(url, { timeout: 120_000 });
+  if (!res.ok()) throw new Error(`HTTP ${res.status()}`);
+  const buf = await res.body();
+  if (buf.length < 10_000) throw new Error(`너무 작다 ${buf.length}B — 영상이 아닐 수 있다`);
+  const { mkdirSync, writeFileSync } = await import('fs');
+  const { dirname } = await import('path');
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, buf);
+  return buf.length;
+}
+
+/**
+ * 지금 화면에 있는 결과 영상 URL 들. 새로 생긴 것만 골라내려면 호출 전 목록을 미리 받아둔다.
+ * "영상이 보인다" 만으로는 **내가 방금 시킨 것** 인지 알 수 없다 — 이전 실행의 결과가 남아 있다.
+ */
+export async function videoUrls(page) {
+  return page.evaluate(() => [...document.querySelectorAll('video')]
+    .map((e) => e.currentSrc || e.src).filter(Boolean)).catch(() => []);
+}

@@ -90,5 +90,49 @@ const total = (sc) => sc.reduce((n, s) => n + s.say.length, 0);
   } catch (e) { bad(`빈 입력 throw: ${e.message}`); }
 }
 
+
+// ── 8. 예산을 **채워야** 한다 — 너무 적게 남기는 것도 실패다 ─────────────────
+// 실측(2026-08-27): 예산 1467자에 2024자가 들어왔는데 682자만 남겼다(목표 90초 → 45.7초).
+//   장면마다 budget/n 로 균등하게 자르니, 문장 하나만 남기고 남은 예산을 못 쓴다.
+//   → 전역으로 **가장 긴 장면부터** 문장을 덜어내 예산 근처까지만 줄인다.
+{
+  const sent = (n, len) => Array.from({ length: n }, (_, i) => `Sentence ${i} ${'x'.repeat(len)}.`).join(' ');
+  const before = Array.from({ length: 8 }, () => ({ title: 't', say: sent(3, 70) }));  // 장면당 약 250자
+  const budget = 1400;
+  const r = M.fitScript(before, { budgetChars: budget });
+  const total = r.scenes.reduce((n, s) => n + s.say.length, 0);
+  if (total <= budget * 1.15) ok(`예산 이하로 줄었다 ${r.before} → ${total}`);
+  else bad(`안 줄었다 ${total} > ${budget * 1.15}`);
+  if (total >= budget * 0.75) ok(`예산을 채운다 (${(total / budget * 100).toFixed(0)}%)`);
+  else bad(`너무 적게 남겼다 ${total} — 예산의 ${(total / budget * 100).toFixed(0)}% (영상이 목표보다 짧아진다)`);
+  if (r.scenes.length === before.length) ok('장면 수 유지');
+  else bad('장면이 사라졌다');
+  if (r.scenes.every(s => /\.$/.test(s.say.trim()))) ok('전부 문장 경계에서 끝난다');
+  else bad('반토막 문장 발생');
+}
+
+
+// ── 8b. 실측 재현 — 문장 길이가 고르지 않으면 예산이 남아돈다 ────────────────
+// 2026-08-27 실제 실행: 예산 1467자에 2024자가 들어왔는데 **682자(46%)** 만 남겨
+//   목표 90초 영상이 45.7초가 됐다.
+// 장면당 균등 배분(budget/n = 183)이라, 첫 문장(85자) 다음에 올 문장(110자)이 183을 넘으면
+//   그 장면은 85자에서 멈춘다. 남은 98자는 어느 장면도 못 쓴다 — 8장면이면 784자가 증발한다.
+// → 전역으로 **가장 긴 장면부터** 덜어내야 예산을 채운다.
+{
+  const S8 = () => Array.from({ length: 8 }, () => ({
+    title: 't',
+    // 85 / 110 / 60 자 문장 세 개. 실제 대본의 길이 분포를 흉내낸다.
+    say: `${'a'.repeat(83)}. ${'b'.repeat(108)}. ${'c'.repeat(58)}.`,
+  }));
+  const budget = 1467;
+  const r = M.fitScript(S8(), { budgetChars: budget });
+  const total = r.scenes.reduce((n, s) => n + s.say.length, 0);
+  const pct = (total / budget * 100).toFixed(0);
+  if (total <= budget * 1.15) ok(`예산 이하 ${r.before} → ${total}`);
+  else bad(`초과: ${total}`);
+  if (total >= budget * 0.8) ok(`고르지 않은 문장에서도 예산을 채운다 (${pct}%)`);
+  else bad(`예산의 ${pct}% 만 남겼다 (${total}/${budget}) — 영상이 목표보다 크게 짧아진다`);
+}
+
 console.log(fail ? `\n❌ script-budget ${fail} 실패` : '\n✅ script-budget 전부 통과');
 process.exit(fail ? 1 : 0);

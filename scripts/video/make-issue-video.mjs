@@ -31,8 +31,9 @@ import { synthesizeWithTimestamps } from '../lib/tts.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { cuesFromAlignment, toAss, fillGaps } from '../lib/subtitle.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
+import { bestQuote, quoteCardHtml } from '../lib/quote-card.mjs';
 import {
-  searchTerms, queryLadder, pickFootage, pickFootageMany, splitShots, creditLine, matchLocal,
+  searchTerms, sceneQueries, queryLadder, pickFootage, pickFootageMany, splitShots, creditLine, matchLocal,
   searchOpenverse, searchCommons, searchPexelsVideo,
 } from '../lib/footage.mjs';
 
@@ -44,10 +45,19 @@ const TARGET_SEC = Number(arg('--seconds', '90'));
 const OUT = resolve(ROOT, arg('--out', `reports/video/issue-${locale}.mp4`));
 const WORK = resolve(ROOT, `reports/video/.work-${locale}`);
 const BROLL = resolve(ROOT, 'assets/broll');
+// 표기 의무 없는 소재(CC0·PD)를 우선한다. 크레딧이 편당 9~12건씩 쌓이고,
+//   CC BY-SA 는 2차 생성물에까지 동일조건변경허락이 전파된다.
+//   금지가 아니라 우선순위라 CC0 가 없으면 CC BY 도 쓴다.
+const PREFER_FREE = !argv.includes('--allow-attribution');
 const W = 1920, H = 1080, FPS = 30, XFADE = 0.45;
 // 자막 밴드 기하. furniture 의 CSS 와 ASS 의 marginV 가 **같은 값을 봐야** 글자가 띠 안에 앉는다.
 //   따로 두면 한쪽만 고쳤을 때 글자가 띠 밖으로 나가고, 그건 렌더 후에야 보인다.
-const BAND = { top: 858, height: 152, marginV: 84 };
+//
+// 밴드를 **화면 바닥에 붙인다**(2026-08-27). 종전엔 858~1010 으로 떠 있었는데,
+//   생성 클립(Veo)의 "Veo" 워터마크가 우하단 y≈1041~1071 에 박혀 밴드 아래로 삐져나왔다.
+//   바닥까지 내리면 그 자리를 덮는다 — 워터마크를 지우는 게 아니라 화면 구성으로 가리는 것이고,
+//   생성 클립을 안 쓰는 편에서도 하단이 정돈돼 보인다.
+const BAND = { top: 850, height: 1080 - 850, marginV: 56 };
 
 /**
  * 낭독 속도(초당 글자). 대본 길이를 목표 초에서 역산하는 데만 쓴다 — 최종 길이는
@@ -73,9 +83,16 @@ const rows = db.prepare(
 db.close();
 
 const issues = topDistinctIssues(rows, 3);
+// 각 이슈의 대표 발언. "그 사건" 을 화면에 직접 띄우는 유일한 수단이다 —
+//   아카이브 사진은 인물이 맞아도 그 기사가 아니고, SNS 원본은 재사용 심사에 걸린다.
+//   방송사가 하듯 **인용을 다시 그린다**(quote-card).
+for (const c of issues) c.quote = bestQuote(c.headlines ?? []);
 if (issues.length === 0) { console.error('❌ 이슈 클러스터 없음 — 수집이 얇다'); process.exit(1); }
 console.log(`  [소재] ${rows.length}건 중 이슈 ${issues.length}개`);
-for (const c of issues) console.log(`    "${c.keyword}" 매체 ${c.sourceCount} · 기사 ${c.items.length}`);
+for (const c of issues) {
+  console.log(`    "${c.keyword}" 매체 ${c.sourceCount} · 기사 ${c.items.length}`
+    + (c.quote ? ` · 인용 "${c.quote.text.slice(0, 40)}…"` : ''));
+}
 
 // ── 2. 대본 ─────────────────────────────────────────────────────────────────
 // 장면 수와 장면당 글자 수를 목표 초에서 역산한다. 하드코딩하면 --seconds 가 거짓말이 된다.
@@ -85,8 +102,12 @@ const SCENES = Math.min(9, Math.max(6, Math.round(TARGET_SEC / 11)));
 const perScene = Math.round((TARGET_SEC * (CHARS_PER_SEC[isKo ? 'ko' : 'en'] ?? 14) * 1.25) / SCENES);
 const [loChars, hiChars] = [Math.round(perScene * 0.8), Math.round(perScene * 1.2)];
 
-const brief = issues.map((c, i) =>
-  `[${i + 1}] ${c.headlines.slice(0, 4).map((h) => `- ${h}`).join('\n')}`).join('\n\n');
+const brief = issues.map((c, i) => {
+  const heads = c.headlines.slice(0, 4).map((h) => `- ${h}`).join('\n');
+  // 인용이 있으면 표시해 둔다 — 그 장면에 인용 카드를 띄울 것이므로 대본이 그 발언을 다뤄야 한다.
+  const q = c.quote ? `\n(QUOTE ${i + 1}: "${c.quote.text}"${c.quote.speaker ? ` — ${c.quote.speaker}` : ''})` : '';
+  return `[${i + 1}] ${heads}${q}`;
+}).join('\n\n');
 
 const buildPrompt = (nudge) => isKo ? `너는 한국 이슈 뉴스 채널의 대본 작가다. 아래 헤드라인만 근거로 ${TARGET_SEC}초 대본을 쓴다.
 
@@ -97,12 +118,14 @@ ${brief}
 - 한국 시청자 관점에서 쓴다. 한국과 관련되면 그 연결을 앞세운다.
 - 아나운서가 읽는 문장. 문어체 금지, 구어체 뉴스 톤.
 - 숫자는 한글로 풀어 쓴다(TTS 오독 방지). 예: 17 billion → 백칠십억
-- visual: 화면에 깔 그림 검색어. **영어 2~3단어 한 덩어리**만. 쉼표로 여러 개 나열 금지.
-  전 세계 사진 아카이브에서 검색되므로 **모호하면 엉뚱한 나라 사진이 걸린다.**
-  가능하면 한국의 구체적 장소·기관을 지목하라.
-  좋음: "Seoul National Assembly", "Gwanghwamun square", "Seoul subway platform"
-  나쁨: "handshake stage"(인도네시아 아이돌 행사가 걸렸다), "news desk", "open book"
-- JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(${loChars}~${hiChars}자)","visual":"english search words"}]
+- entity: 이 장면의 **실제 대상**. 헤드라인에 나오는 인물·기관·장소의 정식 명칭을 영어로.
+  시청자가 실제로 봐야 하는 대상이다. 예: "Lee Jae-myung", "National Assembly of Korea", "Gwanghwamun".
+  실제 대상이 없는 장면(마무리 멘트 등)에서만 "" 로 둔다.
+- visual: 남는 컷을 채울 일반 b-roll 검색어. **영어 2~3단어 한 덩어리**만. 인물명 말고 장소·사물.
+  전 세계 아카이브에서 검색되므로 모호하면 엉뚱한 나라 사진이 걸린다.
+  좋음: "Seoul National Assembly building", "Gwanghwamun square"
+  나쁨: "handshake stage"(인도네시아 아이돌 행사가 걸렸다), "news desk"
+- JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(${loChars}~${hiChars}자)","entity":"Real Subject Name","visual":"english b-roll words"}]
 - 장면 ${SCENES}개. 마지막 장면은 채널 마무리.${nudge ?? ''}`
   : `You write scripts for a US news-issue channel. Use ONLY the headlines below. Target ${TARGET_SEC} seconds.
 
@@ -113,13 +136,17 @@ Rules:
 - Write for a US audience. Lead with why it matters to Americans.
 - Anchor-read sentences. Conversational broadcast tone, not written prose.
 - Spell out figures for text-to-speech (e.g. "seventeen billion dollars", not "$17B").
-- "visual": ONE English phrase of 2-3 words naming a PLACE, OBJECT or SCENE to show on screen.
-  Not a person's name, and do NOT list several comma-separated options — one phrase only.
-  It is searched against a worldwide photo archive, so make it **unambiguous and American**:
-  a generic phrase pulls the wrong country. Name a US landmark, institution or setting when you can.
-  Good: "US Capitol dome", "federal courtroom bench", "Nashville Ryman Auditorium".
+- "entity": the REAL subject of this scene as it appears in the headlines — a person, organization
+  or place. This is what viewers must actually see. Use the full proper name.
+  Examples: "Dolly Parton", "United States Secret Service", "Ryman Auditorium".
+  Leave it "" only when the scene names no real subject (e.g. the closing line).
+- "visual": ONE English phrase of 2-3 words for generic b-roll, used to fill extra cuts.
+  A PLACE, OBJECT or SCENE — not a person. Do NOT list comma-separated options.
+  It is searched against a worldwide archive, so make it unambiguous and American —
+  a generic phrase pulls the wrong country.
+  Good: "US Capitol dome", "federal courtroom bench".
   Bad: "handshake stage" (matched an Indonesian idol event), "news desk", "open book".
-- Output ONLY a JSON array: [{"title":"on-screen title (<=18 chars)","say":"line to read (${loChars}-${hiChars} chars)","visual":"english search words"}]
+- Output ONLY a JSON array: [{"title":"on-screen title (<=18 chars)","say":"line to read (${loChars}-${hiChars} chars)","entity":"Real Subject Name","visual":"english b-roll words"}]
 - Exactly ${SCENES} scenes. Last scene closes the channel.${nudge ?? ''}`;
 
 console.log(`  [대본] 목표 ${TARGET_SEC}초 → 장면 ${SCENES}개 × ${loChars}~${hiChars}자 · 로컬 LLM 호출…`);
@@ -195,7 +222,8 @@ const totalSec = scenes.reduce((n, s) => n + s.dur, 0);
 // ── 4. 배경 화면 ────────────────────────────────────────────────────────────
 // 우선순위: 사람이 넣은 클립 → Pexels 동영상 → Commons/Openverse 사진 → 그라디언트 카드.
 // 다운로드는 스트리밍 + 상한. 통째로 메모리에 올리면 4K 원본에서 프로세스가 부푼다.
-const MAX_DL = 40 * 1024 * 1024;
+// 1080p 30초 Pexels 클립이 46MB 라 40MB 문턱에 걸려 카드로 떨어졌다(실측).
+const MAX_DL = 90 * 1024 * 1024;
 async function download(url, dest) {
   const r = await fetch(url, {
     headers: { 'User-Agent': 'FlowVium-issue-video/1.0 (https://flowvium.net)' },
@@ -222,28 +250,65 @@ const credits = [];
 const MAX_SHOTS = Number(process.env.VIDEO_MAX_SHOTS ?? 3);
 const MIN_SHOT = 3.2;
 const shots = [];                    // 화면 트랙. 음성/자막은 장면 단위, 화면은 컷 단위로 간다.
+const usedQuotes = new Set();        // 같은 발언 카드를 두 번 띄우지 않는다
 let shotSeq = 0;
 
 for (let i = 0; i < scenes.length; i++) {
-  const terms = searchTerms(scenes[i]);
+  // 뉴스 화면은 "그 사건" 이어야 한다 — 실제 대상(entity)을 먼저 찾고, 남는 컷을 일반 b-roll 로 채운다.
+  const queries = sceneQueries(scenes[i]);
+  const terms = queries[0] ?? searchTerms(scenes[i]);
   scenes[i].terms = terms;
   const want = splitShots(scenes[i].dur, MAX_SHOTS, MIN_SHOT);
 
-  // 1순위: 사람이 assets/broll 에 넣은 클립. 라이선스 판단은 넣은 사람이 한 것으로 본다.
-  const local = matchLocal(localFiles, terms);
+  // 마무리 장면(마지막)은 **채널 자체 그래픽**으로 간다.
+  //   실측(2026-08-27): "news anchor desk" 로 찾은 Pexels 클립에 "TOMATO NEWS"·"BREAKING NEWS"
+  //   같은 **가짜 방송사 브랜딩이 화면에 박혀** 있어 우리 로고와 겹쳤다.
+  //   스톡 뉴스룸 영상은 대부분 그렇다. 사인오프는 실제 방송도 자기 화면에서 한다.
+  const isClosing = i === scenes.length - 1;
 
-  // 넓은 질의부터 좁은 질의까지 내려가며 모은다. 3단어 AND 매칭은 쉽게 0건이 된다(실측).
+  // 이 장면이 다루는 이슈에 대표 발언이 있으면 **첫 컷을 인용 카드**로 잡는다.
+  //   발언이 주인공인 화면이라 사진 위에 얹지 않고 화면 전체를 쓴다.
+  const issueForScene = issues[Math.min(issues.length - 1, Math.floor(i * issues.length / scenes.length))];
+  const quote = issueForScene?.quote && !usedQuotes.has(issueForScene.quote.text) ? issueForScene.quote : null;
+
+  // 사람이 assets/broll 에 넣은 클립(Flow 생성물 포함). 라이선스 판단은 넣은 사람이 한 것으로 본다.
+  // **entity 질의로만** 맞춘다 — queries.flat() 으로 하면 일반 b-roll 검색어가 걸려서
+  //   실제 대상 사진을 밀어낸다(실측: "Secret Service" 장면에 국회의사당 클립이 깔렸다).
+  const local = isClosing ? null : matchLocal(localFiles, queries[0] ?? []);
+
+  // entity → visual 순으로, 각 질의는 넓은 것부터 좁은 것까지 내려간다.
+  //   3단어 AND 매칭은 쉽게 0건이 된다(실측).
   let picks = [], usedQ = terms;
-  if (!local) {
-    for (const q of queryLadder(terms)) {
-      let cands = [];
-      for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
-        try { cands = cands.concat(await fn(q, { limit: 12 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
-        // terms 를 넘겨야 관련성 검사가 걸린다 — 안 넘기면 매체 종류만 보고 통과시킨다.
-        const got = pickFootageMany(cands, want.length, { terms: q });
-        if (got.length) { picks = got; usedQ = q; break; }
+  if (!local && !isClosing) {
+    outer:
+    for (let qi = 0; qi < queries.length; qi++) {
+      const base = queries[qi];
+      // **실존 인물·기관은 아카이브 사진으로만 찾는다.** Pexels 는 모델 스톡이라
+      //   "Dolly Parton" 을 물으면 분홍 머리 모델이 나온다(실측 2026-08-27).
+      //   동영상이 사진보다 우선하도록 해놨더니 그 스톡이 실제 인물 사진을 밀어냈다.
+      //   entity(qi=0)는 Commons/Openverse, 일반 b-roll(qi>0)은 Pexels 동영상 우선.
+      const sources = qi === 0
+        ? [searchCommons, searchOpenverse]
+        : [searchPexelsVideo, searchCommons, searchOpenverse];
+      for (const q of queryLadder(base)) {
+        let cands = [];
+        for (const fn of sources) {
+          try { cands = cands.concat(await fn(q, { limit: 12 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
+          // terms 를 넘겨야 관련성 검사가 걸린다 — 안 넘기면 매체 종류만 보고 통과시킨다.
+          const got = pickFootageMany(cands, want.length, { terms: q, preferFree: PREFER_FREE });
+          if (got.length) { picks = got; usedQ = q; break outer; }
+        }
       }
-      if (picks.length) break;
+    }
+    // 실제 대상으로 컷을 다 못 채웠으면 일반 b-roll 로 보충한다.
+    if (picks.length && picks.length < want.length && queries[1]) {
+      const seen = new Set(picks.map((x) => x.url));
+      let extra = [];
+      for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
+        try { extra = extra.concat(await fn(queries[1], { limit: 12 })); } catch { /* noop */ }
+      }
+      for (const p of pickFootageMany(extra.filter((x) => !seen.has(x.url)),
+        want.length - picks.length, { terms: queries[1], preferFree: PREFER_FREE })) picks.push(p);
     }
   }
 
@@ -254,6 +319,13 @@ for (let i = 0; i < scenes.length; i++) {
 
   const labels = [];
   for (let k = 0; k < durs.length; k++) {
+    if (k === 0 && quote) {
+      usedQuotes.add(quote.text);
+      shots.push({ kind: 'quote', quote, dur: durs[k], zin: shotSeq % 2 === 0 });
+      labels.push(`인용카드 "${quote.text.slice(0, 24)}…"`);
+      shotSeq++;
+      continue;
+    }
     if (local) {
       shots.push({ kind: 'video', file: resolve(BROLL, local), dur: durs[k], zin: shotSeq % 2 === 0 });
       labels.push(`local:${local}`);
@@ -272,12 +344,13 @@ for (let i = 0; i < scenes.length; i++) {
         labels.push(`실패(${e.message.slice(0, 24)})→카드`);
       }
     } else {
-      shots.push({ kind: 'card', file: null, dur: durs[k], zin: shotSeq % 2 === 0 });
-      labels.push('카드');
+      shots.push({ kind: isClosing ? 'signoff' : 'card', file: null, dur: durs[k], zin: shotSeq % 2 === 0 });
+      labels.push(isClosing ? '채널 마무리' : '카드');
     }
     shotSeq++;
   }
-  console.log(`  [화면] ${i + 1} "${usedQ.join(' ')}" ${durs.length}컷 → ${labels.join(' / ')}`);
+  const ent = scenes[i].entity ? `대상="${scenes[i].entity}" ` : '';
+  console.log(`  [화면] ${i + 1} ${ent}질의="${usedQ.join(' ')}" ${durs.length}컷 → ${labels.join(' / ')}`);
 }
 
 // ── 5. 자막 ─────────────────────────────────────────────────────────────────
@@ -307,31 +380,44 @@ console.log(`  [자막] 큐 ${cues.length}개`);
 //   하단에 밝은 자막 밴드(얇은 괘선 위아래) 하나. 화면을 가리는 글자를 최대한 줄인다.
 //   전면 스크림도 뺀다 — 칩과 밴드가 각자 배경을 갖고 있어서 필요 없다.
 const KICK = isKo ? '지금 이 이슈' : 'TODAY’S ISSUE';
-const SRC_NOTE = isKo ? '자료화면' : 'FILE FOOTAGE';   // 실제 사건 영상이 아니라는 표시. 뉴스의 관행이고 정직하다.
 const esc = (t) => String(t).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 const furniture = () => `<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:${W}px;height:${H}px;background:transparent}
 body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;position:relative;overflow:hidden}
-.bar{position:absolute;left:0;top:0;width:10px;height:100%;background:linear-gradient(#ff4d5e,#c81e3a)}
 .kick{position:absolute;top:46px;left:46px;background:rgba(238,242,247,.94);color:#12171f;
   font-size:34px;font-weight:800;letter-spacing:.02em;padding:14px 26px;
   box-shadow:0 3px 16px rgba(0,0,0,.35)}
 .right{position:absolute;top:46px;right:46px;text-align:right;
   /* 흰 글자 + 그림자만으로는 밝은 하늘 배경에서 묻힌다(실측: 프리뷰에서 우상단이 안 읽힘).
      방송사 로고처럼 어두운 받침을 깐다. */
-  background:rgba(14,19,28,.62);padding:12px 22px 14px;border-radius:3px}
+  background:rgba(14,19,28,.62);padding:12px 22px;border-radius:3px}
 .brand{font-size:34px;font-weight:900;letter-spacing:.24em;color:#fff}
-.note{margin-top:6px;font-size:22px;color:#cdd8ea;letter-spacing:.08em}
 /* 자막 밴드: 밝은 반투명 띠 + 위아래 얇은 괘선. 어두운 글자가 어떤 배경에서도 읽힌다. */
 .band{position:absolute;left:0;right:0;top:${BAND.top}px;height:${BAND.height}px;
   background:rgba(231,237,244,.90);border-top:4px solid rgba(74,90,112,.85);
   border-bottom:4px solid rgba(74,90,112,.85)}
 </style>
-<div class="bar"></div>
 <div class="kick">${esc(KICK)}</div>
-<div class="right"><div class="brand">FLOWVIUM</div><div class="note">${esc(SRC_NOTE)}</div></div>
+<div class="right"><div class="brand">FLOWVIUM</div></div>
 <div class="band"></div>`;
+
+/**
+ * 마무리 화면. 채널 자체 그래픽이다.
+ * 스톡 뉴스룸 클립에는 "TOMATO NEWS" 같은 **가짜 방송사 브랜딩이 박혀** 있어 쓸 수 없다(실측).
+ */
+const signoffBg = () => `<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0}html,body{width:${W}px;height:${H}px}
+body{background:radial-gradient(1400px 800px at 50% 42%,#1b2a48 0%,rgba(0,0,0,0) 66%),
+  linear-gradient(150deg,#070b16,#111c33 55%,#070b16);
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#eef3ff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding-bottom:${H - BAND.top + 30}px}
+.w{font-size:132px;font-weight:900;letter-spacing:.30em;text-indent:.30em}
+.r{margin-top:34px;width:150px;height:7px;background:linear-gradient(90deg,#ff4d5e,#c81e3a)}
+.s{margin-top:34px;font-size:34px;color:#9fb2d4;letter-spacing:.22em}
+</style><div class="w">FLOWVIUM</div><div class="r"></div>
+<div class="s">${isKo ? '오늘의 이슈' : 'TODAY’S ISSUE'}</div>`;
 
 // 배경이 없는 장면에 깔 카드. 이것도 켄번스로 움직인다 — 정지하면 딱 그 PPT 느낌이 난다.
 const cardBg = (i) => `<!doctype html><meta charset="utf-8"><style>
@@ -347,6 +433,18 @@ const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.setContent(furniture());
 await page.screenshot({ path: `${WORK}/fx.png`, omitBackground: true });
 for (let i = 0; i < shots.length; i++) {
+  if (shots[i].kind === 'quote') {
+    await page.setContent(quoteCardHtml(shots[i].quote, { width: W, height: H, bandTop: BAND.top }));
+    await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 94 });
+    shots[i] = { ...shots[i], kind: 'image', file: `${WORK}/bg${i}.jpg`, isQuote: true };
+    continue;
+  }
+  if (shots[i].kind === 'signoff') {
+    await page.setContent(signoffBg());
+    await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 94 });
+    shots[i] = { ...shots[i], kind: 'image', file: `${WORK}/bg${i}.jpg`, isQuote: true };  // 켄번스 제외
+    continue;
+  }
   if (shots[i].kind !== 'card') continue;
   await page.setContent(cardBg(i));
   await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 92 });
@@ -359,17 +457,19 @@ const ff = (args, label) => {
   const r = spawnSync(ffmpegPath, args, { encoding: 'utf8', maxBuffer: 8 << 20 });
   if (r.status !== 0) { console.error(`❌ ffmpeg ${label}:\n${String(r.stderr).slice(-900)}`); process.exit(1); }
 };
-for (let i = 0; i < shots.length; i++) {
-  const sh = shots[i];
+/** 컷 하나를 렌더한다. bg 가 없으면(=카드) 그라디언트를 배경으로 쓴다. */
+const renderShot = (i, sh) => {
   // 마지막 컷을 뺀 모든 컷은 XFADE 만큼 길게 만든다. 겹치는 만큼 되돌려받아
   // 최종 길이가 정확히 sum(dur) 이 된다 — 그래야 위에서 계산한 자막 오프셋이 맞는다.
   const len = sh.dur + (i < shots.length - 1 ? XFADE : 0);
   // 켄번스 방향을 컷마다 바꾼다(줌인/줌아웃). 전부 같은 방향이면 그것대로 기계처럼 보인다.
-  const z = sh.zin ? `min(1+0.0011*on,1.13)` : `max(1.13-0.0011*on,1.0)`;
+  // 인용 카드는 켄번스를 걸지 않는다 — 글자가 확대되며 흔들리면 읽기 힘들다.
+  const z = sh.isQuote ? '1' : (sh.zin ? `min(1+0.0011*on,1.13)` : `max(1.13-0.0011*on,1.0)`);
   const bgChain = sh.kind === 'video'
-    // 영상: 짧으면 루프. 커버 스케일 후 중앙 크롭.
     ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},setpts=PTS-STARTPTS[bg]`
-    : `[0:v]scale=2560:1440:force_original_aspect_ratio=increase,crop=2560:1440,`
+    // 투명 PNG 가 섞이면 검게 나온다 — 어두운 배경을 깔고 그 위에 올린다(실측: 첫 5초 검은 화면).
+    : `[0:v]format=rgba,scale=2560:1440:force_original_aspect_ratio=increase,crop=2560:1440[im];`
+      + `color=c=0x0b1120:s=2560x1440[pad];[pad][im]overlay=0:0:format=auto,`
       + `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS}[bg]`;
   const inputs = sh.kind === 'video'
     ? ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', sh.file]
@@ -377,7 +477,6 @@ for (let i = 0; i < shots.length; i++) {
   // fx 입력에도 -loop/-t 를 준다. **없으면 오버레이가 통째로 사라진다** —
   //   단일 프레임 PNG 은 t=0 프레임 하나뿐이라 fade(alpha) 가 그걸 alpha=0 으로 만들고,
   //   overlay 의 eof_action=repeat 이 그 투명 프레임을 컷 내내 반복한다.
-  //   실측(2026-08-27): 같은 명령에서 fade 있음 2.5KB(백지) / -loop 추가 38.9KB(정상).
   ff([
     '-y', '-hide_banner', '-loglevel', 'error', ...inputs,
     '-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', `${WORK}/fx.png`,
@@ -387,34 +486,71 @@ for (let i = 0; i < shots.length; i++) {
     '-map', '[v]', '-an', '-r', String(FPS), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19',
     '-pix_fmt', 'yuv420p', `${WORK}/v${i}.mp4`,
   ], `shot ${i}`);
-}
+};
 
-// [가드] 그래픽이 실제로 얹혔는가 — 왼쪽 액센트 바(x=0..10)는 항상 빨강이어야 한다.
-//   fade(alpha) 버그는 ffmpeg 이 exit 0 으로 끝나면서 화면만 조용히 비웠다. exit code 로는 못 잡는다.
-//   crop 은 **짝수 크기**로. 1x1 은 yuv420p 크로마 서브샘플링에서 0바이트를 낸다(실측: 이 가드 자체가
-//   처음엔 오탐으로 정상 영상을 막았다).
+/**
+ * 이 컷의 배경에 실제 내용이 있는가.
+ * 밝기가 아니라 **분산**으로 본다 — 밤 장면은 어두워도 정상이고, 빈 화면은 분산이 0 이다.
+ * 실측(2026-08-27): 투명 PNG(서명 이미지)가 배경으로 깔려 첫 5초가 휘도 0 으로 나갔다.
+ *   기존 가드는 액센트 바만 봐서 통과시켰다 — 오버레이는 정상이었기 때문이다.
+ */
+const shotHasContent = (i) => {
+  const [cw, chh] = [32, 18];
+  const r = spawnSync(ffmpegPath, ['-hide_banner', '-loglevel', 'error',
+    '-ss', (shots[i].dur * 0.5).toFixed(2), '-i', `${WORK}/v${i}.mp4`, '-frames:v', '1',
+    '-vf', `crop=${W}:${BAND.top - 120}:0:60,scale=${cw}:${chh}`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
+    { maxBuffer: 1 << 20 });
+  const px = r.stdout;
+  if (!px || px.length < cw * chh) return true;      // 못 재면 통과시킨다 — 검사 실패로 영상을 버리지 않는다
+  const mean = px.reduce((a, b) => a + b, 0) / px.length;
+  const sd = Math.sqrt(px.reduce((a, b) => a + (b - mean) ** 2, 0) / px.length);
+  return sd >= 4;                                    // 단색 화면은 0 에 수렴한다
+};
+
+let blanks = 0;
+for (let i = 0; i < shots.length; i++) {
+  renderShot(i, shots[i]);
+  if (shots[i].isQuote || shotHasContent(i)) continue;
+  // 빈 화면이면 카드로 갈아끼운다. 검은 컷이 발행되는 것보다 낫다.
+  blanks++;
+  const card = `${WORK}/card${i}.jpg`;
+  if (!existsSync(card)) {
+    const b2 = await chromium.launch();
+    const p2 = await b2.newPage({ viewport: { width: W, height: H } });
+    await p2.setContent(cardBg(i));
+    await p2.screenshot({ path: card, type: 'jpeg', quality: 92 });
+    await b2.close();
+  }
+  console.log(`  [빈컷] ${i + 1} 배경이 비었다(${shots[i].file?.split('/').pop() ?? '?'}) → 카드로 대체`);
+  shots[i] = { ...shots[i], kind: 'image', file: card };
+  renderShot(i, shots[i]);
+}
+if (blanks) console.log(`  [검사] 빈 컷 ${blanks}개 대체`);
+
+// [가드] 화면 위 그래픽이 실제로 얹혔는가 — 하단 자막 밴드는 항상 있고 전폭이라 기준으로 쓴다.
+//   (종전에는 좌측 빨간 액센트 바를 봤는데, 그 바를 화면에서 뺐다. 가드 기준을 같이 옮긴다.)
+//   fade(alpha) 버그는 ffmpeg 이 exit 0 으로 끝나면서 화면만 조용히 비웠다 — exit code 로는 못 잡는다.
+//   crop 은 **짝수 크기**로. 1x1 은 yuv420p 크로마 서브샘플링에서 0바이트를 낸다.
 {
-  const [cw, chh] = [6, 100];
+  const [cw, chh] = [40, 20];
   const probe = spawnSync(ffmpegPath, ['-hide_banner', '-loglevel', 'error',
     '-ss', (shots[0].dur * 0.6).toFixed(2), '-i', `${WORK}/v0.mp4`, '-frames:v', '1',
-    '-vf', `crop=${cw}:${chh}:0:490`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
+    '-vf', `crop=${cw}:${chh}:20:${BAND.top + 30}`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
     { maxBuffer: 4 << 20 });
   const px = probe.stdout;
-  const need = cw * chh * 3;
+  const need = cw * chh;
   if (!px || px.length < need) {
     console.error(`❌ 오버레이 검사 불가 — 프로브가 ${px?.length ?? 0}/${need} 바이트만 반환`);
     process.exit(1);
   }
-  let r = 0, g = 0, b = 0;
-  for (let k = 0; k < need; k += 3) { r += px[k]; g += px[k + 1]; b += px[k + 2]; }
-  const n = need / 3;
-  [r, g, b] = [r / n, g / n, b / n];
-  if (r < 110 || r < b + 40) {
-    console.error(`❌ 오버레이 미적용 — 액센트 바 평균 rgb(${r | 0},${g | 0},${b | 0}). `
+  const mean = px.reduce((a, b) => a + b, 0) / need;
+  // 밴드는 밝은 반투명 띠라 어떤 배경 위에서도 밝다. 얹히지 않았으면 배경 밝기가 그대로 나온다.
+  if (mean < 140) {
+    console.error(`❌ 오버레이 미적용 — 자막 밴드 자리 평균 휘도 ${mean.toFixed(0)} (기대 140 이상). `
       + 'fx 입력의 -loop/-t 또는 overlay 체인을 확인하라');
     process.exit(1);
   }
-  console.log(`  [가드] 오버레이 확인 · 액센트 바 rgb(${r | 0},${g | 0},${b | 0})`);
+  console.log(`  [가드] 오버레이 확인 · 자막 밴드 휘도 ${mean.toFixed(0)}`);
 }
 console.log(`  [합성] ${shots.length}컷 렌더 (장면 ${scenes.length}개)`);
 
@@ -455,3 +591,4 @@ console.log(`   실측 낭독속도 ${(scriptChars / (totalSec - scenes.length *
   + ` (설정값 ${CHARS_PER_SEC[isKo ? 'ko' : 'en']})`);
 
 if (credits.length) console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${WORK}/credits.txt (영상 설명란에 넣을 것)`);
+else console.log('   표기 의무 0건 — 전부 CC0/PD');
