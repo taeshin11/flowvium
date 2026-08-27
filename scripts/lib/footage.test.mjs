@@ -138,6 +138,50 @@ const M = await import('./footage.mjs');
   else bad('사진을 골랐다');
 }
 
+
+// ── 3b. 한 장면에 여러 컷 ────────────────────────────────────────────────────
+// "PPT 같다" 의 정체는 정지 화면이 아니라 **한 화면이 12초 동안 안 바뀌는 것**이다.
+// 실제 뉴스 패키지는 한 나레이션 구간에 서너 컷이 지나간다. 그래서 장면당 후보를 여러 개 뽑는다.
+// 같은 그림을 두 번 쓰면 컷이 아니라 깜빡임이므로 **중복은 배제**한다.
+{
+  const c = [
+    { id: 'a', rank: 0, width: 2000, height: 1200, license: 'cc0', url: 'u1' },
+    { id: 'b', rank: 1, width: 1800, height: 1000, license: 'by',  url: 'u2' },
+    { id: 'nc', rank: 2, width: 4000, height: 2000, license: 'by-nc', url: 'u3' },
+    { id: 'c', rank: 3, width: 1600, height: 900,  license: 'cc0', url: 'u4' },
+    { id: 'dup', rank: 4, width: 1600, height: 900, license: 'cc0', url: 'u1' },
+  ];
+  const many = M.pickFootageMany(c, 3, {});
+  if (many.length === 3) ok(`3컷 뽑는다: ${many.map(x => x.id).join(',')}`);
+  else bad(`개수 ${many.length}: ${JSON.stringify(many.map(x => x.id))}`);
+  if (many.map(x => x.id).join(',') === 'a,b,c') ok('적합도 순서를 유지하고 NC 는 건너뛴다');
+  else bad(`순서/필터 이상: ${many.map(x => x.id).join(',')}`);
+  if (new Set(many.map(x => x.url)).size === many.length) ok('같은 그림을 두 번 쓰지 않는다');
+  else bad('중복 URL 포함');
+  if (M.pickFootageMany(c, 99, {}).length === 3) ok('있는 만큼만 준다');
+  else bad('없는 걸 만들어낸다');
+  if (M.pickFootageMany([], 3, {}).length === 0 && M.pickFootageMany(null, 3, {}).length === 0) ok('빈 입력 안전');
+  else bad('빈 입력 이상');
+  // 단수 API 는 복수 API 의 첫 번째와 같아야 한다 — 두 경로가 갈리면 언젠가 어긋난다.
+  if (M.pickFootage(c, {})?.id === M.pickFootageMany(c, 1, {})[0]?.id) ok('단수/복수 선택이 일치');
+  else bad('단수와 복수가 다른 걸 고른다');
+}
+
+// ── 3c. 컷 나누기 — 너무 짧은 컷은 깜빡임이다 ────────────────────────────────
+{
+  if (M.splitShots(12, 3, 3.0).length === 3) ok('12초를 3컷으로');
+  else bad(`12초/3컷 실패: ${JSON.stringify(M.splitShots(12, 3, 3.0))}`);
+  const short = M.splitShots(7, 3, 3.0);
+  if (short.length === 2 && short.every(d => d >= 3.0)) ok(`7초는 2컷까지만 (최소 3초 보장): ${JSON.stringify(short)}`);
+  else bad(`짧은 장면 분할 이상: ${JSON.stringify(short)}`);
+  const one = M.splitShots(4, 3, 3.0);
+  if (one.length === 1 && Math.abs(one[0] - 4) < 1e-9) ok('4초는 1컷');
+  else bad(`4초 분할 이상: ${JSON.stringify(one)}`);
+  const sum = M.splitShots(13.7, 4, 3.0);
+  if (Math.abs(sum.reduce((a, b) => a + b, 0) - 13.7) < 1e-6) ok('합이 원래 길이와 정확히 같다 (음성과 어긋나면 안 된다)');
+  else bad(`합 불일치: ${sum.reduce((a, b) => a + b, 0)}`);
+}
+
 // ── 4. 크레딧 — CC BY / BY-SA 는 표기 의무가 있다 ─────────────────────────────
 {
   const c = M.creditLine({ title: 'Capitol at Dusk', author: 'Jane Doe', license: 'CC BY-SA 3.0', source: 'Wikimedia Commons', pageUrl: 'https://commons.example/x' });

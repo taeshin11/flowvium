@@ -108,6 +108,43 @@ export function pickFootage(candidates, opts = {}) {
   return usable[0];
 }
 
+/**
+ * 한 장면에 쓸 후보 여러 개. 적합도 순서를 유지하고 **같은 그림을 두 번 쓰지 않는다.**
+ *
+ * "PPT 같다" 의 정체는 정지 화면 자체가 아니라 **한 화면이 12초 동안 안 바뀌는 것**이다.
+ * 실제 뉴스 패키지는 한 나레이션 구간에 서너 컷이 지나간다.
+ * 단수 pickFootage 와 같은 정렬을 쓴다 — 두 경로가 갈리면 언젠가 어긋난다.
+ */
+export function pickFootageMany(candidates, n, opts = {}) {
+  const out = [];
+  const used = new Set();
+  let pool = (candidates ?? []).slice();
+  while (out.length < n) {
+    const pick = pickFootage(pool.filter((c) => !used.has(c.url)), opts);
+    if (!pick) break;
+    used.add(pick.url);
+    out.push(pick);
+    pool = pool.filter((c) => c !== pick);
+  }
+  return out;
+}
+
+/**
+ * 장면 길이를 컷으로 나눈다.
+ * 너무 짧은 컷은 컷이 아니라 깜빡임이라 minShot 아래로는 쪼개지 않는다.
+ * **합은 반드시 원래 길이와 같아야 한다** — 어긋나면 화면이 음성보다 먼저 끝나거나 남는다.
+ */
+export function splitShots(duration, maxShots, minShot = 3.0) {
+  const d = Number(duration) || 0;
+  if (d <= 0) return [];
+  const n = Math.max(1, Math.min(Math.floor(maxShots), Math.floor(d / minShot) || 1));
+  const each = d / n;
+  const shots = Array.from({ length: n }, () => each);
+  // 부동소수 누적 오차를 마지막 컷이 흡수한다.
+  shots[n - 1] = d - each * (n - 1);
+  return shots;
+}
+
 /** CC BY / BY-SA 는 표기 의무가 있다. CC0·PD 는 없다 → null. */
 export function creditLine(item) {
   if (!item || !licenseUsable(item.license)) return null;

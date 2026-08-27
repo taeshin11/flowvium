@@ -32,7 +32,7 @@ import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { cuesFromAlignment, toAss, fillGaps } from '../lib/subtitle.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import {
-  searchTerms, queryLadder, pickFootage, creditLine, matchLocal,
+  searchTerms, queryLadder, pickFootage, pickFootageMany, splitShots, creditLine, matchLocal,
   searchOpenverse, searchCommons, searchPexelsVideo,
 } from '../lib/footage.mjs';
 
@@ -98,7 +98,10 @@ ${brief}
 - 아나운서가 읽는 문장. 문어체 금지, 구어체 뉴스 톤.
 - 숫자는 한글로 풀어 쓴다(TTS 오독 방지). 예: 17 billion → 백칠십억
 - visual: 화면에 깔 그림 검색어. **영어 2~3단어 한 덩어리**만. 쉼표로 여러 개 나열 금지.
-  사람 이름 말고 장소·사물·상황(예: "courtroom bench", "capitol dome night").
+  전 세계 사진 아카이브에서 검색되므로 **모호하면 엉뚱한 나라 사진이 걸린다.**
+  가능하면 한국의 구체적 장소·기관을 지목하라.
+  좋음: "Seoul National Assembly", "Gwanghwamun square", "Seoul subway platform"
+  나쁨: "handshake stage"(인도네시아 아이돌 행사가 걸렸다), "news desk", "open book"
 - JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(${loChars}~${hiChars}자)","visual":"english search words"}]
 - 장면 ${SCENES}개. 마지막 장면은 채널 마무리.${nudge ?? ''}`
   : `You write scripts for a US news-issue channel. Use ONLY the headlines below. Target ${TARGET_SEC} seconds.
@@ -112,7 +115,10 @@ Rules:
 - Spell out figures for text-to-speech (e.g. "seventeen billion dollars", not "$17B").
 - "visual": ONE English phrase of 2-3 words naming a PLACE, OBJECT or SCENE to show on screen.
   Not a person's name, and do NOT list several comma-separated options — one phrase only.
-  Good: "courtroom bench", "capitol dome night", "concert stage lights".
+  It is searched against a worldwide photo archive, so make it **unambiguous and American**:
+  a generic phrase pulls the wrong country. Name a US landmark, institution or setting when you can.
+  Good: "US Capitol dome", "federal courtroom bench", "Nashville Ryman Auditorium".
+  Bad: "handshake stage" (matched an Indonesian idol event), "news desk", "open book".
 - Output ONLY a JSON array: [{"title":"on-screen title (<=18 chars)","say":"line to read (${loChars}-${hiChars} chars)","visual":"english search words"}]
 - Exactly ${SCENES} scenes. Last scene closes the channel.${nudge ?? ''}`;
 
@@ -212,42 +218,65 @@ async function download(url, dest) {
 
 const localFiles = existsSync(BROLL) ? readdirSync(BROLL) : [];
 const credits = [];
+// 한 화면이 12초 동안 안 바뀌면 그게 "PPT" 다. 장면당 여러 컷을 모아 나눈다.
+const MAX_SHOTS = Number(process.env.VIDEO_MAX_SHOTS ?? 3);
+const MIN_SHOT = 3.2;
+const shots = [];                    // 화면 트랙. 음성/자막은 장면 단위, 화면은 컷 단위로 간다.
+let shotSeq = 0;
+
 for (let i = 0; i < scenes.length; i++) {
   const terms = searchTerms(scenes[i]);
   scenes[i].terms = terms;
+  const want = splitShots(scenes[i].dur, MAX_SHOTS, MIN_SHOT);
+
+  // 1순위: 사람이 assets/broll 에 넣은 클립. 라이선스 판단은 넣은 사람이 한 것으로 본다.
   const local = matchLocal(localFiles, terms);
-  if (local) {
-    scenes[i].bg = { kind: 'video', file: resolve(BROLL, local), label: `local:${local}` };
-    console.log(`  [화면] ${i + 1} ${terms.join(' ')} → 로컬 ${local}`);
-    continue;
-  }
-  // 넓은 질의부터 좁은 질의까지 내려가며 찾는다. 3단어 AND 매칭은 쉽게 0건이 된다(실측).
-  let pick = null, usedQ = terms;
-  outer:
-  for (const q of queryLadder(terms)) {
-    let cands = [];
-    for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
-      try { cands = cands.concat(await fn(q, { limit: 8 })); } catch { /* 한 소스가 죽어도 나머지로 간다 */ }
-      const hit = pickFootage(cands, { minWidth: 1280 });
-      if (hit) { pick = hit; usedQ = q; break outer; }   // 동영상 소스가 먼저 맞으면 사진은 안 찾는다
+
+  // 넓은 질의부터 좁은 질의까지 내려가며 모은다. 3단어 AND 매칭은 쉽게 0건이 된다(실측).
+  let picks = [], usedQ = terms;
+  if (!local) {
+    for (const q of queryLadder(terms)) {
+      let cands = [];
+      for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
+        try { cands = cands.concat(await fn(q, { limit: 12 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
+        const got = pickFootageMany(cands, want.length, {});
+        if (got.length) { picks = got; usedQ = q; break; }
+      }
+      if (picks.length) break;
     }
   }
-  if (!pick) {
-    scenes[i].bg = null;
-    console.log(`  [화면] ${i + 1} "${terms.join(' ')}" → 없음(카드)`);
-    continue;
+
+  // 컷 수를 실제로 확보한 그림 수에 맞춘다. 그림이 하나뿐이면 쪼개지 않는다 —
+  //   같은 그림을 두 번 이어 붙이면 컷이 아니라 점프컷처럼 보인다.
+  const nShots = local ? 1 : Math.max(1, Math.min(want.length, picks.length || 1));
+  const durs = splitShots(scenes[i].dur, nShots, MIN_SHOT);
+
+  const labels = [];
+  for (let k = 0; k < durs.length; k++) {
+    if (local) {
+      shots.push({ kind: 'video', file: resolve(BROLL, local), dur: durs[k], zin: shotSeq % 2 === 0 });
+      labels.push(`local:${local}`);
+    } else if (picks[k]) {
+      const pick = picks[k];
+      const ext = pick.kind === 'video' ? 'mp4' : 'jpg';
+      const file = `${WORK}/bg${shotSeq}.${ext}`;
+      try {
+        await download(pick.url, file);
+        shots.push({ kind: pick.kind, file, dur: durs[k], zin: shotSeq % 2 === 0 });
+        const cr = creditLine(pick);
+        if (cr) credits.push(cr);
+        labels.push(`${pick.width}px ${pick.license}`);
+      } catch (e) {
+        shots.push({ kind: 'card', file: null, dur: durs[k], zin: shotSeq % 2 === 0 });
+        labels.push(`실패(${e.message.slice(0, 24)})→카드`);
+      }
+    } else {
+      shots.push({ kind: 'card', file: null, dur: durs[k], zin: shotSeq % 2 === 0 });
+      labels.push('카드');
+    }
+    shotSeq++;
   }
-  const ext = pick.kind === 'video' ? 'mp4' : 'jpg';
-  try {
-    await download(pick.url, `${WORK}/bg${i}.${ext}`);
-    scenes[i].bg = { kind: pick.kind, file: `${WORK}/bg${i}.${ext}`, label: `${pick.source} ${pick.width}px ${pick.license}` };
-    const cr = creditLine(pick);
-    if (cr) credits.push(cr);
-    console.log(`  [화면] ${i + 1} "${usedQ.join(' ')}" → ${scenes[i].bg.label}`);
-  } catch (e) {
-    scenes[i].bg = null;
-    console.log(`  [화면] ${i + 1} "${usedQ.join(' ')}" → 내려받기 실패(${e.message}) → 카드`);
-  }
+  console.log(`  [화면] ${i + 1} "${usedQ.join(' ')}" ${durs.length}컷 → ${labels.join(' / ')}`);
 }
 
 // ── 5. 자막 ─────────────────────────────────────────────────────────────────
@@ -316,12 +345,11 @@ const page = await browser.newPage({ viewport: { width: W, height: H } });
 // furniture 는 장면마다 달라지지 않는다(제목을 뺐으므로) — 한 장만 그려 전 장면이 공유한다.
 await page.setContent(furniture());
 await page.screenshot({ path: `${WORK}/fx.png`, omitBackground: true });
-for (let i = 0; i < scenes.length; i++) {
-  if (!scenes[i].bg) {
-    await page.setContent(cardBg(i));
-    await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 92 });
-    scenes[i].bg = { kind: 'image', file: `${WORK}/bg${i}.jpg`, label: 'card' };
-  }
+for (let i = 0; i < shots.length; i++) {
+  if (shots[i].kind !== 'card') continue;
+  await page.setContent(cardBg(i));
+  await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 92 });
+  shots[i] = { ...shots[i], kind: 'image', file: `${WORK}/bg${i}.jpg` };
 }
 await browser.close();
 
@@ -330,35 +358,34 @@ const ff = (args, label) => {
   const r = spawnSync(ffmpegPath, args, { encoding: 'utf8', maxBuffer: 8 << 20 });
   if (r.status !== 0) { console.error(`❌ ffmpeg ${label}:\n${String(r.stderr).slice(-900)}`); process.exit(1); }
 };
-for (let i = 0; i < scenes.length; i++) {
-  const s = scenes[i];
-  // 마지막 장면을 뺀 모든 장면은 XFADE 만큼 길게 만든다. 겹치는 만큼 되돌려받아
+for (let i = 0; i < shots.length; i++) {
+  const sh = shots[i];
+  // 마지막 컷을 뺀 모든 컷은 XFADE 만큼 길게 만든다. 겹치는 만큼 되돌려받아
   // 최종 길이가 정확히 sum(dur) 이 된다 — 그래야 위에서 계산한 자막 오프셋이 맞는다.
-  const len = s.dur + (i < scenes.length - 1 ? XFADE : 0);
-  // 켄번스 방향을 장면마다 바꾼다(줌인/줌아웃). 전부 같은 방향이면 그것대로 기계처럼 보인다.
-  const zin = i % 2 === 0;
-  const z = zin ? `min(1+0.0011*on,1.13)` : `max(1.13-0.0011*on,1.0)`;
-  const bgChain = s.bg.kind === 'video'
+  const len = sh.dur + (i < shots.length - 1 ? XFADE : 0);
+  // 켄번스 방향을 컷마다 바꾼다(줌인/줌아웃). 전부 같은 방향이면 그것대로 기계처럼 보인다.
+  const z = sh.zin ? `min(1+0.0011*on,1.13)` : `max(1.13-0.0011*on,1.0)`;
+  const bgChain = sh.kind === 'video'
     // 영상: 짧으면 루프. 커버 스케일 후 중앙 크롭.
     ? `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},setpts=PTS-STARTPTS[bg]`
     : `[0:v]scale=2560:1440:force_original_aspect_ratio=increase,crop=2560:1440,`
       + `zoompan=z='${z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=${FPS}[bg]`;
-  const inputs = s.bg.kind === 'video'
-    ? ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', s.bg.file]
-    : ['-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', s.bg.file];
+  const inputs = sh.kind === 'video'
+    ? ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', sh.file]
+    : ['-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', sh.file];
   // fx 입력에도 -loop/-t 를 준다. **없으면 오버레이가 통째로 사라진다** —
   //   단일 프레임 PNG 은 t=0 프레임 하나뿐이라 fade(alpha) 가 그걸 alpha=0 으로 만들고,
-  //   overlay 의 eof_action=repeat 이 그 투명 프레임을 장면 내내 반복한다.
+  //   overlay 의 eof_action=repeat 이 그 투명 프레임을 컷 내내 반복한다.
   //   실측(2026-08-27): 같은 명령에서 fade 있음 2.5KB(백지) / -loop 추가 38.9KB(정상).
   ff([
     '-y', '-hide_banner', '-loglevel', 'error', ...inputs,
     '-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', `${WORK}/fx.png`,
     '-filter_complex',
-    `${bgChain};[1:v]format=rgba,fade=t=in:st=0:d=0.5:alpha=1[fx];`
+    `${bgChain};[1:v]format=rgba[fx];`
     + `[bg][fx]overlay=0:0:format=auto,format=yuv420p,trim=duration=${len.toFixed(3)},setpts=PTS-STARTPTS[v]`,
     '-map', '[v]', '-an', '-r', String(FPS), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19',
     '-pix_fmt', 'yuv420p', `${WORK}/v${i}.mp4`,
-  ], `scene ${i}`);
+  ], `shot ${i}`);
 }
 
 // [가드] 그래픽이 실제로 얹혔는가 — 왼쪽 액센트 바(x=0..10)는 항상 빨강이어야 한다.
@@ -368,7 +395,7 @@ for (let i = 0; i < scenes.length; i++) {
 {
   const [cw, chh] = [6, 100];
   const probe = spawnSync(ffmpegPath, ['-hide_banner', '-loglevel', 'error',
-    '-ss', (scenes[0].dur * 0.6).toFixed(2), '-i', `${WORK}/v0.mp4`, '-frames:v', '1',
+    '-ss', (shots[0].dur * 0.6).toFixed(2), '-i', `${WORK}/v0.mp4`, '-frames:v', '1',
     '-vf', `crop=${cw}:${chh}:0:490`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
     { maxBuffer: 4 << 20 });
   const px = probe.stdout;
@@ -388,27 +415,27 @@ for (let i = 0; i < scenes.length; i++) {
   }
   console.log(`  [가드] 오버레이 확인 · 액센트 바 rgb(${r | 0},${g | 0},${b | 0})`);
 }
-console.log(`  [합성] 장면 ${scenes.length}개 렌더`);
+console.log(`  [합성] ${shots.length}컷 렌더 (장면 ${scenes.length}개)`);
 
 // ── 8. 최종: xfade 체인 + 음성 + 자막 굽기. 한 번만 인코딩한다 ───────────────
 writeFileSync(`${WORK}/a.txt`, scenes.map((s) => `file '${s.audio}'`).join('\n'));
 ff(['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/a.txt`,
     '-c', 'copy', `${WORK}/voice.mp3`], 'audio concat');
 
-const vin = scenes.flatMap((_, i) => ['-i', `${WORK}/v${i}.mp4`]);
+const vin = shots.flatMap((_, i) => ['-i', `${WORK}/v${i}.mp4`]);
 let chain = '', prev = '0:v', acc = 0;
-for (let i = 1; i < scenes.length; i++) {
-  acc += scenes[i - 1].dur;
-  const out = i === scenes.length - 1 ? 'vx' : `x${i}`;
+for (let i = 1; i < shots.length; i++) {
+  acc += shots[i - 1].dur;
+  const out = i === shots.length - 1 ? 'vx' : `x${i}`;
   chain += `[${prev}][${i}:v]xfade=transition=fade:duration=${XFADE}:offset=${acc.toFixed(3)}[${out}];`;
   prev = out;
 }
-if (scenes.length === 1) chain = '[0:v]null[vx];';
+if (shots.length === 1) chain = '[0:v]null[vx];';
 // ass 필터에 fontsdir 를 준다. fontconfig 기본 설정이 없다는 경고가 뜨는 빌드라
 //   맡겨두면 어떤 폰트로 떨어질지 보장이 안 된다(한글이면 두부가 된다).
 chain += `[vx]ass=${WORK}/subs.ass:fontsdir=/System/Library/Fonts[v]`;
 ff(['-y', '-hide_banner', '-loglevel', 'error', ...vin, '-i', `${WORK}/voice.mp3`,
-    '-filter_complex', chain, '-map', '[v]', '-map', `${scenes.length}:a`,
+    '-filter_complex', chain, '-map', '[v]', '-map', `${shots.length}:a`,
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', OUT], 'final');
 
@@ -422,9 +449,8 @@ const realSec = dur.length ? (+dur[0] * 3600 + +dur[1] * 60 + +dur[2]) : totalSe
 if (credits.length) writeFileSync(`${WORK}/credits.txt`, credits.join('\n'));
 console.log(`\n✅ ${OUT}`);
 console.log(`   ${realSec.toFixed(1)}초 (목표 ${TARGET_SEC}) · ${(statSync(OUT).size / 1048576).toFixed(1)}MB`
-  + ` · 장면 ${scenes.length} · 자막 ${cues.length}큐 · 소재: ${issues.map((c) => c.keyword).join(', ')}`);
+  + ` · ${shots.length}컷/${scenes.length}장면 · 자막 ${cues.length}큐 · 소재: ${issues.map((c) => c.keyword).join(', ')}`);
 console.log(`   실측 낭독속도 ${(scriptChars / (totalSec - scenes.length * 0.45)).toFixed(1)}자/초`
   + ` (설정값 ${CHARS_PER_SEC[isKo ? 'ko' : 'en']})`);
-const bgs = scenes.map((s) => s.bg.label);
-console.log(`   배경: ${bgs.join(' | ')}`);
+
 if (credits.length) console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${WORK}/credits.txt (영상 설명란에 넣을 것)`);
