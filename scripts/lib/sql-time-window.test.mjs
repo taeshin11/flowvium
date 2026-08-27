@@ -36,18 +36,25 @@ const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
   db.close();
 }
 // [2] 감싸지 않은 비교가 실제로 틀리는가 (버그 재현)
+//
+// ⚠ 2026-08-27: 이 검사가 **하루 중 시각에 따라 통과했다 실패했다** 했다. 'now' 를 기준으로
+//   30시간 전 행을 만들었는데, 버그는 두 문자열의 **날짜 부분이 같을 때만** 드러난다
+//   ('T'(0x54) > ' '(0x20) 비교는 그 앞 10글자가 같아야 도달한다).
+//   UTC 02:15 에 돌리면 now-30h 는 8/25, 창 경계는 8/26 이라 날짜에서 이미 갈려 버그가 안 보인다.
+//   시각 의존 테스트는 빨간불을 일상으로 만들어 진짜 회귀를 가린다 — 기준 시각을 고정한다.
 {
   const db = new Database(':memory:');
-  db.exec("CREATE TABLE t(ts TEXT)");
-  // '지금'보다 30시간 전 = 24h 창 밖. ISO 형식으로 저장.
-  const old = db.prepare("SELECT strftime('%Y-%m-%dT%H:%M:%S.000Z', 'now', '-30 hours') v").get().v;
-  db.prepare("INSERT INTO t VALUES (?)").run(old);
-  const naive = db.prepare("SELECT COUNT(*) c FROM t WHERE ts >= datetime('now','-1 day')").get().c;
-  const fixed = db.prepare("SELECT COUNT(*) c FROM t WHERE datetime(ts) >= datetime('now','-1 day')").get().c;
+  db.exec('CREATE TABLE t(ts TEXT)');
+  const REF = '2026-08-26 12:00:00';               // 고정 기준. 창 경계는 8/25 12:00.
+  const OLD = '2026-08-25T06:00:00.000Z';          // 기준보다 30시간 전 = 창 밖. 날짜는 경계와 같다.
+  db.prepare('INSERT INTO t VALUES (?)').run(OLD);
+  const naive = db.prepare("SELECT COUNT(*) c FROM t WHERE ts >= datetime(?, '-1 day')").get(REF).c;
+  const fixed = db.prepare("SELECT COUNT(*) c FROM t WHERE datetime(ts) >= datetime(?, '-1 day')").get(REF).c;
   naive === 1 ? ok('감싸지 않으면 30시간 전 기록이 24h 창에 샌다(버그 재현)') : bad(`버그 재현 실패: naive=${naive}`);
   fixed === 0 ? ok('datetime() 으로 감싸면 정확히 제외된다') : bad(`수정본이 틀리다: fixed=${fixed}`);
   db.close();
 }
+
 // [3] 저장소에 감싸지 않은 비교가 남아 있지 않은가
 {
   const files = [];

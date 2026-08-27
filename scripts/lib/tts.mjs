@@ -98,6 +98,62 @@ export function voiceForLocale(locale, env = process.env) {
   return pick('ELEVENLABS_VOICE_ID_EN') || pick('ELEVENLABS_VOICE_ID');
 }
 
+/**
+ * 글자 단위 타임스탬프까지 받는 합성. 자막을 **추정하지 않고** 붙이기 위해 쓴다.
+ *
+ * 왜 별도 함수인가: 엔드포인트가 다르다(/with-timestamps). 응답이 오디오 바이트가 아니라
+ *   JSON({audio_base64, alignment}) 이라 macProvider 와 인터페이스가 맞지 않는다.
+ *   맥 TTS 에는 대응물이 없어서 공급자 테이블에 넣지 않았다 — 넣으면 mac 에서 조용히 깨진다.
+ *
+ * alignment vs normalized_alignment: 전자는 **우리가 넘긴 원문**의 글자에 대응하고,
+ *   후자는 TTS 가 정규화한 발음 텍스트("$17B"→"seventeen billion")에 대응한다.
+ *   자막은 화면에 원문을 띄워야 하므로 alignment 를 쓴다.
+ *
+ * @returns {Promise<{path:string, alignment:object, durationSec:number}>}
+ */
+export async function synthesizeWithTimestamps(text, opts = {}) {
+  const { model = 'eleven_multilingual_v2', outPath } = opts;
+  if (!outPath) throw new Error('outPath 필요');
+  if (!text || !String(text).trim()) throw new Error('빈 대본');
+  const key = opts.apiKey ?? envValue('ELEVENLABS_API_KEY');
+  if (!key) throw new Error('ELEVENLABS_API_KEY 없음 — .env.local 에 추가하라');
+  const voiceId = opts.voice || (opts.locale ? voiceForLocale(opts.locale) : '') || envValue('ELEVENLABS_VOICE_ID');
+  if (!voiceId) throw new Error('voice 미지정');
+
+  const fmt = opts.outputFormat ?? '';
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps`
+    + (fmt ? `?output_format=${encodeURIComponent(fmt)}` : '');
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: String(text), model_id: model,
+      ...(opts.voiceSettings ? { voice_settings: opts.voiceSettings } : {}),
+    }),
+    signal: AbortSignal.timeout(120000),
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    throw new Error(`ElevenLabs HTTP ${r.status}: ${body.slice(0, 160)}`);
+  }
+  const d = await r.json();
+  const buf = Buffer.from(String(d?.audio_base64 ?? ''), 'base64');
+  // [무음 감지] synthesize() 와 같은 기준. 여기서 안 잡으면 소리 없는 장면이 그대로 합성된다.
+  if (buf.length < MIN_AUDIO_BYTES) {
+    throw new Error(`무음 의심 — ${buf.length} bytes (voice=${voiceId})`);
+  }
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, buf);
+
+  const alignment = d?.alignment ?? d?.normalized_alignment ?? null;
+  const ends = alignment?.character_end_times_seconds ?? [];
+  const durationSec = ends.length ? Number(ends[ends.length - 1]) : 0;
+  if (!alignment || !durationSec) {
+    throw new Error('alignment 없음 — 자막 타이밍을 만들 수 없다(모델/엔드포인트 확인)');
+  }
+  return { path: outPath, alignment, durationSec };
+}
+
 const PROVIDERS = { mac: macProvider, elevenlabs: elevenProvider };
 
 export function listProviders() { return Object.keys(PROVIDERS); }

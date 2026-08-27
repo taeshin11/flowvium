@@ -117,3 +117,13 @@ data/flowvium.db-shm
 # Yahoo 세션 쿠키 + crumb 캐시 (2026-08-22) — 자격증명이므로 저장소에 넣지 않는다
 logs/yahoo-crumb.json
 logs/.crumb-test*.json
+secrets/
+
+# 영상 산출물·중간 파일 (2026-08-27) — 편당 수십 MB 라 저장소에 넣지 않는다
+reports/video/
+# b-roll 원본 클립. 코드(README·매칭 규칙)는 추적하되 미디어는 제외한다
+assets/broll/*.mp4
+assets/broll/*.mov
+assets/broll/*.webm
+assets/broll/*.mkv
+assets/broll/*.m4v
