@@ -18,7 +18,8 @@
  *   막는 경우가 있다. 실제 Chrome 바이너리를 쓰면 통과 확률이 올라간다.
  */
 import { chromium } from 'playwright';
-import { mkdirSync } from 'fs';
+import Database from 'better-sqlite3';
+import { mkdirSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './project-root.mjs';
 
@@ -66,17 +67,37 @@ export async function enterApp(page) {
 /**
  * 로그인 상태인가.
  *
- * 오탐 두 번(2026-08-27):
- *   1차 — "Sign in 버튼이 없으면 로그인" 으로 봤다. Flow 랜딩엔 그 버튼이 아예 없어서
- *         로그인 안 된 상태를 완료로 오판했고, 눌러보니 accounts.google.com 으로 튕겼다.
- *   2차 — "textarea 가 있으면 앱 화면" 으로 봤다. 랜딩에 **숨겨진** textarea 가 있어서 또 통과했다.
- *         locator.count() 는 보이지 않는 요소도 센다.
- * 결론: **보이는** 프롬프트 입력창이 있어야 앱이다. 판정은 눈에 보이는 것으로 한다.
+ * DOM 으로 판정하려다 **세 번** 틀렸다(2026-08-27):
+ *   1차 "Sign in 버튼이 없으면 로그인" — Flow 랜딩엔 그 버튼이 아예 없다.
+ *   2차 "textarea 가 있으면 앱 화면"   — 랜딩에 숨겨진 textarea 가 있다.
+ *   3차 "보이는 입력창이 있으면 앱"     — 사용자가 실제로 로그인했는데도 랜딩에 머물러 못 잡았다.
+ * 랜딩 페이지는 로그인 여부와 무관하게 같은 모양이라 DOM 으로는 구분이 안 된다.
+ *
+ * 확실한 신호는 **프로필에 저장된 구글 세션 쿠키**다. 브라우저를 띄우지 않고도 읽을 수 있고,
+ * 화면 상태(어느 탭에 있는지, 랜딩인지 앱인지)와 무관하다.
  */
-export async function isSignedIn(page) {
-  const url = page.url();
-  if (/accounts\.google\.com/.test(url)) return false;
-  if (!/labs\.google/.test(url)) return false;
+export function sessionCookiesPresent() {
+  const db = resolve(PROFILE_DIR, 'Default/Cookies');
+  if (!existsSync(db)) return false;
+  try {
+    // Chrome 이 잡고 있을 수 있으니 읽기 전용으로 연다.
+    const conn = new Database(db, { readonly: true, fileMustExist: true });
+    const row = conn.prepare(
+      "SELECT COUNT(*) n FROM cookies WHERE host_key LIKE '%google%' AND name IN "
+      + "('SID','SSID','HSID','SAPISID','__Secure-1PSID','__Secure-3PSID')",
+    ).get();
+    conn.close();
+    return (row?.n ?? 0) >= 3;   // 구글은 이 쿠키들을 한 벌로 심는다. 한두 개는 잔재일 수 있다.
+  } catch { return false; }
+}
+
+/** 화면이 실제로 앱인가(프롬프트 입력창이 보이는가). 쿠키 판정과 역할이 다르다. */
+export async function appReady(page) {
   const n = await page.locator('textarea:visible, [contenteditable="true"]:visible').count().catch(() => 0);
-  return n > 0;
+  return n > 0 && /labs\.google/.test(page.url()) && !/accounts\.google\.com/.test(page.url());
+}
+
+/** 하위호환 별칭. 로그인 여부는 쿠키로, 앱 도달 여부는 appReady 로 본다. */
+export async function isSignedIn(page) {
+  return sessionCookiesPresent() || appReady(page);
 }

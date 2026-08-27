@@ -239,7 +239,8 @@ for (let i = 0; i < scenes.length; i++) {
       let cands = [];
       for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
         try { cands = cands.concat(await fn(q, { limit: 12 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
-        const got = pickFootageMany(cands, want.length, {});
+        // terms 를 넘겨야 관련성 검사가 걸린다 — 안 넘기면 매체 종류만 보고 통과시킨다.
+        const got = pickFootageMany(cands, want.length, { terms: q });
         if (got.length) { picks = got; usedQ = q; break; }
       }
       if (picks.length) break;

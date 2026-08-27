@@ -182,6 +182,67 @@ const M = await import('./footage.mjs');
   else bad(`합 불일치: ${sum.reduce((a, b) => a + b, 0)}`);
 }
 
+
+// ── 3d. 관련성·매체종류 걸러내기 (2026-08-27 실제 채택 목록에서 뽑은 사례) ────
+//
+// 라이선스와 해상도만 보면 "쓸 수 있는 그림" 은 되지만 "그 뉴스의 그림" 은 안 된다.
+// 실제로 이런 것들이 채택됐다:
+//   "mail truck"      → Die Post(핀란드) / Postiauto(스위스) / AFT227 at Liangxiangximen(중국 버스)
+//   "courtroom bench" → "Drawing of an overview of the courtroom…" (법정 스케치)
+//   "studio desk"     → "Studio 2 48-track desk" (녹음 콘솔)
+//
+// 두 가지 일반 규칙으로 거른다. 특정 입력을 겨냥한 분기가 아니라 모든 후보에 같이 적용된다.
+//   ① 제목이 질의어와 한 단어도 겹치지 않으면 카테고리 수준의 매칭이지 그 주제가 아니다.
+//   ② 스케치·회화·지도·도표는 **자료화면이 아니다.** 뉴스 화면에 넣으면 삽화로 보인다.
+{
+  const T = M.titleRelevant;
+  if (!T('Die Post.jpg', ['mail', 'truck'])) ok('제목에 질의어가 없으면 버린다 (Die Post ↔ mail truck)');
+  else bad('Die Post 를 통과시켰다');
+  if (!T('AFT227 at Liangxiangximen (20200914140857).jpg', ['mail', 'truck'])) ok('중국 버스 차단');
+  else bad('중국 버스 통과');
+  if (T('United States Capitol dome at night.jpg', ['capitol', 'dome', 'night'])) ok('겹치면 통과');
+  else bad('정상 후보를 버렸다');
+  // 부분일치가 아니라 단어로 본다 — "use" 는 "Museum" 안에 글자로는 들어 있다.
+  if (!T('Auckland Museum Collections', ['use'])) ok('우연한 부분일치는 무시(단어 경계로 본다)');
+  else bad('부분일치로 통과시켰다');
+  // 판단 근거가 없으면(질의어 없음) 거르지 않는다. 제목이 비면 겹칠 수가 없으니 버린다.
+  if (T('', ['capitol']) === false && T('anything', []) === true) ok('빈 입력 처리');
+  else bad('빈 입력 처리 이상');
+
+  const I = M.isIllustration;
+  const arts = ['Drawing of an overview of the courtroom.jpg', 'Sketch of the defense table.png',
+                'Sanborn Fire Insurance Map from Nashville.jpg', 'Portrait of a young girl (painting)',
+                'Coat of arms of Togo.svg', 'Diagram of the postal system'];
+  const photos = ['United States Capitol dome at night.jpg', 'US Secret Service outside the White House.jpg',
+                  'Ballot box 1897.jpg'];
+  const missed = arts.filter((t) => !I(t));
+  const wrong = photos.filter((t) => I(t));
+  if (missed.length === 0) ok(`삽화·지도·도면 ${arts.length}종 차단`);
+  else bad(`삽화를 통과시켰다: ${JSON.stringify(missed)}`);
+  if (wrong.length === 0) ok('사진은 통과');
+  else bad(`사진을 삽화로 오판: ${JSON.stringify(wrong)}`);
+}
+
+// ── 3e. pickFootage 가 위 두 규칙을 실제로 적용하는가 ───────────────────────
+{
+  const c = [
+    { id: '스케치', rank: 0, width: 8000, height: 5000, license: 'cc0', url: 'u1', title: 'Drawing of an overview of the courtroom' },
+    { id: '무관',   rank: 1, width: 4000, height: 2500, license: 'cc0', url: 'u2', title: 'Die Post' },
+    { id: '정답',   rank: 2, width: 1600, height: 1000, license: 'cc0', url: 'u3', title: 'Federal courtroom bench interior' },
+  ];
+  const p = M.pickFootage(c, { terms: ['courtroom', 'bench'] });
+  if (p?.id === '정답') ok('스케치와 무관 후보를 건너뛰고 정답을 고른다');
+  else bad(`고른 것: ${p?.id}`);
+  // terms 를 안 주면 관련성 검사는 건너뛰지만, **매체 종류 판정은 항상 적용된다** —
+  //   스케치는 질의어와 무관하게 자료화면이 아니다.
+  if (M.pickFootage(c, {})?.id === '무관') ok('terms 없어도 스케치는 거른다 (관련성 검사만 건너뜀)');
+  else bad(`terms 미지정 동작 이상: ${M.pickFootage(c, {})?.id}`);
+  // 전부 걸러지면 null 이 아니라 **차선책**을 준다 — 카드로 떨어지는 것보다 낫다.
+  const onlyBad = [{ id: 'x', rank: 0, width: 2000, height: 1200, license: 'cc0', url: 'u9', title: 'Die Post' }];
+  if (M.pickFootage(onlyBad, { terms: ['mail', 'truck'] })?.id === 'x') ok('전부 걸러지면 차선책으로 되돌린다');
+  else bad('전부 걸러 카드로 떨어뜨렸다');
+}
+
 // ── 4. 크레딧 — CC BY / BY-SA 는 표기 의무가 있다 ─────────────────────────────
 {
   const c = M.creditLine({ title: 'Capitol at Dusk', author: 'Jane Doe', license: 'CC BY-SA 3.0', source: 'Wikimedia Commons', pageUrl: 'https://commons.example/x' });

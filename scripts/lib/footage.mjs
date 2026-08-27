@@ -79,6 +79,34 @@ export function queryLadder(terms) {
 }
 
 /**
+ * 제목이 질의어와 겹치는가.
+ *
+ * 라이선스와 해상도만 보면 "쓸 수 있는 그림" 은 되지만 "그 뉴스의 그림" 은 안 된다.
+ * 실측(2026-08-27 채택 목록): "mail truck" 에 Die Post(핀란드) · Postiauto(스위스) ·
+ *   AFT227 at Liangxiangximen(중국 버스) 가 걸렸다. 검색엔진은 카테고리·설명으로 맞춘 것이고,
+ *   **제목에 질의어가 한 단어도 없으면** 그 주제를 찍은 사진이 아닐 확률이 높다.
+ *
+ * 부분일치가 아니라 단어 경계로 본다 — 짧은 단어("us")가 "Museum" 안에서 우연히 걸린다.
+ * 질의어가 없으면 거르지 않는다(판단 근거가 없는데 버리면 안 된다).
+ */
+export function titleRelevant(title, terms) {
+  const keys = (terms ?? []).map((t) => String(t).toLowerCase()).filter((t) => t.length >= 3);
+  if (keys.length === 0) return true;
+  const words = new Set(String(title ?? '').toLowerCase().split(/[^a-z0-9\u3131-\uD79D]+/).filter(Boolean));
+  return keys.some((k) => words.has(k) || [...words].some((w) => w.length >= 5 && k.length >= 5 && w.startsWith(k)));
+}
+
+/**
+ * 삽화·도면·지도인가. **자료화면이 아니다** — 뉴스 화면에 넣으면 그림으로 보인다.
+ * 실측: "courtroom bench" 에 "Drawing of an overview of the courtroom" 법정 스케치가 채택됐다.
+ * 특정 입력을 겨냥한 분기가 아니라 매체 종류 판정이라 모든 후보에 같이 적용한다.
+ */
+const ART_WORDS = /\b(drawing|sketch|painting|portrait|illustration|engraving|lithograph|etching|map|diagram|chart|blueprint|schematic|logo|icon|emblem|seal|coat of arms|poster|cartoon|comic|woodcut|manuscript)\b/i;
+export function isIllustration(title) {
+  return ART_WORDS.test(String(title ?? ''));
+}
+
+/**
  * 후보 중 하나를 고른다. **적합도가 먼저다.**
  *
  * 2026-08-27 실측으로 뒤집힌 설계: 처음엔 "가로·고해상도 우선" 으로 정렬했는데, 그러면
@@ -94,18 +122,22 @@ export function queryLadder(terms) {
  * 동영상은 사진을 이긴다 — 정지 그림으로는 뉴스 화면이 안 된다.
  */
 export function pickFootage(candidates, opts = {}) {
-  const { minWidth = 900 } = opts;
-  const usable = (candidates ?? []).filter(
+  const { minWidth = 900, terms = null } = opts;
+  const base = (candidates ?? []).filter(
     (c) => c && c.url && licenseUsable(c.license)
       && Number(c.width) >= minWidth && Number(c.width) > Number(c.height),
   );
-  if (usable.length === 0) return null;
+  if (base.length === 0) return null;
   const isVideo = (c) => (c.kind === 'video' ? 0 : 1);
   const rank = (c) => (Number.isFinite(c.rank) ? c.rank : 999);
-  usable.sort((a, b) => isVideo(a) - isVideo(b)
+  const order = (arr) => arr.slice().sort((a, b) => isVideo(a) - isVideo(b)
     || rank(a) - rank(b)
     || Number(b.width) - Number(a.width));
-  return usable[0];
+
+  // 관련성·매체종류로 좁혀 본다. 전부 걸러지면 **차선책으로 되돌린다** —
+  //   틀린 사진이라도 회색 카드보다는 화면이 된다. 조용히 카드로 떨어뜨리지 않는다.
+  const strict = base.filter((c) => !isIllustration(c.title) && (!terms || titleRelevant(c.title, terms)));
+  return order(strict.length ? strict : base)[0];
 }
 
 /**
