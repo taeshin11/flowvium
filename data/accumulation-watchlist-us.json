@@ -1,30 +1,12 @@
 {
-  "generatedAt": "2026-08-26T13:00:22.547Z",
+  "generatedAt": "2026-08-27T09:01:33.372Z",
   "universe": "US",
   "scanned": 289,
   "count": 10,
-  "strongCount": 1,
-  "watchCount": 9,
+  "strongCount": 0,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "GNK",
-      "name": "Genco Shipping & Trading Limite",
-      "tier": "strong",
-      "score": 37,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.6,
-      "runup5dPct": 4.9,
-      "medDollarVolUsd": 7747320,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "BHFAM",
       "name": "Brighthouse Financial, Inc. - D",
@@ -32,13 +14,30 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)",
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
+      "runup20dPct": 2.8,
+      "runup5dPct": 5.8,
+      "medDollarVolUsd": 380196,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GNK",
+      "name": "Genco Shipping & Trading Limite",
+      "tier": "watch",
+      "score": 31,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
       "runup20dPct": 2.4,
-      "runup5dPct": 4.9,
-      "medDollarVolUsd": 332160,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 7747320,
       "smartAccum": false,
       "official": null
     },
@@ -53,8 +52,8 @@
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 5.4,
-      "runup5dPct": 3.2,
+      "runup20dPct": 7.4,
+      "runup5dPct": 2.7,
       "medDollarVolUsd": 4841856,
       "smartAccum": false,
       "official": null
@@ -70,9 +69,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 3.2,
-      "runup5dPct": 2.9,
-      "medDollarVolUsd": 14313922,
+      "runup20dPct": 7.6,
+      "runup5dPct": -4.3,
+      "medDollarVolUsd": 14262388,
       "smartAccum": false,
       "official": null
     },
@@ -87,15 +86,15 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 0.3,
-      "runup5dPct": -0.5,
-      "medDollarVolUsd": 1765256,
+      "runup20dPct": 0.6,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 1764919,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "OTLY",
-      "name": "Oatly Group AB",
+      "ticker": "RGR",
+      "name": "Sturm, Ruger & Company, Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
@@ -104,60 +103,41 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 1.8,
-      "runup5dPct": 11.8,
-      "medDollarVolUsd": 983724,
+      "runup20dPct": 1.2,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 4001792,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "UAMY",
-      "name": "United States Antimony Corporat",
+      "ticker": "EHI",
+      "name": "Western Asset Global High Incom",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -0.2,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 40434100,
+      "runup20dPct": -0.3,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 558600,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "KRNY",
-      "name": "Kearny Financial",
+      "ticker": "LEG",
+      "name": "Leggett & Platt, Incorporated",
       "tier": "watch",
-      "score": 23,
+      "score": 19,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 1.5× 상승",
+        "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": 2.5,
-      "runup5dPct": 1.1,
-      "medDollarVolUsd": 4459740,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ZIP",
-      "name": "ZipRecruiter, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 1.9,
-      "runup5dPct": -12.5,
-      "medDollarVolUsd": 2590406,
+      "runup20dPct": -10.4,
+      "runup5dPct": -5,
+      "medDollarVolUsd": 21220092,
       "smartAccum": false,
       "official": null
     },
@@ -171,9 +151,25 @@
         "변동성 수축(coiling) — 돌파 압축",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 4.5,
-      "runup5dPct": 0.4,
-      "medDollarVolUsd": 5035888,
+      "runup20dPct": 5.2,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 5179350,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "FVRR",
+      "name": "Fiverr International Ltd.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 2.8,
+      "runup5dPct": 2,
+      "medDollarVolUsd": 6594514,
       "smartAccum": false,
       "official": null
     }
