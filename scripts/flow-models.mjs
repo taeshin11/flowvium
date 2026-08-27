@@ -26,31 +26,51 @@ else await page.locator('button:has-text("새 프로젝트"), button:has-text("N
   .click({ timeout: 8000 }).catch(() => {});
 await page.waitForTimeout(6000);
 
-// 설정 보기
-await page.locator('button[aria-label*="설정"], button:has-text("settings_2")').first()
-  .click({ timeout: 8000 }).catch((e) => console.log(`설정 열기 실패 ${e.message.slice(0, 50)}`));
+// 생성 기본값 패널은 상단 기어(설정 보기)가 아니라 **프롬프트 입력창의 슬라이더(tune) 아이콘**이 연다.
+//   기어는 "보기 모드"(그리드 크기 등)만 연다 — 실측으로 구분했다.
+const tune = page.locator('button:has-text("tune")').first();
+if (await tune.count().catch(() => 0)) {
+  await tune.click({ timeout: 8000 }).catch((e) => console.log(`tune 실패 ${e.message.slice(0, 50)}`));
+} else {
+  console.log('  ⚠ tune 아이콘 없음 — 프롬프트 상자를 먼저 눌러 본다');
+  await page.locator('[contenteditable=true]:visible, textarea:visible').last().click({ timeout: 6000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  await page.locator('button:has-text("tune")').first().click({ timeout: 8000 }).catch(() => {});
+}
 await page.waitForTimeout(2500);
-await page.screenshot({ path: `${SHOTS}/1-settings.png` }).catch(() => {});
+await page.screenshot({ path: `${SHOTS}/1-defaults.png` }).catch(() => {});
 
-// 모델 드롭다운. 이미지용(Nano Banana)과 동영상용(Omni Flash)이 둘 다 있으므로 **마지막 것**이 동영상이다.
-const drops = page.locator('button:has-text("arrow_drop_down")');
-const n = await drops.count().catch(() => 0);
-console.log(`  드롭다운 ${n}개`);
-for (let i = n - 1; i >= 0; i--) {
-  const label = (await drops.nth(i).innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
-  console.log(`\n>> 드롭다운 ${i}: "${label}"`);
-  await drops.nth(i).click({ timeout: 6000 }).catch((e) => console.log(`   실패 ${e.message.slice(0, 50)}`));
-  await page.waitForTimeout(2000);
-  await page.screenshot({ path: `${SHOTS}/2-drop-${i}.png` }).catch(() => {});
+// 모델 드롭다운은 이름으로 직접 잡는다. 이미지=Nano Banana, 동영상=Omni Flash(기본값).
+const known = ['Omni Flash', 'Veo', 'Nano Banana'];
+let opened = false;
+for (const name of known) {
+  const d = page.locator(`button:has-text("${name}")`).last();
+  if (!(await d.count().catch(() => 0))) continue;
+  const label = (await d.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+  console.log(`\n>> 드롭다운 열기: "${label}"`);
+  await d.click({ timeout: 8000 }).catch((e) => console.log(`   실패 ${e.message.slice(0, 50)}`));
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${SHOTS}/2-drop-${name.replace(/\W+/g, '_')}.png` }).catch(() => {});
   const opts = await page.evaluate(() => {
     const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2; };
-    return [...document.querySelectorAll('[role=option],[role=menuitem],li,[role=menuitemradio]')]
+    return [...document.querySelectorAll('[role=option],[role=menuitem],[role=menuitemradio],li')]
       .filter(vis).map((el) => (el.innerText ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 40);
   }).catch(() => []);
-  console.log('   선택지:', JSON.stringify(opts, null, 0));
+  console.log('   선택지:', JSON.stringify(opts));
+  opened = true;
   if (opts.some((o) => /veo/i.test(o))) { console.log('   ✅ Veo 발견'); break; }
   await page.keyboard.press('Escape').catch(() => {});
   await page.waitForTimeout(1200);
+}
+if (!opened) {
+  console.log('\n  ⚠ 모델 드롭다운을 못 찾음 — 패널 전체를 덤프한다');
+  const all = await page.evaluate(() => {
+    const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2; };
+    return [...document.querySelectorAll('button,[role=button]')].filter(vis)
+      .map((el) => `${(el.innerText ?? '').replace(/\s+/g, ' ').trim()}|${el.getAttribute('aria-label') ?? ''}`)
+      .filter((t) => t !== '|').slice(0, 80);
+  }).catch(() => []);
+  console.log(JSON.stringify(all, null, 0));
 }
 
 console.log('\n  창 유지 5분.');

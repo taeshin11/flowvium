@@ -43,6 +43,51 @@ export async function openFlow(opts = {}) {
 }
 
 /**
+ * 프로젝트 화면까지 확실히 들어간다.
+ *
+ * 실측으로 겪은 것들:
+ *   · 상단에 "일일 보너스" 배너가 뜨면 프로젝트 카드 클릭을 가로챈다 — 먼저 닫는다.
+ *   · 쿠키 동의("Agree")가 남아 있으면 그 아래 UI 를 못 만진다.
+ *   · 성공 판정은 **URL 에 /project/ 가 들어가는가** 다. 클릭했다 ≠ 들어갔다.
+ * @returns {Promise<boolean>}
+ */
+export async function openProject(page) {
+  await page.goto(FLOW_URL, { waitUntil: 'domcontentloaded', timeout: 90_000 }).catch(() => {});
+  await page.waitForTimeout(3500);
+  for (const t of ['Agree', '동의', 'Accept all']) {
+    const b = page.locator(`button:has-text("${t}")`).first();
+    if (await b.count().catch(() => 0)) { await b.click({ timeout: 4000 }).catch(() => {}); await page.waitForTimeout(1200); break; }
+  }
+  // 배너 닫기(있으면). 클릭 가로채기의 흔한 원인이다.
+  for (const sel of ['button[aria-label*="닫기"]', 'button[aria-label*="Dismiss"]', 'button[aria-label*="Close"]']) {
+    const b = page.locator(sel).first();
+    if (await b.count().catch(() => 0)) { await b.click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(800); }
+  }
+  const isIn = () => /\/project\//.test(page.url());
+  if (isIn()) return true;
+
+  // 기존 프로젝트를 재사용한다. 매번 새로 만들면 목록이 쓰레기가 된다.
+  const link = page.locator('a[href*="/project/"]').first();
+  if (await link.count().catch(() => 0)) {
+    const href = await link.getAttribute('href').catch(() => null);
+    // 클릭이 가로채이는 경우가 있어 주소로 직접 간다 — 더 확실하다.
+    if (href) await page.goto(new URL(href, page.url()).toString(), { waitUntil: 'domcontentloaded', timeout: 60_000 }).catch(() => {});
+    else await link.click({ timeout: 8000, force: true }).catch(() => {});
+    await page.waitForTimeout(6000);
+    if (isIn()) return true;
+  }
+  await page.locator('button:has-text("새 프로젝트"), button:has-text("New project")').first()
+    .click({ timeout: 8000, force: true }).catch(() => {});
+  await page.waitForTimeout(7000);
+  return isIn();
+}
+
+/** 지금 프로젝트 화면인가. 조작 중간중간 확인한다 — 나가버려도 URL 변수는 옛값을 들고 있다. */
+export function inProject(page) {
+  return /\/project\//.test(page.url());
+}
+
+/**
  * 랜딩 → 앱 진입. 로그인 안 돼 있으면 accounts.google.com 으로 튕긴다.
  * labs.google/fx/tools/flow 는 **로그인 여부와 무관하게 마케팅 랜딩을 보여준다** —
  *   그래서 "이 URL 에 있다" 는 로그인 신호가 아니다. 눌러 봐야 안다.
@@ -100,4 +145,227 @@ export async function appReady(page) {
 /** 하위호환 별칭. 로그인 여부는 쿠키로, 앱 도달 여부는 appReady 로 본다. */
 export async function isSignedIn(page) {
   return sessionCookiesPresent() || appReady(page);
+}
+
+// ── 생성 기본값(모델) ────────────────────────────────────────────────────────
+//
+// 패널은 상단 기어가 아니라 **프롬프트 입력창의 슬라이더(tune) 아이콘**이 연다.
+//   기어는 "보기 모드"(그리드 크기)만 연다 — 실측으로 구분했다.
+// 모델 목록 실측(2026-08-27):
+//   Omni Flash / Veo 3.1 - Lite / Veo 3.1 - Fast / Veo 3.1 - Quality / Veo 3.1 - Lite [Lower Priority]
+
+/** 0 크레딧 모델. 다른 항목은 25,000/월 크레딧을 태운다. */
+export const FREE_VIDEO_MODEL = 'Veo 3.1 - Lite [Lower Priority]';
+
+async function openDefaults(page) {
+  const tune = page.locator('button:has-text("tune")').first();
+  if (!(await tune.count().catch(() => 0))) {
+    await page.locator('[contenteditable=true]:visible, textarea:visible').last().click({ timeout: 6000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+  }
+  await page.locator('button:has-text("tune")').first().click({ timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(2200);
+  return page.locator('button:has-text("Omni Flash"), button:has-text("Veo 3.1")').last();
+}
+
+/**
+ * 설정 패널을 닫는다. **판정 기준은 패널 자체**다.
+ *
+ * 처음엔 "작성기가 보이는가" 로 판정했는데, 그 판정이 다시 패널 상태를 보게 되어 논리가 꼬였다
+ *   (작성기 판정 = 패널 닫힘 + 자리표시자 → 서로를 참조). 기준을 하나로 둔다.
+ *
+ * ⚠ 전역 "arrow_back" 을 누르면 안 된다 — 프로젝트 화면 좌상단의 "돌아가기" 가 걸려서
+ *   프로젝트 목록으로 나가버린다. 패널은 오른쪽에 있으므로 **오른쪽 절반의 닫기 버튼만** 누른다.
+ */
+async function closeDefaults(page, { tries = 5 } = {}) {
+  const w = await page.evaluate(() => window.innerWidth).catch(() => 1200);
+  for (let k = 0; k < tries; k++) {
+    if (!(await defaultsPanelOpen(page))) return true;
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(700);
+    if (!(await defaultsPanelOpen(page))) return true;
+    const closers = page.locator('button:has-text("close"), button[aria-label*="닫기"], button[aria-label*="Close"]');
+    const n = await closers.count().catch(() => 0);
+    for (let i = 0; i < n; i++) {
+      const box = await closers.nth(i).boundingBox().catch(() => null);
+      if (!box || box.x < w / 2) continue;          // 왼쪽 것은 프로젝트 나가기다
+      await closers.nth(i).click({ timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(900);
+      if (!(await defaultsPanelOpen(page))) return true;
+    }
+    // 마지막 수단: 화면 왼쪽 빈 곳을 눌러 패널 밖 클릭으로 닫는다.
+    await page.mouse.click(w * 0.25, 400).catch(() => {});
+    await page.waitForTimeout(900);
+  }
+  return !(await defaultsPanelOpen(page));
+}
+
+/** 생성 기본값(에이전트 설정) 패널이 열려 있는가. 이게 열려 있으면 작성기를 덮는다. */
+export async function defaultsPanelOpen(page) {
+  return (await page.getByText(/에이전트 설정|생성하기 전에 확인|Agent settings/i).first()
+    .count().catch(() => 0)) > 0;
+}
+
+/**
+ * 작성기를 지금 쓸 수 있는가.
+ *
+ * 오탐 정정(2026-08-27): 전송 버튼 유무만 보다가, 설정 패널이 열려 작성기를 덮고 있는데도
+ *   "보인다" 로 판정했다. 그 결과 패널을 안 닫고 진행해 입력이 통째로 실패했다.
+ *   → **패널이 닫혀 있을 것**을 조건에 넣는다. 덮여 있으면 못 쓰는 것이다.
+ */
+export async function composerVisible(page) {
+  if (await defaultsPanelOpen(page)) return false;
+  const t = page.getByText(/무엇을 만들고 싶으신가요|What do you want to create/i).first();
+  if (await t.count().catch(() => 0)) return true;
+  return (await page.locator('button:has-text("arrow_forward"), button[aria-label*="보내기"], button[aria-label*="Send"]')
+    .count().catch(() => 0)) > 0;
+}
+
+/**
+ * 작성기에 프롬프트를 넣는다.
+ *
+ * 요소를 좌표로 잡을 수 없다 — 실측(2026-08-27): 작성기의 `div[contenteditable=true]` 와
+ *   `textarea` 가 **둘 다 0×0** 이다(화면엔 보이는데 바운딩 박스가 없다).
+ *   그래서 사람이 하듯 **자리표시자 글자를 눌러 포커스를 주고** 키보드로 친다.
+ *
+ * 그리고 친 뒤에 **실제로 들어갔는지 읽어서 확인한다.** 빈 프롬프트로 제출하면
+ *   첨부만 있는 상태로 엉뚱한 결과가 나오거나 조용히 아무 일도 안 일어난다.
+ * @returns {Promise<boolean>}
+ */
+export async function typePrompt(page, text) {
+  // 시도 순서. 위에서부터 되는 게 나올 때까지 — 각 방식이 왜 필요한지는 실측 근거가 있다.
+  const attempts = [
+    // ① 요소에 **직접 포커스**. 작성기의 contenteditable 이 0×0 이라 클릭으로는 포커스가 안 간다.
+    //    focus() 는 크기와 무관하게 동작하고, 이후 실제 키 이벤트를 보내므로 React 가 정상 인식한다.
+    async () => page.evaluate(() => {
+      const el = document.querySelector('div[contenteditable="true"]')
+        ?? document.querySelector('textarea');
+      if (!el) return false;
+      el.focus();
+      return document.activeElement === el;
+    }).catch(() => false),
+    // ② 자리표시자 글자 클릭.
+    async () => {
+      const t = page.getByText(/무엇을 만들고 싶으신가요|What do you want to create/i).first();
+      if (!(await t.count().catch(() => 0))) return false;
+      await t.click({ timeout: 6000 }).catch(() => {});
+      return true;
+    },
+    // ③ 작성기 영역 좌표 클릭(최후).
+    async () => {
+      const size = await page.evaluate(() => ({ w: innerWidth, h: innerHeight })).catch(() => null);
+      if (!size) return false;
+      await page.mouse.click(size.w * 0.5, size.h * 0.86).catch(() => {});
+      return true;
+    },
+  ];
+
+  const read = () => page.evaluate(() => {
+    const el = document.querySelector('div[contenteditable="true"]') ?? document.querySelector('textarea');
+    return (el?.value ?? el?.innerText ?? el?.textContent ?? '').trim();
+  }).catch(() => '');
+
+  for (const attempt of attempts) {
+    if (!(await attempt())) continue;
+    await page.waitForTimeout(600);
+    await page.keyboard.type(text, { delay: 6 }).catch(() => {});
+    await page.waitForTimeout(900);
+    // 친 뒤에 **읽어서 확인한다.** 빈 프롬프트로 제출하면 첨부만 있는 상태로 엉뚱한 게 나온다.
+    const got = await read();
+    if (got.includes(text.slice(0, 20))) return true;
+  }
+  return false;
+}
+
+/**
+ * 업로드가 끝날 때까지 기다린다.
+ * 타일에 진행률(20% …)이 떠 있는 동안 프롬프트를 보내면 첨부 없이 생성될 수 있다.
+ */
+export async function waitUpload(page, { timeoutMs = 90_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    // 이전 실행에서 멈춘 타일이 남아 있을 수 있어 상한을 짧게 두고 치명적으로 다루지 않는다.
+    const busy = await page.evaluate(() => /\b\d{1,3}%/.test(document.body.innerText ?? '')).catch(() => false);
+    if (!busy) return true;
+    await page.waitForTimeout(2000);
+  }
+  return false;
+}
+
+/**
+ * 떠 있는 확인 모달을 닫는다.
+ *
+ * 이미지를 올리면 **권리 확인 모달**이 뜬다("업로드하는 이미지에 필요한 권리가 있는지 확인하세요").
+ * 이게 화면을 덮고 있으면 그 아래 UI 를 못 만진다.
+ *
+ * 실측으로 배운 것: "버튼을 눌렀다" 는 신호로 부족했다. 이름만 보고 아무 버튼이나 누르면
+ *   모달 밖의 동명 버튼을 눌러놓고 처리했다고 착각한다(2건 처리했다는데 모달은 그대로였다).
+ *   → 모달 **안의** 버튼만 누르고, **모달이 사라졌는지**로 성공을 판정한다.
+ *
+ * 소재 한정: 우리 입력은 CC0/PD 로 제한한다. CC BY-SA 이미지로 영상을 생성하면 파생물이라
+ *   동일조건변경허락이 따라붙는다 — 그 한정은 호출부가 지킨다.
+ */
+export async function dismissDialogs(page, { tries = 4 } = {}) {
+  const dialog = () => page.locator('[role=dialog], [role=alertdialog]').filter({ has: page.locator('button') }).first();
+  for (let k = 0; k < tries; k++) {
+    const d = dialog();
+    // 모달이 **없는 것도 성공**이다. 처음부터 안 떴는데 실패로 돌려주면 정상 경로가 막힌다
+    //   (실측: 업로드까지 다 됐는데 "모달이 닫히지 않았다" 로 중단됐다).
+    if (!(await d.count().catch(() => 0)) || !(await d.isVisible().catch(() => false))) return true;
+    let clicked = false;
+    for (const t of ['동의함', 'I agree', 'Agree', '확인', 'OK', 'Got it', 'Continue']) {
+      const b = d.locator(`button:has-text("${t}"), [role=button]:has-text("${t}")`).first();
+      if (await b.count().catch(() => 0)) { await b.click({ timeout: 4000 }).catch(() => {}); clicked = true; break; }
+    }
+    if (!clicked) {
+      // 이름을 못 찾으면 마지막 버튼이 보통 확인이다. 그래도 모달 안에서만 고른다.
+      const btns = d.locator('button, [role=button]');
+      const n = await btns.count().catch(() => 0);
+      if (n) await btns.nth(n - 1).click({ timeout: 4000 }).catch(() => {});
+    }
+    await page.waitForTimeout(1500);
+  }
+  const still = dialog();
+  return !((await still.count().catch(() => 0)) && (await still.isVisible().catch(() => false)));
+}
+
+/** 지금 선택된 동영상 모델 이름. 패널을 열어 읽고 다시 닫는다. */
+export async function readVideoModel(page) {
+  const drop = await openDefaults(page);
+  const t = (await drop.innerText().catch(() => '')).replace(/\s+/g, ' ').replace('arrow_drop_down', '').trim();
+  await closeDefaults(page);
+  return t;
+}
+
+/**
+ * 동영상 모델을 고른다.
+ *
+ * ⚠ "Veo 3.1 - Lite" 는 "Veo 3.1 - Lite [Lower Priority]" 의 **접두사**다.
+ *   부분일치(has-text)로 고르면 **유료 모델**이 잡힌다. 정확히 구분되는 조각으로만 찾는다.
+ *   매일 도는 자동화에서 이건 조용히 크레딧을 태우는 종류의 실수다.
+ *
+ * @returns {Promise<string>} 선택 후 실제로 표시되는 모델명(호출부가 검증한다)
+ */
+export async function setVideoModel(page, model = FREE_VIDEO_MODEL) {
+  const drop = await openDefaults(page);
+  if (!(await drop.count().catch(() => 0))) { await closeDefaults(page); return ''; }
+  let shown = (await drop.innerText().catch(() => '')).replace(/\s+/g, ' ').replace('arrow_drop_down', '').trim();
+  if (shown !== model) {
+    await drop.click({ timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(1800);
+    // 정확히 그 문자열인 항목만. 접두사 매칭 금지 —
+    //   "Veo 3.1 - Lite" 는 "Veo 3.1 - Lite [Lower Priority]" 의 접두사라 **유료 모델**이 잡힌다.
+    const opt = page.locator('[role=option],[role=menuitem],[role=menuitemradio],li')
+      .filter({ hasText: new RegExp(`^\\s*${model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }).first();
+    if (!(await opt.count().catch(() => 0))) { await closeDefaults(page); return ''; }
+    await opt.click({ timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    const save = page.locator('button:has-text("저장"), button:has-text("Save")').first();
+    if (await save.count().catch(() => 0)) { await save.click({ timeout: 6000 }).catch(() => {}); await page.waitForTimeout(2000); }
+    // "선택했다" 와 "선택됐다" 는 다르다 — 다시 열어 읽는다.
+    shown = await readVideoModel(page);
+  }
+  // 확인하느라 연 패널을 **반드시** 닫는다. 열린 채로 두면 작성기를 덮어 다음 단계가 통째로 막힌다.
+  if (!(await closeDefaults(page))) return `${shown} (패널 안 닫힘)`;
+  return shown;
 }
