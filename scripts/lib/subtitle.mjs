@@ -23,13 +23,48 @@ export function assTime(sec) {
 }
 
 /**
+ * 단어 경계로 줄바꿈. 방송 자막은 한 줄이 아니라 **두 줄**이다(레퍼런스: YTN 하단 밴드).
+ * 한 줄짜리 짧은 큐가 계속 깜빡이면 오히려 안 읽힌다 — 두 줄을 채워 체류 시간을 늘린다.
+ * 공백이 없는 한국어는 글자 수로 자른다(단어 경계가 없으니 그 방법밖에 없다).
+ */
+export function wrapLines(text, maxChars, maxLines = 2) {
+  const t = String(text ?? '').trim();
+  if (!t) return [];
+  const words = t.split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    if (w.length > maxChars) {                      // 공백 없는 긴 덩어리 — 글자로 쪼갠다
+      if (cur) { lines.push(cur); cur = ''; }
+      for (let k = 0; k < w.length; k += maxChars) lines.push(w.slice(k, k + maxChars));
+      cur = lines.pop() ?? '';
+      continue;
+    }
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length <= maxChars) { cur = next; }
+    else { if (cur) lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  // maxLines 를 넘치면 **버리지 않고** 마지막 줄에 이어 붙인다.
+  //   자막에서 말한 글자가 사라지는 건 줄이 조금 길어지는 것보다 나쁘다.
+  //   길어진 줄은 libass 가 알아서 접는다(WrapStyle 2).
+  if (lines.length > maxLines) {
+    const head = lines.slice(0, maxLines - 1);
+    head.push(lines.slice(maxLines - 1).join(' '));
+    return head;
+  }
+  return lines;
+}
+
+/**
  * alignment(글자 배열 + 시각 배열) → 자막 큐.
  * @param {{characters:string[],character_start_times_seconds:number[],character_end_times_seconds:number[]}} alignment
  * @param {{maxChars?:number,maxDur?:number,offset?:number}} opts
  * @returns {{start:number,end:number,text:string}[]}
  */
 export function cuesFromAlignment(alignment, opts = {}) {
-  const { maxChars = 24, maxDur = 3.0, offset = 0 } = opts;
+  const { maxChars = 24, maxDur = 3.0, offset = 0, maxLines = 1 } = opts;
+  const budget = maxChars * maxLines;   // 큐 하나가 담을 총 글자 수(줄 수 × 줄당 글자)
   const ch = alignment?.characters;
   const st = alignment?.character_start_times_seconds;
   const en = alignment?.character_end_times_seconds;
@@ -49,11 +84,11 @@ export function cuesFromAlignment(alignment, opts = {}) {
   //    이때 조각끼리는 붙여 읽어야 하므로 glue=true — 큐를 합칠 때 공백을 넣지 않는다.
   const parts = [];
   for (const t of tokens) {
-    if (t.text.length <= maxChars) { parts.push({ ...t, glue: false }); continue; }
-    for (let k = 0; k < t.text.length; k += maxChars) {
+    if (t.text.length <= budget) { parts.push({ ...t, glue: false }); continue; }
+    for (let k = 0; k < t.text.length; k += budget) {
       const from = t.from + k;
-      const to = Math.min(t.to, from + maxChars - 1);
-      parts.push({ text: t.text.slice(k, k + maxChars), from, to, glue: k > 0 });
+      const to = Math.min(t.to, from + budget - 1);
+      parts.push({ text: t.text.slice(k, k + budget), from, to, glue: k > 0 });
     }
   }
 
@@ -64,12 +99,13 @@ export function cuesFromAlignment(alignment, opts = {}) {
     const sep = cur && !p.glue ? ' ' : '';
     const wouldLen = cur ? cur.text.length + sep.length + p.text.length : p.text.length;
     const wouldDur = cur ? en[p.to] - st[cur.from] : en[p.to] - st[p.from];
-    if (cur && wouldLen <= maxChars && wouldDur <= maxDur) {
+    if (cur && wouldLen <= budget && wouldDur <= maxDur && !cur.sentenceEnd) {
       cur.text += sep + p.text;
       cur.to = p.to;
+      cur.sentenceEnd = SENT_END.test(p.text);
     } else {
       if (cur) cues.push(cur);
-      cur = { text: p.text, from: p.from, to: p.to };
+      cur = { text: p.text, from: p.from, to: p.to, sentenceEnd: SENT_END.test(p.text) };
     }
   }
   if (cur) cues.push(cur);
@@ -77,8 +113,34 @@ export function cuesFromAlignment(alignment, opts = {}) {
   return cues.map((c) => ({
     start: st[c.from] + offset,
     end: en[c.to] + offset,
-    text: c.text,
+    // 여러 줄이면 줄바꿈을 여기서 넣는다 — toAss 가 \n 을 ASS 의 \N 으로 바꾼다.
+    text: maxLines > 1 ? wrapLines(c.text, maxChars, maxLines).join('\n') : c.text,
   }));
+}
+
+/**
+ * 문장 끝 판정. 마침표·물음표·느낌표로 끝나는 토큰이면 거기서 큐를 닫는다.
+ *
+ * 왜(2026-08-27 실측): 글자 수만으로 묶었더니 "…she was / real. Lauren" 처럼 앞 문장의 끝과
+ *   다음 문장의 첫 단어가 한 화면에 섞였다. 읽는 사람이 거기서 두 번 멈춘다.
+ *   방송 자막은 글자 수가 아니라 문장·절 경계로 끊는다.
+ * 소수점·약어(U.S.)를 문장 끝으로 오인하지 않도록 **뒤에 아무것도 없는** 부호만 본다.
+ */
+const SENT_END = /[.!?。！？]["'\u2019\u201d)\]]?$/;
+
+/**
+ * 큐 사이의 짧은 빈틈을 앞 큐로 덮는다.
+ * 하단 밴드는 항상 떠 있는데 글자만 사라지면 고장난 화면으로 보인다(장면 경계 0.45초).
+ * 긴 침묵까지 덮으면 말과 자막이 어긋나므로 maxGap 상한을 둔다.
+ */
+export function fillGaps(cues, maxGap = 1.5) {
+  const list = Array.isArray(cues) ? cues : [];
+  return list.map((c, i) => {
+    const next = list[i + 1];
+    if (!next) return c;
+    const gap = next.start - c.end;
+    return gap > 0 && gap <= maxGap ? { ...c, end: next.start } : c;
+  });
 }
 
 /** libass 가 오해할 문자를 무해하게 만든다. `{}` 는 override 태그로 먹히고 개행은 \N 이다. */
@@ -92,9 +154,16 @@ function escapeAss(t) {
  */
 export function toAss(cues, opts = {}) {
   const {
-    font = 'Arial', fontSize = 62, playResX = 1920, playResY = 1080,
-    marginV = 96, outline = 4, shadow = 2,
+    style = 'outline', font = 'Arial', fontSize = 62, playResX = 1920, playResY = 1080,
+    marginV = 96, marginLR = 140,
   } = opts;
+  // 두 가지 방식을 코드가 구분한다:
+  //   outline — 사진 위에 바로 얹는다. 흰 글자 + 두꺼운 검은 외곽선이라야 어떤 배경에서도 읽힌다.
+  //   band    — 하단에 밝은 띠를 깔고 그 안에 어두운 글자를 넣는다(YTN 등 방송 자막).
+  //             띠가 있으면 외곽선은 오히려 지저분하므로 0 으로 둔다.
+  const S = style === 'band'
+    ? { primary: '&H00202020', outlineC: '&H00FFFFFF', back: '&H00FFFFFF', outline: 0, shadow: 0, bold: -1 }
+    : { primary: '&H00FFFFFF', outlineC: '&H00101010', back: '&H90000000', outline: 4, shadow: 2, bold: -1 };
   const head = `[Script Info]
 ScriptType: v4.00+
 WrapStyle: 2
@@ -104,7 +173,7 @@ PlayResY: ${playResY}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,${font},${fontSize},&H00FFFFFF,&H00FFFFFF,&H00101010,&H90000000,-1,0,0,0,100,100,0,0,1,${outline},${shadow},2,140,140,${marginV},1
+Style: Sub,${font},${fontSize},${S.primary},${S.primary},${S.outlineC},${S.back},${S.bold},0,0,0,100,100,0,0,1,${S.outline},${S.shadow},2,${marginLR},${marginLR},${marginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;

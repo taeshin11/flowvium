@@ -95,5 +95,97 @@ const align = (text, step = 0.1, from = 0) => ({
   } catch (e) { bad(`빈 입력에서 throw: ${e.message}`); }
 }
 
+
+// ── 8. 2줄 자막 밴드 — 방송 자막은 한 줄이 아니라 두 줄이다 ────────────────────
+// 레퍼런스(YTN "지금 이 뉴스"): 하단 밝은 띠 안에 **두 줄**이 들어가고, 줄바꿈은 단어 경계다.
+// 한 줄짜리 짧은 큐가 계속 깜빡이면 오히려 읽기 힘들다 — 두 줄을 채워 체류 시간을 늘린다.
+{
+  // 들어가는 경우: 줄당 글자 수를 지킨다.
+  const F = M.wrapLines('alpha bravo charlie', 12, 2);
+  if (F.length === 2 && F.every(x => x.length <= 12)) ok(`들어가면 줄당 12자 이내: ${JSON.stringify(F)}`);
+  else bad(`줄바꿈 이상: ${JSON.stringify(F)}`);
+
+  // 넘치는 경우: **글자를 버리지 않는다.** 자막에서 말한 단어가 사라지는 건
+  //   줄이 조금 길어지는 것보다 나쁘다(libass 가 접어준다).
+  const L = M.wrapLines('alpha bravo charlie delta', 12, 2);
+  if (L.length <= 2) ok(`줄 수는 ${L.length}줄 유지`);
+  else bad(`줄이 넘쳤다: ${JSON.stringify(L)}`);
+  if (L.join(' ') === 'alpha bravo charlie delta') ok('넘쳐도 글자를 잃지 않는다');
+  else bad(`손실: "${L.join(' ')}"`);
+
+  const K = M.wrapLines('돌리파튼이오늘세상을떠났습니다', 8, 2);
+  if (K.length === 2 && K.join('') === '돌리파튼이오늘세상을떠났습니다'.slice(0, K.join('').length))
+    ok(`공백 없는 한국어도 2줄로: ${JSON.stringify(K)}`);
+  else bad(`한국어 줄바꿈 이상: ${JSON.stringify(K)}`);
+
+  if (M.wrapLines('', 10, 2).length === 0) ok('빈 문자열 안전');
+  else bad('빈 문자열에서 줄 생성');
+}
+
+// ── 9. maxLines 를 주면 큐가 두 줄 분량까지 뭉친다 ───────────────────────────
+{
+  const align2 = (text) => ({
+    characters: [...text],
+    character_start_times_seconds: [...text].map((_, i) => i * 0.1),
+    character_end_times_seconds: [...text].map((_, i) => (i + 1) * 0.1),
+  });
+  const one = M.cuesFromAlignment(align2('aa bb cc dd ee ff gg hh'), { maxChars: 8, maxLines: 1, maxDur: 99 });
+  const two = M.cuesFromAlignment(align2('aa bb cc dd ee ff gg hh'), { maxChars: 8, maxLines: 2, maxDur: 99 });
+  if (two.length < one.length) ok(`2줄이면 큐가 줄어든다 ${one.length} → ${two.length}`);
+  else bad(`큐 수 변화 없음 ${one.length} vs ${two.length}`);
+  if (two.some(c => c.text.includes('\n'))) ok('큐 안에 줄바꿈이 들어간다');
+  else bad(`줄바꿈 없음: ${JSON.stringify(two.map(c => c.text))}`);
+  const flat = two.map(c => c.text.replace(/\n/g, ' ')).join(' ');
+  if (flat === 'aa bb cc dd ee ff gg hh') ok('2줄로 묶어도 원문 무손실');
+  else bad(`손실: "${flat}"`);
+}
+
+// ── 10. 밴드 스타일 — 밝은 띠 위 어두운 글자(외곽선 없음) ─────────────────────
+// 어두운 배경에 흰 글자 + 두꺼운 외곽선은 사진 위에 얹을 때의 방식이고,
+// 밴드가 있으면 외곽선이 오히려 지저분하다. 두 방식을 코드가 구분해야 한다.
+{
+  const ass = M.toAss([{ start: 0, end: 1, text: 'a\nb' }], { style: 'band' });
+  const style = ass.split('\n').find(l => l.startsWith('Style:'));
+  if (/,0,0,2,/.test(style.replace(/\s/g, '')) || /,0,0,/.test(style)) ok('밴드 스타일은 외곽선·그림자 0');
+  else bad(`외곽선이 남았다: ${style}`);
+  if (/&H00[0-9A-Fa-f]{2}([0-9A-Fa-f]{2})\1/.test(style) || style.includes('&H00202020')) ok('어두운 글자색');
+  else bad(`글자색 확인 필요: ${style}`);
+}
+
+
+// ── 11. 문장 경계에서 끊는다 ────────────────────────────────────────────────
+// 실측(2026-08-27 렌더): 자막에 "saying she could not believe she was / real. Lauren" 이 떴다.
+//   앞 문장의 끝과 다음 문장의 첫 단어가 한 큐에 섞이면 읽는 사람이 두 번 멈춘다.
+//   방송 자막은 글자 수가 아니라 **문장·절 경계**로 끊는다.
+{
+  const al = (t) => ({ characters: [...t],
+    character_start_times_seconds: [...t].map((_, i) => i * 0.06),
+    character_end_times_seconds: [...t].map((_, i) => (i + 1) * 0.06) });
+  const cues = M.cuesFromAlignment(al('She was real. Lauren said the news broke her heart today.'),
+    { maxChars: 30, maxLines: 2, maxDur: 99 });
+  const bad1 = cues.filter(c => /[.!?]\s*\S/.test(c.text.replace(/\n/g, ' ')));
+  if (bad1.length === 0) ok(`마침표 뒤에 다른 문장이 붙지 않는다: ${JSON.stringify(cues.map(c => c.text.replace(/\n/g, '|')))}`);
+  else bad(`문장이 섞였다: ${JSON.stringify(bad1.map(c => c.text))}`);
+  const flat = cues.map(c => c.text.replace(/\n/g, ' ')).join(' ');
+  if (flat === 'She was real. Lauren said the news broke her heart today.') ok('문장 경계로 끊어도 무손실');
+  else bad(`손실: "${flat}"`);
+}
+
+// ── 12. 큐 사이 빈틈 메우기 ─────────────────────────────────────────────────
+// 하단 밴드는 항상 떠 있는데 자막만 사라지면 "고장난 화면" 으로 보인다(실측: 장면 경계 0.45초).
+// 짧은 빈틈은 앞 큐를 늘려 덮는다. 긴 침묵까지 덮으면 말과 자막이 어긋나므로 상한을 둔다.
+{
+  const cues = [{ start: 0, end: 1, text: 'a' }, { start: 1.4, end: 2, text: 'b' }, { start: 8, end: 9, text: 'c' }];
+  const f = M.fillGaps(cues, 1.5);
+  if (Math.abs(f[0].end - 1.4) < 1e-6) ok('짧은 빈틈(0.4초)은 앞 큐를 늘려 덮는다');
+  else bad(`안 덮었다: ${f[0].end}`);
+  if (Math.abs(f[1].end - 2) < 1e-6) ok('긴 침묵(6초)은 그대로 둔다');
+  else bad(`긴 침묵을 덮었다: ${f[1].end}`);
+  if (f.length === 3 && f[2].end === 9) ok('마지막 큐는 손대지 않는다');
+  else bad('마지막 큐 변형');
+  if (M.fillGaps([], 1).length === 0 && M.fillGaps(null, 1).length === 0) ok('빈 입력 안전');
+  else bad('빈 입력 이상');
+}
+
 console.log(fail ? `\n❌ subtitle ${fail} 실패` : '\n✅ subtitle 전부 통과');
 process.exit(fail ? 1 : 0);

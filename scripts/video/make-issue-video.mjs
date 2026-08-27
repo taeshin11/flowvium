@@ -29,7 +29,7 @@ import { resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
 import { synthesizeWithTimestamps } from '../lib/tts.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
-import { cuesFromAlignment, toAss } from '../lib/subtitle.mjs';
+import { cuesFromAlignment, toAss, fillGaps } from '../lib/subtitle.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import {
   searchTerms, queryLadder, pickFootage, creditLine, matchLocal,
@@ -45,6 +45,9 @@ const OUT = resolve(ROOT, arg('--out', `reports/video/issue-${locale}.mp4`));
 const WORK = resolve(ROOT, `reports/video/.work-${locale}`);
 const BROLL = resolve(ROOT, 'assets/broll');
 const W = 1920, H = 1080, FPS = 30, XFADE = 0.45;
+// 자막 밴드 기하. furniture 의 CSS 와 ASS 의 marginV 가 **같은 값을 봐야** 글자가 띠 안에 앉는다.
+//   따로 두면 한쪽만 고쳤을 때 글자가 띠 밖으로 나가고, 그건 렌더 후에야 보인다.
+const BAND = { top: 858, height: 152, marginV: 84 };
 
 /**
  * 낭독 속도(초당 글자). 대본 길이를 목표 초에서 역산하는 데만 쓴다 — 최종 길이는
@@ -252,40 +255,53 @@ for (let i = 0; i < scenes.length; i++) {
 let off = 0;
 const cues = [];
 for (const s of scenes) {
+  // 2줄 밴드. 한 줄짜리 짧은 큐가 계속 깜빡이면 오히려 안 읽힌다 — 두 줄을 채워 체류를 늘린다.
   cues.push(...cuesFromAlignment(s.alignment, {
-    maxChars: isKo ? 20 : 34, maxDur: 3.2, offset: off,
+    maxChars: isKo ? 26 : 40, maxLines: 2, maxDur: 4.2, offset: off,
   }));
   off += s.dur;
 }
-writeFileSync(`${WORK}/subs.ass`, toAss(cues, {
-  font: isKo ? 'Apple SD Gothic Neo' : 'Arial', fontSize: isKo ? 60 : 58, marginV: 78,
+// 장면 경계의 0.45초 꼬리 때문에 밴드만 남고 글자가 사라지는 구간이 생긴다(실측 t=48초).
+// 짧은 빈틈은 앞 큐를 늘려 덮는다.
+const filled = fillGaps(cues, 1.6);
+writeFileSync(`${WORK}/subs.ass`, toAss(filled, {
+  style: 'band',                     // 하단 밝은 띠 안의 어두운 글자 — 띠는 아래 furniture 가 그린다
+  font: isKo ? 'Apple SD Gothic Neo' : 'Arial',
+  fontSize: isKo ? 56 : 54,
+  marginV: BAND.marginV, marginLR: 170,
 }));
 console.log(`  [자막] 큐 ${cues.length}개`);
 
 // ── 6. 화면 위 그래픽(로워서드·채널명·스크림) — 투명 PNG 로 한 장씩 ─────────
-const KICK = isKo ? '오늘의 이슈' : "TODAY'S ISSUE";
+// 레퍼런스(YTN "지금 이 뉴스"): 큰 제목 로워서드 없음. 상단에 작은 칩 두 개,
+//   하단에 밝은 자막 밴드(얇은 괘선 위아래) 하나. 화면을 가리는 글자를 최대한 줄인다.
+//   전면 스크림도 뺀다 — 칩과 밴드가 각자 배경을 갖고 있어서 필요 없다.
+const KICK = isKo ? '지금 이 이슈' : 'TODAY’S ISSUE';
+const SRC_NOTE = isKo ? '자료화면' : 'FILE FOOTAGE';   // 실제 사건 영상이 아니라는 표시. 뉴스의 관행이고 정직하다.
 const esc = (t) => String(t).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
-const furniture = (s, i) => `<!doctype html><meta charset="utf-8"><style>
+const furniture = () => `<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:${W}px;height:${H}px;background:transparent}
-body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#fff;position:relative;overflow:hidden}
-/* 스크림: 사진 위에 글자를 얹으려면 아래쪽을 눌러야 읽힌다. 자막 영역까지 덮는다. */
-.scrim{position:absolute;inset:0;background:
-  linear-gradient(180deg,rgba(4,8,18,.72) 0%,rgba(4,8,18,.10) 26%,rgba(4,8,18,.10) 44%,rgba(4,8,18,.88) 78%,rgba(4,8,18,.96) 100%)}
+body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;position:relative;overflow:hidden}
 .bar{position:absolute;left:0;top:0;width:10px;height:100%;background:linear-gradient(#ff4d5e,#c81e3a)}
-.top{position:absolute;top:56px;left:74px;display:flex;align-items:center;gap:22px}
-.chip{background:#e01e37;padding:11px 22px;border-radius:5px;font-size:26px;font-weight:900;letter-spacing:.16em}
-.brand{font-size:26px;font-weight:800;letter-spacing:.34em;color:#dbe6ff;text-shadow:0 2px 12px rgba(0,0,0,.9)}
-.lower{position:absolute;left:74px;right:300px;bottom:250px;padding-left:30px;border-left:9px solid #ff4d5e}
-.title{font-size:${String(s.title).length > 22 ? 74 : 96}px;font-weight:900;letter-spacing:-.02em;line-height:1.06;
-  text-shadow:0 4px 26px rgba(0,0,0,.95)}
-.no{position:absolute;bottom:56px;right:74px;font-size:26px;color:#93a6c8;letter-spacing:.1em;
-  text-shadow:0 2px 10px rgba(0,0,0,.9)}
+.kick{position:absolute;top:46px;left:46px;background:rgba(238,242,247,.94);color:#12171f;
+  font-size:34px;font-weight:800;letter-spacing:.02em;padding:14px 26px;
+  box-shadow:0 3px 16px rgba(0,0,0,.35)}
+.right{position:absolute;top:46px;right:46px;text-align:right;
+  /* 흰 글자 + 그림자만으로는 밝은 하늘 배경에서 묻힌다(실측: 프리뷰에서 우상단이 안 읽힘).
+     방송사 로고처럼 어두운 받침을 깐다. */
+  background:rgba(14,19,28,.62);padding:12px 22px 14px;border-radius:3px}
+.brand{font-size:34px;font-weight:900;letter-spacing:.24em;color:#fff}
+.note{margin-top:6px;font-size:22px;color:#cdd8ea;letter-spacing:.08em}
+/* 자막 밴드: 밝은 반투명 띠 + 위아래 얇은 괘선. 어두운 글자가 어떤 배경에서도 읽힌다. */
+.band{position:absolute;left:0;right:0;top:${BAND.top}px;height:${BAND.height}px;
+  background:rgba(231,237,244,.90);border-top:4px solid rgba(74,90,112,.85);
+  border-bottom:4px solid rgba(74,90,112,.85)}
 </style>
-<div class="scrim"></div><div class="bar"></div>
-<div class="top"><div class="chip">${esc(KICK)}</div><div class="brand">FLOWVIUM</div></div>
-<div class="lower"><div class="title">${esc(s.title)}</div></div>
-<div class="no">${i + 1} / ${scenes.length}</div>`;
+<div class="bar"></div>
+<div class="kick">${esc(KICK)}</div>
+<div class="right"><div class="brand">FLOWVIUM</div><div class="note">${esc(SRC_NOTE)}</div></div>
+<div class="band"></div>`;
 
 // 배경이 없는 장면에 깔 카드. 이것도 켄번스로 움직인다 — 정지하면 딱 그 PPT 느낌이 난다.
 const cardBg = (i) => `<!doctype html><meta charset="utf-8"><style>
@@ -297,9 +313,10 @@ body{background:
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: W, height: H } });
+// furniture 는 장면마다 달라지지 않는다(제목을 뺐으므로) — 한 장만 그려 전 장면이 공유한다.
+await page.setContent(furniture());
+await page.screenshot({ path: `${WORK}/fx.png`, omitBackground: true });
 for (let i = 0; i < scenes.length; i++) {
-  await page.setContent(furniture(scenes[i], i));
-  await page.screenshot({ path: `${WORK}/fx${i}.png`, omitBackground: true });
   if (!scenes[i].bg) {
     await page.setContent(cardBg(i));
     await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 92 });
@@ -335,7 +352,7 @@ for (let i = 0; i < scenes.length; i++) {
   //   실측(2026-08-27): 같은 명령에서 fade 있음 2.5KB(백지) / -loop 추가 38.9KB(정상).
   ff([
     '-y', '-hide_banner', '-loglevel', 'error', ...inputs,
-    '-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', `${WORK}/fx${i}.png`,
+    '-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', `${WORK}/fx.png`,
     '-filter_complex',
     `${bgChain};[1:v]format=rgba,fade=t=in:st=0:d=0.5:alpha=1[fx];`
     + `[bg][fx]overlay=0:0:format=auto,format=yuv420p,trim=duration=${len.toFixed(3)},setpts=PTS-STARTPTS[v]`,
