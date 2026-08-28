@@ -30,10 +30,9 @@ const genVetoCalls = (gen.match(/hasHardBuyVeto\(/g) || []).length;
 ok('[2] 보고서 hasHardBuyVeto import', /import .*hasHardBuyVeto.* from .*buy-sell-engine/.test(gen), '');
 ok('[2b] 보고서 veto 호출 ≥3 (funnel·보유·최종경합)', genVetoCalls >= 3, `호출 ${genVetoCalls}회`);
 
-// ── [3] 챗(judge-engine) 도 동일 veto 적용 (엔진/보고서/챗 일관) ──
-const chat = read('src/lib/judge-engine.ts');
-ok('[3] 챗 hasHardBuyVeto import', /hasHardBuyVeto/.test(chat), 'judge-engine.ts');
-ok('[3b] 챗 adjudicate 에 buyVeto 전달', /buyVeto:\s*buyVetoFor/.test(chat), '');
+// ── [3] (삭제) 챗(심판엔진)은 2026-08-28 에 기능째 제거됐다.
+//   엔진/보고서/챗 3자 일관을 보던 항목인데 챗이 없어졌으므로 검사 대상도 없다.
+//   판정 로직 자체는 src/lib/buy-sell-engine.mjs 에 통합돼 있고 [1][2] 가 그걸 본다.
 
 // ── [4] H1 closed loop: sanitize/narrative 조용교정도 학습루프 적재 ──
 ok('[4] narrative-fix → hallucination_history (H1)',
@@ -86,4 +85,4 @@ if (failed.length) {
   console.error(`\n❌ ${failed.length}건 회귀 — 매수 veto 배선이 누락/되돌려짐. 칼받기 차단 무력화 위험.`);
   process.exit(1);
 }
-console.log(`\n✅ 매수 veto 4경로(엔진·보고서funnel·보유·챗) + H1 학습루프 전부 배선 유지.`);
+console.log(`\n✅ 매수 veto 3경로(엔진·보고서funnel·보유) + H1 학습루프 전부 배선 유지.`);

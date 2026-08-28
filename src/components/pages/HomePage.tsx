@@ -41,7 +41,6 @@ import {
   Activity,
   Brain,
   GitMerge,
-  Scale,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import nextDynamic from 'next/dynamic';
@@ -924,6 +923,25 @@ function TopMoversWidget() {
   );
 }
 
+// 채널 주소. 영상 설명란·마무리 화면과 같은 채널을 가리켜야 한다.
+const YOUTUBE_CHANNEL_URL = 'https://www.youtube.com/@flowvium';
+
+/**
+ * 유튜브 글리프. lucide-react 에는 브랜드 아이콘이 없어서(5,816개 중 youtube 없음)
+ * 직접 그린다. 일반 재생 아이콘보다 알아보기 쉬워야 눌린다.
+ */
+function YoutubeGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-6 h-6 shrink-0">
+      <path
+        fill="#FF0000"
+        d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8z"
+      />
+      <path fill="#fff" d="M9.6 15.6 15.8 12 9.6 8.4z" />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   const locale = useLocale();   // 2026-08-20: signal.action enum 라벨 로케일화에 필요
   const t = useTranslations('hero');
@@ -937,7 +955,6 @@ export default function HomePage() {
   const latestSignals = useInView();
   const features = useInView();
   const howItWorks = useInView();
-  const router = useRouter();  // /judge 라우트 이동용(심판엔진 전용 페이지)
 
   // 2026-06-04: 정적 institutionalSignals → 라이브 /api/signals (시계열, 정적 금지).
   const [liveSignals, setLiveSignals] = useState<InstitutionalSignal[]>([]);
@@ -996,17 +1013,20 @@ export default function HomePage() {
                   </span>
                   <ArrowRight className="w-5 h-5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => router.push('/judge')}
-                  className="group flex flex-1 items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white text-cf-text-primary font-bold border-2 border-rose-300 shadow-md hover:shadow-lg hover:border-rose-400 hover:bg-rose-50/50 transition-all"
+                {/* 유튜브 채널(2026-08-28 사용자 요청으로 심판엔진 CTA 를 대체).
+                    외부 링크라 새 탭으로 연다 — 사이트를 벗어나게 하지 않는다. */}
+                <a
+                  href={YOUTUBE_CHANNEL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-1 items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-white text-cf-text-primary font-bold border-2 border-red-300 shadow-md hover:shadow-lg hover:border-red-400 hover:bg-red-50/50 transition-all"
                 >
-                  <Scale className="w-5 h-5 text-rose-500" />
+                  <YoutubeGlyph />
                   <span className="flex flex-col items-start leading-tight">
-                    <span className="text-base md:text-lg">{tHome('ctaAskEngine')}</span>
-                    <span className="text-[11px] font-normal text-cf-text-secondary">{tHome('ctaAskEngineDesc')}</span>
+                    <span className="text-base md:text-lg">{tHome('ctaYoutube')}</span>
+                    <span className="text-[11px] font-normal text-cf-text-secondary">{tHome('ctaYoutubeDesc')}</span>
                   </span>
-                </button>
+                </a>
               </div>
               {/* 통합 3열 그리드 — 모든 버튼 동일 크기 */}
               <div className="grid grid-cols-3 gap-2">

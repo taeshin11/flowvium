@@ -603,8 +603,8 @@
     "fundTrackingDesc": "ติดตามทุน SEC",
     "ctaSeeRecs": "ดูหุ้นแนะนำจาก AI วันนี้",
     "ctaSeeRecsDesc": "ซื้อ/ขาย · จุดเข้า · จุดตัด/เป้า",
-    "ctaAskEngine": "ถามเครื่องวินิจฉัย",
-    "ctaAskEngineDesc": "ปรึกษา AI ซื้อ/ขาย",
+    "ctaYoutube": "ดูบน YouTube",
+    "ctaYoutubeDesc": "สรุปการเมืองและเศรษฐกิจสหรัฐฯ ประจำวัน",
     "breadth": "ความกว้างของตลาด"
   },
   "feedback": {

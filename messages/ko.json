@@ -775,8 +775,8 @@
     "fundTrackingDesc": "SEC 공시 자금 추적",
     "ctaSeeRecs": "오늘의 AI 추천 종목 보기",
     "ctaSeeRecsDesc": "매수·매도 픽 · 진입가 · 손절·목표가",
-    "ctaAskEngine": "심판엔진에게 물어보기",
-    "ctaAskEngineDesc": "매수·매도 AI 상담",
+    "ctaYoutube": "유튜브 채널 보기",
+    "ctaYoutubeDesc": "매일 미국 정치·경제 브리핑",
     "breadth": "시장 폭"
   },
   "emailCta": {

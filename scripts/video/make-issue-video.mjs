@@ -38,6 +38,7 @@ import { thumbText, thumbnailHtml, thumbLines } from '../lib/thumbnail.mjs';
 import { searchMusic, pickTrack, musicCredit } from '../lib/music.mjs';
 import { anchorBox, anchorSource, anchorFrameCss, genderMismatch } from '../lib/anchor.mjs';
 import { resolveMediaRoot, ensureDir } from '../lib/media-root.mjs';
+import { readLog, usedHeadlines, filterUsed, appendEdition } from '../lib/edition-log.mjs';
 import {
   searchTerms, sceneQueries, queryLadder, pickFootage, pickFootageMany, splitShots, creditLine, matchLocal,
   grounded, isPlace, flatShare, isGraphicFrame, licenseUsable, envValue,
@@ -48,7 +49,8 @@ const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
 const locale = arg('--locale', 'en');
 const isKo = locale === 'ko';
-const TARGET_SEC = Number(arg('--seconds', '90'));
+// --seconds 를 주면 그 길이, 안 주면 **이슈 개수에서 역산**한다(아래 issues 확정 후).
+const SECONDS_ARG = arg('--seconds');
 // 영상·사진은 **구글드라이브에만** 둔다(2026-08-28 요구: 로컬 디스크 부족).
 //   --local-media 를 줬을 때만 프로젝트 안에 쓴다. 드라이브가 죽었는데 조용히 로컬로
 //   떨어지면 "옮겼다" 고 믿는 사이 디스크가 다시 찬다 — 그래서 기본은 실패다.
@@ -109,6 +111,9 @@ const ABOX = anchorFile ? anchorBox({ width: W, height: H, bandTop: BAND.top }) 
 // 앵커 박스가 먹는 우측 폭(+여백 40). 전면 카드(인용·마무리)는 이만큼 왼쪽으로 물러나야
 //   글자가 박스 밑으로 들어가지 않는다. 박스가 없으면 0 이라 종전 구성 그대로다.
 const SAFE_RIGHT = ABOX ? (W - ABOX.x + 40) : 0;
+// 채널로 사이트를 홍보한다. 마무리 화면과 설명란 양쪽에 같은 주소가 나가야 한다 —
+//   한쪽만 바꾸면 어느 날 둘이 어긋난다. 여기 한 곳에서 정한다.
+const SITE_URL = envValue('SITE_URL') || 'flowvium.net';
 
 /**
  * 낭독 속도(초당 글자). 대본 길이를 목표 초에서 역산하는 데만 쓴다 — 최종 길이는
@@ -123,7 +128,9 @@ const CHARS_PER_SEC = { en: 16.3, ko: 5.5 };
 // ── 1. 소재: 최근 12시간 뉴스에서 매체 수 기준 상위 이슈 ─────────────────────
 const REGION_SOURCES = isKo
   ? ['연합뉴스 정치', '연합뉴스 사회', '연합뉴스 연예', '연합뉴스 국제', '연합뉴스 경제', '한국경제 정치', '한국경제 사회', '한국경제']
-  : ['NPR 톱뉴스', 'NPR 정치', 'NBC 톱뉴스', 'CBS 톱뉴스', 'Politico 정치', 'Variety 연예', 'Hollywood Reporter 연예', 'The Verge 테크'];
+  // 정치·경제만 다룬다(2026-08-28 지시). 연예·테크 소스는 뺐다.
+  : ['NPR 톱뉴스', 'NPR 정치', 'NBC 톱뉴스', 'CBS 톱뉴스', 'Politico 정치',
+     'Yahoo Finance', 'MarketWatch', 'Seeking Alpha', 'SCMP Business', 'Yahoo Energy'];
 
 const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
 const rows = db.prepare(
@@ -133,11 +140,33 @@ const rows = db.prepare(
 ).all(...REGION_SOURCES);
 db.close();
 
-const issues = topDistinctIssues(rows, 3);
+// 편성: **직전 편 이후 새로 나온 이슈를 전부** 묶는다(2026-08-28 지시).
+//   하루 5편을 내는데 수집 창이 고정이면 같은 뉴스를 다섯 번 읽게 된다.
+//   창은 넓게 두되 이미 내보낸 헤드라인을 뺀다 — 새 뉴스가 없으면 편이 짧아질지언정
+//   같은 뉴스를 다시 읽지는 않는다.
+const EDITIONS_FILE = resolve(ROOT, `data/video-editions-${locale}.json`);
+const DEDUPE_N = Number(arg('--dedupe-editions', '5'));
+const used = usedHeadlines(readLog(EDITIONS_FILE), DEDUPE_N);
+const fresh = filterUsed(rows, used);
+if (fresh.dropped) console.log(`  [편성] 직전 ${DEDUPE_N}편에서 쓴 ${fresh.dropped}건 제외`);
+
+// 이슈 수는 고정이 아니라 **있는 만큼**이다. 상한만 둔다 — 없으면 영상이 한없이 길어진다.
+const MAX_ISSUES = Number(arg('--max-issues', '12'));
+const issueArg = arg('--issues', 'auto');
+const issues = issueArg === 'auto'
+  ? topDistinctIssues(fresh.rows, MAX_ISSUES)
+  : topDistinctIssues(fresh.rows, Number(issueArg));
 // 각 이슈의 대표 발언. "그 사건" 을 화면에 직접 띄우는 유일한 수단이다 —
 //   아카이브 사진은 인물이 맞아도 그 기사가 아니고, SNS 원본은 재사용 심사에 걸린다.
 //   방송사가 하듯 **인용을 다시 그린다**(quote-card).
 for (const c of issues) c.quote = bestQuote(c.headlines ?? []);
+// 길이는 이슈 개수를 따른다. 이슈가 6개인데 90초면 한 건에 12초라 다 못 담고,
+//   2개인데 180초면 한 건을 90초씩 늘여 읽어 늘어진다.
+//   이슈당 약 28초 + 도입·마무리 20초. 상한 10분(유튜브 브리핑으로는 그게 한계다).
+const TARGET_SEC = SECONDS_ARG
+  ? Number(SECONDS_ARG)
+  : Math.min(600, Math.max(90, issues.length * 28 + 20));
+
 if (issues.length === 0) { console.error('❌ 이슈 클러스터 없음 — 수집이 얇다'); process.exit(1); }
 console.log(`  [소재] ${rows.length}건 중 이슈 ${issues.length}개`);
 for (const c of issues) {
@@ -147,7 +176,9 @@ for (const c of issues) {
 
 // ── 2. 대본 ─────────────────────────────────────────────────────────────────
 // 장면 수와 장면당 글자 수를 목표 초에서 역산한다. 하드코딩하면 --seconds 가 거짓말이 된다.
-const SCENES = Math.min(9, Math.max(6, Math.round(TARGET_SEC / 11)));
+// 장면 수 상한. 9 로 묶어 두면 180초를 줘도 장면이 안 늘어 한 장면이 20초씩 끌린다
+//   — 그게 "PPT 읽는 느낌" 의 원인이다. 목표 길이에 비례해 늘린다.
+const SCENES = Math.min(20, Math.max(6, Math.round(TARGET_SEC / 11)));
 // 예산보다 25% 넉넉히 요구한다. 넘치면 코드가 결정론으로 자를 수 있지만, 모자라면
 //   모델에게 다시 부탁하는 수밖에 없다 — 비싼 쪽을 피해 넘치는 영역에 머문다.
 const perScene = Math.round((TARGET_SEC * (CHARS_PER_SEC[isKo ? 'ko' : 'en'] ?? 14) * 1.25) / SCENES);
@@ -181,7 +212,7 @@ ${brief}
   좋음: "Seoul National Assembly building", "Gwanghwamun square"
   나쁨: "handshake stage"(인도네시아 아이돌 행사가 걸렸다), "news desk"
 - JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(${loChars}~${hiChars}자)","place":"City or Country","entity":"Proper Name","visual":"english b-roll words"}]
-- 장면 ${SCENES}개. 마지막 장면은 채널 마무리.${nudge ?? ''}`
+- 장면 ${SCENES}개. 마지막 장면은 채널 마무리.\n- 아래 이슈 ${issues.length}개를 **전부** 다루라. 하나도 빠뜨리지 말 것.${nudge ?? ''}`
   : `You write scripts for a US news-issue channel. Use ONLY the headlines below. Target ${TARGET_SEC} seconds.
 
 ${brief}
@@ -222,7 +253,10 @@ async function askLLM(nudge) {
   const res = await fetch(`${llm.url}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: llm.model, messages: [{ role: 'user', content: buildPrompt(nudge) }],
-                           max_tokens: 2400, temperature: 0.4, stream: false,
+                           // 장면 수에 맞춰 늘린다. 2400 고정이면 장면이 많아질 때 JSON 이
+                           //   **중간에서 잘려** 파싱이 실패한다(2026-08-28: 이슈 12개·장면 20개에서 발생).
+                           //   한 장면당 대략 320 토큰(say 275자 + 메타) + 여유.
+                           max_tokens: Math.min(12000, 900 + SCENES * 340), temperature: 0.4, stream: false,
                            chat_template_kwargs: { enable_thinking: false } }),
     signal: AbortSignal.timeout(10 * 60 * 1000),
   });
@@ -232,7 +266,11 @@ async function askLLM(nudge) {
   try {
     const m = String(txt).match(/\[[\s\S]*\]/);
     arr = JSON.parse(m ? m[0] : txt);
-  } catch { throw new Error(`대본 파싱 실패: ${String(txt).slice(0, 200)}`); }
+  } catch {
+    // 잘린 것과 형식이 틀린 것은 대응이 다르다 — 길이와 **끝부분**을 같이 낸다.
+    const t = String(txt);
+    throw new Error(`대본 파싱 실패 (${t.length}자, 끝: …${t.slice(-120).replace(/\n/g, ' ')})`);
+  }
   return (arr ?? []).filter((x) => x?.say && x?.title).slice(0, SCENES);
 }
 
@@ -292,6 +330,16 @@ scenes = fit.scenes;
 if (fit.trimmed) console.log(`  [대본] 예산 ${budgetChars}자 초과 → ${fit.before}자에서 ${fit.after}자로 (${fit.trimmed}장면 문장 절삭)`);
 const scriptChars = scenes.reduce((n, x) => n + x.say.length, 0);
 console.log(`  [대본] 장면 ${scenes.length}개 · ${scriptChars}자 (예산 ${budgetChars})`);
+// 마지막 장면 끝에 **사이트 안내를 말로** 붙인다. 화면에만 띄우면 안 보고 지나간다.
+//   대본 길이 계산이 끝난 뒤에 붙여 예산 절삭에 잘리지 않게 한다.
+const CTA = isKo
+  ? ` 전체 기사와 실시간 시장 데이터는 ${SITE_URL} 에서 보실 수 있습니다.`
+  : ` For full coverage and live market data, visit ${SITE_URL}.`;
+if (scenes.length && !scenes[scenes.length - 1].say.includes(SITE_URL)) {
+  scenes[scenes.length - 1].say = `${scenes[scenes.length - 1].say.trimEnd()}${CTA}`;
+  console.log(`  [대본] 마지막 장면에 사이트 안내 추가 (${SITE_URL})`);
+}
+
 
 mkdirSync(WORK, { recursive: true });
 // 산출물 디렉터리는 MEDIA_ROOT 가 만든다(위 ensureDir). 여기서 로컬을 또 만들지 않는다.
@@ -607,8 +655,14 @@ body{background:radial-gradient(1400px 800px at 50% 42%,#1b2a48 0%,rgba(0,0,0,0)
 .w{font-size:132px;font-weight:900;letter-spacing:.30em;text-indent:.30em}
 .r{margin-top:34px;width:150px;height:7px;background:linear-gradient(90deg,#ff4d5e,#c81e3a)}
 .s{margin-top:34px;font-size:34px;color:#9fb2d4;letter-spacing:.22em}
+.u{margin-top:26px;font-size:52px;font-weight:900;color:#ffe11a;letter-spacing:.04em;
+  -webkit-text-stroke:4px #0a0a0a;paint-order:stroke fill}
+.c{margin-top:14px;font-size:30px;color:#9fb2d4;letter-spacing:.04em}
 </style><div class="w">FLOWVIUM</div><div class="r"></div>
-<div class="s">${isKo ? '오늘의 이슈' : 'TODAY’S ISSUE'}</div>`;
+<div class="s">${isKo ? '오늘의 이슈' : 'TODAY’S ISSUE'}</div>
+<div class="u">${SITE_URL}</div>
+<div class="c">${isKo ? '전체 기사 · 실시간 시장 데이터 · 심층 분석'
+  : 'Full coverage &middot; live market data &middot; deeper analysis'}</div>`;
 
 // 배경이 없는 장면에 깔 카드. 이것도 켄번스로 움직인다 — 정지하면 딱 그 PPT 느낌이 난다.
 const cardBg = (i) => `<!doctype html><meta charset="utf-8"><style>
@@ -883,6 +937,17 @@ console.log(`   실측 낭독속도 ${(scriptChars / (totalSec - scenes.length *
 
 if (credits.length) console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${CREDITS} (영상 설명란에 넣을 것)`);
 else console.log('   표기 의무 0건 — 전부 CC0/PD');
+// 이번 편에 쓴 헤드라인을 기록한다. 다음 편이 같은 뉴스를 다시 읽지 않게 하는 유일한 근거다.
+//   **영상이 만들어진 뒤에만** 기록한다 — 렌더가 실패했는데 기록하면 그 뉴스는 영영 안 나간다.
+try {
+  const n = appendEdition(EDITIONS_FILE, {
+    at: new Date().toISOString(),
+    keywords: issues.map((c) => c.keyword),
+    headlines: issues.flatMap((c) => c.headlines ?? []),
+    video: OUT,
+  });
+  console.log(`   편성 기록 ${n}편 → ${EDITIONS_FILE}`);
+} catch (e) { console.log(`   ⚠ 편성 기록 실패: ${e.message} — 다음 편에 같은 뉴스가 나올 수 있다`); }
 
 // 작업 폴더를 통째로 비운다. 여기 있는 것은 **전부 재생성 가능한 중간물**이다 —
 //   컷 mp4·배경 이미지·장면별 mp3·자막 ass·오버레이 png. 남길 것(영상·썸네일·크레딧)은

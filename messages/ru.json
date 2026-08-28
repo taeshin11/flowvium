@@ -603,8 +603,8 @@
     "fundTrackingDesc": "Отслеживание капитала SEC",
     "ctaSeeRecs": "AI-акции на сегодня",
     "ctaSeeRecsDesc": "Покупка/продажа · вход · стоп и цель",
-    "ctaAskEngine": "Спросить движок суждений",
-    "ctaAskEngineDesc": "ИИ-консультация покупки/продажи",
+    "ctaYoutube": "Смотреть на YouTube",
+    "ctaYoutubeDesc": "Ежедневный обзор политики и экономики США",
     "breadth": "Широта рынка"
   },
   "feedback": {

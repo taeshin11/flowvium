@@ -42,6 +42,8 @@ const PRESETS = {
       '',
       'New briefings every day. Subscribe so you never miss the story.',
       '',
+      '▶ Full coverage, live market data and deeper analysis: https://flowvium.net',
+      '',
       '#news #usnews #politics #breakingnews #economy',
     ].join('\n'),
     // 채널 키워드는 공백 구분이고, 여러 낱말짜리는 따옴표로 묶는다.

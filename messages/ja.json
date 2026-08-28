@@ -775,8 +775,8 @@
     "fundTrackingDesc": "SEC開示資金追跡",
     "ctaSeeRecs": "今日のAI推奨銘柄を見る",
     "ctaSeeRecsDesc": "売買推奨 · エントリー · 損切り/目標",
-    "ctaAskEngine": "審判エンジンに質問",
-    "ctaAskEngineDesc": "売買AI相談",
+    "ctaYoutube": "YouTubeチャンネルを見る",
+    "ctaYoutubeDesc": "毎日の米国政治・経済ブリーフィング",
     "breadth": "市場の広がり"
   },
   "emailCta": {

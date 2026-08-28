@@ -603,8 +603,8 @@
     "fundTrackingDesc": "Tracker de capital SEC",
     "ctaSeeRecs": "Voir les titres IA du jour",
     "ctaSeeRecsDesc": "Achat/vente · entrée · stop et cible",
-    "ctaAskEngine": "Consulter le Moteur de Jugement",
-    "ctaAskEngineDesc": "Conseil IA achat/vente",
+    "ctaYoutube": "Voir sur YouTube",
+    "ctaYoutubeDesc": "Brief quotidien politique et économie US",
     "breadth": "Largeur du marché"
   },
   "feedback": {
