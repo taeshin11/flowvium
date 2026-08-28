@@ -29,14 +29,16 @@ import { resolve, join, sep } from 'path';
 import { tmpdir } from 'node:os';
 import { ROOT } from '../lib/project-root.mjs';
 import { synthesizeWithTimestamps, voiceGender } from '../lib/tts.mjs';
+import { synthesizeLocal, DEFAULT_VOICE as LOCAL_VOICE } from '../lib/tts-local.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { cuesFromAlignment, toAss, fillGaps, fitScale } from '../lib/subtitle.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
-import { ungroundedScenes, stripUngrounded } from '../lib/script-grounding.mjs';
+import { ungroundedScenes, stripUngrounded, stripScreenTalk } from '../lib/script-grounding.mjs';
 import { bestQuote, quoteCardHtml } from '../lib/quote-card.mjs';
 import { thumbText, thumbnailHtml, thumbLines } from '../lib/thumbnail.mjs';
 import { searchMusic, pickTrack, musicCredit } from '../lib/music.mjs';
 import { anchorBox, anchorSource, anchorFrameCss, genderMismatch } from '../lib/anchor.mjs';
+import { lipsyncAnchor } from './lipsync-anchor.mjs';
 import { resolveMediaRoot, ensureDir } from '../lib/media-root.mjs';
 import { readLog, usedHeadlines, filterUsed, appendEdition } from '../lib/edition-log.mjs';
 import {
@@ -75,6 +77,9 @@ const BROLL = existsSync(BROLL_DRIVE) ? BROLL_DRIVE : resolve(ROOT, 'assets/brol
 //   금지가 아니라 우선순위라 CC0 가 없으면 CC BY 도 쓴다.
 const PREFER_FREE = !argv.includes('--allow-attribution');
 const W = 1920, H = 1080, FPS = 30, XFADE = 0.45;
+// 장면 꼬리 여백. 말끝에 화면이 딱 끊기면 급하게 들린다.
+//   **음성 쪽에도 같은 길이의 무음을 끼워야** 자막이 안 밀린다(concat 부분 참조).
+const SCENE_TAIL = 0.45;
 // 자막 밴드 기하. furniture 의 CSS 와 ASS 의 marginV 가 **같은 값을 봐야** 글자가 띠 안에 앉는다.
 //   따로 두면 한쪽만 고쳤을 때 글자가 띠 밖으로 나가고, 그건 렌더 후에야 보인다.
 //
@@ -123,7 +128,16 @@ const SITE_URL = envValue('SITE_URL') || 'flowvium.net';
  *             짧은 대본일수록 장면 꼬리 여백 비중이 커져 낮게 나온다 — 긴 쪽 실측을 쓴다.
  *   ko  5.5 = **미실측 추정값.** 첫 한국어 편에서 실측해 고칠 것.
  */
-const CHARS_PER_SEC = { en: 16.3, ko: 5.5 };
+const USE_ELEVEN = argv.includes('--elevenlabs');
+// 낭독 속도(초당 글자). 목표 길이에서 대본 분량을 역산하는 데만 쓴다.
+//   화자가 바뀌면 값도 바뀐다 — Kokoro am_michael 은 ElevenLabs Mark 보다 또박또박 읽는다.
+//   ko 는 여전히 **미실측 추정값**이다.
+const CHARS_PER_SEC = USE_ELEVEN
+  ? { en: 16.3, ko: 5.5 }
+  //   Kokoro am_michael 실측(2026-08-28): 186자→12.85초 / 187자→13.15초 / 188자→13.60초
+  //   = 561자 / 39.60초 = 14.17 자/초(문장 단위). 실제 편에서는 장면 꼬리 여백이 섞여
+  //   **13.5 자/초**로 나왔다(6분 20장면 편, 2026-08-28). 편 단위 실측값을 쓴다.
+  : { en: 13.5, ko: 5.5 };
 
 // ── 1. 소재: 최근 12시간 뉴스에서 매체 수 기준 상위 이슈 ─────────────────────
 const REGION_SOURCES = isKo
@@ -176,9 +190,11 @@ for (const c of issues) {
 
 // ── 2. 대본 ─────────────────────────────────────────────────────────────────
 // 장면 수와 장면당 글자 수를 목표 초에서 역산한다. 하드코딩하면 --seconds 가 거짓말이 된다.
-// 장면 수 상한. 9 로 묶어 두면 180초를 줘도 장면이 안 늘어 한 장면이 20초씩 끌린다
-//   — 그게 "PPT 읽는 느낌" 의 원인이다. 목표 길이에 비례해 늘린다.
-const SCENES = Math.min(20, Math.max(6, Math.round(TARGET_SEC / 11)));
+// 장면 수는 **다룰 이슈 수**를 따른다. 목표 초로만 정하면 소재보다 칸이 많아지고,
+//   모델은 그 칸을 메우려고 "The visual shows a rocket launch" 같은 **화면 설명**을 쓴다
+//   (2026-08-28 실측: 이슈 12개에 장면 20개를 시켰더니 그런 문장이 여럿 나왔다).
+//   이슈당 약 1.5장면 + 도입·마무리 2장면.
+const SCENES = Math.min(20, Math.max(6, Math.round(issues.length * 1.5) + 2));
 // 예산보다 25% 넉넉히 요구한다. 넘치면 코드가 결정론으로 자를 수 있지만, 모자라면
 //   모델에게 다시 부탁하는 수밖에 없다 — 비싼 쪽을 피해 넘치는 영역에 머문다.
 const perScene = Math.round((TARGET_SEC * (CHARS_PER_SEC[isKo ? 'ko' : 'en'] ?? 14) * 1.25) / SCENES);
@@ -219,6 +235,9 @@ ${brief}
 
 Rules:
 - Use only facts present in the headlines. Do not invent numbers, quotes, or background.
+- NEVER describe the picture or video. Do not write "the visual shows", "the image shows",
+  "this footage", "the chart displays", or anything about what is on screen.
+  You are writing what a news anchor SAYS about the events, not a caption for a picture.
 - Write for a US audience. Lead with why it matters to Americans.
 - Anchor-read sentences. Conversational broadcast tone, not written prose.
 - **Scene 1 is the hook.** Open with the single most striking concrete fact — a name, a number,
@@ -329,6 +348,14 @@ const fit = fitScript(scenes, { budgetChars });
 scenes = fit.scenes;
 if (fit.trimmed) console.log(`  [대본] 예산 ${budgetChars}자 초과 → ${fit.before}자에서 ${fit.after}자로 (${fit.trimmed}장면 문장 절삭)`);
 const scriptChars = scenes.reduce((n, x) => n + x.say.length, 0);
+// 화면 해설 문장을 덜어낸다. 앵커는 사건을 말하지 화면을 설명하지 않는다.
+{
+  const st = stripScreenTalk(scenes);
+  if (st.removed) {
+    scenes = st.scenes.filter((x) => (x.say ?? '').trim().length > 0);
+    console.log(`  [대본] 화면 해설 ${st.removed}문장 제거 — 예: "${st.samples[0]}…"`);
+  }
+}
 console.log(`  [대본] 장면 ${scenes.length}개 · ${scriptChars}자 (예산 ${budgetChars})`);
 // 마지막 장면 끝에 **사이트 안내를 말로** 붙인다. 화면에만 띄우면 안 보고 지나간다.
 //   대본 길이 계산이 끝난 뒤에 붙여 예산 절삭에 잘리지 않게 한다.
@@ -346,12 +373,19 @@ mkdirSync(WORK, { recursive: true });
 
 // ── 3. 음성 + 글자 타임스탬프 ───────────────────────────────────────────────
 for (let i = 0; i < scenes.length; i++) {
-  const r = await synthesizeWithTimestamps(scenes[i].say, {
-    locale, outPath: `${WORK}/s${i}.mp3`, model: 'eleven_multilingual_v2',
-  });
+  // 기본은 **로컬(Kokoro)** 이다. ElevenLabs Starter 는 월 4만 자라 6분 영상 7편이면 동나고,
+  //   하루 5편(월 87만 자)은 어떤 등급으로도 안 된다(2026-08-28 실측: 남은 104자).
+  //   --elevenlabs 를 주면 종전 경로로 간다 — 중요한 편에만 쓰라고 남겨 둔다.
+  const r = USE_ELEVEN
+    ? await synthesizeWithTimestamps(scenes[i].say, {
+        locale, outPath: `${WORK}/s${i}.mp3`, model: 'eleven_multilingual_v2',
+      })
+    : synthesizeLocal(scenes[i].say, { outPath: `${WORK}/s${i}.wav`, voice: LOCAL_VOICE });
   scenes[i].audio = r.path;
   scenes[i].alignment = r.alignment;
-  scenes[i].dur = r.durationSec + 0.45;   // 꼬리 여백: 장면이 말끝에 딱 붙어 끊기면 급하게 들린다
+  scenes[i].dur = r.durationSec + SCENE_TAIL;   // 꼬리 여백(아래 음성에도 같은 길이의 무음을 넣는다)
+  // 정렬이 실패해 균등분배로 떨어졌으면 자막이 어긋난다 — 조용히 넘기지 않는다.
+  if (r.note && /균등분배/.test(r.note)) console.log(`  ⚠ ${i + 1} ${r.note}`);
   console.log(`  [음성] ${i + 1} ${scenes[i].dur.toFixed(1)}초`);
 }
 const totalSec = scenes.reduce((n, s) => n + s.dur, 0);
@@ -543,6 +577,15 @@ for (let i = 0; i < scenes.length; i++) {
           await download(alt.url, file);
           tries++;
         }
+        // 재시도를 다 써도 그래픽이면 **쓰지 않는다.** 종전엔 마지막 후보를 그냥 썼는데,
+        //   그 결과 로고·차트를 3컷 연속으로 깔았다(2026-08-28: 장면 19가 그랬다).
+        //   거른 뜻이 없어진다 — 카드(생성 배경)로 떨어뜨린다.
+        if (isGraphicFrame(probeFlat(file, pick.kind === 'video') ?? 0)) {
+          shots.push({ kind: 'card', file: null, dur: durs[k], zin: shotSeq % 2 === 0 });
+          labels.push('그래픽만 나옴→카드');
+          shotSeq++;
+          continue;
+        }
         shots.push({ kind: pick.kind, file, url: pick.url, dur: durs[k], zin: shotSeq % 2 === 0 });
         // 썸네일 배경: **첫 장면의 실사 사진**. 동영상은 프레임을 뽑아야 해서 사진을 우선한다.
         // 인용 카드가 1번 컷이면 사진이 안 잡히므로 장면을 한정하지 않는다.
@@ -709,6 +752,68 @@ const ff = (args, label) => {
   const r = spawnSync(ffmpegPath, args, { encoding: 'utf8', maxBuffer: 8 << 20 });
   if (r.status !== 0) { console.error(`❌ ffmpeg ${label}:\n${String(r.stderr).slice(-900)}`); process.exit(1); }
 };
+
+// ── 7a. 음성 합본 (컷 렌더보다 **먼저** 만든다) ──────────────────────────────
+//   립싱크를 걸려면 나레이션 전체가 있어야 하고, 립싱크된 앵커는 컷을 렌더할 때 얹힌다.
+//   그래서 순서가 음성 → (립싱크) → 컷 이다.
+// 장면 사이에 **꼬리 여백만큼 무음을 넣는다.**
+//   화면 타임라인은 장면마다 SCENE_TAIL 을 더하는데 음성은 그냥 이어 붙이면,
+//   장면이 넘어갈 때마다 그만큼 밀린다. 20장면이면 끝에서 8.3초가 어긋났다(2026-08-28 실측:
+//   영상 5:49.50 / 음성 5:41.18). 90초 편에서는 3초라 눈에 덜 띄었을 뿐 처음부터 있던 결함이다.
+//
+// ⚠ concat 데먁서는 **모든 입력의 형식이 같아야** 한다. 처음엔 장면(wav)과 무음(mp3)을
+//   섞어 넣었는데 무음이 조용히 무시돼 어긋남이 그대로였다(2026-08-28 재발).
+//   그래서 장면 음성과 무음을 **같은 규격의 wav 로 먼저 정규화**한 뒤 이어 붙인다.
+const AR = 44100;
+const norm = (src, dst) => ff(['-y', '-hide_banner', '-loglevel', 'error', '-i', src,
+  '-ar', String(AR), '-ac', '1', '-c:a', 'pcm_s16le', dst], `audio norm ${dst.split('/').pop()}`);
+ff(['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi',
+    '-i', `anullsrc=r=${AR}:cl=mono`, '-t', SCENE_TAIL.toFixed(3),
+    '-c:a', 'pcm_s16le', `${WORK}/sil.wav`], 'silence');
+const normed = scenes.map((sc, i) => { const d = `${WORK}/n${i}.wav`; norm(sc.audio, d); return d; });
+writeFileSync(`${WORK}/a.txt`, normed
+  .map((f, i) => (i < normed.length - 1 ? `file '${f}'\nfile '${WORK}/sil.wav'` : `file '${f}'`))
+  .join('\n'));
+ff(['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/a.txt`,
+    '-c:a', 'libmp3lame', '-q:a', '2', '-ar', String(AR), '-ac', '1', `${WORK}/voice.mp3`], 'audio concat');
+
+// 붙인 결과가 **기대 길이와 맞는가.** 무음이 조용히 빠지면 자막이 통째로 밀린다 —
+//   렌더가 끝나고 사람이 봐야만 드러나는 종류의 결함이라 여기서 잡는다.
+{
+  const want = scenes.reduce((n, sc) => n + sc.dur, 0) - SCENE_TAIL;   // 마지막 꼬리는 음성에 없다
+  const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', `${WORK}/voice.mp3`], { encoding: 'utf8' }).stderr ?? '';
+  const m = probe.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
+  const got = m ? (+m[1] * 3600 + +m[2] * 60 + +m[3]) : 0;
+  const gap = Math.abs(got - want);
+  console.log(`  [음성] 합본 ${got.toFixed(1)}초 (기대 ${want.toFixed(1)}초, 차이 ${gap.toFixed(2)}초)`);
+  if (gap > 0.6) {
+    console.error(`❌ 음성 길이가 화면 타임라인과 ${gap.toFixed(1)}초 어긋난다 — 자막이 밀린다.`);
+    console.error('   장면 음성과 무음의 형식이 섞였는지 확인할 것(concat 데먁서는 형식이 같아야 한다).');
+    process.exit(1);
+  }
+}
+
+// ── 7b. 앵커 립싱크 (선택) ──────────────────────────────────────────────────
+//   실측(2026-08-28 M4 Pro/MPS): 스텝당 2.77초 → 6분 영상에 스텝6 이면 약 2.5시간.
+//   기본은 끈다. --lipsync 를 준 편에서만 돈다.
+let anchorClip = anchorFile;            // 컷 렌더가 쓰는 앵커(립싱크되면 교체된다)
+let anchorLooped = false;               // 립싱크본은 이미 전체 길이라 반복하지 않는다
+if (ABOX && argv.includes('--lipsync')) {
+  try {
+    const synced = `${WORK}/anchor-synced.mp4`;
+    const r = lipsyncAnchor({ audio: `${WORK}/voice.mp3`, out: synced, anchor: anchorFile });
+    anchorClip = r.path;
+    anchorLooped = true;
+  } catch (e) {
+    // 립싱크가 실패해도 편은 나가야 한다 — 입이 안 맞는 것보다 영상이 없는 게 나쁘다.
+    console.error(`  ⚠ 립싱크 실패, 원본 앵커로 간다: ${e.message.split('\n')[0]}`);
+  }
+}
+
+
+/** 이 컷이 최종 영상에서 시작하는 시각. 립싱크된 앵커를 같은 지점에서 잘라 쓰려면 필요하다. */
+const shotStartAt = (i) => shots.slice(0, i).reduce((n, sh) => n + sh.dur, 0);
+
 /** 컷 하나를 렌더한다. bg 가 없으면(=카드) 그라디언트를 배경으로 쓴다. */
 const renderShot = (i, sh) => {
   // 마지막 컷을 뺀 모든 컷은 XFADE 만큼 길게 만든다. 겹치는 만큼 되돌려받아
@@ -728,7 +833,12 @@ const renderShot = (i, sh) => {
     : ['-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', sh.file];
   // 앵커: 3:4 중앙 크롭 → 박스 크기로. 중앙 크롭은 Veo 워터마크(우하단 x≈1240~1268)를
   //   **자동으로 잘라낸다** — 1280x720 에서 3:4 크롭은 x 370~910 이라 그 자리가 없다.
-  const anchorIn = ABOX ? ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', anchorFile] : [];
+  // 립싱크본은 영상 전체 길이이므로 **그 시점부터 잘라** 쓴다(반복하면 입이 어긋난다).
+  //   원본 클립은 8초짜리라 반복해서 채운다.
+  const anchorIn = !ABOX ? []
+    : anchorLooped
+      ? ['-ss', shotStartAt(i).toFixed(3), '-t', len.toFixed(3), '-i', anchorClip]
+      : ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', anchorClip];
   const anchorChain = ABOX
     ? `[2:v]crop='min(iw,ih*3/4)':ih:'(iw-min(iw,ih*3/4))/2':0,scale=${ABOX.w}:${ABOX.h},`
       + `fps=${FPS},setpts=PTS-STARTPTS[an];`
@@ -817,10 +927,6 @@ if (blanks) console.log(`  [검사] 빈 컷 ${blanks}개 대체`);
 console.log(`  [합성] ${shots.length}컷 렌더 (장면 ${scenes.length}개)`);
 
 // ── 8. 최종: xfade 체인 + 음성 + 자막 굽기. 한 번만 인코딩한다 ───────────────
-writeFileSync(`${WORK}/a.txt`, scenes.map((s) => `file '${s.audio}'`).join('\n'));
-ff(['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/a.txt`,
-    '-c', 'copy', `${WORK}/voice.mp3`], 'audio concat');
-
 // ── 배경음악 ────────────────────────────────────────────────────────────────
 // "살짝만" — 존재를 의식하지 못할 정도. 나레이션이 항상 위에 있어야 한다.
 //   MUSIC_DB(-26dB) 는 나레이션 대비 약 5% 크기다. 이보다 크면 말이 묻힌다.

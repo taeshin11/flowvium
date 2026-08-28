@@ -46,8 +46,19 @@ function topLevelStatements(src) {
         if (q === '`' && src[i] === '$' && src[i + 1] === '{') {
           let d = 1; cur += '  '; i += 2;
           while (i < src.length && d > 0) {
-            if (src[i] === '{') d++; else if (src[i] === '}') d--;
-            if (d > 0) cur += src[i];
+            const c2 = src[i];
+            if (c2 === '{') d++; else if (c2 === '}') d--;
+            // ${...} 안의 문자열도 지운다. 'MEDIA_ROOT' 같은 **라벨**이 참조로 잡혔다(2026-08-28).
+            if (d > 0 && (c2 === '"' || c2 === "'")) {
+              const q2 = c2; cur += ' '; i++;
+              while (i < src.length) {
+                if (src[i] === '\\') { cur += '  '; i += 2; continue; }
+                if (src[i] === q2) { cur += ' '; i++; break; }
+                cur += ' '; i++;
+              }
+              continue;
+            }
+            if (d > 0) cur += c2;
             i++;
           }
           cur += ' '; continue;
@@ -125,6 +136,33 @@ export function initOrderViolations(src) {
   return bad;
 }
 
+/**
+ * 최상위 **문장**(선언이 아닌 것 — 반복문·if·호출)이 아래에서 선언된 const 를 쓰는가.
+ *
+ * 놓친 사례(2026-08-28): `const SCENE_TAIL` 을 쓰는 for 루프보다 **뒤에** 선언했다.
+ *   initOrderViolations 는 `const X = <식>` 의 식만 봐서 못 잡았다.
+ *   최상위 코드는 위에서 아래로 실행되므로, 반복문 안이라도 실행 시점은 그 자리다.
+ */
+export function statementOrderViolations(src) {
+  const stmts = topLevelStatements(src);
+  const decls = topLevelBindings(stmts);
+  const declaredAt = new Map();
+  for (const d of decls) for (const n of d.names) if (!declaredAt.has(n)) declaredAt.set(n, d.order);
+  const declOrders = new Set(decls.map((d) => d.order));
+  const bad = [];
+  for (let i = 0; i < stmts.length; i++) {
+    if (declOrders.has(i)) continue;
+    const t = stmts[i].text;
+    // 함수·클래스 선언은 호이스팅되거나 호출 시점에 평가된다. export/default/async 형태도 같다.
+    if (/^\s*(export\s+)?(default\s+)?(async\s+)?(function|class)\b/.test(t)) continue;
+    for (const ref of referenced(t)) {
+      const at = declaredAt.get(ref);
+      if (at !== undefined && at > i) bad.push({ uses: ref, at: i, declaredAt: at, text: t.trim().slice(0, 60) });
+    }
+  }
+  return bad;
+}
+
 // ── 1. 재현: 실제로 죽었던 배치를 잡아내는가 ─────────────────────────────────
 {
   const broken = `
@@ -166,8 +204,11 @@ const LATE = 3;
   if (files.length < 10) { bad(`검사 대상이 ${files.length}개뿐 — 경로가 틀렸다`); }
   const hits = [];
   for (const f of files) {
-    const v = initOrderViolations(readFileSync(join(ROOT, f), 'utf8'));
-    for (const x of v) hits.push(`${f}: ${x.name} 이 아래에서 선언된 ${x.uses} 를 참조`);
+    const src = readFileSync(join(ROOT, f), 'utf8');
+    for (const x of initOrderViolations(src)) hits.push(`${f}: ${x.name} 이 아래에서 선언된 ${x.uses} 를 참조`);
+    // statementOrderViolations 는 **전수 검사에 쓰지 않는다.** 셰뱅·루프 지역변수·
+    //   함수 선언을 참조로 오인해 오탐이 계속 났다(2026-08-28). 양치기 소년이 되면 결국 꺼진다.
+    //   아래 [4] 에서 개념만 검증하고, 이 부류(SCENE_TAIL)는 **실제로 한 번 실행해** 잡는다.
   }
   if (hits.length === 0) ok(`실제 스크립트 ${files.length}개 — TDZ 위반 없음`);
   else bad(`TDZ 위반 ${hits.length}건\n      ${hits.join('\n      ')}`);

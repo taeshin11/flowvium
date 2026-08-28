@@ -148,3 +148,44 @@ export function stripUngrounded(scenes, sourceText) {
   });
   return { scenes: out, removed };
 }
+
+/**
+ * 화면을 설명하는 문장을 찾는다.
+ *
+ * 실측 사고(2026-08-28): 이슈 12개로 장면 20개를 채우게 했더니 모델이 빈칸을 메우려고
+ *   "The visual shows a rocket launch or satellite view." 같은 문장을 썼다.
+ *   앵커는 **사건을 말하지 화면을 해설하지 않는다.** 뉴스가 아니라 캡션이 된다.
+ *   프롬프트로 금지해도 소재가 모자라면 또 나온다 — 코드가 봐야 한다.
+ */
+const SCREEN_TALK = [
+  /\b(the|this)\s+(visual|image|picture|footage|clip|video|photo|graphic|chart|shot)\b/i,
+  /\b(shown|seen|displayed|pictured|depicted)\s+(here|above|below|on screen)\b/i,
+  /\bon\s+(the\s+)?screen\b/i,
+  /화면(에|을|이)\s*(보이|나오|표시)/,
+  /사진(에|을|이)\s*(보이|나오)/,
+];
+
+/** 문장 하나가 화면 설명인가. */
+export function isScreenTalk(sentence) {
+  return SCREEN_TALK.some((re) => re.test(String(sentence ?? '')));
+}
+
+/**
+ * 화면을 설명하는 문장을 덜어낸다. 장면을 통째로 버리지 않는다 —
+ * 한 문장이 캡션이어도 나머지는 뉴스인 경우가 많다.
+ * @returns {{scenes:any[], removed:number, samples:string[]}}
+ */
+export function stripScreenTalk(scenes) {
+  let removed = 0;
+  const samples = [];
+  const out = (scenes ?? []).map((s) => {
+    const kept = String(s?.say ?? '').split(/(?<=[.!?])\s+/).filter(Boolean).filter((one) => {
+      if (!isScreenTalk(one)) return true;
+      removed++;
+      if (samples.length < 3) samples.push(one.trim().slice(0, 70));
+      return false;
+    });
+    return { ...s, say: kept.join(' ').trim() };
+  });
+  return { scenes: out, removed, samples };
+}
