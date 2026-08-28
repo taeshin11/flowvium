@@ -30,29 +30,38 @@ export function assTime(sec) {
 export function wrapLines(text, maxChars, maxLines = 2) {
   const t = String(text ?? '').trim();
   if (!t) return [];
+  if (t.length <= maxChars) return [t];          // 한 줄에 들어가면 쪼개지 않는다
+
   const words = t.split(/\s+/);
+  // 공백 없는 긴 덩어리(한국어)는 단어 경계가 없으니 글자 수로 자른다.
+  if (words.length === 1) {
+    const out = [];
+    for (let k = 0; k < t.length; k += maxChars) out.push(t.slice(k, k + maxChars));
+    return out.length > maxLines
+      ? [...out.slice(0, maxLines - 1), out.slice(maxLines - 1).join('')]
+      : out;
+  }
+
+  // 두 줄 길이를 **맞춘다**. 탐욕적으로 채우면 첫 줄만 꽉 차고 둘째 줄이 짧아 가로가 빈다 —
+  //   "Carina Walker has been named the new head of"(44) / "Young Adult publishing at"(25).
+  //   균형을 맞추면 양쪽이 고르게 차서 한 덩어리로 읽힌다. 방송 자막의 기본이다.
+  const target = Math.ceil(t.length / maxLines);
   const lines = [];
-  let cur = '';
-  for (const w of words) {
-    if (w.length > maxChars) {                      // 공백 없는 긴 덩어리 — 글자로 쪼갠다
-      if (cur) { lines.push(cur); cur = ''; }
-      for (let k = 0; k < w.length; k += maxChars) lines.push(w.slice(k, k + maxChars));
-      cur = lines.pop() ?? '';
-      continue;
+  let cur = '', rest = words.slice();
+  while (rest.length && lines.length < maxLines - 1) {
+    cur = '';
+    while (rest.length) {
+      const next = cur ? `${cur} ${rest[0]}` : rest[0];
+      if (next.length > maxChars) break;
+      // 목표 길이를 넘겼는데, 넣는 편이 **더 멀어지면** 넣지 않는다.
+      if (cur && Math.abs(next.length - target) > Math.abs(cur.length - target)) break;
+      cur = next;
+      rest.shift();
     }
-    const next = cur ? `${cur} ${w}` : w;
-    if (next.length <= maxChars) { cur = next; }
-    else { if (cur) lines.push(cur); cur = w; }
+    if (!cur) { cur = rest.shift(); }             // 한 단어도 못 넣으면 강제로 하나
+    lines.push(cur);
   }
-  if (cur) lines.push(cur);
-  // maxLines 를 넘치면 **버리지 않고** 마지막 줄에 이어 붙인다.
-  //   자막에서 말한 글자가 사라지는 건 줄이 조금 길어지는 것보다 나쁘다.
-  //   길어진 줄은 libass 가 알아서 접는다(WrapStyle 2).
-  if (lines.length > maxLines) {
-    const head = lines.slice(0, maxLines - 1);
-    head.push(lines.slice(maxLines - 1).join(' '));
-    return head;
-  }
+  if (rest.length) lines.push(rest.join(' '));    // 남은 건 마지막 줄에 — 버리지 않는다
   return lines;
 }
 
@@ -143,6 +152,16 @@ export function fillGaps(cues, maxGap = 1.5) {
   });
 }
 
+/**
+ * 밴드 높이에서 역산한 글꼴 확대 상한.
+ * 무한정 키우면 두 줄이 띠를 넘는다 — 실측 기준 ASS 줄 높이는 대략 fontSize × 1.2 다.
+ */
+export function fitScale({ bandTop, marginV, fontSize, lines = 2, playResY = 1080, lineHeight = 1.2 }) {
+  const avail = playResY - marginV - bandTop;
+  const maxFs = Math.floor(avail / lines / lineHeight);
+  return Math.max(1, maxFs / fontSize);
+}
+
 /** libass 가 오해할 문자를 무해하게 만든다. `{}` 는 override 태그로 먹히고 개행은 \N 이다. */
 function escapeAss(t) {
   return String(t).replace(/\{/g, '(').replace(/\}/g, ')').replace(/\r?\n/g, '\\N');
@@ -156,6 +175,16 @@ export function toAss(cues, opts = {}) {
   const {
     style = 'outline', font = 'Arial', fontSize = 62, playResX = 1920, playResY = 1080,
     marginV = 96, marginLR = 140,
+    // 큐마다 글자 크기를 문장 길이에 맞춘다. 줄 균형을 맞춰도 **문장 자체가 짧으면** 가로가 빈다 —
+    //   "They worry about the long-term / impact on their community."(34/30자, 상한 46)는
+    //   밴드 폭의 70% 만 쓴다. ASS 는 Dialogue 줄의 {\fs..} 인라인 태그로 크기를 덮을 수 있다.
+    autoFit = false, maxChars = 0, maxScale = 1.32,
+    // 밴드 안에서 **세로 가운데**에 앉힌다. Alignment=2 는 아래정렬이라, 2줄 높이로 만든
+    //   밴드에 1줄짜리 큐가 오면 바닥에 붙고 위쪽이 통째로 빈다(2026-08-28 지적).
+    //   MarginV 를 키워 1줄을 맞추면 이번엔 2줄이 밴드 위로 삐져나간다 —
+    //   줄 수가 바뀌는데 고정 여백으로는 둘 다 못 맞춘다.
+    //   \an5(가운데정렬) + \pos 로 **글자 블록의 중심**을 밴드 중심에 두면 줄 수와 무관하다.
+    vcenterY = 0,
   } = opts;
   // 두 가지 방식을 코드가 구분한다:
   //   outline — 사진 위에 바로 얹는다. 흰 글자 + 두꺼운 검은 외곽선이라야 어떤 배경에서도 읽힌다.
@@ -177,8 +206,19 @@ Style: Sub,${font},${fontSize},${S.primary},${S.primary},${S.outlineC},${S.back}
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;
-  const body = (cues ?? []).map(
-    (c) => `Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Sub,,0,0,0,,${escapeAss(c.text)}`,
-  );
+  // \pos 는 큐마다 붙어야 한다 — 스타일에는 위치 태그를 넣을 수 없다.
+  const posTag = vcenterY > 0 ? `{\\an5\\pos(${Math.round(playResX / 2)},${Math.round(vcenterY)})}` : '';
+  const body = (cues ?? []).map((c) => {
+    let tag = '';
+    if (autoFit && maxChars > 0) {
+      const longest = Math.max(...String(c.text).split(/\r?\n/).map((l) => l.length), 1);
+      // 상한을 두는 이유: 무한정 키우면 두 줄이 밴드 높이를 넘는다.
+      const scale = Math.min(maxScale, Math.max(1, maxChars / longest));
+      const fs = Math.round(fontSize * scale);
+      if (fs !== fontSize) tag = `{\\fs${fs}}`;
+      else tag = `{\\fs${fontSize}}`;   // 테스트·디버깅에서 크기를 항상 읽을 수 있게 명시한다
+    }
+    return `Dialogue: 0,${assTime(c.start)},${assTime(c.end)},Sub,,0,0,0,,${posTag}${tag}${escapeAss(c.text)}`;
+  });
   return [head, ...body, ''].join('\n');
 }

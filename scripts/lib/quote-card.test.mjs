@@ -112,5 +112,30 @@ const M = await import('./quote-card.mjs');
   else bad('이스케이프 실패 — 외부 데이터가 마크업으로 들어간다');
 }
 
+
+// ── 앵커 박스와 겹치지 않는다 ────────────────────────────────────────────────
+//   실측(2026-08-28): 앵커를 켠 편에서 인용문이 "…for as long as nee" 에서 잘렸다.
+//   전면 카드는 화면 전체를 쓰는데 앵커 박스는 그 위에 얹히므로, 카드가 스스로 비켜야 한다.
+{
+  const AB = { x: 1345, w: 519 };
+  const inset = 1920 - AB.x + 40;                       // 615
+  const html = M.quoteCardHtml({ text: 'x'.repeat(200) }, { width: 1920, rightInset: inset });
+  const padR = Number(/padding:0 (\d+)px/.exec(html)?.[1] ?? -1);
+  const maxW = Number(/max-width:(\d+)px/.exec(html)?.[1] ?? -1);
+  const padL = 150;
+  const rightEdge = Math.max(padL + maxW, 1920 - padR);
+  if (padR < 0 || maxW < 0) bad(`패딩·최대폭을 못 읽었다 (padding=${padR}, max-width=${maxW})`);
+  else if (rightEdge <= AB.x) ok(`카드 오른쪽 끝 ${rightEdge}px < 앵커 박스 ${AB.x}px`);
+  else bad(`카드가 앵커 박스를 침범한다 — 끝 ${rightEdge}px ≥ 박스 ${AB.x}px (padding-right=${padR}, max-width=${maxW})`);
+}
+
+// 박스가 없으면 종전 폭 그대로다(축소 회귀 방지).
+{
+  const html = M.quoteCardHtml({ text: 'x'.repeat(200) }, { width: 1920 });
+  const maxW = Number(/max-width:(\d+)px/.exec(html)?.[1] ?? -1);
+  if (maxW === 1520) ok('앵커 없으면 종전 폭(1520px) 그대로');
+  else bad(`앵커 없을 때 폭이 달라졌다 (got ${maxW}, 기대 1520)`);
+}
+
 console.log(fail ? `\n❌ quote-card ${fail} 실패` : '\n✅ quote-card 전부 통과');
 process.exit(fail ? 1 : 0);

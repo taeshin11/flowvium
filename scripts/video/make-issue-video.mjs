@@ -22,18 +22,25 @@ import Database from 'better-sqlite3';
 import ffmpegPath from 'ffmpeg-static';
 import { chromium } from 'playwright';
 import { spawnSync } from 'child_process';
-import { mkdirSync, writeFileSync, existsSync, statSync, readdirSync, rmSync, createWriteStream } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, readdirSync, rmSync, createWriteStream } from 'fs';
 import { Readable } from 'stream';
 import { pipeline as streamPipeline } from 'stream/promises';
-import { resolve } from 'path';
+import { resolve, join, sep } from 'path';
+import { tmpdir } from 'node:os';
 import { ROOT } from '../lib/project-root.mjs';
-import { synthesizeWithTimestamps } from '../lib/tts.mjs';
+import { synthesizeWithTimestamps, voiceGender } from '../lib/tts.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
-import { cuesFromAlignment, toAss, fillGaps } from '../lib/subtitle.mjs';
+import { cuesFromAlignment, toAss, fillGaps, fitScale } from '../lib/subtitle.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
+import { ungroundedScenes, stripUngrounded } from '../lib/script-grounding.mjs';
 import { bestQuote, quoteCardHtml } from '../lib/quote-card.mjs';
+import { thumbText, thumbnailHtml, thumbLines } from '../lib/thumbnail.mjs';
+import { searchMusic, pickTrack, musicCredit } from '../lib/music.mjs';
+import { anchorBox, anchorSource, anchorFrameCss, genderMismatch } from '../lib/anchor.mjs';
+import { resolveMediaRoot, ensureDir } from '../lib/media-root.mjs';
 import {
   searchTerms, sceneQueries, queryLadder, pickFootage, pickFootageMany, splitShots, creditLine, matchLocal,
+  grounded, isPlace, flatShare, isGraphicFrame, licenseUsable, envValue,
   searchOpenverse, searchCommons, searchPexelsVideo,
 } from '../lib/footage.mjs';
 
@@ -42,9 +49,25 @@ const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] :
 const locale = arg('--locale', 'en');
 const isKo = locale === 'ko';
 const TARGET_SEC = Number(arg('--seconds', '90'));
-const OUT = resolve(ROOT, arg('--out', `reports/video/issue-${locale}.mp4`));
-const WORK = resolve(ROOT, `reports/video/.work-${locale}`);
-const BROLL = resolve(ROOT, 'assets/broll');
+// 영상·사진은 **구글드라이브에만** 둔다(2026-08-28 요구: 로컬 디스크 부족).
+//   --local-media 를 줬을 때만 프로젝트 안에 쓴다. 드라이브가 죽었는데 조용히 로컬로
+//   떨어지면 "옮겼다" 고 믿는 사이 디스크가 다시 찬다 — 그래서 기본은 실패다.
+const MEDIA = resolveMediaRoot({
+  configured: envValue('MEDIA_ROOT'),
+  localFallback: resolve(ROOT, 'reports/video'),
+  allowLocal: argv.includes('--local-media'),
+});
+console.log(`  [저장] ${MEDIA.where === 'drive' ? '구글드라이브' : MEDIA.where === 'configured' ? 'MEDIA_ROOT' : '로컬'} · ${MEDIA.root}`);
+const MEDIA_ROOT = ensureDir(MEDIA.root);
+const OUT = arg('--out') ? resolve(ROOT, arg('--out')) : join(MEDIA_ROOT, `issue-${locale}.mp4`);
+// 중간물(컷별 mp4·프레임 png·mp3)은 **드라이브에 올리지 않는다.** 렌더 한 번에 수백 MB 가
+//   생겼다 지워지는 것들이라, 클라우드에 동기화하면 대역폭과 드라이브 용량만 먹고
+//   끝나면 어차피 지운다. 최종 산출물만 드라이브에 남는다.
+//   로컬 임시 디렉터리는 렌더가 끝나면 비운다 — 디스크에 쌓이지 않는다.
+const WORK = ensureDir(join(tmpdir(), `flowvium-video-${locale}`));
+// 사람이 넣어 두는 소재도 드라이브에 둔다. 프로젝트 안 assets/ 는 하위호환으로 계속 본다.
+const BROLL_DRIVE = join(MEDIA_ROOT, 'broll');
+const BROLL = existsSync(BROLL_DRIVE) ? BROLL_DRIVE : resolve(ROOT, 'assets/broll');
 // 표기 의무 없는 소재(CC0·PD)를 우선한다. 크레딧이 편당 9~12건씩 쌓이고,
 //   CC BY-SA 는 2차 생성물에까지 동일조건변경허락이 전파된다.
 //   금지가 아니라 우선순위라 CC0 가 없으면 CC BY 도 쓴다.
@@ -57,7 +80,35 @@ const W = 1920, H = 1080, FPS = 30, XFADE = 0.45;
 //   생성 클립(Veo)의 "Veo" 워터마크가 우하단 y≈1041~1071 에 박혀 밴드 아래로 삐져나왔다.
 //   바닥까지 내리면 그 자리를 덮는다 — 워터마크를 지우는 게 아니라 화면 구성으로 가리는 것이고,
 //   생성 클립을 안 쓰는 편에서도 하단이 정돈돼 보인다.
-const BAND = { top: 850, height: 1080 - 850, marginV: 56 };
+// 밴드가 글자를 **감싸되 남는 공간이 없게** 잡는다. ASS 줄 높이는 대략 fontSize*1.2 다.
+//   fs70 2줄 = 168px, 위여백 20 / 아래여백 26 → 밴드 866~1080.
+//   종전 850~1080(230px)은 위쪽에 55px 이 비어 "여백이 많다" 는 지적을 받았다.
+//   바닥까지 내려가는 건 유지한다 — Flow 생성 클립의 워터마크(y≈1041~1071)를 가려야 한다.
+const BAND = { top: 866, height: 1080 - 866, marginV: 26 };
+
+// 우측 앵커 박스. assets/anchor 에 파일이 있을 때만 켜진다 — 없으면 종전 전체화면 구성.
+//   W·H·BAND 를 읽으므로 **그 선언 뒤에** 있어야 한다. 위로 올리면 TDZ 로 죽는데,
+//   node --check 는 문법만 보므로 못 잡는다(2026-08-28 실제로 이렇게 죽었다).
+// 실사를 못 찾은 장면에 깔 생성 배경. node scripts/flow-cards.mjs 로 미리 만든다.
+const CARD_DIR = join(MEDIA_ROOT, 'cards');
+//   영상이 있으면 영상을 쓴다 — 움직이는 배경이 정지 이미지보다 낫다.
+const cardList = existsSync(CARD_DIR) ? readdirSync(CARD_DIR).sort() : [];
+const cardVideos = cardList.filter((f) => /^card-\d+\.mp4$/i.test(f));
+const cardImages = cardList.filter((f) => /^card-\d+\.(jpg|png)$/i.test(f));
+const CARD_KIND = cardVideos.length ? 'video' : 'image';
+const CARD_FILES = (cardVideos.length ? cardVideos : cardImages).map((f) => join(CARD_DIR, f));
+const ANCHOR_DRIVE = join(MEDIA_ROOT, 'anchor');
+const ANCHOR_DIR = existsSync(ANCHOR_DRIVE) ? ANCHOR_DRIVE : resolve(ROOT, 'assets/anchor');
+// anchorSource 는 **파일명**을 돌려준다(디렉터리를 모른다). ffmpeg 에 넘길 땐 경로여야 한다 —
+//   파일명 그대로 넘겼다가 소재를 전부 받고 렌더 직전에 "No such file" 로 죽었다(2026-08-28).
+const anchorName = existsSync(ANCHOR_DIR)
+  ? (anchorSource(readdirSync(ANCHOR_DIR), locale) ?? null) : null;
+const anchorFile = anchorName ? resolve(ANCHOR_DIR, anchorName) : null;
+if (anchorFile && !existsSync(anchorFile)) throw new Error(`앵커 파일 경로가 틀렸다: ${anchorFile}`);
+const ABOX = anchorFile ? anchorBox({ width: W, height: H, bandTop: BAND.top }) : null;
+// 앵커 박스가 먹는 우측 폭(+여백 40). 전면 카드(인용·마무리)는 이만큼 왼쪽으로 물러나야
+//   글자가 박스 밑으로 들어가지 않는다. 박스가 없으면 0 이라 종전 구성 그대로다.
+const SAFE_RIGHT = ABOX ? (W - ABOX.x + 40) : 0;
 
 /**
  * 낭독 속도(초당 글자). 대본 길이를 목표 초에서 역산하는 데만 쓴다 — 최종 길이는
@@ -117,15 +168,19 @@ ${brief}
 - 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
 - 한국 시청자 관점에서 쓴다. 한국과 관련되면 그 연결을 앞세운다.
 - 아나운서가 읽는 문장. 문어체 금지, 구어체 뉴스 톤.
+- **1번 장면이 훅이다.** 가장 강한 구체적 사실 하나로 시작하라 — 이름, 숫자, 결과.
+  "오늘은", "이번 소식은" 같은 도입부 금지. 첫 여섯 어절이 계속 볼지를 결정한다.
 - 숫자는 한글로 풀어 쓴다(TTS 오독 방지). 예: 17 billion → 백칠십억
-- entity: 이 장면의 **실제 대상**. 헤드라인에 나오는 인물·기관·장소의 정식 명칭을 영어로.
-  시청자가 실제로 봐야 하는 대상이다. 예: "Lee Jae-myung", "National Assembly of Korea", "Gwanghwamun".
-  실제 대상이 없는 장면(마무리 멘트 등)에서만 "" 로 둔다.
+- place: 이 사건이 **어디서** 일어났는가. 나라·도시·랜드마크를 영어로.
+  모든 뉴스에는 장소가 있고, 스톡은 **장소의 실제 현지 영상**을 갖고 있다(인물은 모델 스톡뿐이다).
+  예: "Seoul", "Gwanghwamun square", "Nepal Kathmandu". 장소가 정말 없을 때만 "".
+- entity: 실제 대상 — 인물·기관의 **고유명사만** 영어로. 예: "Lee Jae-myung", "Samsung Electronics".
+  "십대 소년", "원자력 규제기관" 같은 서술구 금지 — 아카이브에서 아무것도 안 걸린다. 없으면 "".
 - visual: 남는 컷을 채울 일반 b-roll 검색어. **영어 2~3단어 한 덩어리**만. 인물명 말고 장소·사물.
   전 세계 아카이브에서 검색되므로 모호하면 엉뚱한 나라 사진이 걸린다.
   좋음: "Seoul National Assembly building", "Gwanghwamun square"
   나쁨: "handshake stage"(인도네시아 아이돌 행사가 걸렸다), "news desk"
-- JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(${loChars}~${hiChars}자)","entity":"Real Subject Name","visual":"english b-roll words"}]
+- JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(${loChars}~${hiChars}자)","place":"City or Country","entity":"Proper Name","visual":"english b-roll words"}]
 - 장면 ${SCENES}개. 마지막 장면은 채널 마무리.${nudge ?? ''}`
   : `You write scripts for a US news-issue channel. Use ONLY the headlines below. Target ${TARGET_SEC} seconds.
 
@@ -135,18 +190,25 @@ Rules:
 - Use only facts present in the headlines. Do not invent numbers, quotes, or background.
 - Write for a US audience. Lead with why it matters to Americans.
 - Anchor-read sentences. Conversational broadcast tone, not written prose.
+- **Scene 1 is the hook.** Open with the single most striking concrete fact — a name, a number,
+  a consequence. No warm-up, no "today we look at", no "in the news". The first six words decide
+  whether anyone keeps watching.
 - Spell out figures for text-to-speech (e.g. "seventeen billion dollars", not "$17B").
-- "entity": the REAL subject of this scene as it appears in the headlines — a person, organization
-  or place. This is what viewers must actually see. Use the full proper name.
-  Examples: "Dolly Parton", "United States Secret Service", "Ryman Auditorium".
-  Leave it "" only when the scene names no real subject (e.g. the closing line).
+- "place": WHERE this story happens — a country, city or landmark, in English.
+  Every news story has a location, and stock libraries hold **real footage of places**
+  (they only hold model stock of people). This is what makes the screen look like the event.
+  Examples: "Nepal Kathmandu", "Washington DC", "Seoul". Leave "" only if truly location-less.
+- "entity": the REAL subject — a person or organization, as a **proper name only**.
+  Examples: "Dolly Parton", "United States Secret Service", "Meta".
+  Do NOT write descriptive phrases like "teen boy", "nuclear regulator", "hundreds of missing
+  Americans" — those match nothing in an archive. If there is no proper name, leave it "".
 - "visual": ONE English phrase of 2-3 words for generic b-roll, used to fill extra cuts.
   A PLACE, OBJECT or SCENE — not a person. Do NOT list comma-separated options.
   It is searched against a worldwide archive, so make it unambiguous and American —
   a generic phrase pulls the wrong country.
   Good: "US Capitol dome", "federal courtroom bench".
   Bad: "handshake stage" (matched an Indonesian idol event), "news desk", "open book".
-- Output ONLY a JSON array: [{"title":"on-screen title (<=18 chars)","say":"line to read (${loChars}-${hiChars} chars)","entity":"Real Subject Name","visual":"english b-roll words"}]
+- Output ONLY a JSON array: [{"title":"on-screen title (<=18 chars)","say":"line to read (${loChars}-${hiChars} chars)","place":"City or Country","entity":"Proper Name","visual":"english b-roll words"}]
 - Exactly ${SCENES} scenes. Last scene closes the channel.${nudge ?? ''}`;
 
 console.log(`  [대본] 목표 ${TARGET_SEC}초 → 장면 ${SCENES}개 × ${loChars}~${hiChars}자 · 로컬 LLM 호출…`);
@@ -182,13 +244,40 @@ const budgetChars = Math.round(TARGET_SEC * (CHARS_PER_SEC[isKo ? 'ko' : 'en'] ?
 const FLOOR = 0.85;                       // 이보다 짧으면 재시도. 목표 90초 기준 76.5초.
 const MAX_TRIES = 3;
 let scenes = [], chars = 0;
+let groundNudge = '';                     // 지어낸 이름을 지적해 다음 시도에 넘긴다
+// 사실 검증의 근거. 이 편이 다루는 모든 이슈의 헤드라인을 합친 것이다.
+const ALL_HEADLINES = issues.flatMap((c) => c.headlines ?? []).join(' | ');
 for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
-  const nudge = attempt === 1 ? '' : (isKo
+  const nudge = (attempt === 1 ? '' : (isKo
     ? `\n- 직전 시도는 총 ${chars}자로 너무 짧았다. 이번엔 총 ${Math.round(budgetChars * 1.15)}자 이상 쓰라. 장면마다 2~3문장.`
-    : `\n- Your previous attempt was only ${chars} characters, too short. Write at least ${Math.round(budgetChars * 1.15)} characters total this time — 2 to 3 sentences per scene.`);
+    : `\n- Your previous attempt was only ${chars} characters, too short. Write at least ${Math.round(budgetChars * 1.15)} characters total this time — 2 to 3 sentences per scene.`)) + groundNudge;
   try { scenes = await askLLM(nudge); } catch (e) { console.error(`❌ ${e.message}`); process.exit(1); }
   chars = scenes.reduce((n, x) => n + x.say.length, 0);
   if (scenes.length < 3) { console.log(`  [대본] 시도 ${attempt}: 장면 ${scenes.length}개 — 부족, 재시도`); continue; }
+  // [사실 검증] 헤드라인에 없는 고유명사·숫자가 있으면 지어낸 것이다.
+  //   실측(2026-08-28): 실시간 헤드라인 836건 어디에도 없는 "트럼프가 온타리오호를
+  //   Lake America 로 개명" 이 대본에 들어가 영상까지 나왔다. 프롬프트의 금지 문구는
+  //   지켜지지 않는다 — 코드가 봐야 한다. 지어낸 뉴스를 내보내는 건 되돌릴 수 없다.
+  const fake = ungroundedScenes(scenes, ALL_HEADLINES);
+  if (fake.length) {
+    const shown = fake.map((f) => `장면${f.scene}: ${f.words.join(', ')}`).join(' · ');
+    console.log(`  [대본] 시도 ${attempt}: 근거 없는 고유명사 — ${shown}`);
+    groundNudge = isKo
+      ? `\n- 직전 시도에 헤드라인에 없는 말이 있었다: ${fake.flatMap((f) => f.words).join(', ')}. 헤드라인에 실제로 있는 이름과 숫자만 쓰라.`
+      : `\n- Your previous attempt used names/numbers that are NOT in the headlines: ${fake.flatMap((f) => f.words).join(', ')}. Use ONLY names and numbers that literally appear in the headlines above.`;
+    if (attempt < MAX_TRIES) continue;
+    // 마지막 시도에서도 남으면 **그 문장만** 덜어낸다. 한 낱말 때문에 그날 영상이
+    //   통째로 안 나오는 건 과하다 — 지어낸 문장을 빼고 나머지로 간다.
+    const strip = stripUngrounded(scenes, ALL_HEADLINES);
+    scenes = strip.scenes.filter((x) => (x.say ?? '').trim().length > 0);
+    chars = scenes.reduce((n, x) => n + x.say.length, 0);
+    console.log(`  [대본] 근거 없는 문장 ${strip.removed}개 제거 → 장면 ${scenes.length}개 · ${chars}자`);
+    if (scenes.length < 3) {
+      console.error(`❌ 근거 없는 문장을 빼니 장면이 ${scenes.length}개뿐이다 — 낼 수 없다.`);
+      process.exit(1);
+    }
+    break;
+  }
   if (chars >= budgetChars * FLOOR) break;
   console.log(`  [대본] 시도 ${attempt}: ${chars}자 < 하한 ${Math.round(budgetChars * FLOOR)}자 — 재시도`);
 }
@@ -205,7 +294,7 @@ const scriptChars = scenes.reduce((n, x) => n + x.say.length, 0);
 console.log(`  [대본] 장면 ${scenes.length}개 · ${scriptChars}자 (예산 ${budgetChars})`);
 
 mkdirSync(WORK, { recursive: true });
-mkdirSync(resolve(ROOT, 'reports/video'), { recursive: true });
+// 산출물 디렉터리는 MEDIA_ROOT 가 만든다(위 ensureDir). 여기서 로컬을 또 만들지 않는다.
 
 // ── 3. 음성 + 글자 타임스탬프 ───────────────────────────────────────────────
 for (let i = 0; i < scenes.length; i++) {
@@ -244,6 +333,20 @@ async function download(url, dest) {
   return dest;
 }
 
+/**
+ * 내려받은 그림이 사진인지 그래픽인지 **픽셀로** 본다.
+ * 확장자·제목으로는 못 가른다 — JPG 로 저장된 로고가 실제로 화면을 채웠다(2026-08-28).
+ * 판정 못 하면(ffmpeg 실패) null 을 낸다 — 모를 때 버리면 화면이 카드로 떨어진다.
+ */
+const probeFlat = (file, isVideo) => {
+  const r = spawnSync(ffmpegPath, [
+    '-hide_banner', '-loglevel', 'error', ...(isVideo ? ['-ss', '1'] : []), '-i', file,
+    '-frames:v', '1', '-vf', 'scale=96:54', '-f', 'rawvideo', '-pix_fmt', 'gray', '-',
+  ], { maxBuffer: 1 << 20 });
+  if (r.status !== 0 || !r.stdout?.length) return null;
+  return flatShare(r.stdout);
+};
+
 const localFiles = existsSync(BROLL) ? readdirSync(BROLL) : [];
 const credits = [];
 // 한 화면이 12초 동안 안 바뀌면 그게 "PPT" 다. 장면당 여러 컷을 모아 나눈다.
@@ -251,11 +354,45 @@ const MAX_SHOTS = Number(process.env.VIDEO_MAX_SHOTS ?? 3);
 const MIN_SHOT = 3.2;
 const shots = [];                    // 화면 트랙. 음성/자막은 장면 단위, 화면은 컷 단위로 간다.
 const usedQuotes = new Set();        // 같은 발언 카드를 두 번 띄우지 않는다
+let thumbSrc = null;                 // 썸네일에 쓸 실사 사진(아카이브 이미지)
+let thumbVideo = null;               // 썸네일에 쓸 **영상** 원본 — 사진보다 우선한다
 let shotSeq = 0;
 
 for (let i = 0; i < scenes.length; i++) {
   // 뉴스 화면은 "그 사건" 이어야 한다 — 실제 대상(entity)을 먼저 찾고, 남는 컷을 일반 b-roll 로 채운다.
+  const issueForScene = issues[Math.min(issues.length - 1, Math.floor(i * issues.length / scenes.length))];
+  const sourceText = (issueForScene?.headlines ?? []).join(' | ');
   const queries = sceneQueries(scenes[i]);
+  // place 는 두 관문을 통과해야 화면이 된다.
+  //   ① 근거(헤드라인)에 실제로 있는가 — 없으면 LLM 이 지어낸 말이다.
+  //   ② 지리적 장소인가 — "Prison" 처럼 장소가 아닌 말은 스톡에서 **연출 영상**을 불러온다.
+  // 통과 못 하면 질의를 버린다. entity(아카이브 실사) 로 내려가는 편이 훨씬 정확하다.
+  if (scenes[i].place) {
+    const pq = searchTerms({ visual: String(scenes[i].place) }, { max: 3 });
+    const key = pq.join(' ').toLowerCase();
+    const at = queries.findIndex((q) => q.join(' ').toLowerCase() === key);
+    if (at >= 0) {
+      const g = grounded(scenes[i].place, sourceText);
+      const p = await isPlace(scenes[i].place);
+      if (p === false) {
+        // 장소가 아닌 말은 **버린다.** 스톡에 물으면 연출 영상(배우)이 나오고,
+        //   그건 실존 인물 기사에서 그 사람으로 읽힌다 — 틀린 그림보다 나쁘다.
+        queries.splice(at, 1);
+        console.log(`  [화면] ${i + 1} 장소 "${scenes[i].place}" 버림 — 지리적 장소 아님`);
+      } else if (!g) {
+        // 헤드라인에 없는 장소는 **강등한다.** 지어낸 것일 수도 있지만("Lake Ontario"),
+        //   맥락상 맞을 수도 있다("연준" → "Washington DC"). 둘을 코드가 못 가른다.
+        //   버리면 8/8 장면이 아카이브 정지사진으로 떨어져 다시 슬라이드쇼가 된다(실측).
+        //   entity 뒤로 미루면 실제 대상이 먼저 잡히고, 남는 컷만 이 장소로 채운다.
+        queries.push(queries.splice(at, 1)[0]);
+        console.log(`  [화면] ${i + 1} 장소 "${scenes[i].place}" 강등 — 헤드라인에 없음`);
+      }
+    }
+  }
+  // entity 질의가 어느 것인지 기억해 둔다 — 소스 분기의 기준이다(순서로 판단하면 place 유무에 흔들린다).
+  const entityQ = scenes[i].entity
+    ? queries.find((q) => q.join(' ').toLowerCase() === searchTerms({ visual: String(scenes[i].entity) }, { max: 4 }).join(' ').toLowerCase())
+    : null;
   const terms = queries[0] ?? searchTerms(scenes[i]);
   scenes[i].terms = terms;
   const want = splitShots(scenes[i].dur, MAX_SHOTS, MIN_SHOT);
@@ -268,7 +405,6 @@ for (let i = 0; i < scenes.length; i++) {
 
   // 이 장면이 다루는 이슈에 대표 발언이 있으면 **첫 컷을 인용 카드**로 잡는다.
   //   발언이 주인공인 화면이라 사진 위에 얹지 않고 화면 전체를 쓴다.
-  const issueForScene = issues[Math.min(issues.length - 1, Math.floor(i * issues.length / scenes.length))];
   const quote = issueForScene?.quote && !usedQuotes.has(issueForScene.quote.text) ? issueForScene.quote : null;
 
   // 사람이 assets/broll 에 넣은 클립(Flow 생성물 포함). 라이선스 판단은 넣은 사람이 한 것으로 본다.
@@ -278,37 +414,43 @@ for (let i = 0; i < scenes.length; i++) {
 
   // entity → visual 순으로, 각 질의는 넓은 것부터 좁은 것까지 내려간다.
   //   3단어 AND 매칭은 쉽게 0건이 된다(실측).
-  let picks = [], usedQ = terms;
+  let picks = [], usedQ = terms, pool = [];
   if (!local && !isClosing) {
     outer:
     for (let qi = 0; qi < queries.length; qi++) {
       const base = queries[qi];
-      // **실존 인물·기관은 아카이브 사진으로만 찾는다.** Pexels 는 모델 스톡이라
-      //   "Dolly Parton" 을 물으면 분홍 머리 모델이 나온다(실측 2026-08-27).
-      //   동영상이 사진보다 우선하도록 해놨더니 그 스톡이 실제 인물 사진을 밀어냈다.
-      //   entity(qi=0)는 Commons/Openverse, 일반 b-roll(qi>0)은 Pexels 동영상 우선.
-      const sources = qi === 0
+      // 소스를 질의 성격으로 가른다.
+      //   **인물·기관(entity)은 아카이브 사진으로만.** Pexels 는 모델 스톡이라 "Dolly Parton" 을
+      //     물으면 분홍 머리 모델이 나온다(실측 2026-08-27) — 부고에 다른 사람 얼굴이 뜬다.
+      //   **장소(place)와 b-roll 은 동영상 우선.** 장소는 스톡이 진짜 현지 영상을 갖고 있다.
+      const isEntityQ = base === entityQ;
+      const sources = isEntityQ
         ? [searchCommons, searchOpenverse]
         : [searchPexelsVideo, searchCommons, searchOpenverse];
       for (const q of queryLadder(base)) {
         let cands = [];
+        // 인물 아카이브에서는 **1컷만** — 누구인지 보여주는 설정샷 하나면 된다.
+        //   아카이브 사진 3장을 이어 붙이면 다시 슬라이드쇼가 된다.
+        const wantHere = isEntityQ ? 1 : want.length;
         for (const fn of sources) {
           try { cands = cands.concat(await fn(q, { limit: 12 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
           // terms 를 넘겨야 관련성 검사가 걸린다 — 안 넘기면 매체 종류만 보고 통과시킨다.
-          const got = pickFootageMany(cands, want.length, { terms: q, preferFree: PREFER_FREE });
-          if (got.length) { picks = got; usedQ = q; break outer; }
+          const got = pickFootageMany(cands, wantHere, { terms: q, preferFree: PREFER_FREE });
+          if (got.length) { picks = got; usedQ = q; pool = cands; break outer; }
         }
       }
     }
     // 실제 대상으로 컷을 다 못 채웠으면 일반 b-roll 로 보충한다.
-    if (picks.length && picks.length < want.length && queries[1]) {
+    if (picks.length && picks.length < want.length) {
       const seen = new Set(picks.map((x) => x.url));
+      // 보충은 **동영상 우선**. pickFootage 가 kind==='video' 를 앞세우므로 Pexels 가 먼저 잡힌다.
+      const fill = queries[1] ?? queries[0];
       let extra = [];
       for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
-        try { extra = extra.concat(await fn(queries[1], { limit: 12 })); } catch { /* noop */ }
+        try { extra = extra.concat(await fn(fill, { limit: 12 })); } catch { /* noop */ }
       }
       for (const p of pickFootageMany(extra.filter((x) => !seen.has(x.url)),
-        want.length - picks.length, { terms: queries[1], preferFree: PREFER_FREE })) picks.push(p);
+        want.length - picks.length, { terms: fill, preferFree: PREFER_FREE })) picks.push(p);
     }
   }
 
@@ -330,12 +472,36 @@ for (let i = 0; i < scenes.length; i++) {
       shots.push({ kind: 'video', file: resolve(BROLL, local), dur: durs[k], zin: shotSeq % 2 === 0 });
       labels.push(`local:${local}`);
     } else if (picks[k]) {
-      const pick = picks[k];
+      let pick = picks[k];
       const ext = pick.kind === 'video' ? 'mp4' : 'jpg';
       const file = `${WORK}/bg${shotSeq}.${ext}`;
       try {
         await download(pick.url, file);
-        shots.push({ kind: pick.kind, file, dur: durs[k], zin: shotSeq % 2 === 0 });
+        // 로고·차트는 화면이 될 수 없다. 픽셀로 보고, 걸리면 같은 검색 결과의 다음 후보로 간다.
+        //   여기서 안 거르면 남의 방송사 로고(CBS)가 우리 배경으로 깔린다(2026-08-28 실측).
+        let tries = 0;
+        while (tries < 3 && isGraphicFrame(probeFlat(file, pick.kind === 'video') ?? 0)) {
+          const usedUrls = new Set(shots.map((x) => x.url).concat(picks.map((x) => x.url)));
+          // 대체 후보도 **본선과 같은 기준**을 통과해야 한다. licenseUsable 만 보면
+          //   350px 짜리가 배경으로 올라온다(실측 2026-08-28) — 라이선스는 화질이 아니다.
+          const [alt] = pickFootageMany(
+            pool.filter((c) => !usedUrls.has(c.url) && c.url !== pick.url),
+            1, { terms: usedQ, preferFree: PREFER_FREE },
+          );
+          if (!alt) break;
+          console.log(`  [화면] ${i + 1} 그래픽으로 판정 → 다음 후보 (${pick.width}px ${pick.license})`);
+          pick = alt;
+          picks[k] = alt;
+          await download(alt.url, file);
+          tries++;
+        }
+        shots.push({ kind: pick.kind, file, url: pick.url, dur: durs[k], zin: shotSeq % 2 === 0 });
+        // 썸네일 배경: **첫 장면의 실사 사진**. 동영상은 프레임을 뽑아야 해서 사진을 우선한다.
+        // 인용 카드가 1번 컷이면 사진이 안 잡히므로 장면을 한정하지 않는다.
+        if (!thumbSrc && pick.kind === 'image') thumbSrc = file;
+        // 아카이브 사진에는 회화·판화가 섞인다(실측 2026-08-28: 썸네일 배경이 19세기 수채화였다).
+        //   스톡 **영상**은 전부 사진이므로, 영상이 있으면 그 프레임을 먼저 쓴다.
+        if (!thumbVideo && pick.kind === 'video') thumbVideo = file;
         const cr = creditLine(pick);
         if (cr) credits.push(cr);
         labels.push(`${pick.width}px ${pick.license}`);
@@ -359,21 +525,41 @@ let off = 0;
 const cues = [];
 for (const s of scenes) {
   // 2줄 밴드. 한 줄짜리 짧은 큐가 계속 깜빡이면 오히려 안 읽힌다 — 두 줄을 채워 체류를 늘린다.
+  // 줄당 글자 수를 밴드 폭에 맞춘다. 실측(2026-08-27): fs54·40자면 가용 1580px 중 1080px 만 써
+  //   밴드의 3분의 1이 놀았다. fs66·48자면 1584/1700 = 93% 를 채운다.
+  //   한글은 글자 폭이 라틴의 약 2배라 절반으로 잡는다.
   cues.push(...cuesFromAlignment(s.alignment, {
-    maxChars: isKo ? 26 : 40, maxLines: 2, maxDur: 4.2, offset: off,
+    maxChars: isKo ? 25 : 46, maxLines: 2, maxDur: 4.2, offset: off,
   }));
   off += s.dur;
 }
 // 장면 경계의 0.45초 꼬리 때문에 밴드만 남고 글자가 사라지는 구간이 생긴다(실측 t=48초).
 // 짧은 빈틈은 앞 큐를 늘려 덮는다.
 const filled = fillGaps(cues, 1.6);
+// 큐마다 글자 크기를 문장 길이에 맞춘다 — 줄 균형을 맞춰도 문장이 짧으면 가로가 빈다.
+//   상한은 밴드 높이에서 역산한다(두 줄이 띠를 넘지 않게).
+const SUB_FS = isKo ? 66 : 70;
+const SUB_MAXCHARS = isKo ? 25 : 46;
 writeFileSync(`${WORK}/subs.ass`, toAss(filled, {
+  autoFit: true, maxChars: SUB_MAXCHARS,
+  maxScale: fitScale({ bandTop: BAND.top, marginV: BAND.marginV, fontSize: SUB_FS, lines: 2 }),
   style: 'band',                     // 하단 밝은 띠 안의 어두운 글자 — 띠는 아래 furniture 가 그린다
   font: isKo ? 'Apple SD Gothic Neo' : 'Arial',
-  fontSize: isKo ? 56 : 54,
-  marginV: BAND.marginV, marginLR: 170,
+  fontSize: SUB_FS,
+  marginV: BAND.marginV, marginLR: 110,
+  // 밴드의 세로 중심. 1줄이든 2줄이든 글자 블록이 여기에 맞춰진다.
+  vcenterY: BAND.top + BAND.height / 2,
 }));
 console.log(`  [자막] 큐 ${cues.length}개`);
+if (ABOX) {
+  // 앵커와 목소리의 성별이 어긋나면 **멈춘다.** 화면과 소리가 따로 노는 건
+  //   렌더가 끝나고 사람이 봐야만 드러나고, 그때는 이미 업로드된 뒤다.
+  const vg = await voiceGender(locale).catch(() => null);
+  const bad = genderMismatch(anchorName, vg);
+  if (bad && !argv.includes('--allow-voice-mismatch')) { console.error(`❌ ${bad}`); process.exit(1); }
+  console.log(`  [앵커] ${anchorName} (${vg ?? '목소리 성별 미상'}) → ${ABOX.w}x${ABOX.h} @${ABOX.x},${ABOX.y}`);
+}
+else console.log('  [앵커] 없음 — assets/anchor 에 파일을 넣으면 켜진다');
 
 // ── 6. 화면 위 그래픽(로워서드·채널명·스크림) — 투명 PNG 로 한 장씩 ─────────
 // 레퍼런스(YTN "지금 이 뉴스"): 큰 제목 로워서드 없음. 상단에 작은 칩 두 개,
@@ -394,25 +580,30 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;positi
   background:rgba(14,19,28,.62);padding:12px 22px;border-radius:3px}
 .brand{font-size:34px;font-weight:900;letter-spacing:.24em;color:#fff}
 /* 자막 밴드: 밝은 반투명 띠 + 위아래 얇은 괘선. 어두운 글자가 어떤 배경에서도 읽힌다. */
+${ABOX ? anchorFrameCss(ABOX) : ''}
 .band{position:absolute;left:0;right:0;top:${BAND.top}px;height:${BAND.height}px;
   background:rgba(231,237,244,.90);border-top:4px solid rgba(74,90,112,.85);
   border-bottom:4px solid rgba(74,90,112,.85)}
 </style>
 <div class="kick">${esc(KICK)}</div>
 <div class="right"><div class="brand">FLOWVIUM</div></div>
-<div class="band"></div>`;
+<div class="band"></div>${ABOX ? '<div class="anchor"></div>' : ''}`;
 
 /**
  * 마무리 화면. 채널 자체 그래픽이다.
  * 스톡 뉴스룸 클립에는 "TOMATO NEWS" 같은 **가짜 방송사 브랜딩이 박혀** 있어 쓸 수 없다(실측).
  */
+// box-sizing 이 없으면 padding 이 뷰포트 밖으로 밀려나 **가운데정렬이 안 움직인다** —
+//   그래서 SAFE_RIGHT 를 줬는데도 로고가 앵커 박스 밑으로 들어갔다(2026-08-28 실측).
+//   주석은 반드시 스타일 블록 **밖**에 둔다 — CSS 에는 줄주석이 없고, 파서가 그 뒤 블록을
+//   통째로 버려서 리셋과 body 규칙이 함께 사라진다(이것도 2026-08-28 실측).
 const signoffBg = () => `<!doctype html><meta charset="utf-8"><style>
-*{margin:0;padding:0}html,body{width:${W}px;height:${H}px}
+*{margin:0;padding:0;box-sizing:border-box}html,body{width:${W}px;height:${H}px}
 body{background:radial-gradient(1400px 800px at 50% 42%,#1b2a48 0%,rgba(0,0,0,0) 66%),
   linear-gradient(150deg,#070b16,#111c33 55%,#070b16);
   font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#eef3ff;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding-bottom:${H - BAND.top + 30}px}
+  padding:0 ${SAFE_RIGHT}px ${H - BAND.top + 30}px 0}
 .w{font-size:132px;font-weight:900;letter-spacing:.30em;text-indent:.30em}
 .r{margin-top:34px;width:150px;height:7px;background:linear-gradient(90deg,#ff4d5e,#c81e3a)}
 .s{margin-top:34px;font-size:34px;color:#9fb2d4;letter-spacing:.22em}
@@ -434,7 +625,7 @@ await page.setContent(furniture());
 await page.screenshot({ path: `${WORK}/fx.png`, omitBackground: true });
 for (let i = 0; i < shots.length; i++) {
   if (shots[i].kind === 'quote') {
-    await page.setContent(quoteCardHtml(shots[i].quote, { width: W, height: H, bandTop: BAND.top }));
+    await page.setContent(quoteCardHtml(shots[i].quote, { width: W, height: H, bandTop: BAND.top, rightInset: SAFE_RIGHT }));
     await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 94 });
     shots[i] = { ...shots[i], kind: 'image', file: `${WORK}/bg${i}.jpg`, isQuote: true };
     continue;
@@ -446,6 +637,13 @@ for (let i = 0; i < shots.length; i++) {
     continue;
   }
   if (shots[i].kind !== 'card') continue;
+  // 실사를 못 찾은 자리. Flow(Nano Banana)로 미리 만들어 둔 배경이 있으면 그것을 쓴다 —
+  //   그라디언트보다 화면이 산다. 없으면 종전 그라디언트로 간다(생성은 렌더 밖에서 한다).
+  //   실사를 **대체하지는 않는다**: 여기까지 온 건 실사가 없다는 뜻이다.
+  if (CARD_FILES.length) {
+    shots[i] = { ...shots[i], kind: CARD_KIND, file: CARD_FILES[i % CARD_FILES.length] };
+    continue;
+  }
   await page.setContent(cardBg(i));
   await page.screenshot({ path: `${WORK}/bg${i}.jpg`, type: 'jpeg', quality: 92 });
   shots[i] = { ...shots[i], kind: 'image', file: `${WORK}/bg${i}.jpg` };
@@ -474,15 +672,25 @@ const renderShot = (i, sh) => {
   const inputs = sh.kind === 'video'
     ? ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', sh.file]
     : ['-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', sh.file];
+  // 앵커: 3:4 중앙 크롭 → 박스 크기로. 중앙 크롭은 Veo 워터마크(우하단 x≈1240~1268)를
+  //   **자동으로 잘라낸다** — 1280x720 에서 3:4 크롭은 x 370~910 이라 그 자리가 없다.
+  const anchorIn = ABOX ? ['-stream_loop', '-1', '-t', len.toFixed(3), '-i', anchorFile] : [];
+  const anchorChain = ABOX
+    ? `[2:v]crop='min(iw,ih*3/4)':ih:'(iw-min(iw,ih*3/4))/2':0,scale=${ABOX.w}:${ABOX.h},`
+      + `fps=${FPS},setpts=PTS-STARTPTS[an];`
+    : '';
   // fx 입력에도 -loop/-t 를 준다. **없으면 오버레이가 통째로 사라진다** —
   //   단일 프레임 PNG 은 t=0 프레임 하나뿐이라 fade(alpha) 가 그걸 alpha=0 으로 만들고,
   //   overlay 의 eof_action=repeat 이 그 투명 프레임을 컷 내내 반복한다.
+  // 순서: 배경 → 앵커 → 그래픽(액자·밴드). 그래픽이 맨 위라 앵커 테두리가 그 위에 그려진다.
   ff([
     '-y', '-hide_banner', '-loglevel', 'error', ...inputs,
     '-framerate', String(FPS), '-loop', '1', '-t', len.toFixed(3), '-i', `${WORK}/fx.png`,
+    ...anchorIn,
     '-filter_complex',
-    `${bgChain};[1:v]format=rgba[fx];`
-    + `[bg][fx]overlay=0:0:format=auto,format=yuv420p,trim=duration=${len.toFixed(3)},setpts=PTS-STARTPTS[v]`,
+    `${bgChain};${anchorChain}[1:v]format=rgba[fx];`
+    + (ABOX ? `[bg][an]overlay=${ABOX.x}:${ABOX.y}:format=auto[bga];[bga][fx]` : '[bg][fx]')
+    + `overlay=0:0:format=auto,format=yuv420p,trim=duration=${len.toFixed(3)},setpts=PTS-STARTPTS[v]`,
     '-map', '[v]', '-an', '-r', String(FPS), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19',
     '-pix_fmt', 'yuv420p', `${WORK}/v${i}.mp4`,
   ], `shot ${i}`);
@@ -559,6 +767,26 @@ writeFileSync(`${WORK}/a.txt`, scenes.map((s) => `file '${s.audio}'`).join('\n')
 ff(['-y', '-hide_banner', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/a.txt`,
     '-c', 'copy', `${WORK}/voice.mp3`], 'audio concat');
 
+// ── 배경음악 ────────────────────────────────────────────────────────────────
+// "살짝만" — 존재를 의식하지 못할 정도. 나레이션이 항상 위에 있어야 한다.
+//   MUSIC_DB(-26dB) 는 나레이션 대비 약 5% 크기다. 이보다 크면 말이 묻힌다.
+const MUSIC_DB = Number(process.env.VIDEO_MUSIC_DB ?? -26);
+let musicFile = null, musicInfo = null;
+if (MUSIC_DB > -60) {
+  try {
+    const tracks = await searchMusic(process.env.VIDEO_MUSIC_QUERY ?? 'cinematic ambient');
+    const t = pickTrack(tracks, { needSec: totalSec });
+    if (t) {
+      await download(t.url, `${WORK}/music.mp3`);
+      musicFile = `${WORK}/music.mp3`;
+      musicInfo = t;
+      const cr = musicCredit(t);
+      if (cr) credits.push(cr);
+      console.log(`  [음악] ${(t.duration / 1000).toFixed(0)}초 · ${t.license} · "${String(t.title).slice(0, 34)}"`);
+    } else console.log('  [음악] 쓸 만한 트랙 없음 — 음악 없이 간다');
+  } catch (e) { console.log(`  [음악] 실패(${e.message.slice(0, 50)}) — 음악 없이 간다`); }
+}
+
 const vin = shots.flatMap((_, i) => ['-i', `${WORK}/v${i}.mp4`]);
 let chain = '', prev = '0:v', acc = 0;
 for (let i = 1; i < shots.length; i++) {
@@ -571,24 +799,100 @@ if (shots.length === 1) chain = '[0:v]null[vx];';
 // ass 필터에 fontsdir 를 준다. fontconfig 기본 설정이 없다는 경고가 뜨는 빌드라
 //   맡겨두면 어떤 폰트로 떨어질지 보장이 안 된다(한글이면 두부가 된다).
 chain += `[vx]ass=${WORK}/subs.ass:fontsdir=/System/Library/Fonts[v]`;
+const voiceIdx = shots.length;
+const musicIdx = voiceIdx + 1;
+// 음악은 나레이션 **아래**로 깐다. 곡이 짧으면 반복하고, 영상 길이에 맞춰 자른 뒤
+//   끝에서 2초 페이드아웃 — 뚝 끊기면 그 순간이 오히려 도드라진다.
+const audioChain = musicFile
+  ? `[${musicIdx}:a]volume=${MUSIC_DB}dB,afade=t=out:st=${Math.max(0, totalSec - 2).toFixed(2)}:d=2[bg];`
+    + `[${voiceIdx}:a][bg]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]`
+  : null;
 ff(['-y', '-hide_banner', '-loglevel', 'error', ...vin, '-i', `${WORK}/voice.mp3`,
-    '-filter_complex', chain, '-map', '[v]', '-map', `${shots.length}:a`,
+    ...(musicFile ? ['-stream_loop', '-1', '-i', musicFile] : []),
+    '-filter_complex', audioChain ? `${chain};${audioChain}` : chain,
+    '-map', '[v]', '-map', audioChain ? '[a]' : `${voiceIdx}:a`,
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', OUT], 'final');
 
-// 중간 파일은 지운다 — 장면 mp4 는 편당 수십 MB 라 매일 돌리면 디스크를 먹는다.
-for (const f of readdirSync(WORK)) if (/^(v\d+\.mp4|bg\d+\.(jpg|mp4))$/.test(f)) { try { rmSync(`${WORK}/${f}`); } catch { /* noop */ } }
+
+// ── 썸네일 ──────────────────────────────────────────────────────────────────
+// 클릭률이 조회수의 첫 관문이다. 영상에서 이미 내려받은 **실사 사진을 재사용**한다.
+//   Flow 로 배경을 생성하는 길도 있다 — 실측(2026-08-28) 결과 Nano Banana 는
+//   이 계정에서 **크레딧을 쓰지 않았다**(25030 → 25030, 이미지 생성 확인).
+//   그래도 기본은 실사다. 뉴스 썸네일에 생성 이미지를 쓰면 "그 사건의 사진" 이 아니게 된다.
+const THUMB = OUT.replace(/\.mp4$/, '-thumb.jpg');
+try {
+  // 배경: 인용 카드·사인오프가 아닌 **실제 화면** 하나. 사진이면 그대로, 동영상이면 프레임을 뽑는다.
+  // 우선순위: 스톡 영상 프레임 → 아카이브 사진 → 완성된 컷.
+  //   아카이브 사진은 회화가 섞일 수 있어 뒤로 민다.
+  let bg = null;
+  if (thumbVideo && existsSync(thumbVideo)) {
+    bg = `${WORK}/thumb-frame.jpg`;
+    spawnSync(ffmpegPath, ['-y', '-hide_banner', '-loglevel', 'error',
+      '-ss', '1.2', '-i', thumbVideo, '-frames:v', '1',
+      '-vf', `scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720`, bg]);
+    if (!existsSync(bg)) bg = null;
+  }
+  if (!bg) bg = thumbSrc;
+  if (!bg) {
+    const idx = shots.findIndex((sh) => !sh.isQuote);
+    if (idx >= 0 && existsSync(`${WORK}/v${idx}.mp4`)) {
+      bg = `${WORK}/thumb-frame.jpg`;
+      spawnSync(ffmpegPath, ['-y', '-hide_banner', '-loglevel', 'error',
+        '-ss', (shots[idx].dur * 0.4).toFixed(2), '-i', `${WORK}/v${idx}.mp4`, '-frames:v', '1',
+        '-vf', `crop=${W}:${BAND.top}:0:0`, bg]);
+    }
+  }
+  // **data URI 로 인라인한다.** setContent 로 만든 about:blank 페이지에서는 file:// 이 차단돼
+  //   배경이 조용히 비었다(실측 2026-08-27: 썸네일이 검게 나왔다).
+  let dataUri = null;
+  if (bg && existsSync(bg)) {
+    const buf = readFileSync(bg);
+    const mime = /\.png$/i.test(bg) ? 'image/png' : 'image/jpeg';
+    dataUri = `data:${mime};base64,${buf.toString('base64')}`;
+  }
+  const head = issues[0]?.headlines?.[0] ?? scenes[0]?.title ?? '';
+  const b3 = await chromium.launch();
+  const p3 = await b3.newPage({ viewport: { width: 1280, height: 720 } });
+  await p3.setContent(thumbnailHtml({
+    text: head, kicker: isKo ? '속보' : 'BREAKING', image: dataUri,
+  }, { width: 1280, height: 720 }));
+  await p3.screenshot({ path: THUMB, type: 'jpeg', quality: 92 });
+  await b3.close();
+  console.log(`  [썸네일] ${THUMB} · "${thumbLines(head).join(' / ')}" · 배경 ${dataUri ? (bg === thumbVideo || /thumb-frame/.test(String(bg)) ? '영상프레임' : '사진') : '없음'}`);
+} catch (e) { console.log(`  ⚠ 썸네일 실패: ${e.message.slice(0, 60)}`); }
+
 
 const measured = spawnSync(ffmpegPath, ['-hide_banner', '-i', OUT], { encoding: 'utf8' }).stderr ?? '';
 const dur = (measured.match(/Duration:\s*(\d+):(\d+):([\d.]+)/) ?? []).slice(1);
 const realSec = dur.length ? (+dur[0] * 3600 + +dur[1] * 60 + +dur[2]) : totalSec;
 
-if (credits.length) writeFileSync(`${WORK}/credits.txt`, credits.join('\n'));
+// 표기 의무는 **영상 옆에** 남긴다. 임시폴더에 두면 렌더 뒤 사라지고,
+//   설명란에 붙일 사람이 찾을 수 없다.
+const CREDITS = OUT.replace(/\.mp4$/, '-credits.txt');
+// 표기 의무가 **없으면 파일을 지운다.** 안 지우면 지난 편의 출처가 그대로 남아,
+//   이번 편에 없는 사진을 설명란에 적게 된다(2026-08-28: Billy Porter 사진이 그렇게 남았다).
+//   "쓸 게 없으면 안 쓴다" 는 "지난 값이 남는다" 와 같은 뜻이다.
+if (credits.length) writeFileSync(CREDITS, credits.join('\n'));
+else { try { rmSync(CREDITS); } catch { /* 원래 없었으면 그만이다 */ } }
 console.log(`\n✅ ${OUT}`);
 console.log(`   ${realSec.toFixed(1)}초 (목표 ${TARGET_SEC}) · ${(statSync(OUT).size / 1048576).toFixed(1)}MB`
   + ` · ${shots.length}컷/${scenes.length}장면 · 자막 ${cues.length}큐 · 소재: ${issues.map((c) => c.keyword).join(', ')}`);
 console.log(`   실측 낭독속도 ${(scriptChars / (totalSec - scenes.length * 0.45)).toFixed(1)}자/초`
   + ` (설정값 ${CHARS_PER_SEC[isKo ? 'ko' : 'en']})`);
 
-if (credits.length) console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${WORK}/credits.txt (영상 설명란에 넣을 것)`);
+if (credits.length) console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${CREDITS} (영상 설명란에 넣을 것)`);
 else console.log('   표기 의무 0건 — 전부 CC0/PD');
+
+// 작업 폴더를 통째로 비운다. 여기 있는 것은 **전부 재생성 가능한 중간물**이다 —
+//   컷 mp4·배경 이미지·장면별 mp3·자막 ass·오버레이 png. 남길 것(영상·썸네일·크레딧)은
+//   이미 MEDIA_ROOT 에 따로 쓴다.
+//   종전엔 v*.mp4 와 bg* 만 지워서 음성·자막·음악이 편당 7MB 씩 남았다(2026-08-28 실측).
+//   **썸네일과 크레딧을 만든 뒤**에 지워야 한다 — 순서가 반대면 썸네일 배경이 이미 없다.
+//   --out 을 작업 폴더 안으로 지정하면 영상까지 지워진다. 지우기 전에 확인한다.
+if (OUT.startsWith(WORK + sep)) {
+  console.log(`  작업 폴더 유지 — 출력이 그 안에 있다 (${OUT})`);
+} else {
+  try { rmSync(WORK, { recursive: true, force: true }); }
+  catch (e) { console.log(`  ⚠ 작업 폴더 정리 실패: ${WORK} — ${e.message}`); }
+}

@@ -118,6 +118,37 @@ const M = await import('./footage.mjs');
   else bad('빈 장면에서 질의를 만든다');
 }
 
+
+// ── 2d. 장소 우선 (2026-08-28 지적: "네팔 얘기면 네팔 실제 현장영상") ────────
+//
+// 실측 문제: LLM 이 entity 로 고유명사 대신 서술구를 뱉었다 —
+//   "hundreds of missing Americans", "young Roma woman", "teen boy", "nuclear regulator".
+//   네팔 참사 기사인데 **"Nepal" 이 어디에도 없어** 네팔 영상이 나올 수가 없었다.
+//
+// 모든 뉴스에는 **장소**가 있다. 장소는 스톡 동영상이 실제로 잘 갖고 있는 것이기도 하다
+//   (인물은 모델 스톡뿐이지만, 카트만두·히말라야는 진짜 현지 영상이 있다).
+// 그래서 질의 순서를 place → entity → visual 로 둔다.
+{
+  const q = M.sceneQueries({ place: 'Nepal Kathmandu', entity: 'rescue team', visual: 'mountain village' });
+  if (q[0].join(' ').includes('Nepal')) ok(`장소가 먼저: ${JSON.stringify(q.map((x) => x.join(' ')))}`);
+  else bad(`순서 이상: ${JSON.stringify(q.map((x) => x.join(' ')))}`);
+  if (q.length === 3) ok('place · entity · visual 세 갈래');
+  else bad(`갈래 수 ${q.length}`);
+
+  // 장소가 없으면 종전대로 entity → visual.
+  const q2 = M.sceneQueries({ entity: 'Dolly Parton', visual: 'concert stage' });
+  if (q2[0].join(' ') === 'Dolly Parton' && q2.length === 2) ok('장소 없으면 종전 동작');
+  else bad(`회귀: ${JSON.stringify(q2.map((x) => x.join(' ')))}`);
+
+  // 같은 문자열이 중복되면 한 번만.
+  const q3 = M.sceneQueries({ place: 'Nepal', entity: 'Nepal', visual: 'Nepal' });
+  if (q3.length === 1) ok('중복 질의는 하나로');
+  else bad(`중복 ${q3.length}갈래`);
+
+  if (M.sceneQueries({ place: 'Nepal' }).length === 1) ok('장소만 있어도 동작');
+  else bad('장소 단독 실패');
+}
+
 // ── 3. 후보 고르기 — **적합도가 먼저다** ────────────────────────────────────
 //
 // 2026-08-27 실측으로 뒤집힌 설계: 처음엔 "가로·고해상도 우선" 으로 정렬했다. 그랬더니
@@ -439,6 +470,83 @@ const M = await import('./footage.mjs');
     if (v && v.length > 20) ok(`.env.local 에서 키를 읽는다 (${v.length}자)`);
     else bad(`키를 못 읽는다: ${JSON.stringify(v)}`);
   } else bad('envValue 없음');
+}
+
+
+// ── 근거 검증 (grounded) ─────────────────────────────────────────────────────
+//   실측(2026-08-28): 트럼프·연준 편에 place="Lake Ontario" 가 나와 토론토가 깔렸다.
+{
+  const SRC = 'Trump touts "very big victory" in Iran but | Fed says claims are unfounded and untrue';
+  const cases = [
+    ['Iran', true,  '헤드라인에 있는 말'],
+    ['Lake Ontario', false, '헤드라인에 없는 말'],
+    ['iran', true,  '대소문자 무시'],
+    ['Ira', false,  '부분일치는 통과시키지 않는다'],
+  ];
+  let bad_ = 0;
+  for (const [t, want, why] of cases) {
+    const got = M.grounded(t, SRC);
+    if (got !== want) { bad(`grounded("${t}") = ${got}, 기대 ${want} — ${why}`); bad_++; }
+  }
+  if (!bad_) ok('근거 검증 4건');
+  if (M.grounded('anything', '')) ok('근거 텍스트가 없으면 판단하지 않는다');
+  else bad('근거 텍스트가 비었는데 false 를 냈다 — 모르는 것과 틀린 것은 다르다');
+}
+
+// ── 장소 검증 (isPlace) ──────────────────────────────────────────────────────
+//   실측(2026-08-28): place="Prison" → Pexels 가 죄수복 입은 모델의 연출 영상을 냈다.
+{
+  const reply = (coords) => ({
+    ok: true,
+    json: async () => ({ query: { pages: { 1: coords ? { coordinates: [{ lat: 1, lon: 2 }] } : {} } } }),
+  });
+  const yes = await M.isPlace('Iran-fixture', { fetchImpl: async () => reply(true) });
+  const no  = await M.isPlace('Prison-fixture', { fetchImpl: async () => reply(false) });
+  if (yes === true) ok('좌표가 있으면 장소');
+  else bad(`좌표가 있는데 ${yes} 를 냈다`);
+  if (no === false) ok('좌표가 없으면 장소 아님');
+  else bad(`좌표가 없는데 ${no} 를 냈다`);
+
+  // 네트워크가 죽으면 null — "장소가 아니다" 로 단정하면 화면이 전부 카드로 떨어진다.
+  const dead = await M.isPlace('Nowhere-fixture', { fetchImpl: async () => { throw new Error('ENOTFOUND'); } });
+  if (dead === null) ok('네트워크 실패는 null (모른다)');
+  else bad(`네트워크 실패에 ${dead} 를 냈다 — 모른다와 아니다를 섞으면 안 된다`);
+
+  // 캐시: 같은 말을 두 번 물어도 네트워크는 한 번만.
+  let calls = 0;
+  const f = async () => { calls++; return reply(true); };
+  await M.isPlace('Cached-fixture', { fetchImpl: f });
+  await M.isPlace('Cached-fixture', { fetchImpl: f });
+  if (calls === 1) ok('같은 말은 캐시에서 (호출 1회)');
+  else bad(`캐시가 안 걸렸다 — 호출 ${calls}회`);
+}
+
+
+// ── 그래픽 판정 (flatShare / isGraphicFrame) ─────────────────────────────────
+//   실측(2026-08-28): "Big Brother" 검색이 CBS 로고를, "The Big Bang Theory" 가 Disney
+//   로고를 배경으로 물어왔다. 확장자는 .jpg 라 종전 필터를 그냥 통과했다.
+{
+  const g = (vals) => Uint8Array.from(vals);
+  if (M.flatShare(g([0, 255, 128, 128])) === 0.5) ok('평탄면 비율 = 순흑·순백 / 전체');
+  else bad(`평탄면 비율이 틀렸다 (got ${M.flatShare(g([0, 255, 128, 128]))}, 기대 0.5)`);
+  if (M.flatShare(g([]))=== 0) ok('빈 프레임은 0');
+  else bad('빈 프레임에 0 이 아닌 값');
+  // tol: 8 이내는 순흑/순백으로 본다(JPEG 압축으로 정확히 0·255 가 되지 않는다).
+  if (M.flatShare(g([5, 250, 128, 128])) === 0.5) ok('압축 오차 ±8 을 감안한다');
+  else bad(`tol 이 안 먹었다 (got ${M.flatShare(g([5, 250, 128, 128]))})`);
+
+  // 실측값으로 경계를 고정한다 — 임계값을 흔들면 이 표가 깨진다.
+  const measured = [
+    ['인용카드', 0.002, false], ['토론토 실사', 0.002, false], ['보스니아 강', 0.007, false],
+    ['Peter Cullen 사진', 0.037, false], ['무대 실사', 0.050, false], ['연준 차트', 0.064, false],
+    ['Disney 로고', 0.234, true], ['CBS 로고', 0.694, true],
+  ];
+  let miss = 0;
+  for (const [name, share, want] of measured) {
+    const got = M.isGraphicFrame(share);
+    if (got !== want) { bad(`${name} (flat=${share}) → ${got}, 기대 ${want}`); miss++; }
+  }
+  if (!miss) ok(`실측 8건 전부 올바르게 갈린다 (실사 ≤.064 / 그래픽 ≥.234)`);
 }
 
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');

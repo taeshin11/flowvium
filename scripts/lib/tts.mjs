@@ -91,6 +91,29 @@ async function elevenProvider(text, opts = {}) {
  *   공유 라이브러리 음성은 제작자가 내릴 수도 있어 언젠가 반드시 바뀐다.
  * 미지정 로케일은 영어 앵커로 폴백한다(FlowVium 은 16개 로케일을 낸다).
  */
+/**
+ * 이 로케일 목소리의 성별. ElevenLabs 가 보이스 메타에 labels.gender 로 준다.
+ *
+ * 화면의 앵커와 맞춰 보려고 읽는다 — 남자 목소리에 여자 앵커가 나간 적이 있다(2026-08-28).
+ * 네트워크가 죽거나 라벨이 없으면 null 이다. 모르는 것과 어긋난 것은 다르다.
+ */
+export async function voiceGender(locale, opts = {}) {
+  const { fetchImpl = fetch, timeoutMs = 8000 } = opts;
+  const id = voiceForLocale(locale);
+  const key = envValue('ELEVENLABS_API_KEY');
+  if (!id || !key) return null;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const r = await fetchImpl(`https://api.elevenlabs.io/v1/voices/${encodeURIComponent(id)}`,
+      { headers: { 'xi-api-key': key }, signal: ac.signal });
+    if (!r.ok) return null;
+    const v = await r.json();
+    const g = String(v?.labels?.gender ?? '').toLowerCase();
+    return g === 'male' || g === 'female' ? g : null;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+
 export function voiceForLocale(locale, env = process.env) {
   const base = String(locale ?? '').toLowerCase().split('-')[0];
   const pick = (n) => env?.[n] || envValue(n);

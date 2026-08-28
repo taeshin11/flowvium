@@ -187,5 +187,95 @@ const align = (text, step = 0.1, from = 0) => ({
   else bad('빈 입력 이상');
 }
 
+
+// ── 13. 두 줄 길이를 맞춘다 (2026-08-27 사용자 지적: "바에 빈 공간이 많다") ──
+//
+// 탐욕적으로 채우면 첫 줄만 꽉 차고 둘째 줄이 짧아 가로가 빈다:
+//   "Carina Walker has been named the new head of"  (44자)
+//   "Young Adult publishing at"                     (25자)
+// 균형을 맞추면 양쪽이 고르게 차서 덩어리로 읽힌다. 방송 자막의 기본이다.
+{
+  const L = M.wrapLines('Carina Walker has been named the new head of Young Adult publishing at', 48, 2);
+  const diff = Math.abs(L[0].length - (L[1]?.length ?? 0));
+  if (L.length === 2 && diff <= 12) ok(`두 줄 길이차 ${diff}자: ${JSON.stringify(L)}`);
+  else bad(`불균형 ${diff}자: ${JSON.stringify(L)}`);
+  if (L.join(' ') === 'Carina Walker has been named the new head of Young Adult publishing at')
+    ok('균형을 맞춰도 글자를 잃지 않는다');
+  else bad(`손실: "${L.join(' ')}"`);
+  if (L.every((x) => x.length <= 48)) ok('줄당 상한은 지킨다');
+  else bad(`상한 초과: ${JSON.stringify(L.map((x) => x.length))}`);
+
+  // 한 줄에 다 들어가면 굳이 두 줄로 쪼개지 않는다.
+  const one = M.wrapLines('Short line here', 48, 2);
+  if (one.length === 1) ok('짧으면 한 줄 그대로');
+  else bad(`불필요하게 쪼갬: ${JSON.stringify(one)}`);
+}
+
+
+// ── 14. 큐마다 글자 크기 맞추기 (2026-08-27 "바에 빈 공간이 많다") ───────────
+//
+// 줄 균형을 맞춰도 **문장 자체가 짧으면** 가로가 빈다:
+//   "They worry about the long-term / impact on their community." (34/30자, 상한 46)
+//   → 밴드 폭의 70% 만 쓴다.
+// ASS 는 Dialogue 줄에 {\fs..} 인라인 태그로 크기를 덮을 수 있다. 짧은 큐는 키운다.
+{
+  const cues = [
+    { start: 0, end: 2, text: 'They worry about the long-term\nimpact on their community.' },  // 짧다
+    { start: 2, end: 4, text: 'Carina Walker has been named the new\nhead of Young Adult publishing at' }, // 길다
+  ];
+  const ass = M.toAss(cues, { style: 'band', fontSize: 70, maxChars: 46, autoFit: true });
+  const dlg = ass.split('\n').filter((l) => l.startsWith('Dialogue'));
+  const fs = dlg.map((l) => Number((l.match(/\\fs(\d+)/) ?? [])[1] ?? 0));
+  if (fs[0] > 70) ok(`짧은 큐를 키운다: ${fs[0]}px`);
+  else bad(`안 키웠다: ${fs[0]}`);
+  // 짧을수록 더 키운다 — 둘 다 상한 안에서 키우되 짧은 쪽이 더 커야 한다.
+  if (fs[0] >= fs[1]) ok(`짧은 큐가 더 크다: ${fs[0]} ≥ ${fs[1]}`);
+  else bad(`역전: ${fs[0]} < ${fs[1]}`);
+  // 상한은 **밴드 높이에서 역산**한다. 무한정 키우면 두 줄이 띠를 넘는다.
+  //   밴드 866~1080, 아래여백 26 → 가용 188px ÷ 2줄 ÷ 1.2 = 78px → 배율 1.11.
+  const cap = M.fitScale({ bandTop: 866, marginV: 26, fontSize: 70, lines: 2 });
+  if (Math.abs(cap - 78 / 70) < 0.02) ok(`높이 역산 상한 ${cap.toFixed(2)} (글꼴 최대 78px)`);
+  else bad(`상한 계산 이상: ${cap}`);
+  const capped = M.toAss(cues, { style: 'band', fontSize: 70, maxChars: 46, autoFit: true, maxScale: cap });
+  const cfs = capped.split('\n').filter((l) => l.startsWith('Dialogue'))
+    .map((l) => Number((l.match(/\\fs(\d+)/) ?? [])[1] ?? 0));
+  if (Math.max(...cfs) <= 78) ok(`상한 적용 시 최대 ${Math.max(...cfs)}px — 밴드를 넘지 않는다`);
+  else bad(`밴드 초과: ${Math.max(...cfs)}px`);
+  if (dlg.every((l) => /\}/.test(l) && !l.includes('{\\fs}'))) ok('태그 형식 정상');
+  else bad(`태그 이상: ${dlg[0]}`);
+  // autoFit 을 안 켜면 종전대로 태그가 없다.
+  const plain = M.toAss(cues, { style: 'band', fontSize: 70 });
+  if (!plain.includes('\\fs')) ok('autoFit 미지정이면 인라인 태그 없음');
+  else bad('기본 동작이 바뀌었다');
+}
+
+
+// ── 밴드 세로 가운데 정렬 ────────────────────────────────────────────────────
+//   지적(2026-08-28): 1줄짜리 자막이 밴드 바닥에 깔리고 위가 비었다.
+//   Alignment=2(아래정렬)는 줄 수가 줄면 그만큼 아래로 내려앉는다.
+{
+  const BAND = { top: 866, height: 214 };
+  const cy = BAND.top + BAND.height / 2;                  // 973
+  const cues = [
+    { start: 0, end: 2, text: '한 줄짜리' },
+    { start: 2, end: 4, text: '두 줄\n짜리' },
+  ];
+  const ass = M.toAss(cues, { vcenterY: cy, playResX: 1920, style: 'band' });
+  const lines = ass.split('\n').filter((l) => l.startsWith('Dialogue:'));
+  const withPos = lines.filter((l) => l.includes('\\an5\\pos(960,973)'));
+  if (withPos.length === 2) ok('1줄·2줄 모두 밴드 중심(960,973)에 앵커된다');
+  else bad(`\\pos 가 ${withPos.length}/2 줄에만 붙었다`);
+
+  // 위치 태그는 글자 크기 태그보다 앞에 와야 한다(둘 다 유효하지만 순서를 고정해 둔다).
+  const first = lines[0];
+  if (/\{\\an5\\pos\([^)]*\)\}/.test(first)) ok('위치 태그가 대사 앞머리에 있다');
+  else bad(`위치 태그 자리가 다르다 — ${first.slice(0, 80)}`);
+
+  // vcenterY 를 안 주면 종전(아래정렬) 그대로다 — 회귀 방지.
+  const plain = M.toAss(cues, { style: 'band' });
+  if (!plain.includes('\\pos(')) ok('vcenterY 없으면 종전 아래정렬 유지');
+  else bad('vcenterY 를 안 줬는데 \\pos 가 붙었다');
+}
+
 console.log(fail ? `\n❌ subtitle ${fail} 실패` : '\n✅ subtitle 전부 통과');
 process.exit(fail ? 1 : 0);

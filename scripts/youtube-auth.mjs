@@ -9,7 +9,7 @@
  */
 import { createServer } from 'http';
 import { spawnSync } from 'child_process';
-import { credentialsPresent, exchangeCode } from './lib/youtube.mjs';
+import { credentialsPresent, SCOPES } from './lib/youtube.mjs';
 import { google } from 'googleapis';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -27,14 +27,10 @@ const c = raw.installed ?? raw.web;
 const PORT = Number(process.env.OAUTH_PORT ?? 8788);
 const redirect = `http://localhost:${PORT}`;
 const oauth = new google.auth.OAuth2(c.client_id, c.client_secret, redirect);
-const url = oauth.generateAuthUrl({
-  access_type: 'offline', prompt: 'consent',
-  scope: [
-    'https://www.googleapis.com/auth/youtube.upload',
-    // 업로드만 받으면 channels.list 가 403 이라 어느 채널에 올라갔는지 확인이 안 된다.
-    'https://www.googleapis.com/auth/youtube.readonly',
-  ],
-});
+// 스코프는 **lib/youtube.mjs 의 SCOPES 하나만** 본다.
+//   여기에 목록을 따로 두었다가, 라이브러리에만 권한을 추가하고 "동의 화면에서 빠졌다" 고
+//   두 번이나 오진했다(2026-08-28). 같은 것을 두 군데 적으면 반드시 어긋난다.
+const url = oauth.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES });
 
 const server = createServer(async (req, res) => {
   const u = new URL(req.url, redirect);
@@ -45,10 +41,19 @@ const server = createServer(async (req, res) => {
   try {
     const { tokens } = await oauth.getToken(code);
     if (!tokens.refresh_token) throw new Error('refresh_token 없음 — 기존 권한 해제 후 재시도');
+    // 요청한 권한이 다 왔는지 **저장하기 전에** 본다. 동의 화면은 권한마다 체크박스가
+    //   따로라, 하나를 안 켜면 그 권한만 빠진 채로 "성공" 이 된다.
+    const granted = new Set(String(tokens.scope ?? '').split(/\s+/).filter(Boolean));
+    const missing = SCOPES.filter((x) => !granted.has(x));
+    if (missing.length) {
+      throw new Error(`동의에서 빠진 권한: ${missing.join(', ')}\n     받은 권한: ${[...granted].join(' ') || '(없음)'}`
+        + '\n     동의 화면의 체크박스를 모두 켜고 다시 시도할 것.');
+    }
     const { writeFileSync } = await import('fs');
     writeFileSync(resolve(ROOT, 'secrets/youtube-token.json'), JSON.stringify(tokens, null, 1), { mode: 0o600 });
     res.end('<meta charset="utf-8"><h2>인증 완료 — 창을 닫아도 됩니다.</h2>');
     console.log('✅ secrets/youtube-token.json 저장 (권한 600)');
+    console.log(`   받은 권한: ${[...granted].map((x) => x.split('/').pop()).join(', ')}`);
     console.log('   다음: node scripts/youtube-upload.mjs --file <mp4> --title "..." (기본 비공개)');
   } catch (e) {
     res.end(`실패: ${e.message}`);

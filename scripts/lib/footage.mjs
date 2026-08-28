@@ -113,13 +113,24 @@ export function isGraphicFile(url) {
  */
 export function sceneQueries(scene) {
   const out = [];
-  const ent = scene?.entity && String(scene.entity).trim();
-  if (ent) {
-    const t = searchTerms({ visual: ent }, { max: 4 });
-    if (t.length) out.push(t);
-  }
+  const seen = new Set();
+  const push = (raw, max) => {
+    if (!raw || !String(raw).trim()) return;
+    const t = searchTerms({ visual: String(raw) }, { max });
+    const key = t.join(' ').toLowerCase();
+    if (!t.length || seen.has(key)) return;
+    seen.add(key);
+    out.push(t);
+  };
+  // 장소가 먼저다. 실측(2026-08-28): LLM 이 entity 로 "hundreds of missing Americans",
+  //   "teen boy" 같은 서술구를 뱉어 네팔 참사 기사인데 "Nepal" 이 어디에도 없었다.
+  //   모든 뉴스에는 장소가 있고, 장소야말로 스톡이 **진짜 현지 영상**을 갖고 있는 대상이다
+  //   (인물은 모델 스톡뿐이다).
+  push(scene?.place, 3);
+  push(scene?.entity, 4);
   const vis = searchTerms(scene, { max: 3 });
-  if (vis.length && (!out.length || vis.join(' ') !== out[0].join(' '))) out.push(vis);
+  const vkey = vis.join(' ').toLowerCase();
+  if (vis.length && !seen.has(vkey)) { seen.add(vkey); out.push(vis); }
   return out;
 }
 
@@ -128,6 +139,90 @@ export function sceneQueries(scene) {
  * 한 번 던지고 포기하면 배경이 전부 카드로 떨어진다(실측: 8장면 전부 카드).
  * 첫 단어는 끝까지 남긴다 — LLM 이 중요한 명사를 앞에 놓기 때문이다.
  */
+/**
+ * 이 말이 **근거 텍스트에 실제로 있는가.** LLM 이 장면 메타를 지어내면 화면이 통째로 엉뚱해진다.
+ *
+ * 실측(2026-08-28): 트럼프·연준 기사인데 place 로 "Lake Ontario" 가 나와 토론토 스카이라인이
+ *   깔렸다. 헤드라인 어디에도 없는 말이다. 프롬프트로 금지해도 또 나온다 —
+ *   **근거에 있는지를 코드가 직접 보는 것**이 유일하게 안 흔들리는 방법이다.
+ *
+ * 근거 텍스트가 비어 있으면 판단하지 않는다(true) — 판단할 재료가 없는 것과 틀린 것은 다르다.
+ */
+export function grounded(term, sourceText) {
+  const src = String(sourceText ?? '').toLowerCase();
+  if (!src.trim()) return true;
+  const keys = (String(term ?? '').toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((w) => w.length >= 3);
+  if (!keys.length) return false;
+  return keys.every((w) => new RegExp(`\\b${w}\\b`).test(src));
+}
+
+/**
+ * 이 프레임이 **사진이 아니라 그래픽인가** — 로고·차트·타이틀카드.
+ *
+ * 실측(2026-08-28): 아카이브에서 "Big Brother" 를 물으니 CBS 로고가, "Federal Reserve" 를
+ *   물으니 축 글자가 박힌 차트가, 배경으로 화면을 가득 채웠다. 남의 방송사 로고가 우리
+ *   화면에 깔리고, 차트는 켄번스로 확대돼 글자가 잘린 채 흐른다.
+ *   확장자로 거르던 종전 규칙(png/svg/gif)은 **JPG 로 저장된 로고**를 못 잡는다.
+ *
+ * 판정 근거는 **평탄면 비율**이다. 로고·차트는 순백/순흑이 화면의 절반 가까이를 차지하고,
+ *   사진은 — 흑백 아카이브 사진이라도 — 중간 계조가 대부분이다.
+ *   채도로 가르면 흑백 실사가 같이 걸린다(그래서 안 쓴다).
+ */
+export function flatShare(gray, tol = 8) {
+  if (!gray?.length) return 0;
+  let n = 0;
+  for (let i = 0; i < gray.length; i++) {
+    const v = gray[i];
+    if (v <= tol || v >= 255 - tol) n++;
+  }
+  return n / gray.length;
+}
+
+/**
+ * 평탄면이 이 비율을 넘으면 그래픽으로 본다.
+ *
+ * 임계값은 감이 아니라 실측으로 잡았다(2026-08-28, 렌더된 배경 영역 1320x840 기준):
+ *   실사 — 인용카드 .002 · 토론토 .002 · 보스니아 강 .007 · Peter Cullen .037 · 무대 .050 · 연준차트 .064
+ *   그래픽 — Disney 로고 .234 · CBS 로고 .694
+ * 실사 최대 .064 와 그래픽 최소 .234 사이가 비어 있다. 0.15 는 양쪽에서 2배 남짓 떨어져 있다.
+ */
+export function isGraphicFrame(share, threshold = 0.15) {
+  return Number(share) >= threshold;
+}
+
+const PLACE_CACHE = new Map();
+
+/**
+ * 이 말이 **지리적 장소인가.** 위키백과 문서에 좌표가 달려 있으면 장소다.
+ *
+ * 실측(2026-08-28): place 로 "Prison" 이 나왔고, Pexels 에 "Prison" 을 물으니
+ *   **주황색 죄수복을 입은 모델이 침상에 누운 연출 영상**이 나왔다. 그게 실존 인물의
+ *   사망 기사 화면으로 나갔다 — 시청자는 그를 그 사람으로 읽는다.
+ *   금지어 목록으로 막으면 다음번엔 "Courtroom", "Hospital" 이 나온다. 부류를 막아야 한다.
+ *
+ * 네트워크가 죽으면 null 을 돌려준다 — "장소가 아니다" 와 "모른다" 는 다르고,
+ *   모를 때 화면을 통째로 버리면 다시 슬라이드쇼가 된다.
+ */
+export async function isPlace(term, opts = {}) {
+  const { fetchImpl = fetch, timeoutMs = 6000 } = opts;
+  const key = String(term ?? '').trim().toLowerCase();
+  if (!key) return false;
+  if (PLACE_CACHE.has(key)) return PLACE_CACHE.get(key);
+  const url = 'https://en.wikipedia.org/w/api.php?action=query&format=json&redirects=1'
+    + `&prop=coordinates&titles=${encodeURIComponent(term)}`;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const r = await fetchImpl(url, { signal: ac.signal, headers: { 'user-agent': 'flowvium-video/1.0' } });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const pages = Object.values(d?.query?.pages ?? {});
+    const yes = pages.some((p) => Array.isArray(p?.coordinates) && p.coordinates.length > 0);
+    PLACE_CACHE.set(key, yes);
+    return yes;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+
 export function queryLadder(terms) {
   const t = (terms ?? []).filter(Boolean);
   const out = [];

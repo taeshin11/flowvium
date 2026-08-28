@@ -85,7 +85,9 @@ const esc = (t) => String(t ?? '').replace(/[<>&"]/g, (c) => (
  * 발언이 주인공인 화면이라 사진과 겹치면 둘 다 죽는다.
  */
 export function quoteCardHtml(quote, opts = {}) {
-  const { width = 1920, height = 1080, bandTop = 850 } = opts;
+  // rightInset: 우측 앵커 박스가 차지하는 폭. 글이 그 밑으로 흘러 들어가면 잘려 보인다 —
+  //   실측(2026-08-28): 앵커를 켠 편에서 인용문 "…for as long as nee|ded" 가 박스에 가렸다.
+  const { width = 1920, height = 1080, bandTop = 850, rightInset = 0 } = opts;
   const t = String(quote?.text ?? '');
   // 글자가 많으면 줄인다. 화면에 들어가는 양이 정해져 있다.
   const size = t.length > 150 ? 62 : t.length > 90 ? 76 : 92;
@@ -94,9 +96,11 @@ export function quoteCardHtml(quote, opts = {}) {
 html,body{width:${width}px;height:${height}px}
 body{background:linear-gradient(150deg,#0a0f1c,#152137 60%,#0a0f1c);
   font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#eef3ff;
-  display:flex;flex-direction:column;justify-content:center;padding:0 150px ${height - bandTop + 40}px;position:relative}
+  display:flex;flex-direction:column;justify-content:center;position:relative;
+  padding:0 ${150 + rightInset}px ${height - bandTop + 40}px 150px}
 .mark{font-size:190px;line-height:.6;color:#ff4d5e;font-weight:800;margin-bottom:14px}
-.q{font-size:${size}px;font-weight:700;line-height:1.28;letter-spacing:-.015em;max-width:1520px}
+.q{font-size:${size}px;font-weight:700;line-height:1.28;letter-spacing:-.015em;
+  max-width:${Math.max(600, Math.min(1520, width - 300 - rightInset))}px}
 .by{margin-top:40px;font-size:36px;color:#9fb2d4;letter-spacing:.02em}
 .by b{color:#dbe6ff;font-weight:700}
 </style>

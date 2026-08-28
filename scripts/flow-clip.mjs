@@ -17,7 +17,8 @@
 import {
   openFlow, sessionCookiesPresent, setVideoModel, openProject, inProject,
   composerVisible, defaultsPanelOpen, typePrompt, dismissDialogs,
-  videoUrls, downloadMedia, FREE_VIDEO_MODEL,
+  videoUrls, downloadMedia, freshMedia, FREE_VIDEO_MODEL, PROFILE_DIR,
+  isFreeModel, MODEL_RESULT,
 } from './lib/flow.mjs';
 import { mkdirSync } from 'fs';
 import { dirname, resolve } from 'path';
@@ -42,7 +43,15 @@ const ALLOW_PAID = argv.includes('--allow-paid');
 
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 mkdirSync(dirname(OUT), { recursive: true });
-if (!sessionCookiesPresent()) { console.error('❌ 로그인 세션 없음 — node scripts/flow-login.mjs'); process.exit(1); }
+if (!sessionCookiesPresent()) {
+  // 관측값을 같이 낸다. Claude Code 의 에러가 전부 "(got ...)" 를 붙이는 이유가 이것이다 —
+  //   "없다" 만으로는 프로필이 비었는지, 만료됐는지, 경로가 틀렸는지 구분이 안 된다.
+  const { existsSync } = await import('fs');
+  const db = `${PROFILE_DIR}/Default/Cookies`;
+  console.error(`❌ 로그인 세션 없음 (프로필 ${existsSync(PROFILE_DIR) ? '있음' : '없음'}, `
+    + `쿠키DB ${existsSync(db) ? '있음' : '없음'}) — node scripts/flow-login.mjs 로 로그인하라`);
+  process.exit(1);
+}
 
 const { ctx, page } = await openFlow({ headless: false });
 let step = 0;
@@ -54,14 +63,27 @@ if (!(await openProject(page))) await die('프로젝트 화면 진입 실패', '
 console.log(`  프로젝트: ${page.url()}`);
 
 // ── 모델 고정. 0 크레딧이 아니면 생성하지 않는다 ────────────────────────────
-const shown = await setVideoModel(page, MODEL);
-console.log(`  [모델] 요청 "${MODEL}" → 표시 "${shown}"`);
+// 재시도 가능한 실패는 여기서 흡수한다 — 안내 모달 하나에 작업 전체가 죽지 않게.
+//   치명적 실패(모델 목록에 항목 없음)는 반복해도 소용없으므로 바로 나간다.
+let r = null;
+for (let attempt = 1; attempt <= 3; attempt++) {
+  r = await setVideoModel(page, MODEL);
+  console.log(`  [모델] 시도 ${attempt}: "${r.shown}" · ${r.status}`);
+  if (r.ok || !r.retryable) break;
+  console.log(`         ↳ ${r.hint} — 재시도`);
+  await dismissDialogs(page);
+  await page.waitForTimeout(1500);
+}
+const shown = r.shown;
+if (!r.ok) console.log(`         ↳ ${r.hint}`);
 await shot('model');
 if (!inProject(page)) await die(`프로젝트 화면을 벗어났다: ${page.url()}`, 'left-project');
-if (!/Lower Priority/.test(shown) && !ALLOW_PAID) {
-  await die('0 크레딧 모델이 반영되지 않았다 — 유료 모델로 생성하지 않는다(--allow-paid 로 해제)', 'model-fail');
+// 실패 사유를 그대로 전달한다. 종전엔 전부 "0 크레딧 모델이 반영되지 않았다" 로 뭉개서
+//   실제 원인(안내 모달이 화면을 덮음)과 무관한 곳을 보게 만들었다.
+if (!isFreeModel(shown) && !ALLOW_PAID) {
+  await die(`0 크레딧 모델을 확인하지 못했다 (${r.status}) — ${r.hint}. 유료로 생성하지 않는다(--allow-paid 로 해제)`, 'model-fail');
 }
-if (!/Lower Priority/.test(shown)) console.log('  ⚠ 유료 등급으로 생성한다 — 크레딧이 소모된다');
+if (!isFreeModel(shown)) console.log('  ⚠ 유료 등급으로 생성한다 — 크레딧이 소모된다');
 
 // 생성 전에 이미 있는 결과를 기억해 둔다. "영상이 보인다" 만으로는 방금 시킨 것인지 알 수 없다.
 const before = new Set(await videoUrls(page));
@@ -83,7 +105,9 @@ const deadline = Date.now() + WAIT_S * 1000;
 let fresh = null;
 while (Date.now() < deadline) {
   const now = await videoUrls(page);
-  fresh = now.find((u) => !before.has(u)) ?? null;
+  // 개수가 늘어야 생성이다. 화면 전환으로 붙은 <video> 를 결과로 오인하면
+  //   **기존 클립을 내려받는다**(실측 2026-08-28).
+  fresh = freshMedia([...before], now);
   if (fresh) break;
   await dismissDialogs(page);                 // 생성 전 확인 모달이 뜰 수 있다
   await page.waitForTimeout(8000);
