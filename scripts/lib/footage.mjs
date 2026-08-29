@@ -208,8 +208,12 @@ export async function isPlace(term, opts = {}) {
   const key = String(term ?? '').trim().toLowerCase();
   if (!key) return false;
   if (PLACE_CACHE.has(key)) return PLACE_CACHE.get(key);
+  // pageprops 도 같이 받는다 — **동음이의 문서**를 가려내야 한다.
+  //   "New York" 은 동음이의라 좌표가 없다. 좌표 없음만 보면 "장소가 아니다" 로 잘못 판정해
+  //   실제 지명을 버린다(2026-08-29 실측: New York 이 계속 버려졌다).
+  //   "모른다"(동음이의)와 "아니다"(Prison)는 다르게 다뤄야 한다.
   const url = 'https://en.wikipedia.org/w/api.php?action=query&format=json&redirects=1'
-    + `&prop=coordinates&titles=${encodeURIComponent(term)}`;
+    + `&prop=coordinates|pageprops&titles=${encodeURIComponent(term)}`;
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
@@ -218,8 +222,12 @@ export async function isPlace(term, opts = {}) {
     const d = await r.json();
     const pages = Object.values(d?.query?.pages ?? {});
     const yes = pages.some((p) => Array.isArray(p?.coordinates) && p.coordinates.length > 0);
-    PLACE_CACHE.set(key, yes);
-    return yes;
+    if (yes) { PLACE_CACHE.set(key, true); return true; }
+    // 동음이의면 판단하지 않는다(null). 버리면 실제 지명을 잃는다.
+    const ambiguous = pages.some((p) => p?.pageprops && 'disambiguation' in p.pageprops);
+    if (ambiguous) { PLACE_CACHE.set(key, null); return null; }
+    PLACE_CACHE.set(key, false);
+    return false;
   } catch { return null; } finally { clearTimeout(timer); }
 }
 
@@ -442,6 +450,79 @@ export function pickVideoFile(files, targetWidth = 1920) {
 }
 
 /** Pexels — 유일한 자동 **동영상** 소스. 키가 없으면 조용히 빈 배열(폴백은 이미지). */
+/**
+ * NASA 영상 검색. **전부 공개도메인**이라 표기 의무도 조건도 없다.
+ * 키가 필요 없다(images-api.nasa.gov). 재난·기상·지구관측 소재에 강하다.
+ */
+export async function searchNasaVideo(terms, { limit = 6 } = {}) {
+  const q = encodeURIComponent(terms.join(' '));
+  const d = await j(`https://images-api.nasa.gov/search?q=${q}&media_type=video&page_size=${limit}`);
+  const items = d?.collection?.items ?? [];
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const meta = it?.data?.[0] ?? {};
+    // 실제 파일 목록은 별도 주소에 있다. 여기서 mp4 를 고른다.
+    const files = await j(String(it?.href ?? '')).catch(() => null);
+    const list = Array.isArray(files) ? files : [];
+    // ~orig 가 원본이지만 수백 MB 가 되기도 한다. mobile/medium 을 먼저 본다.
+    const pick = list.find((u) => /~mobile\.mp4$/i.test(u))
+      ?? list.find((u) => /~medium\.mp4$/i.test(u))
+      ?? list.find((u) => /\.mp4$/i.test(u));
+    if (!pick) continue;
+    out.push({
+      kind: 'video', rank: i, url: pick,
+      width: /~mobile/.test(pick) ? 640 : 1280, height: /~mobile/.test(pick) ? 360 : 720,
+      license: 'Public domain (NASA)', title: meta.title ?? '', author: meta.center ?? 'NASA',
+      source: 'NASA', pageUrl: `https://images.nasa.gov/details-${meta.nasa_id ?? ''}`,
+    });
+  }
+  return out;
+}
+
+/**
+ * archive.org 영상 검색.
+ *
+ * ⚠ 쓸 수 있는 것은 **대부분 옛 자료**다(2012년 대선 연설, 1940년대 재난 필름 등).
+ *   오늘 뉴스의 그림으로는 잘 안 맞으므로 **마지막 순번**으로만 쓴다.
+ *
+ * ⚠ 여기 올라온 영상의 **대부분은 재사용 조건이 붙어 있다.** NC(비상업)는 수익화 채널과
+ *   충돌하고 ND(변경금지)는 켄번스·크롭이 2차 저작이라 걸린다.
+ *   그래서 licenseUsable 로 거른 뒤에만 후보로 올린다 — 검색 결과 수가 많다고 다 쓸 수 있는 게 아니다.
+ */
+export async function searchArchiveVideo(terms, { limit = 6 } = {}) {
+  // 라이선스가 **있는 것만** 검색한다. 안 걸면 반환분이 전부 라이선스 미상이라 한 건도 못 쓴다
+  //   (실측 2026-08-29: "senate hearing" 12건 전부 미상).
+  const q = encodeURIComponent(`${terms.join(' ')} AND mediatype:(movies) AND licenseurl:[* TO *]`);
+  const url = 'https://archive.org/advancedsearch.php'
+    + `?q=${q}&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=licenseurl&fl%5B%5D=year`
+    + `&rows=${limit * 3}&output=json`;
+  const d = await j(url);
+  const docs = d?.response?.docs ?? [];
+  const out = [];
+  for (const doc of docs) {
+    if (out.length >= limit) break;
+    const lic = String(doc.licenseurl ?? '');
+    // 라이선스가 없으면 "쓸 수 있다"가 아니라 "모른다"다 — 쓰지 않는다.
+    if (!lic || !licenseUsable(lic)) continue;
+    const meta = await j(`https://archive.org/metadata/${encodeURIComponent(doc.identifier)}`).catch(() => null);
+    const files = meta?.files ?? [];
+    const mp4 = files.filter((f) => /\.mp4$/i.test(f.name ?? ''))
+      .sort((a, b) => Number(a.size ?? 0) - Number(b.size ?? 0))
+      .find((f) => Number(f.size ?? 0) > 300_000);        // 너무 작은 건 썸네일/미리보기다
+    if (!mp4) continue;
+    out.push({
+      kind: 'video', rank: out.length,
+      url: `https://archive.org/download/${doc.identifier}/${encodeURIComponent(mp4.name)}`,
+      width: Number(mp4.width ?? 0) || 1280, height: Number(mp4.height ?? 0) || 720,
+      license: lic.replace(/^https?:\/\/creativecommons\.org\/licenses\//, 'CC ').replace(/\/$/, ''),
+      title: doc.title ?? '', author: '', source: 'Internet Archive',
+      pageUrl: `https://archive.org/details/${doc.identifier}`,
+    });
+  }
+  return out;
+}
+
 export async function searchPexelsVideo(terms, { limit = 8, apiKey = envValue('PEXELS_API_KEY') } = {}) {
   if (!apiKey) return [];
   const q = encodeURIComponent(terms.join(' '));

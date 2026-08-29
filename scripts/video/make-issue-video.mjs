@@ -44,7 +44,7 @@ import { readLog, usedHeadlines, filterUsed, appendEdition } from '../lib/editio
 import {
   searchTerms, sceneQueries, queryLadder, pickFootage, pickFootageMany, splitShots, creditLine, matchLocal,
   grounded, isPlace, flatShare, isGraphicFrame, licenseUsable, envValue,
-  searchOpenverse, searchCommons, searchPexelsVideo,
+  searchOpenverse, searchCommons, searchPexelsVideo, searchNasaVideo, searchArchiveVideo,
 } from '../lib/footage.mjs';
 
 const argv = process.argv.slice(2);
@@ -108,7 +108,11 @@ const ANCHOR_DRIVE = join(MEDIA_ROOT, 'anchor');
 const ANCHOR_DIR = existsSync(ANCHOR_DRIVE) ? ANCHOR_DRIVE : resolve(ROOT, 'assets/anchor');
 // anchorSource 는 **파일명**을 돌려준다(디렉터리를 모른다). ffmpeg 에 넘길 땐 경로여야 한다 —
 //   파일명 그대로 넘겼다가 소재를 전부 받고 렌더 직전에 "No such file" 로 죽었다(2026-08-28).
-const anchorName = existsSync(ANCHOR_DIR)
+// 앵커는 **기본 끔**(2026-08-29 지시: "앵커 그냥 빼고").
+//   Veo 클립은 우리 나레이션을 모르고 만들어져 입이 안 맞고, 립싱크는 이 기계에서
+//   돌리면 부하 56 으로 사이트가 죽는다(실측). 화면에 안 넣는 편이 낫다.
+//   --anchor 를 주면 종전대로 켜진다.
+const anchorName = (argv.includes('--anchor') && existsSync(ANCHOR_DIR))
   ? (anchorSource(readdirSync(ANCHOR_DIR), locale) ?? null) : null;
 const anchorFile = anchorName ? resolve(ANCHOR_DIR, anchorName) : null;
 if (anchorFile && !existsSync(anchorFile)) throw new Error(`앵커 파일 경로가 틀렸다: ${anchorFile}`);
@@ -461,13 +465,15 @@ for (let i = 0; i < scenes.length; i++) {
         //   그건 실존 인물 기사에서 그 사람으로 읽힌다 — 틀린 그림보다 나쁘다.
         queries.splice(at, 1);
         console.log(`  [화면] ${i + 1} 장소 "${scenes[i].place}" 버림 — 지리적 장소 아님`);
-      } else if (!g) {
-        // 헤드라인에 없는 장소는 **강등한다.** 지어낸 것일 수도 있지만("Lake Ontario"),
-        //   맥락상 맞을 수도 있다("연준" → "Washington DC"). 둘을 코드가 못 가른다.
+      } else if (!g || p === null) {
+        // 헤드라인에 없거나 **장소인지 판단이 안 되면** 강등한다.
+        //   지어낸 것일 수도 있지만("Lake Ontario") 맥락상 맞을 수도 있다("연준" → "Washington DC").
+        //   판단 불가는 위키백과 동음이의 문서다 — "New York"(진짜 지명)과 "Courtroom"(장소 아님)이
+        //   둘 다 여기 걸린다. 버리면 지명을 잃고, 그대로 두면 연출 영상을 부른다 → 뒤로 민다.
         //   버리면 8/8 장면이 아카이브 정지사진으로 떨어져 다시 슬라이드쇼가 된다(실측).
         //   entity 뒤로 미루면 실제 대상이 먼저 잡히고, 남는 컷만 이 장소로 채운다.
         queries.push(queries.splice(at, 1)[0]);
-        console.log(`  [화면] ${i + 1} 장소 "${scenes[i].place}" 강등 — 헤드라인에 없음`);
+        console.log(`  [화면] ${i + 1} 장소 "${scenes[i].place}" 강등 — ${!g ? '헤드라인에 없음' : '장소인지 판단 불가'}`);
       }
     }
   }
@@ -506,9 +512,12 @@ for (let i = 0; i < scenes.length; i++) {
       //     물으면 분홍 머리 모델이 나온다(실측 2026-08-27) — 부고에 다른 사람 얼굴이 뜬다.
       //   **장소(place)와 b-roll 은 동영상 우선.** 장소는 스톡이 진짜 현지 영상을 갖고 있다.
       const isEntityQ = base === entityQ;
+      // 앵커를 뺐으므로 화면 전체를 소재가 채운다 — 실사 동영상 비중을 더 올린다.
+      //   NASA 는 전부 공개도메인이라 표기 의무가 없고 재난·기상에 강하다.
+      //   archive.org 는 쓸 수 있는 게 대부분 옛 자료라 **맨 뒤**에 둔다.
       const sources = isEntityQ
         ? [searchCommons, searchOpenverse]
-        : [searchPexelsVideo, searchCommons, searchOpenverse];
+        : [searchPexelsVideo, searchNasaVideo, searchCommons, searchOpenverse, searchArchiveVideo];
       for (const q of queryLadder(base)) {
         let cands = [];
         // 인물 아카이브에서는 **1컷만** — 누구인지 보여주는 설정샷 하나면 된다.
@@ -650,7 +659,7 @@ if (ABOX) {
   if (bad && !argv.includes('--allow-voice-mismatch')) { console.error(`❌ ${bad}`); process.exit(1); }
   console.log(`  [앵커] ${anchorName} (${vg ?? '목소리 성별 미상'}) → ${ABOX.w}x${ABOX.h} @${ABOX.x},${ABOX.y}`);
 }
-else console.log('  [앵커] 없음 — assets/anchor 에 파일을 넣으면 켜진다');
+else console.log('  [앵커] 없음 — 화면 전체를 소재가 쓴다(--anchor 로 켬)');
 
 // ── 6. 화면 위 그래픽(로워서드·채널명·스크림) — 투명 PNG 로 한 장씩 ─────────
 // 레퍼런스(YTN "지금 이 뉴스"): 큰 제목 로워서드 없음. 상단에 작은 칩 두 개,

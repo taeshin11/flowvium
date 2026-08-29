@@ -20,7 +20,9 @@ import {
   videoUrls, downloadMedia, freshMedia, FREE_VIDEO_MODEL, PROFILE_DIR,
   isFreeModel, MODEL_RESULT,
 } from './lib/flow.mjs';
-import { mkdirSync } from 'fs';
+import { mkdirSync, unlinkSync } from 'fs';
+import { spawnSync } from 'child_process';
+import ffmpegPath from 'ffmpeg-static';
 import { dirname, resolve } from 'path';
 
 const argv = process.argv.slice(2);
@@ -126,6 +128,28 @@ const secs = ((Date.now() - t0) / 1000).toFixed(0);
 let bytes = 0;
 try { bytes = await downloadMedia(page, fresh, OUT); }
 catch (e) { await die(`내려받기 실패: ${e.message}`, 'download-fail'); }
+
+// [규격 검사] 개수가 늘었다고 **내가 시킨 영상**인 건 아니다.
+//   실측(2026-08-29): 새 프로젝트가 열려 "기존 0개" 상태에서 720x1280 세로 판화 영상을
+//   받아왔다. 앵커를 시켰는데 제철소 그림이었다. 개수만 보는 판정으로는 못 거른다.
+//   내용까지 판정할 수는 없지만 **규격은 확실히 볼 수 있다** — 안 맞으면 지우고 실패로 끝낸다.
+{
+  const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', OUT], { encoding: 'utf8' }).stderr ?? '';
+  const m = probe.match(/,\s(\d{2,5})x(\d{2,5})[,\s]/);
+  const w = m ? Number(m[1]) : 0;
+  const h = m ? Number(m[2]) : 0;
+  const wantLandscape = !argv.includes('--portrait');
+  const bad = !w || !h
+    || (wantLandscape && h > w)
+    || (!wantLandscape && w > h)
+    || w < Number(arg('--min-width', wantLandscape ? '960' : '540'));
+  if (bad) {
+    try { unlinkSync(OUT); } catch { /* noop */ }
+    await die(`규격이 안 맞는다 — ${w}x${h} (기대 ${wantLandscape ? '가로' : '세로'}, 최소 폭 ${arg('--min-width', wantLandscape ? '960' : '540')}). `
+      + '내가 시킨 영상이 아닐 가능성이 크다. 파일은 지웠다.', 'wrong-spec');
+  }
+  console.log(`   [규격] ${w}x${h} 확인`);
+}
 
 console.log(`✅ ${OUT}`);
 console.log(`   ${(bytes / 1048576).toFixed(1)}MB · 전체 ${secs}초 · 모델 ${shown}`);

@@ -18,6 +18,8 @@ import { ROOT } from './lib/project-root.mjs';
 import { resolveMediaRoot } from './lib/media-root.mjs';
 import { envValue } from './lib/footage.mjs';
 import { readLog } from './lib/edition-log.mjs';
+import { isReportPipelineRunning } from './lib/report-running.mjs';
+import { loadavg, cpus } from 'node:os';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
@@ -35,6 +37,32 @@ const run = (args, label) => {
   if (r.error) throw new Error(`${label} 실행 실패: ${r.error.message}`);
   if (r.status !== 0) throw new Error(`${label} 실패 (exit ${r.status}) — 위 출력을 볼 것`);
 };
+
+// ── 0. 기계가 감당할 수 있는가 ──────────────────────────────────────────────
+// 왜 필요한가(2026-08-29): 이 기계는 GPU 가 하나고 보고서·임베딩·웹서버가 같이 산다.
+//   내가 립싱크를 돌렸을 때 부하가 56 까지 올라 **운영 사이트가 502** 를 냈다.
+//   스케줄이 하루 5번 도는데 그때마다 이런 일이 나면 안 된다.
+//
+// 두 가지를 본다:
+//   ① 보고서 파이프라인이 도는가 — 단일 GPU 라 끼어들면 서로 굶는다(report-running.mjs 의 판단을 그대로 쓴다).
+//   ② 부하가 이미 높은가 — 코어 수 대비 기준을 넘으면 이번 회차는 건너뛴다.
+// 건너뛰는 게 손해처럼 보이지만, 사이트를 내리는 것보다는 한 편 빠지는 게 낫다.
+{
+  const skipGuard = argv.includes('--force');
+  const busy = await isReportPipelineRunning().catch(() => false);
+  const cores = cpus().length || 8;
+  const load1 = loadavg()[0];
+  const limit = Number(arg('--max-load', String(cores * 0.9)));
+  if (!skipGuard && busy) {
+    log(`건너뜀 — 보고서 파이프라인이 도는 중이다(단일 GPU 경합). --force 로 무시할 수 있다.`);
+    process.exit(0);
+  }
+  if (!skipGuard && load1 > limit) {
+    log(`건너뜀 — 부하 ${load1.toFixed(1)} > 한계 ${limit.toFixed(1)} (코어 ${cores}). --force 로 무시할 수 있다.`);
+    process.exit(0);
+  }
+  log(`시작 가능 — 부하 ${load1.toFixed(1)} / 한계 ${limit.toFixed(1)} · 보고서 ${busy ? '실행중' : '유휴'}`);
+}
 
 // ── 1. 렌더 ────────────────────────────────────────────────────────────────
 log(`렌더 시작 (locale=${LOCALE})`);
