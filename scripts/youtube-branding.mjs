@@ -42,7 +42,8 @@ const PRESETS = {
       '',
       'New briefings every day. Subscribe so you never miss the story.',
       '',
-      '▶ Full coverage, live market data and deeper analysis: https://flowvium.net',
+      // 영어 채널이라 **영어 강제** 주소를 쓴다 — flowvium.net 은 브라우저 언어를 따라간다.
+      '▶ Full coverage, live market data and deeper analysis: https://flowvium.net/go/en',
       '',
       '#news #usnews #politics #breakingnews #economy',
     ].join('\n'),

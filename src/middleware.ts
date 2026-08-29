@@ -12,5 +12,7 @@ export default createMiddleware(routing);
 //   고 경고한다. 정적 자산은 '점 유무' 가 아니라 *알려진 확장자로 끝나는가* 로 가른다.
 //   scripts/lib/locale-middleware.test.mjs 가 경로 8종으로 이 판정을 고정한다.
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|mjs|map|txt|xml|json|webmanifest|woff|woff2|ttf|otf|eot|mp4|webm|pdf)$).*)'],
+  //   `go` 도 제외한다 — /go/[locale] 은 로케일을 **강제**하는 라우트라
+//   로케일 미들웨어가 먼저 가로채면 그 목적이 사라진다(2026-08-29).
+  matcher: ['/((?!api|go|_next|_vercel|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|avif|css|js|mjs|map|txt|xml|json|webmanifest|woff|woff2|ttf|otf|eot|mp4|webm|pdf)$).*)'],
 };

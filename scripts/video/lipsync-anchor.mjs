@@ -56,7 +56,13 @@ const durationOf = (f) => {
  * @returns {{path:string, seconds:number, minutes:number}}
  */
 export function lipsyncAnchor(opts) {
-  const { audio, out, steps = Number(arg('--steps', '6')) } = opts;
+  // 공식 inference.sh 기준값을 기본으로 둔다. 1.6 체크포인트는 **512 로 학습**됐고
+  //   256 설정으로 돌리면 릴리스 노트가 말한 그 흐릿함이 그대로 나온다(2026-08-29 실측).
+  //   스텝도 README 권장이 20~50 이다 — 6 으로 깎으면 화질이 같이 깎인다.
+  const { audio, out, steps = Number(arg('--steps', '20')),
+          fps = Number(arg('--anchor-fps', '24')),
+          config = arg('--config', 'configs/unet/stage2_512.yaml'),
+          deepcache = !argv.includes('--no-deepcache') } = opts;
   const ready = toolsReady();
   if (!ready.ok) throw new Error(`립싱크 도구가 없다 — ${ready.missing.join(', ')}`);
   if (!existsSync(audio)) throw new Error(`오디오 없음: ${audio}`);
@@ -70,22 +76,29 @@ export function lipsyncAnchor(opts) {
   const secs = durationOf(audio);
   if (!secs) throw new Error(`오디오 길이를 못 읽었다: ${audio}`);
   const clip = durationOf(anchor);
-  log(`오디오 ${secs.toFixed(1)}초 · 앵커 클립 ${clip.toFixed(1)}초 · 스텝 ${steps}`);
+  log(`오디오 ${secs.toFixed(1)}초 · 클립 ${clip.toFixed(1)}초 · 스텝 ${steps} · ${fps}fps · ${config.split('/').pop()}${deepcache ? ' · deepcache' : ''}`);
 
-  // ① 클립을 오디오 길이만큼 늘린다. 반복 이음매가 보이지만 입이 맞는 편이 낫다.
+  // ① 클립을 오디오 길이만큼 늘리고 **프레임률을 낮춘다.**
+  //   립싱크 비용은 프레임 수에 비례한다 — 24fps 를 12 로 낮추면 값이 절반이다.
+  //   앵커 박스는 519x692 로 작고 말하는 얼굴이라 12fps 도 알아보기 어렵지 않다.
+  //   배경 영상은 그대로 30fps 다. 겹칠 때 ffmpeg 이 맞춰 올린다.
   const looped = join(work, 'looped.mp4');
   ff(['-y', '-hide_banner', '-loglevel', 'error', '-stream_loop', '-1', '-t', secs.toFixed(3),
-      '-i', anchor, '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', looped], 'loop');
+      '-i', anchor, '-an', '-r', String(fps),
+      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', looped], 'loop');
 
   // ② 립싱크. 예상 시간을 먼저 알린다 — 몇 시간짜리를 말없이 시작하면 멈춘 줄 안다.
-  const est = (secs * 24 / 16) * steps * 2.77 / 60;
-  log(`시작 — 예상 ${est.toFixed(0)}분 (실측 스텝당 2.77초 기준)`);
+  // 실측(2026-08-29): 54초 오디오·24fps·스텝6 이 42분 이상 → 프레임당 약 1.15초.
+  //   프레임 수에 비례하므로 fps 를 낮추면 그만큼 준다.
+  const est = secs * fps * 1.15 / 60;
+  log(`시작 — 예상 ${est.toFixed(0)}분 (실측 프레임당 1.15초 기준)`);
   const t0 = Date.now();
   const r = spawnSync(PY, ['-m', 'scripts.inference',
-    '--unet_config_path', 'configs/unet/stage2.yaml',
+    '--unet_config_path', config,
     '--inference_ckpt_path', 'checkpoints/latentsync_unet.pt',
     '--video_path', looped, '--audio_path', audio, '--video_out_path', out,
     '--inference_steps', String(steps), '--guidance_scale', '1.5',
+    ...(deepcache ? ['--enable_deepcache'] : []),   // 공식 스크립트가 켠다 — 품질 손실 없이 빨라진다
   ], { cwd: LS, encoding: 'utf8', maxBuffer: 64 << 20,
        env: { ...process.env, PATH: `${BIN}:${process.env.PATH}` } });
   if (r.status !== 0) {

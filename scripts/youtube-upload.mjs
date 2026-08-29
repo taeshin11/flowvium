@@ -19,10 +19,13 @@ if (!tokenPresent()) { console.error('❌ 토큰 없음 — node scripts/youtube
  * 이미 들어 있으면 두 번 넣지 않는다.
  */
 const SITE = process.env.SITE_URL || 'flowvium.net';
+// 영어 채널이므로 **영어로 강제**하는 주소를 쓴다. 그냥 flowvium.net 을 걸면
+//   한국 시청자의 브라우저 언어를 보고 한국어 사이트로 떨어진다(2026-08-29 실측).
+const SITE_LINK = process.env.SITE_LINK || `https://${SITE}/go/en`;
 const withSite = (d) => {
   const t = String(d ?? '');
   if (t.includes(SITE)) return t;
-  const line = `▶ Full coverage, live market data and deeper analysis: https://${SITE}`;
+  const line = `▶ Full coverage, live market data and deeper analysis: ${SITE_LINK}`;
   return t.trim() ? `${t.trimEnd()}\n\n${line}` : line;
 };
 

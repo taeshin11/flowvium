@@ -77,7 +77,7 @@ let title = top[0];
 if (top[1] && (title.length + top[1].length + 3) <= 96) title = `${title} — ${top[1]}`;
 title = title.slice(0, 100);
 
-const SITE = envValue('SITE_URL') || 'flowvium.net';
+const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
 const tagWords = [...new Set((last.keywords ?? []).concat(
   top.join(' ').split(/[^A-Za-z0-9']+/).filter((w) => /^[A-Z]/.test(w) && w.length > 2),
 ))].slice(0, 14);
