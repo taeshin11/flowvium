@@ -756,11 +756,11 @@
     "fy": "2025"
   },
   "CTAS": {
-    "revUsd": 10340181000,
-    "revYoYPct": 7.7,
-    "opMarginPct": 22.8,
-    "roePct": 38.7,
-    "fy": "2025"
+    "revUsd": 11264761000,
+    "revYoYPct": 8.9,
+    "opMarginPct": 23.1,
+    "roePct": 38.9,
+    "fy": "2026"
   },
   "FAST": {
     "revUsd": 8200500000,
@@ -2912,11 +2912,11 @@
     "fy": "2025"
   },
   "JKHY": {
-    "revUsd": 2375288000,
-    "revYoYPct": 7.2,
-    "opMarginPct": 23.9,
-    "roePct": 21.4,
-    "fy": "2025"
+    "revUsd": 2544339000,
+    "revYoYPct": 7.1,
+    "opMarginPct": 25,
+    "roePct": 24.5,
+    "fy": "2026"
   },
   "J": {
     "revUsd": 12029783000,
@@ -4039,11 +4039,11 @@
     "fy": "2025"
   },
   "AFRM": {
-    "revUsd": 1113966000,
-    "revYoYPct": 34.9,
-    "opMarginPct": -7.8,
-    "roePct": 1.7,
-    "fy": "2025"
+    "revUsd": 1443922000,
+    "revYoYPct": 29.6,
+    "opMarginPct": 28.9,
+    "roePct": 35.2,
+    "fy": "2026"
   },
   "HOOD": {
     "revUsd": 4473000000,
