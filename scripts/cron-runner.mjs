@@ -538,8 +538,15 @@ async function runShockCheck() {
     const defer = shouldDeferUnscheduled();
     if (defer.defer) { log(`[shock] 비켜감 — ${defer.reason}`); return; }
     lastShockTrigger = Date.now();
-    log('[shock] 비정기 보고서 트리거 → run-report.bat');
-    (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(resolveLauncher())
+    // 2026-08-31: autoUpload 가 없어서 생성만 하고 발행을 안 했다. 실측 —
+    //   12:20 쇼크(KOSPI -3.9% · 이란) → 12:25 DB 저장(quality 93) → 라이브는 그대로.
+    //   12:41 모니터: "🚨 라이브 미반영 … 라이브가 83분 뒤처짐".
+    //   report.log 끝줄이 원인이었다: "✅ 생성 완료. 내용 확인 후 업로드: --upload=latest".
+    //   정기 실행(launchd plist)은 --session=… --auto-upload 를 준다. 비정기만 빠져 있었다.
+    //   "신선 데이터로 즉각 재발간" 이 이 잡의 존재 이유인데 발행을 안 하면 아무 의미가 없다.
+    const launcher = resolveLauncher({ autoUpload: true });
+    log(`[shock] 비정기 보고서 트리거 → ${launcher.path.split('/').pop()} (발행까지)`);
+    (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(launcher)
       .then(() => log('[shock] 비정기 보고서 완료'))
       .catch((e) => log(`[shock] 비정기 보고서 실패: ${String(e.message).slice(0, 60)}`));
   } catch (e) { log(`[shock] 점검 실패: ${String(e.message).slice(0, 60)}`); }
@@ -619,8 +626,12 @@ async function runCatchupCheck() {
     const defer = shouldDeferUnscheduled();
     if (defer.defer) { log(`[catchup] 비켜감 — ${defer.reason}`); return; }
     lastCatchupTrigger = Date.now();
-    log(`[catchup] 🚨 최신 보고서 ${(ageMs / 3600000).toFixed(1)}h stale — 누락 backfill 트리거 → ${resolveLauncher().path.split('/').pop()}`);
-    (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(resolveLauncher())
+    // 2026-08-31: 이쪽이 더 나빴다. 이 잡의 존재 이유가 "라이브의 공백을 메우는 것" 인데
+    //   autoUpload 가 없어 발행을 안 했다 — 08-28~08-31 3일 정지 동안 catchup 이 돌았어도
+    //   라이브는 그대로였다. 메우라고 만든 것이 메우지 않고 있었다.
+    const launcher = resolveLauncher({ autoUpload: true });
+    log(`[catchup] 🚨 최신 보고서 ${(ageMs / 3600000).toFixed(1)}h stale — 누락 backfill 트리거 → ${launcher.path.split('/').pop()} (발행까지)`);
+    (({ cmd, args }) => execFileAsync(cmd, args, { timeout: 45 * 60 * 1000, windowsHide: true, maxBuffer: 20 * 1024 * 1024 }))(launcher)
       .then(() => log('[catchup] backfill 완료'))
       .catch((e) => log(`[catchup] backfill 실패: ${String(e.message).slice(0, 60)}`));
   } catch (e) { log(`[catchup] 점검 실패: ${String(e.message).slice(0, 60)}`); }

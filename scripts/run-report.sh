@@ -115,5 +115,16 @@ fi
 log "[INFO] 보고서 생성 시작: $*"
 "$NODE_BIN" scripts/generate-report-local.mjs "$@" >> "$LOG_FILE" 2>&1
 rc=$?
-[ "$rc" -eq 0 ] && log "[SUCCESS] 완료" || log "[ERROR] 실패 rc=$rc"
+# 2026-08-31: 종전에는 `[ ... ] && log "[SUCCESS]" || log "[ERROR] rc=$rc"` 였다.
+#   `A && B || C` 는 **B 가 실패하면 C 도 돈다.** log() 는 tee 로 끝나는데, 호출부가
+#   execFileAsync(maxBuffer) 로 파이프를 닫으면 tee 가 EPIPE 로 비정상 종료한다.
+#   그래서 12:26:47 로그에 이렇게 남았다:
+#     [SUCCESS] 완료
+#     [ERROR] 실패 rc=0      ← rc 는 0 인데 실패라고 적혀 있다
+#   성공한 런이 ERROR 를 남기면 로그 기반 진단이 통째로 못 믿을 것이 된다. if/else 로 바꾼다.
+if [ "$rc" -eq 0 ]; then
+  log "[SUCCESS] 완료"
+else
+  log "[ERROR] 실패 rc=$rc"
+fi
 exit "$rc"

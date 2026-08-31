@@ -171,11 +171,12 @@ async function checkOnce() {
       info.push(`model-id probe 건너뜀 — 보고서 생성 중(PID ${genRunning.map(p => p.pid).join(',')}). :8000 은 동시처리 1건이라 프로브가 큐에 밀려 반드시 20s 타임아웃 난다(혼잡 ≠ 사망)`);
       throw { __skip: true };
     }
-    // 2026-08-31(오후 재수정): 20s 상한이 이 기계의 현실과 안 맞았다. 실측 —
-    //   :8000 27B 1회차 114.6s → 2회차 1.09s (105배). 유휴 동안 macOS 가 가중치를
-    //   스왑아웃하고(현재 wired 34.8GB · 스왑 4.2/6.1GB) 첫 요청이 페이지인 비용을 문다.
-    //   즉 20s 상한은 *유휴 뒤 첫 프로브를 항상 실패시킨다* → 매일 오경보.
-    //   콜드와 사망은 두 번째 질문으로 갈린다(콜드면 2회차가 1s, 사망이면 몇 번을 물어도 안 나온다).
+    // 2026-08-31(오후 재수정): 20s 상한이 이 기계의 현실과 안 맞았다. 실측 — 같은 `max_tokens:1`
+    //   "ping" 이 1.4s ~ 114.6s 를 오간다(보고서 종료 직후 114.6s → 1.09s → 1.09s).
+    //   느려지는 *원인* 은 규명하지 못했다(llm-health.mjs 의 DEFAULT_COLD_TIMEOUT_MS 주석 참조 —
+    //   유휴 시간 가설은 후속 측정이 반증했다: 유휴 10·20분에도 1.38s, 느린 구간에도 wired 29.5GB 유지).
+    //   원인을 몰라도 판정은 할 수 있다: 느린 서버는 두 번째 질문에 1s 대로 답하고,
+    //   죽은 서버는 몇 번을 물어도 안 답한다(08-28~08-31 3일간 그랬다). 그래서 한 번 더 묻는다.
     for (const m of codeModels) {
       const r = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, 20000);
       if (r.ok) { info.push(`model-id ✓ ${m} 로 실제 추론 성공`); continue; }
@@ -186,7 +187,7 @@ async function checkOnce() {
       // 무응답이다. 여기서 바로 DEAD 를 찍지 않고 한 번 더 길게 묻는다.
       const retry = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, COLD_PROBE_MS);
       if (retry.ok) {
-        info.push(`model-id ✓ ${m} — 첫 20s 프로브는 실패했으나 ${COLD_PROBE_MS / 1000}s 재시도로 통과. 콜드 페이지인(유휴 중 가중치 스왑아웃)이지 사망이 아니다`);
+        info.push(`model-id ✓ ${m} — 첫 20s 프로브는 실패했으나 ${COLD_PROBE_MS / 1000}s 재시도로 통과. 느린 것이지 죽은 것이 아니다(원인 미규명 — 같은 ping 이 1.4s~115s 를 오간다)`);
       } else {
         issues.push(`LLM DEAD: :8000 이 20s + ${COLD_PROBE_MS / 1000}s 재시도에도 토큰을 못 냈다 (${retry.error ?? r.error}) — /v1/models 는 200 이어도 생성 스레드는 죽어 있을 수 있다. 조치: node scripts/llm-health-check.mjs --repair`);
       }
