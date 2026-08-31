@@ -74,3 +74,22 @@ export function resolveLlm(lane = 'report') {
   const model = process.env.VLLM_MODEL || process.env.OLLAMA_TRANSLATE_MODEL || SERVED_DEFAULT;
   return { url, model, lane, concurrency: readConcurrency('report', 'VLLM_MAX_CONCURRENCY') };
 }
+
+/**
+ * 레인을 띄우는 launchd 잡의 라벨.
+ *
+ * 왜 여기 있나 (2026-08-31 실측 사고): llm-health-check.mjs 의 라벨 기본값이 레인과 무관하게
+ *   'com.spinai.flowvium-llm' 이었다. 그래서 `--lane web --repair` 는 :8001 이 죽은 걸 보고
+ *   **:8000(27B) 을 재기동** 했다 — 보고서 모델을 죽여서 웹 모델을 고치는 꼴이다.
+ *   접속 정보(URL·모델)와 그 서비스를 되살리는 방법은 같은 곳에서 정해야 어긋나지 않는다.
+ *   llm-config.test.mjs [5] 가 라벨↔plist↔포트 삼자 일치를 매번 확인한다.
+ */
+const LANE_LABEL = { report: 'com.spinai.flowvium-llm', web: 'com.spinai.flowvium-llm-web' };
+
+/** @param {'report'|'web'} lane */
+export function resolveLaunchdLabel(lane = 'report') {
+  loadEnvLocal();
+  // 환경으로 덮을 수 있게 두되, 레인별로 나눠 받는다 — 하나로 받으면 두 레인이 다시 겹친다.
+  const perLane = lane === 'web' ? process.env.LLM_LAUNCHD_LABEL_WEB : process.env.LLM_LAUNCHD_LABEL;
+  return perLane || LANE_LABEL[lane] || LANE_LABEL.report;
+}

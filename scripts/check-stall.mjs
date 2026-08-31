@@ -158,6 +158,18 @@ async function checkOnce() {
     //   (= r.down) 났고, 3일 내내 info 로만 쌓였다. 유일하게 발화한 [1] 은 "최신 보고서 75.3h 전 —
     //   cron 멈춤 의심" 이라 **원인을 cron 으로 잘못 가리켰다.** LLM 이 죽었다고 말한 검사가 하나도 없었다.
     //   이제 issues 로 올린다. 조치 경로도 생겼다(llm-health-check.mjs --repair).
+    // 2026-08-31(같은 날 재수정): 위 승격만 넣었더니 이번엔 반대쪽 오경보가 생긴다.
+    //   :8000 은 `--prompt-concurrency 1` 이다. 보고서가 도는 동안 이 프로브는 큐 뒤에 서고
+    //   20s 안에 절대 못 끝난다 — 무조건 r.down 이다. 보고서는 한 런 ~1시간이고 하루 5회이므로
+    //   그대로 두면 매일 십수 번 "LLM DEAD" 를 찍는다. 죽지도 않은 서버를 죽었다고 하는 감시는
+    //   3일간 침묵한 감시와 같은 종류의 실패다(사람이 곧 무시하게 된다).
+    //   그래서 보고서가 도는 중이면 아예 쏘지 않는다 — 쏴봐야 결과가 정해져 있고, GPU 큐만 늘린다.
+    //   판정은 report-running.findReportProcesses 를 그대로 쓴다(이 파일이 이미 [1] 에서 쓰는 것과 동일 근거).
+    const genRunning = findReportProcesses();
+    if (genRunning.length) {
+      info.push(`model-id probe 건너뜀 — 보고서 생성 중(PID ${genRunning.map(p => p.pid).join(',')}). :8000 은 동시처리 1건이라 프로브가 큐에 밀려 반드시 20s 타임아웃 난다(혼잡 ≠ 사망)`);
+      throw { __skip: true };
+    }
     for (const m of codeModels) {
       const r = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, 20000);
       if (r.ok) info.push(`model-id ✓ ${m} 로 실제 추론 성공`);
@@ -165,8 +177,11 @@ async function checkOnce() {
       else issues.push(`MODEL-ID 거부: '${m}' 로 추론 요청이 실패 — ${r.error} → .env.local 의 VLLM_MODEL/LOCAL_LLM_MODEL 을 서버가 받는 값으로 맞추세요`);
     }
   } catch (e) {
-    // 여기도 조용히 삼키면 위와 같은 함정이다. 왜 못 쟀는지는 남긴다.
-    issues.push(`LLM 프로브 자체가 실패 — ${String(e?.message ?? e).slice(0, 100)} (모델 기대집합을 못 읽었거나 .env.local 접근 불가)`);
+    // 의도적 건너뜀은 결함이 아니다 — 위에서 이미 info 로 이유를 남겼다.
+    if (!e?.__skip) {
+      // 여기도 조용히 삼키면 위와 같은 함정이다. 왜 못 쟀는지는 남긴다.
+      issues.push(`LLM 프로브 자체가 실패 — ${String(e?.message ?? e).slice(0, 100)} (모델 기대집합을 못 읽었거나 .env.local 접근 불가)`);
+    }
   }
 
   // [2] cron verify-loop 결과 age

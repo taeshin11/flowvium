@@ -16,25 +16,59 @@
  *   그래서 재기동 전에 *다른 생성이 도는지* 먼저 본다. 돌고 있으면 재기동하지 않는다 —
  *   그건 남의 4시간짜리 작업을 죽이는 짓이다.
  *
+ * 2026-08-31 — 이 파일의 인자 파서가 `--lane web`(공백)만 받고 `--lane=web`(이 저장소의
+ *   나머지 스크립트가 전부 쓰는 형식: --locales=ko · --limit=12 · --refresh=8)은 **조용히
+ *   무시하고** 기본값 report 로 떨어졌다. 실제로 `--lane=web` 을 주고 :8001 을 검사한 줄
+ *   알았는데 :8000 을 보고 있었다.
+ *   그리고 라벨 기본값이 레인과 무관해서, `--lane web --repair` 는 :8001 이 죽은 걸 보고
+ *   :8000(27B)을 재기동했다 — 보고서 모델을 죽여서 웹 모델을 고치는 형태다.
+ *   두 형식을 모두 받고, 모르는 플래그는 조용히 넘기지 않고 거부한다. 라벨은 레인에서 뽑는다.
+ *
  * 사용:
  *   node scripts/llm-health-check.mjs            # 확인만. 정상 0, 비정상 1
  *   node scripts/llm-health-check.mjs --repair   # 비정상이면 1회 재기동 후 재확인
+ *   node scripts/llm-health-check.mjs --lane=web # 웹 레인(:8001). --lane web 도 같다
  */
 import { execFileSync } from 'child_process';
 import { probeGeneration } from './lib/llm-health.mjs';
-import { resolveLlm } from './lib/llm-config.mjs';
+import { resolveLlm, resolveLaunchdLabel } from './lib/llm-config.mjs';
 import { canReload, reclaimableBytes, weightBytes, modelPathFromPlist } from './lib/llm-memory.mjs';
 
 const argv = process.argv.slice(2);
+const VALUE_FLAGS = ['--lane', '--timeout-ms', '--reload-timeout-ms', '--label'];
+const BOOL_FLAGS = ['--repair'];
 const has = (f) => argv.includes(f);
-const arg = (f, d) => { const i = argv.indexOf(f); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
+/** `--k=v` 와 `--k v` 를 모두 받는다. 한쪽만 받으면 나머지는 조용히 기본값으로 떨어진다. */
+const arg = (f, d) => {
+  const eq = argv.find((a) => a.startsWith(`${f}=`));
+  if (eq) return eq.slice(f.length + 1);
+  const i = argv.indexOf(f);
+  return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d;
+};
+// 오타를 조용히 삼키지 않는다 — 이번 사고가 정확히 "무시된 플래그" 였다.
+for (let i = 0; i < argv.length; i++) {
+  const a = argv[i];
+  if (!a.startsWith('--')) continue;
+  const name = a.split('=')[0];
+  if (BOOL_FLAGS.includes(name) || VALUE_FLAGS.includes(name)) {
+    if (VALUE_FLAGS.includes(name) && !a.includes('=')) i++;   // 값 토큰은 건너뛴다
+    continue;
+  }
+  console.error(`[llm-health] 알 수 없는 인자: ${a}\n  쓸 수 있는 것: ${[...BOOL_FLAGS, ...VALUE_FLAGS.map((f) => `${f}=…`)].join(' ')}`);
+  process.exit(2);
+}
 
 const lane = arg('--lane', 'report');
+if (!['report', 'web'].includes(lane)) {
+  console.error(`[llm-health] 알 수 없는 레인 '${lane}' — report 또는 web`);
+  process.exit(2);
+}
 const { url } = resolveLlm(lane);
 const timeoutMs = Number(arg('--timeout-ms', process.env.LLM_PROBE_TIMEOUT_MS || 90_000));
 // 재기동 직후에는 가중치 적재가 있으므로 더 길게 준다. 코드에 상한을 박지 않고 환경에서 조정 가능.
 const reloadTimeoutMs = Number(arg('--reload-timeout-ms', process.env.LLM_RELOAD_TIMEOUT_MS || 600_000));
-const label = arg('--label', process.env.LLM_LAUNCHD_LABEL || 'com.spinai.flowvium-llm');
+// 라벨은 레인에서 뽑는다 — 고정값이면 `--lane web --repair` 가 27B 를 죽인다(llm-config.mjs 참조).
+const label = arg('--label', resolveLaunchdLabel(lane));
 
 const log = (m) => console.log(`[llm-health] ${m}`);
 
@@ -98,7 +132,7 @@ function restartService() {
   }
 
   execFileSync('/bin/launchctl', ['kickstart', '-k', `gui/${uid}/${label}`], { encoding: 'utf8', timeout: 60_000 });
-  log(`재기동 요청 완료: ${label}`);
+  log(`재기동 요청 완료: ${label} (레인 ${lane} · ${url})`);
   return true;
 }
 
@@ -107,11 +141,19 @@ if (first.ok) {
   log(`✅ 정상 — ${first.detail} (모델 ${first.model})`);
   process.exit(0);
 }
-log(`⚠️ 불합격 [${first.stage}] ${first.detail} (${(first.ms / 1000).toFixed(1)}s, url ${url})`);
+// 진단을 먼저 정직하게 만든다. 종전에는 이 판정이 --repair 안에만 있어서, 보고서가 도는 중
+// 프로브가 실패하면 로그에 "생성 스레드 사망 의심" 만 남았다(2026-08-31 11:24 실제로 그렇게 찍혔다).
+// 사람이 그 줄만 보면 멀쩡한 서버를 죽이러 간다. 원인 후보가 둘이면 어느 쪽인지 로그가 말해야 한다.
+const busy = otherGenerationRunning();
+log(`⚠️ 불합격 [${first.stage}] ${first.detail} (${(first.ms / 1000).toFixed(1)}s, 레인 ${lane} url ${url})`);
+if (busy) {
+  log('  └ 다만 이 기계에서 다른 생성이 진행 중이다 — :8000 은 동시처리 1건이라 프로브가 큐에 밀린다.');
+  log('    즉 혼잡일 가능성이 높다. 사망 판정은 그 작업이 끝난 뒤에 다시 볼 것.');
+}
 
 if (!has('--repair')) process.exit(1);
 
-if (otherGenerationRunning()) {
+if (busy) {
   log('다른 생성 작업이 진행 중 — 혼잡이지 사망이 아니다. 재기동하지 않고 중단한다.');
   process.exit(1);
 }
