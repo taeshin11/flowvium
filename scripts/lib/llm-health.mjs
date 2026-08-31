@@ -100,3 +100,55 @@ function describe(e) {
   const code = e?.cause?.code || e?.code;
   return code ? `${name || 'Error'}: ${code}` : String(e?.message || e).slice(0, 120);
 }
+
+/**
+ * 콜드 페이지인으로 느린 것을 사망으로 읽지 않기 위한 상한(ms).
+ *
+ * 실측(2026-08-31 12:30, 보고서 종료 직후 이 기계):
+ *   :8000 27B  1회차 114.6s → 2회차 1.09s → 3회차 1.09s   (105배)
+ *   :8001 4B   1회차  1.86s → 2회차 0.12s
+ * 이 기계는 wired 34.8GB · 스왑 4.2/6.1GB 로 상시 압박이라, 유휴 동안 macOS 가 모델
+ * 가중치를 압축·스왑아웃한다. 첫 요청이 그걸 도로 끌어올리는 값이 30~115s 다.
+ * 실측 최대(114.6s)에 여유를 더해 180s. 코드에 박지 않고 인자로 덮을 수 있다.
+ */
+export const DEFAULT_COLD_TIMEOUT_MS = 180_000;
+
+/**
+ * 빠르게 한 번, 실패하면 길게 한 번 더 묻는다. 두 번 다 안 되면 사망이다.
+ *
+ * 왜 재시도가 여기서는 "증상 덮기" 가 아닌가 — 두 실패의 원인이 다르기 때문이다.
+ *   콜드 페이지인은 *첫 요청이 비용을 치르고 끝나는* 일회성이다. 두 번째는 1s 다.
+ *   생성 스레드 사망은 몇 번을 물어도 안 나온다(08-28~08-31 3일간 그랬다).
+ *   그래서 두 번째 질문이 둘을 실제로 가른다. 같은 실패를 그냥 다시 시도해 덮는 것과 다르다.
+ *
+ * 그리고 짧은 상한 하나로 가는 쪽이 오히려 위험하다: 클라이언트가 abort 해도 mlx_lm 은
+ * 그 요청을 계속 처리한다. 끊긴 프로브가 서버 큐에 일감을 남기고 다음 프로브가 그 뒤에 선다
+ * (실측: 20s 프로브 직후의 90s 프로브가 97.4s 에 타임아웃). 짧게 끊을수록 나빠진다.
+ *
+ * @param {{url:string, timeoutMs?:number, coldTimeoutMs?:number, fetchImpl?:Function}} opt
+ * @returns {Promise<{ok:boolean, cold:boolean, stage?:string, detail:string, ms:number, model?:string}>}
+ */
+export async function probeWithColdRetry(opt) {
+  const { coldTimeoutMs = DEFAULT_COLD_TIMEOUT_MS, ...rest } = opt || {};
+  const first = await probeGeneration(rest);
+  if (first.ok) return { ...first, cold: false };
+
+  // 목록(GET /v1/models)조차 안 되면 페이지인 문제가 아니다 — 포트가 닫혔거나 프로세스가 없다.
+  // 그 경우 길게 기다려봐야 같은 결과이므로 바로 판정한다.
+  if (first.stage === 'models') return { ...first, cold: false };
+
+  const second = await probeGeneration({ ...rest, timeoutMs: coldTimeoutMs });
+  if (second.ok) {
+    return {
+      ...second,
+      cold: true,
+      detail: `${second.detail} — 첫 시도(${(first.ms / 1000).toFixed(1)}s 상한)는 실패했으나 재시도로 통과. `
+            + `콜드 페이지인(유휴 중 가중치가 스왑아웃됨)이지 사망이 아니다`,
+    };
+  }
+  return {
+    ...second,
+    cold: false,
+    detail: `${second.detail} — 재시도(${(coldTimeoutMs / 1000).toFixed(0)}s 상한)까지 실패했다. 콜드가 아니라 사망으로 본다`,
+  };
+}

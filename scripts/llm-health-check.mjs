@@ -30,7 +30,7 @@
  *   node scripts/llm-health-check.mjs --lane=web # 웹 레인(:8001). --lane web 도 같다
  */
 import { execFileSync } from 'child_process';
-import { probeGeneration } from './lib/llm-health.mjs';
+import { probeWithColdRetry } from './lib/llm-health.mjs';
 import { resolveLlm, resolveLaunchdLabel } from './lib/llm-config.mjs';
 import { canReload, reclaimableBytes, weightBytes, modelPathFromPlist } from './lib/llm-memory.mjs';
 
@@ -136,9 +136,9 @@ function restartService() {
   return true;
 }
 
-const first = await probeGeneration({ url, timeoutMs });
+const first = await probeWithColdRetry({ url, timeoutMs });
 if (first.ok) {
-  log(`✅ 정상 — ${first.detail} (모델 ${first.model})`);
+  log(`${first.cold ? '✅ 정상(콜드)' : '✅ 정상'} — ${first.detail} (모델 ${first.model})`);
   process.exit(0);
 }
 // 진단을 먼저 정직하게 만든다. 종전에는 이 판정이 --repair 안에만 있어서, 보고서가 도는 중
@@ -160,7 +160,7 @@ if (busy) {
 
 if (!restartService()) process.exit(1);
 
-const second = await probeGeneration({ url, timeoutMs: reloadTimeoutMs });
+const second = await probeWithColdRetry({ url, timeoutMs: reloadTimeoutMs, coldTimeoutMs: reloadTimeoutMs });
 if (second.ok) {
   log(`✅ 재기동으로 복구 — ${second.detail} (모델 ${second.model})`);
   process.exit(0);

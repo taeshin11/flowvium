@@ -108,5 +108,88 @@ const sendJson = (rs, obj) => { rs.writeHead(200, { 'Content-Type': 'application
     : bad(`닫힌 포트를 통과시켰다: ${JSON.stringify(r)}`);
 }
 
+// ── 2026-08-31 오후: "느림" 을 "죽음" 으로 읽던 경로 ──────────────────────────────
+//   오전에 check-stall 의 `r.down` 을 issues 로 승격했다(3일 침묵의 원인). 그런데 그 프로브의
+//   상한이 20s 다. 이 기계에서 그 값은 현실과 안 맞는다 — 실측:
+//
+//     :8000 27B  1회차 114.6s → 2회차 1.09s → 3회차 1.09s   (105배)
+//     :8001 4B   1회차  1.86s → 2회차 0.12s
+//
+//   원인은 사망이 아니라 콜드 페이지인이다. 이 기계는 wired 34.8GB · 스왑 4.2/6.1GB 로
+//   상시 압박 상태라, 유휴 동안 macOS 가 모델 가중치를 압축·스왑아웃한다. 첫 요청이 그걸
+//   도로 끌어올리는 값이 30~115s 다. 20s 상한은 **유휴 뒤 첫 프로브를 항상 실패시킨다.**
+//
+//   그리고 나쁜 쪽으로 겹친다: 클라이언트가 abort 해도 mlx_lm 은 그 요청을 계속 처리한다.
+//   짧은 상한으로 끊은 프로브는 서버 큐에 일감을 남기고, 다음 프로브가 그 뒤에 선다.
+//   실제로 20s 프로브 직후에 쏜 90s 프로브가 97.4s 만에 타임아웃 났다 — 짧은 상한이
+//   상황을 *악화* 시킨 것이다.
+//
+//   그래서 판정을 두 단계로 나눈다. 빠른 상한으로 먼저 묻고(정상이면 1s), 실패하면
+//   **한 번 더 길게** 묻는다. 첫 시도가 이미 페이지를 데워놨으므로 두 번째는 싸다.
+//   두 번째까지 실패해야 사망이다. 콜드와 사망은 다른 것이고, 감시가 그 둘을 못 가르면
+//   3일 침묵과 매일 오경보 사이를 오갈 뿐이다.
+/** 신호가 먼저 끊으면 TimeoutError 로 거절 — 실제 fetch 가 하는 것과 같은 모양. */
+function raceSignal(takesMs, signal) {
+  return new Promise((res, rej) => {
+    const t = setTimeout(res, takesMs);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(t);
+      const e = new Error('The operation was aborted due to timeout');
+      e.name = 'TimeoutError';
+      rej(e);
+    }, { once: true });
+  });
+}
+/** probeGeneration 이 부르는 두 엔드포인트에 각각 맞는 최소 응답. */
+function jsonRes(url) {
+  const body = url.endsWith('/models')
+    ? { data: [{ id: '/Users/x/.cache/huggingface/hub/models--mlx-community--Qwen3.8-27B-8bit/snapshots/abc' }] }
+    : { choices: [{ message: { role: 'assistant', content: 'pong' } }] };
+  return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) };
+}
+
+{
+  const H = await import('./llm-health.mjs');
+  typeof H.probeWithColdRetry === 'function'
+    ? ok('probeWithColdRetry 제공')
+    : bad('콜드/사망을 가르는 경로가 없다 — 유휴 뒤 첫 프로브가 항상 DEAD 로 찍힌다');
+
+  if (typeof H.probeWithColdRetry === 'function') {
+    // ① 콜드: 첫 요청은 상한을 넘기고, 두 번째(길게)는 성공한다 → 살아있다고 판정해야 한다
+    // 예산(ms)을 스텁이 읽을 방법은 없다 — AbortSignal 에서 남은 시간을 못 꺼낸다.
+    // 그래서 실제 서버처럼 '걸리는 시간' 을 두고 신호와 경쟁시킨다. 값만 작게 잡는다.
+    // 이 서버는 사건의 실제 모양이다: /v1/models 는 ThreadingHTTPServer 라 언제나 즉답이고,
+    // 느린 것은 *생성* 뿐이다. 그래서 콜드 판정은 생성 단계에서만 갈려야 한다.
+    let gen = 0;
+    const coldServer = async (url, opt) => {
+      if (String(url).endsWith('/models')) return jsonRes(String(url));   // 23ms 즉답
+      gen++;
+      await raceSignal(gen === 1 ? 300 : 20, opt?.signal);                // 페이지인 → 데워진 뒤
+      return jsonRes(String(url));
+    };
+    const cold = await H.probeWithColdRetry({ url: 'http://x/v1', fetchImpl: coldServer, timeoutMs: 100, coldTimeoutMs: 2_000 });
+    cold.ok ? ok(`콜드는 사망이 아니다 — 재시도로 통과 (${cold.detail})`) : bad(`콜드 페이지인을 사망으로 판정: ${cold.detail}`);
+    cold.cold ? ok('콜드였음을 표시한다(운영자가 원인을 알 수 있게)') : bad('콜드 표시가 없다');
+
+    // ② 진짜 사망: 두 번 다 무응답이면 사망이다. 여기까지 완화하면 3일 침묵이 재발한다.
+    // 08-28~08-31 실제 사건: 목록은 200 인데 생성만 영원히 안 나온다.
+    const deadServer = async (url, opt) => {
+      if (String(url).endsWith('/models')) return jsonRes(String(url));
+      await raceSignal(60_000, opt?.signal);
+      throw new Error('여기 오면 안 된다');
+    };
+    const dead = await H.probeWithColdRetry({ url: 'http://x/v1', fetchImpl: deadServer, timeoutMs: 200, coldTimeoutMs: 400 });
+    !dead.ok && dead.stage === 'generate'
+      ? ok(`목록 200 + 생성 무응답 두 번 → 사망 판정 (${dead.stage})`)
+      : bad(`진짜 죽은 서버 판정 오류: ok=${dead.ok} stage=${dead.stage}`);
+    !dead.cold ? ok('사망을 콜드로 감싸지 않는다') : bad('사망인데 콜드로 표시 — 3일 침묵이 재발한다');
+
+    // ③ 정상(웜)이면 재시도를 하지 않는다 — 20분마다 도는 감시가 매번 두 번 쏘면 안 된다
+    const warmServer = async (url) => jsonRes(String(url));
+    const warm = await H.probeWithColdRetry({ url: 'http://x/v1', fetchImpl: warmServer, timeoutMs: 2_000 });
+    warm.ok && !warm.cold ? ok('웜이면 콜드 표시 없음') : bad(`웜인데 ${JSON.stringify({ ok: warm.ok, cold: warm.cold })}`);
+  }
+}
+
 console.log(fail === 0 ? '\n✅ llm-health 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

@@ -25,6 +25,7 @@ import { sessionBudgetMin, maxSessionBudgetMin, getPublishTarget } from './lib/r
 import { launcherWipesWorktree } from './lib/report-launcher.mjs';
 import { checkResourcePressure } from './lib/resource-pressure.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
+import { DEFAULT_COLD_TIMEOUT_MS as COLD_PROBE_MS } from './lib/llm-health.mjs';
 import { backupStatus } from './lib/backup-health.mjs';
 import { findStaleJobs, listProcesses, loadJobPolicy } from './lib/stale-jobs.mjs';
 import { dbHealth } from './lib/db-health.mjs';
@@ -170,11 +171,25 @@ async function checkOnce() {
       info.push(`model-id probe 건너뜀 — 보고서 생성 중(PID ${genRunning.map(p => p.pid).join(',')}). :8000 은 동시처리 1건이라 프로브가 큐에 밀려 반드시 20s 타임아웃 난다(혼잡 ≠ 사망)`);
       throw { __skip: true };
     }
+    // 2026-08-31(오후 재수정): 20s 상한이 이 기계의 현실과 안 맞았다. 실측 —
+    //   :8000 27B 1회차 114.6s → 2회차 1.09s (105배). 유휴 동안 macOS 가 가중치를
+    //   스왑아웃하고(현재 wired 34.8GB · 스왑 4.2/6.1GB) 첫 요청이 페이지인 비용을 문다.
+    //   즉 20s 상한은 *유휴 뒤 첫 프로브를 항상 실패시킨다* → 매일 오경보.
+    //   콜드와 사망은 두 번째 질문으로 갈린다(콜드면 2회차가 1s, 사망이면 몇 번을 물어도 안 나온다).
     for (const m of codeModels) {
       const r = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, 20000);
-      if (r.ok) info.push(`model-id ✓ ${m} 로 실제 추론 성공`);
-      else if (r.down) issues.push(`LLM DEAD: :8000 이 20s 안에 토큰을 못 냈다 (${r.error}) — /v1/models 는 200 이어도 생성 스레드는 죽어 있을 수 있다. 조치: node scripts/llm-health-check.mjs --repair`);
-      else issues.push(`MODEL-ID 거부: '${m}' 로 추론 요청이 실패 — ${r.error} → .env.local 의 VLLM_MODEL/LOCAL_LLM_MODEL 을 서버가 받는 값으로 맞추세요`);
+      if (r.ok) { info.push(`model-id ✓ ${m} 로 실제 추론 성공`); continue; }
+      if (!r.down) {
+        issues.push(`MODEL-ID 거부: '${m}' 로 추론 요청이 실패 — ${r.error} → .env.local 의 VLLM_MODEL/LOCAL_LLM_MODEL 을 서버가 받는 값으로 맞추세요`);
+        continue;
+      }
+      // 무응답이다. 여기서 바로 DEAD 를 찍지 않고 한 번 더 길게 묻는다.
+      const retry = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, COLD_PROBE_MS);
+      if (retry.ok) {
+        info.push(`model-id ✓ ${m} — 첫 20s 프로브는 실패했으나 ${COLD_PROBE_MS / 1000}s 재시도로 통과. 콜드 페이지인(유휴 중 가중치 스왑아웃)이지 사망이 아니다`);
+      } else {
+        issues.push(`LLM DEAD: :8000 이 20s + ${COLD_PROBE_MS / 1000}s 재시도에도 토큰을 못 냈다 (${retry.error ?? r.error}) — /v1/models 는 200 이어도 생성 스레드는 죽어 있을 수 있다. 조치: node scripts/llm-health-check.mjs --repair`);
+      }
     }
   } catch (e) {
     // 의도적 건너뜀은 결함이 아니다 — 위에서 이미 info 로 이유를 남겼다.
