@@ -23,6 +23,7 @@
 import { execFileSync } from 'child_process';
 import { probeGeneration } from './lib/llm-health.mjs';
 import { resolveLlm } from './lib/llm-config.mjs';
+import { canReload, reclaimableBytes, weightBytes, modelPathFromPlist } from './lib/llm-memory.mjs';
 
 const argv = process.argv.slice(2);
 const has = (f) => argv.includes(f);
@@ -46,7 +47,33 @@ function otherGenerationRunning() {
   } catch { return false; }
 }
 
-/** launchd 잡이 실제로 등록돼 있는지 확인한 뒤에만 재기동한다(없는 라벨을 kickstart 하면 조용히 실패). */
+/** 지금 이 서비스가 붙잡고 있는 메모리(바이트). kickstart -k 로 곧 반납된다. */
+function footprintOf(pid) {
+  if (!pid) return 0;
+  try {
+    const out = execFileSync('/usr/bin/footprint', ['-p', String(pid)], { encoding: 'utf8', timeout: 20_000 });
+    const m = /phys_footprint:\s+([\d.]+)\s*(MB|GB|KB|B)/.exec(out);
+    if (!m) return 0;
+    const mult = { B: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3 }[m[2]];
+    return Number(m[1]) * mult;
+  } catch { return 0; }
+}
+
+/** 이 라벨이 지금 물고 있는 PID (launchctl list 의 첫 컬럼). */
+function pidOfLabel() {
+  try {
+    const listed = execFileSync('/bin/launchctl', ['list'], { encoding: 'utf8', timeout: 15_000 });
+    const row = listed.split('\n').find((l) => l.trim().endsWith(`\t${label}`) || l.trim().endsWith(label));
+    const pid = row ? Number(row.split('\t')[0]) : NaN;
+    return Number.isInteger(pid) && pid > 0 ? pid : 0;
+  } catch { return 0; }
+}
+
+/**
+ * launchd 잡이 실제로 등록돼 있는지, 그리고 메모리가 모델을 올릴 수는 있는지 확인한 뒤에만
+ * 재기동한다. 없는 라벨을 kickstart 하면 조용히 실패하고, 메모리가 가중치에도 못 미치면
+ * 재기동은 복구가 아니라 두 번째 사고다.
+ */
 function restartService() {
   const uid = process.getuid();
   const listed = execFileSync('/bin/launchctl', ['list'], { encoding: 'utf8', timeout: 15_000 });
@@ -54,6 +81,22 @@ function restartService() {
     log(`❌ launchd 잡 '${label}' 이 등록돼 있지 않다 — 재기동 경로 없음`);
     return false;
   }
+
+  // 메모리 판정. 경로·크기를 코드에 박지 않고 plist 의 --model 에서 실측한다.
+  const plist = `${process.env.HOME}/Library/LaunchAgents/${label}.plist`;
+  const dir = modelPathFromPlist(plist);
+  const weights = weightBytes(dir || '');
+  if (weights > 0) {
+    const verdict = canReload({ weights, reclaimable: reclaimableBytes(), releasing: footprintOf(pidOfLabel()) });
+    if (!verdict.ok) {
+      log(`❌ 재기동 불가 — ${verdict.detail}`);
+      return false;
+    }
+    log(verdict.tight ? `⚠️ ${verdict.detail}` : `메모리 ${verdict.detail}`);
+  } else {
+    log(`⚠️ 가중치 크기를 측정하지 못했다(${dir || 'model 경로 미검출'}) — 메모리 판정 없이 진행`);
+  }
+
   execFileSync('/bin/launchctl', ['kickstart', '-k', `gui/${uid}/${label}`], { encoding: 'utf8', timeout: 60_000 });
   log(`재기동 요청 완료: ${label}`);
   return true;
