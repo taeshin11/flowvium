@@ -152,13 +152,22 @@ async function checkOnce() {
     //   '서빙 중인 별칭'이 아니라 HuggingFace 캐시 디렉토리 전체를 나열한다 — 같은 맥에 OCR 팀이 받아둔
     //   baidu/Unlimited-OCR 까지 목록에 섞여 나온다. 그래서 정상 동작 중에도 MISMATCH 가 상시 발화했다.
     //   식별자 비교로는 '이 ID 로 실제 추론이 되는가'를 알 수 없다. 결과로 판정한다.
+    // 2026-08-31: `r.down` 을 info 로 강등하고 "down 은 별도 probe" 에 미루던 줄이 여기 있었다.
+    //   **그 별도 probe 는 이 파일에 없다.** 미룬 곳이 비어 있으면 아무도 안 본다는 뜻이다.
+    //   실제 결과: 08-28 10:44 Metal OOM 으로 생성 스레드가 죽은 뒤 이 프로브는 매 20분 타임아웃
+    //   (= r.down) 났고, 3일 내내 info 로만 쌓였다. 유일하게 발화한 [1] 은 "최신 보고서 75.3h 전 —
+    //   cron 멈춤 의심" 이라 **원인을 cron 으로 잘못 가리켰다.** LLM 이 죽었다고 말한 검사가 하나도 없었다.
+    //   이제 issues 로 올린다. 조치 경로도 생겼다(llm-health-check.mjs --repair).
     for (const m of codeModels) {
       const r = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, 20000);
       if (r.ok) info.push(`model-id ✓ ${m} 로 실제 추론 성공`);
-      else if (r.down) info.push(`model-id probe skip — LLM 응답 없음 (down 은 별도 probe): ${r.error}`);
+      else if (r.down) issues.push(`LLM DEAD: :8000 이 20s 안에 토큰을 못 냈다 (${r.error}) — /v1/models 는 200 이어도 생성 스레드는 죽어 있을 수 있다. 조치: node scripts/llm-health-check.mjs --repair`);
       else issues.push(`MODEL-ID 거부: '${m}' 로 추론 요청이 실패 — ${r.error} → .env.local 의 VLLM_MODEL/LOCAL_LLM_MODEL 을 서버가 받는 값으로 맞추세요`);
     }
-  } catch { /* vLLM 조회 실패 = SKIP (down 은 별도 probe) */ }
+  } catch (e) {
+    // 여기도 조용히 삼키면 위와 같은 함정이다. 왜 못 쟀는지는 남긴다.
+    issues.push(`LLM 프로브 자체가 실패 — ${String(e?.message ?? e).slice(0, 100)} (모델 기대집합을 못 읽었거나 .env.local 접근 불가)`);
+  }
 
   // [2] cron verify-loop 결과 age
   try {
