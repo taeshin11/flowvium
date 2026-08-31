@@ -6,9 +6,9 @@
     "tag": "deferred"
   },
   "NVDA": {
-    "rpoUsd": 2600000000,
-    "rpoYoYPct": 44.4,
-    "end": "2026-04-26",
+    "rpoUsd": 3200000000,
+    "rpoYoYPct": 68.4,
+    "end": "2026-07-26",
     "tag": "RPO"
   },
   "GOOGL": {
@@ -84,9 +84,9 @@
     "tag": "deferred"
   },
   "DE": {
-    "rpoUsd": 1855000000,
-    "rpoYoYPct": 4.6,
-    "end": "2026-05-03",
+    "rpoUsd": 1871000000,
+    "rpoYoYPct": 2.6,
+    "end": "2026-08-02",
     "tag": "RPO"
   },
   "GE": {
@@ -150,15 +150,15 @@
     "tag": "RPO"
   },
   "HD": {
-    "rpoUsd": 1100000000,
-    "rpoYoYPct": 10,
-    "end": "2026-05-03",
+    "rpoUsd": 1000000000,
+    "rpoYoYPct": 0,
+    "end": "2026-08-02",
     "tag": "RPO"
   },
   "TJX": {
-    "rpoUsd": 831000000,
-    "rpoYoYPct": 7.1,
-    "end": "2026-05-02",
+    "rpoUsd": 825000000,
+    "rpoYoYPct": 6.6,
+    "end": "2026-08-01",
     "tag": "deferred"
   },
   "MAR": {
@@ -174,9 +174,9 @@
     "tag": "deferred"
   },
   "CRM": {
-    "rpoUsd": 67900000000,
-    "rpoYoYPct": 11.5,
-    "end": "2026-04-30",
+    "rpoUsd": 66300000000,
+    "rpoYoYPct": 10.7,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "ACN": {
@@ -792,9 +792,9 @@
     "tag": "RPO"
   },
   "SNPS": {
-    "rpoUsd": 11000000000,
-    "rpoYoYPct": 35.8,
-    "end": "2026-04-30",
+    "rpoUsd": 10900000000,
+    "rpoYoYPct": 7.9,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "FTNT": {
@@ -824,7 +824,7 @@
   "HPQ": {
     "rpoUsd": 4200000000,
     "rpoYoYPct": 5,
-    "end": "2026-04-30",
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "DELL": {
@@ -948,9 +948,9 @@
     "tag": "deferred"
   },
   "SMCI": {
-    "rpoUsd": 2135600000,
-    "rpoYoYPct": 220.8,
-    "end": "2026-03-31",
+    "rpoUsd": 2612000000,
+    "rpoYoYPct": 257.1,
+    "end": "2026-06-30",
     "tag": "RPO"
   },
   "MSFT": {
@@ -990,9 +990,9 @@
     "tag": "RPO"
   },
   "TGT": {
-    "rpoUsd": 1015000000,
-    "rpoYoYPct": -1.6,
-    "end": "2026-05-02",
+    "rpoUsd": 959000000,
+    "rpoYoYPct": -4.6,
+    "end": "2026-08-01",
     "tag": "deferred"
   },
   "HUM": {
@@ -1026,9 +1026,9 @@
     "tag": "RPO"
   },
   "ULTA": {
-    "rpoUsd": 531564000,
-    "rpoYoYPct": 16.8,
-    "end": "2026-05-02",
+    "rpoUsd": 532981000,
+    "rpoYoYPct": 17.9,
+    "end": "2026-08-01",
     "tag": "deferred"
   },
   "DASH": {
@@ -1098,9 +1098,9 @@
     "tag": "RPO"
   },
   "TOL": {
-    "rpoUsd": 472098000,
-    "rpoYoYPct": -8.3,
-    "end": "2026-04-30",
+    "rpoUsd": 458123000,
+    "rpoYoYPct": -5.3,
+    "end": "2026-07-31",
     "tag": "deferred"
   },
   "LPLA": {
@@ -1320,9 +1320,9 @@
     "tag": "deferred"
   },
   "ADSK": {
-    "rpoUsd": 7810000000,
+    "rpoUsd": 7430000000,
     "rpoYoYPct": null,
-    "end": "2026-04-30",
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "BAX": {
@@ -1542,9 +1542,9 @@
     "tag": "deferred"
   },
   "JKHY": {
-    "rpoUsd": 8032713000,
-    "rpoYoYPct": 8.4,
-    "end": "2026-03-31",
+    "rpoUsd": 8440905000,
+    "rpoYoYPct": 9.5,
+    "end": "2026-06-30",
     "tag": "RPO"
   },
   "J": {
@@ -1770,9 +1770,9 @@
     "tag": "RPO"
   },
   "TECH": {
-    "rpoUsd": 40700000,
-    "rpoYoYPct": 14.3,
-    "end": "2026-03-31",
+    "rpoUsd": 38400000,
+    "rpoYoYPct": 8.8,
+    "end": "2026-06-30",
     "tag": "deferred"
   },
   "WAT": {
@@ -2238,9 +2238,9 @@
     "tag": "deferred"
   },
   "CRWD": {
-    "rpoUsd": 8800000000,
-    "rpoYoYPct": 29.4,
-    "end": "2026-04-30",
+    "rpoUsd": 10700000000,
+    "rpoYoYPct": 48.6,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "MDB": {
@@ -2256,9 +2256,9 @@
     "tag": "RPO"
   },
   "ESTC": {
-    "rpoUsd": 1982000000,
-    "rpoYoYPct": 28.3,
-    "end": "2026-04-30",
+    "rpoUsd": 1854000000,
+    "rpoYoYPct": 26.9,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "TXT": {
