@@ -9,7 +9,8 @@
 # 설정(전부 환경변수, 경로를 코드에 박지 않는다):
 #   APP_DIR      기본: 이 스크립트의 상위 디렉터리
 #   NODE_BIN     기본: PATH 의 node
-#   LLM_HEALTH   기본: http://127.0.0.1:8000/v1/models
+#   LLM_HEALTH   기본: http://127.0.0.1:8000/v1/models  (포트 기동 확인용. 정상 판정은 llm-health-check.mjs 가 한다)
+#   SKIP_LLM_PROBE = 1 이면 생성 프로브 생략 (긴급용. 켜면 2026-08-31 3일 정지 사건 경로가 열린다)
 #   LLM_WAIT_S   기본: 900   (LLM 기동 대기 상한. 27.5GB 모델 적재가 느려서 원본 720s 보다 길게)
 #   SKIP_PREFLIGHT / SKIP_INGEST  = 1 이면 해당 단계 생략
 set -uo pipefail
@@ -67,15 +68,30 @@ cd "$APP_DIR"
 # 맥 수정이 원격에 병합된 뒤에 별도 단계로 되살릴 것. 지금 조용히 켜면 회귀가 난다.
 
 # ── 1. LLM 헬스 대기 ───────────────────────────────────────────────────────────
-log "[INFO] LLM 대기 $LLM_HEALTH (상한 ${LLM_WAIT_S}s)"
+# 1-a. 포트 기동 대기. 이건 *기동* 확인일 뿐 정상 확인이 아니다 — 아래 1-b 가 진짜 판정이다.
+log "[INFO] LLM 기동 대기 $LLM_HEALTH (상한 ${LLM_WAIT_S}s)"
 deadline=$(( $(date +%s) + LLM_WAIT_S ))
 until code=$(curl -s --max-time 8 -o /dev/null -w '%{http_code}' "$LLM_HEALTH" 2>/dev/null) && [ "$code" = "200" ]; do
   if [ "$(date +%s)" -ge "$deadline" ]; then
-    log "[ERROR] LLM 무응답 (http=${code:-000}) — 중단"; exit 1
+    log "[ERROR] LLM 포트 무응답 (http=${code:-000}) — 중단"; exit 1
   fi
   sleep 15
 done
-log "[INFO] LLM 정상"
+
+# 1-b. 생성 프로브. 2026-08-31: 여기가 없어서 3일간 보고서가 0건이었다.
+#   mlx_lm.server 는 요청마다 스레드를 띄우므로 08-28 10:44 Metal OOM 으로 생성 워커가
+#   죽은 뒤에도 /v1/models 는 3일 내내 200(23ms)을 줬다. 위 1-a 만 보고 "LLM 정상" 을 찍은
+#   런들은 섹션마다 3600s 를 태우고 빈 문자열을 받아 4시간+ 정지했고, 그동안 파이프라인
+#   락 때문에 video·auto-warm·segments 잡까지 전부 skip 됐다. 서버 재기동 1회로 즉시 복구됐다.
+#   → 게이트가 물어야 할 질문은 "포트가 살아있나" 가 아니라 "토큰이 나오나" 다.
+if [ "${SKIP_LLM_PROBE:-0}" != "1" ]; then
+  log "[INFO] LLM 생성 프로브 (죽어 있으면 1회 재기동)"
+  if ! "$NODE_BIN" scripts/llm-health-check.mjs --repair >> "$LOG_FILE" 2>&1; then
+    log "[ERROR] LLM 이 토큰을 내놓지 못한다 — 4시간 헛도는 대신 중단 (logs/report.log 의 [llm-health] 참조)"
+    exit 1
+  fi
+fi
+log "[INFO] LLM 정상 (생성 확인됨)"
 
 # ── 2. 사전점검 (조용한 실패 방지). 종료코드 2 = 치명 → 중단 ──────────────────
 if [ "${SKIP_PREFLIGHT:-0}" != "1" ]; then

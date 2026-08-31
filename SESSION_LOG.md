@@ -14,6 +14,84 @@
 
 ---
 
+## 2026-08-31 — 보고서 3일 정지. 원인은 "헬스체크가 거짓말" 하나
+
+**증상:** 08-28 06:24 이후 보고서 0건(75시간). 사용자가 "오늘 아침 왜 생성 안 됐냐" 고 물어서 발견.
+모니터는 3일 내내 🚨 를 찍고 있었다 — `HUNG: report-gen PID 34725 250분 실행 중`. **감지는 됐고
+아무도 조치하지 않았다.** 자동 조치 경로가 없었던 것이 두 번째 결함이다.
+
+### 근본 원인 (호출 체인 끝까지)
+
+| 시각 | 사실 | 증거 |
+|---|---|---|
+| 08-28 10:44:58 | 마지막 성공 `POST /v1/chat/completions 200` | `~/flowvium_runtime/mlx.log` |
+| 08-28 10:44:58 직후 | `RuntimeError: [METAL] Command buffer execution failed: Insufficient Memory (kIOGPUCommandBufferCallbackErrorOutOfMemory)` → **생성 워커 스레드 사망** | mlx.log:79773 |
+| 08-28 ~ 08-31 | `GET /v1/models` 는 내내 **200 (23ms)**. mlx_lm.server 는 ThreadingHTTPServer 라 요청마다 스레드가 따로 뜬다 — 워커가 죽어도 목록은 산다 | 08-31 09:50 직접 측정 |
+| 매 런 | `run-report.sh:72` 게이트가 그 200 만 보고 `[INFO] LLM 정상` 찍고 통과 | run-report.sh (수정 전) |
+| 매 런 | 섹션마다 3600s AbortSignal 소진 → `TypeError: fetch failed`(Ollama 없음) → 빈 문자열. macro·portfolio·regional·opportunity 4섹션 × 1시간 = **1런 4시간+** | `logs/report.log` |
+| 그동안 | 파이프라인 락이 물려 `video`·`auto-warm`·`segments-refresh`·`harvest-log-defects` 전부 `skip — 보고서 파이프라인 실행 중` | `~/flowvium_runtime/cron.log` |
+
+**결정적 검증** (08-31 09:53): `/v1/models` → 200 / 23ms. 같은 서버에 `POST /v1/chat/completions`
+`max_tokens:1` → **HTTP 000 / 30s 타임아웃**. 서버는 살아 있고 생성만 죽어 있었다.
+`launchctl kickstart -k gui/$UID/com.spinai.flowvium-llm` **1회로 즉시 복구** (무응답 → 13.9s 200).
+MLX 서버 프로세스는 **11일 9시간** 무재시작 상태였다.
+
+### 고친 것
+
+| 파일 | 무엇 |
+|---|---|
+| `scripts/lib/llm-health.mjs` (신규) | `probeGeneration()` — 포트가 아니라 **토큰이 나오는지** 를 묻는다. 적재 모델은 `served-model.mjs` 규약(절대경로 항목)으로 해석 — 모델명을 코드에 박지 않는다 |
+| `scripts/lib/llm-health.test.mjs` (신규) | 목록은 200, 생성은 무응답인 가짜 서버로 **사건을 재현**. 옛 게이트 로직에서 3건 실패 → 새 프로브에서 6/6 통과 |
+| `scripts/llm-health-check.mjs` (신규) | `--repair` 로 1회 재기동 후 재확인. 실패하면 **중단** — 4시간 헛도는 것보다 손해가 작다 |
+| `scripts/run-report.sh:81-94` | 게이트 1-a(포트 기동) 뒤에 1-b(생성 프로브) 추가. `SKIP_LLM_PROBE=1` 로만 우회 |
+
+**오경보 방지 (실측으로 필요성 확인):** `:8000` 은 동시처리 1건이라, 다른 생성이 도는 중에 프로브를
+쏘면 큐에 밀려 타임아웃 난다 — 이건 사망이 아니라 혼잡이다. 실제로 08-31 10:03 보고서 macro 생성 중
+프로브가 120s 타임아웃 났다. 그래서 `otherGenerationRunning()` 이 참이면 **재기동하지 않는다**.
+검증: 보고서 실행 중 `--repair` 실행 → `다른 생성 작업이 진행 중 … 재기동하지 않고 중단한다`,
+MLX PID 31415 불변.
+
+### 같은 원인이 **두 번째 레인도** 죽여 있었다 (같은 날 발견)
+
+회귀 스위트를 돌리다 `llm-lane.test.mjs` 가 실패해서 드러났다 — `웹 레인 도달 실패
+http://127.0.0.1:8001/v1 — read ECONNRESET`. 내 변경 때문이 아니라 **별개의 실제 장애**였다.
+
+- `:8001`(`com.spinai.flowvium-llm-web`, Qwen3.5-4B-4bit) = 영상 대본 생성기
+  (`make-issue-video.mjs:272`). PID 75904 가 **11일 1시간** 무재시작.
+- 사망: 2026-08-30 10:08 `RuntimeError: [metal::malloc] Resource limit (499000) exceeded.`
+  (`mlx-web.log:192707`). :8000 과 **같은 Metal 메모리 계열 사망**.
+- 여기서도 프로세스는 살아 있고 소켓은 LISTEN 인데 응답은 HTTP 000 이었다. 즉 `pgrep` 이나
+  포트 확인으로는 절대 못 잡는 형태다 — 프로세스 생존 ≠ 서비스 생존.
+- `launchctl kickstart -k` 1회로 복구. 검증: `llm-health-check.mjs --lane web` → `✅ 정상 —
+  생성 확인 4.6s (모델 mlx-community/Qwen3.5-4B-4bit)`. lib 테스트 132/133 → **133/133**.
+
+**이게 회귀 스위트를 매번 돌려야 하는 이유다.** 영상 파이프라인은 이틀째 대본을 못 만들고
+있었는데 아무도 몰랐다. 사용자가 보고서를 묻지 않았으면 이것도 안 나왔다.
+
+### 같은 날 정리한 부하 (사용자 지적 "chrome이 2.3gb")
+
+- VS Code 렌더러 3개가 3일간 각 ~100% → 정상 종료. 부하 5.87 → 3.25.
+- Chrome PID 37538 이 **08-28 16:36부터 3일 내내 98%**. Profile 2 는 전부 내 자동화 잔재였다
+  (OAuth 동의, YouTube Studio, elevenlabs 요금제). 사용자 개인 프로필(Default/Profile 1)은 08-27 이후
+  미사용. 탭 URL 을 `~/flowvium_runtime/chrome-tabs-backup-*.txt` 에 보존하고 종료.
+  메모리 2.3GB → 0.49GB, 부하 3.25 → 1.35.
+- **교훈: 자동화로 띄운 브라우저를 닫는 책임이 코드에 없다.** `youtube-studio.mjs`·`flow-clip.mjs` 가
+  띄운 창이 며칠씩 남는다. 열었으면 닫는 경로를 붙여야 한다. (미조치 — 아래 열린 항목)
+
+### 아직 안 고친 것 (다음 세션이 판단할 것)
+
+- **Metal OOM 자체는 안 고쳤다.** 27B-8bit(~27GB)를 48GB 통합메모리에서 돌리는 구성이라 다른 GPU
+  작업과 겹치면 또 난다. 재기동으로 복구되게만 만들었지 안 나게 만들지는 못했다.
+  후보: 모델 축소, `mx.set_wired_limit` 조정, GPU 작업 직렬화. **어느 것도 측정 안 했다 — 감으로 고르지 말 것.**
+- **워치독 부재.** `pm2-watchdog.mjs:39` 도 `/v1/models` 를 쓰고 게다가 WSL 전용이라 이 맥에서 안 돈다.
+  주기 워치독에 `probeGeneration` 을 물리는 건 아직 안 했다 — 혼잡 오판으로 남의 4시간 작업을 죽일
+  위험이 있어서, 락 연동 설계를 먼저 해야 한다.
+- **모니터가 감지만 하고 조치를 안 한다.** `HUNG: report-gen … 250분` 을 3일간 찍기만 했다.
+  탐지→조치 연결이 없으면 탐지는 로그 소음일 뿐이다.
+- 자동화 브라우저 자동 종료 (위 참조).
+
+---
+
 ## 2026-08-21 ~ 08-22 (진행 중)
 
 ### 이 세션에서 고친 것 — 근본 원인이 확인된 것만
