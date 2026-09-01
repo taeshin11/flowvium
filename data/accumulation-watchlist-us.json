@@ -1,111 +1,93 @@
 {
-  "generatedAt": "2026-08-31T13:00:22.978Z",
+  "generatedAt": "2026-09-01T09:01:15.846Z",
   "universe": "US",
-  "scanned": 289,
-  "count": 8,
+  "scanned": 284,
+  "count": 6,
   "strongCount": 0,
-  "watchCount": 8,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "BHFAM",
-      "name": "Brighthouse Financial, Inc. - D",
+      "ticker": "KRNY",
+      "name": "Kearny Financial",
       "tier": "watch",
-      "score": 31,
+      "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 2.3,
-      "runup5dPct": 5.9,
-      "medDollarVolUsd": 383743,
+      "runup20dPct": 2.9,
+      "runup5dPct": 1.4,
+      "medDollarVolUsd": 4892193,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "GNK",
-      "name": "Genco Shipping & Trading Limite",
+      "ticker": "DHX",
+      "name": "DHI Group, Inc.",
       "tier": "watch",
-      "score": 31,
+      "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -0.7,
-      "runup5dPct": -1.1,
-      "medDollarVolUsd": 7747320,
+      "runup20dPct": 1.9,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 629971,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "TRS",
-      "name": "TriMas Corporation",
+      "ticker": "WIW",
+      "name": "Western Asset Inflation-Linked ",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 4,
-      "runup5dPct": 2.6,
-      "medDollarVolUsd": 16966249,
+      "runup20dPct": 0.5,
+      "runup5dPct": -0.6,
+      "medDollarVolUsd": 2247700,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "TIGR",
-      "name": "UP Fintech Holding Limited",
+      "ticker": "NMCO",
+      "name": "Nuveen Municipal Credit Opportunities Fund",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.4,
+      "runup5dPct": -6.1,
+      "medDollarVolUsd": 1849002,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SUJA",
+      "name": "Suja Life, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 3.7,
-      "runup5dPct": -0.2,
-      "medDollarVolUsd": 11458200,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KRNY",
-      "name": "Kearny Financial",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 3.9,
-      "runup5dPct": 3.5,
-      "medDollarVolUsd": 4753763,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ZIP",
-      "name": "ZipRecruiter, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.8,
-      "runup5dPct": -17,
-      "medDollarVolUsd": 2669606,
+      "runup20dPct": -12.1,
+      "runup5dPct": 11.3,
+      "medDollarVolUsd": 3962108,
       "smartAccum": false,
       "official": null
     },
@@ -119,25 +101,9 @@
         "변동성 수축(coiling) — 돌파 압축",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 10.3,
-      "runup5dPct": 0.3,
+      "runup20dPct": 9.6,
+      "runup5dPct": 0.1,
       "medDollarVolUsd": 5179350,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NMCO",
-      "name": "Nuveen Municipal Credit Opportunities Fund",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.6,
-      "runup5dPct": -5.3,
-      "medDollarVolUsd": 1839096,
       "smartAccum": false,
       "official": null
     }
