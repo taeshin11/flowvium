@@ -239,22 +239,54 @@ export function queryLadder(terms) {
 }
 
 /**
- * 제목이 질의어와 겹치는가.
+ * 제목이 질의와 관련 있는가.
  *
  * 라이선스와 해상도만 보면 "쓸 수 있는 그림" 은 되지만 "그 뉴스의 그림" 은 안 된다.
  * 실측(2026-08-27 채택 목록): "mail truck" 에 Die Post(핀란드) · Postiauto(스위스) ·
  *   AFT227 at Liangxiangximen(중국 버스) 가 걸렸다. 검색엔진은 카테고리·설명으로 맞춘 것이고,
- *   **제목에 질의어가 한 단어도 없으면** 그 주제를 찍은 사진이 아닐 확률이 높다.
+ *   제목에 질의어가 없으면 그 주제를 찍은 사진이 아닐 확률이 높다.
+ *
+ * 2026-09-02 강화 — 종전은 `keys.some(...)` 이라 **낱말 하나만 겹쳐도 통과** 했다.
+ *   그래서 "Palo Alto Networks" 질의에 필리핀 지명 "Palo, Leyte" 가 palo 하나로 들어왔고,
+ *   그 표지판이 업로드된 영상의 배경으로 나갔다(youtu.be/ZqfPqLFtaJQ, 눈검증에서 발견).
+ *   고유명사는 낱말이 모여야 그 대상이다 — "Palo" 만으로는 회사가 아니라 지명일 수 있다.
+ *   처음엔 "절반 이상" 으로 고쳤는데 **라이브 대조에서 부족한 것이 드러났다** —
+ *   정작 이번 사고의 그림이 그 문턱을 통과했다:
+ *     238Palo-Alto Calamba, Laguna 23.jpg   palo·alto 2/3 = 67% → 통과 ← 필리핀 지명
+ *   고유명사를 가르는 것은 마지막 낱말이다("Networks" 가 있어야 회사다). 그래서 **전부** 로 올렸다.
+ *
+ *   과잉 차단이 나는지 실측했다(Commons limit 12, 통과 건수):
+ *     질의                  전체  절반이상  전부
+ *     Palo Alto Networks     12      9       4
+ *     Bank of America        12     12      12
+ *     Secret Service         12     12      12
+ *     Dow Jones              12     12      10
+ *     Federal Reserve        12     12      12
+ *     Tourmaline Oil         12      4       1
+ *   entity 질의는 컷을 하나만 쓰므로(make-issue-video 의 wantHere = isEntityQ ? 1 : …)
+ *   최소 1건이면 충분하다. 6개 사례 모두 1건 이상 남는다.
+ *   그래도 0건이 되면 pickFootage 가 base 로 되돌린다 — 종전 동작이라 더 나빠지지 않는다.
+ *
+ * 새 함수를 만들지 않고 이 함수를 고쳤다 — 같은 판정을 두 곳에 두면 어긋난다
+ * (같은 날 sentence-end.mjs 에서 정확히 그 사고를 정리했다).
  *
  * 부분일치가 아니라 단어 경계로 본다 — 짧은 단어("us")가 "Museum" 안에서 우연히 걸린다.
- * 질의어가 없으면 거르지 않는다(판단 근거가 없는데 버리면 안 된다).
+ * 질의어가 하나뿐이면 거르지 않는다: 근거가 약한데 막으면 화면이 비고, 빈 화면이 더 나쁘다.
  */
 export function titleRelevant(title, terms) {
   const keys = (terms ?? []).map((t) => String(t).toLowerCase()).filter((t) => t.length >= 3);
   if (keys.length === 0) return true;
-  const words = new Set(String(title ?? '').toLowerCase().split(/[^a-z0-9\u3131-\uD79D]+/).filter(Boolean));
-  return keys.some((k) => words.has(k) || [...words].some((w) => w.length >= 5 && k.length >= 5 && w.startsWith(k)));
+  const raw = String(title ?? '').toLowerCase();
+  const words = new Set(raw.split(/[^a-z0-9\u3131-\uD79D]+/).filter(Boolean));
+  // 붙여 쓴 제목("PaloAltoNetworks logo")도 맞는 것으로 본다 — Commons 에 흔한 표기다.
+  const glued = raw.replace(/[^a-z0-9\u3131-\uD79D]+/g, '');
+  const hit = (k) => words.has(k)
+    || [...words].some((w) => w.length >= 5 && k.length >= 5 && w.startsWith(k))
+    || (k.length >= 4 && glued.includes(k));
+  // 전부 맞아야 한다. 부분일치는 동명 지명·무관 사진을 그대로 통과시킨다(위 실측).
+  return keys.every(hit);
 }
+
 
 /**
  * 삽화·도면·지도인가. **자료화면이 아니다** — 뉴스 화면에 넣으면 그림으로 보인다.

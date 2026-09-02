@@ -549,5 +549,57 @@ const M = await import('./footage.mjs');
   if (!miss) ok(`실측 8건 전부 올바르게 갈린다 (실사 ≤.064 / 그래픽 ≥.234)`);
 }
 
+// ── 2026-09-02: 검색 결과가 질의와 무관해도 그대로 화면에 나갔다 ────────────────
+//   눈검증에서 잡았다(youtu.be/ZqfPqLFtaJQ). "Palo Alto Networks" 를 말하는 장면 배경이
+//   필리핀 거리 표지판 "I ♥ PALO ALTO ES" 였다.
+//   실측 — Commons 에 limit 8 로 물으면 뒤쪽이 무관한 것으로 채워진다:
+//     1. Palo Alto Networks Headquarters South Side 2018.jpg   ← 맞음
+//     4. The Gathering 2019 - Juniper and Palo Alto equipment    ← 그런대로
+//     7. Schimpanse, Pan troglodytes 3.JPG                       ← 침팬지
+//     8. Calocochlia pan 01.JPG                                  ← 달팽이
+//   장면당 3컷을 쓰므로 저 순위까지 실제로 내려간다. 순위만 믿고 **제목을 안 봤다.**
+//   뉴스 화면에 무관한 그림이 뜨는 건 틀린 정보다 — 시청자는 그게 그 사건이라고 읽는다.
+{
+  const cands = [
+    { title: 'Palo Alto Networks Headquarters South Side 2018.jpg', url: 'a.jpg' },
+    { title: 'PaloAltoNetworks logo.svg', url: 'b.jpg' },
+    { title: 'The Gathering 2019 - Juniper and Palo Alto equipment.jpg', url: 'c.jpg' },
+    { title: 'Schimpanse, Pan troglodytes 3.JPG', url: 'd.jpg' },
+    { title: 'Calocochlia pan 01.JPG', url: 'e.jpg' },
+    { title: 'Palo, Leyte welcome sign.jpg', url: 'f.jpg' },
+    // 라이브 대조에서 나온 실제 결과 — 절반 문턱(2/3)을 통과해 버렸다. 이게 이번 사고의 그림이다.
+    { title: '238Palo-Alto Calamba, Laguna 23.jpg', url: 'g.jpg' },
+  ];
+  // 새 함수를 만들지 않는다 — titleRelevant 가 이미 있었고, 문제는 그 문턱이 `some`(1개)이었던 것이다.
+  //   따로 만들면 같은 날 sentence-end 에서 정리한 "판정이 두 곳에 흩어져 어긋난다" 를 내가 재현한다.
+  {
+    const kept = cands.filter((c) => M.titleRelevant(c.title, ['Palo', 'Alto', 'Networks'])).map((c) => c.title);
+    kept.some((t) => /Headquarters/.test(t)) ? ok('맞는 결과는 남긴다') : bad(`본사 사진을 버렸다: ${JSON.stringify(kept)}`);
+    !kept.some((t) => /Schimpanse|Calocochlia/.test(t))
+      ? ok('무관한 결과(침팬지·달팽이) 제거')
+      : bad(`무관한 것이 남았다: ${JSON.stringify(kept)}`);
+    !kept.some((t) => /Leyte/.test(t))
+      ? ok('한 낱말만 겹치는 동명 지역(Palo, Leyte) 제거')
+      : bad(`필리핀 지명이 남았다: ${JSON.stringify(kept)}`);
+    !kept.some((t) => /Calamba/.test(t))
+      ? ok('두 낱말 겹치는 동명 지명(Palo-Alto Calamba)도 제거 — 이게 실제 사고의 그림이다')
+      : bad(`사고의 그림이 그대로 통과한다: ${JSON.stringify(kept)}`);
+    kept.some((t) => /PaloAltoNetworks/.test(t))
+      ? ok('띄어쓰기 없는 표기도 맞는 것으로 인식(PaloAltoNetworks)')
+      : bad('붙여 쓴 제목을 못 알아본다');
+
+    // 한 낱말 질의는 거를 근거가 약하다 — 과잉 차단으로 화면을 비우면 그게 더 나쁘다
+    M.titleRelevant('Wall Street sign.jpg', ['Wall'])
+      ? ok('한 낱말 질의는 과잉 차단하지 않는다') : bad('한 낱말인데 버렸다 — 화면이 빈다');
+
+    // 종전 동작(낱말 하나만 겹치면 통과)으로 되돌아가면 이 검사가 잡는다
+    !M.titleRelevant('Palo, Leyte welcome sign.jpg', ['Palo', 'Alto', 'Networks'])
+      ? ok('1/3 매칭은 더 이상 통과하지 못한다') : bad('some 판정으로 되돌아갔다');
+    !M.titleRelevant('238Palo-Alto Calamba, Laguna 23.jpg', ['Palo', 'Alto', 'Networks'])
+      ? ok('2/3 매칭도 통과하지 못한다(절반 문턱으로 되돌아가면 여기서 잡힌다)')
+      : bad('절반 문턱으로 되돌아갔다 — 필리핀 지명이 다시 화면에 나간다');
+  }
+}
+
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');
 process.exit(fail ? 1 : 0);
