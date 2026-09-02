@@ -47,5 +47,32 @@ else {
     r.ok ? ok(`웹 레인 도달 ${laneUrl} (${Date.now() - t0}ms)`) : bad(`웹 레인 HTTP ${r.status}`);
   } catch (e) { bad(`웹 레인 도달 실패 ${laneUrl} — ${e.cause?.message ?? e.message}`); }
 }
+// ── 2026-09-02: 이 레인을 아무도 감시하지 않았다 ────────────────────────────────
+//   실측 사고: :8001 이 Metal OOM 으로 죽었다(09-01 05:58, mlx-web.log 의
+//   `RuntimeError: [METAL] Command buffer execution failed: Insufficient Memory`).
+//   그 뒤 **37시간** 동안:
+//     · 유튜브 자동 게시가 6회 연속 실패 (video/make-issue-video.mjs 가 대본을 :8001 로 뽑는다)
+//     · 사이트 번역·챗도 같은 레인이라 함께 죽어 있었다
+//   그런데 모니터는 20분마다 돌면서 아무 알람도 내지 않았다 — check-stall 이 :8000 만 보기 때문이다.
+//
+//   08-28 사건 때 "탐지는 됐고 아무도 조치하지 않았다" 를 고쳤는데, 이번엔 **탐지 자체가 없었다.**
+//   레인을 하나 더 띄웠으면 감시도 하나 더 있어야 한다. 그게 이 검사다.
+//
+//   왜 구조 검사인가: 런타임에 :8001 이 살아 있으면 통과해 버리는 검사는 이 결함을 못 잡는다.
+//   "감시 코드가 존재하는가" 를 물어야 한다(report-launcher.test.mjs 가 호출부를 보는 것과 같은 원리).
+{
+  const src = readFileSync(resolve(ROOT, 'scripts/check-stall.mjs'), 'utf8');
+  const watchesWeb = /resolveLlm\(\s*['"]web['"]\s*\)/.test(src) || /8001/.test(src) || /lane\s*[:=]\s*['"]web['"]/.test(src);
+  watchesWeb
+    ? ok('check-stall 이 웹 레인(:8001)도 본다')
+    : bad('check-stall 이 :8000 만 본다 — :8001 이 죽어도 아무도 모른다(09-01 37시간 무탐지)');
+
+  // 그리고 그 결과가 issues 로 올라가야 한다. info 로 쌓기만 하면 08-28 의 3일 침묵과 같아진다.
+  const webBlock = src.match(/웹 레인[\s\S]{0,900}/)?.[0] ?? '';
+  /issues\.push/.test(webBlock)
+    ? ok('웹 레인 이상은 issues 로 올린다(info 로 묻지 않는다)')
+    : bad('웹 레인 검사 결과가 issues 로 안 간다 — 탐지해도 조용하면 없는 것과 같다');
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);

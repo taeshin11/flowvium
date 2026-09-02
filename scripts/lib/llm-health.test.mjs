@@ -191,5 +191,41 @@ function jsonRes(url) {
   }
 }
 
+// ── 2026-09-02: 재기동 직후 성급하게 포기하던 경로 ──────────────────────────────
+//   실측 사고: :8001 이 Metal OOM 으로 죽어(09-01 05:58) 유튜브가 37시간 멈췄다.
+//   `--repair` 를 돌리니 kickstart 는 정상으로 나갔는데(레인·라벨·메모리 판정 전부 옳음)
+//   직후 프로브가 ECONNREFUSED 를 받고 "재기동 후에도 불합격" 으로 중단했다.
+//   그런데 실제로는 살아났다 — 2초 뒤 로그에 `Starting httpd at 127.0.0.1 on port 8001`,
+//   포트 200. 즉 **복구에 성공해 놓고 실패로 보고**했다.
+//
+//   원인: probeWithColdRetry 는 stage==='models' 면 재시도 없이 즉시 판정한다.
+//   그 규칙 자체는 옳다 — 평상시 포트가 닫혔으면 느린 게 아니라 죽은 것이다.
+//   하지만 *막 재기동한 직후* 는 다르다. 포트가 아직 안 열린 게 정상이다(실측 1.1~2s).
+//   상태가 다르면 판정도 달라야 한다. 그래서 "서빙 시작까지 기다리는" 경로를 따로 둔다.
+{
+  const H = await import('./llm-health.mjs');
+  typeof H.waitUntilServing === 'function'
+    ? ok('waitUntilServing 제공')
+    : bad('재기동 직후를 기다리는 경로가 없다 — 복구에 성공하고도 실패로 보고한다');
+
+  if (typeof H.waitUntilServing === 'function') {
+    // 처음 두 번은 포트가 안 열려 있고 세 번째에 열린다 — 기다려서 통과해야 한다
+    let n = 0;
+    const late = async () => {
+      if (++n < 3) { const e = new Error('connect ECONNREFUSED'); e.name = 'TypeError'; throw e; }
+      return { ok: true, status: 200, json: async () => ({ data: [] }), text: async () => '{}' };
+    };
+    const r = await H.waitUntilServing({ url: 'http://x/v1', fetchImpl: late, timeoutMs: 5_000, intervalMs: 50 });
+    r.ok && n === 3 ? ok(`포트가 열릴 때까지 기다린다 (${n}회 시도)`) : bad(`기다리지 않았다: ok=${r.ok} 시도=${n}`);
+
+    // 영영 안 열리면 기다림에도 상한이 있어야 한다 — 크론이 여기서 영구히 멈추면 안 된다
+    const never = async () => { const e = new Error('connect ECONNREFUSED'); e.name = 'TypeError'; throw e; };
+    const t0 = Date.now();
+    const r2 = await H.waitUntilServing({ url: 'http://x/v1', fetchImpl: never, timeoutMs: 400, intervalMs: 50 });
+    const spent = Date.now() - t0;
+    !r2.ok && spent < 3_000 ? ok(`상한 안에서 포기 (${spent}ms)`) : bad(`상한을 안 지켰다: ok=${r2.ok} ${spent}ms`);
+  }
+}
+
 console.log(fail === 0 ? '\n✅ llm-health 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

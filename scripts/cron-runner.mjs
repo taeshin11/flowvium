@@ -176,6 +176,38 @@ async function runMonitor() {
     }
   }
 
+  // ── 웹 레인 자가치유 (2026-09-02 신설) ────────────────────────────────────────
+  //   왜 탐지만으로 부족한가: 08-28 사건의 교훈이 "탐지는 됐고 아무도 조치하지 않았다" 였다.
+  //   09-01 :8001 이 죽었을 때는 **탐지조차 없어서** 37시간을 몰랐다. 이제 check-stall 이
+  //   `WEB LLM DEAD` 를 올린다. 그런데 거기서 멈추면 20분마다 같은 줄을 찍기만 하고
+  //   사람이 볼 때까지 유튜브·사이트 번역이 계속 죽어 있다 — 08-28 과 같은 결말이다.
+  //
+  //   :8001 은 자동 재기동해도 안전하다:
+  //     · 보고서가 쓰지 않는 레인이라 긴 작업을 죽일 위험이 없다
+  //     · llm-health-check 가 이미 영상 렌더 중(make-issue-video)이면 재기동을 거부한다
+  //       (내가 손으로 영상 도는 중에 :8001 을 죽여 한 편 날린 적이 있다 — 그 가드가 이걸 막는다)
+  //     · 재기동은 실측 2초다
+  //   다만 무한정 반복하지는 않는다. 계속 죽으면 그건 재기동으로 풀 문제가 아니므로
+  //   사람이 봐야 한다 — 쿨다운을 둬서 자동조치가 결함을 가리지 않게 한다.
+  const WEB_HEAL_COOLDOWN_MS = 60 * 60 * 1000;
+  if (result.defects.some((d) => /WEB LLM DEAD/.test(d))) {
+    const since = Date.now() - (_lastRun.webLaneHeal ?? 0);
+    if (since < WEB_HEAL_COOLDOWN_MS) {
+      log(`[auto-monitor/self-heal] 웹 레인 재기동 보류 — ${Math.round(since / 60000)}분 전에 이미 시도했다. 반복 사망은 재기동으로 풀 문제가 아니다(사람이 볼 것)`);
+    } else {
+      _lastRun.webLaneHeal = Date.now();
+      log('[auto-monitor/self-heal] 웹 레인(:8001) 재기동 시도 — 사이트 번역·챗·유튜브 대본이 이 레인을 쓴다');
+      try {
+        const { stdout } = await execFileAsync('node', ['scripts/llm-health-check.mjs', '--lane=web', '--repair'],
+          { timeout: 5 * 60 * 1000, windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
+        log(`[auto-monitor/self-heal] ${(stdout.trim().split('\n').at(-1) ?? '완료').replace(/^\[llm-health\]\s*/, '')}`);
+      } catch (e) {
+        const out = ((e.stdout?.toString() || '') + (e.stderr?.toString() || '')).trim().split('\n').at(-1) ?? '';
+        log(`[auto-monitor/self-heal] 웹 레인 재기동 실패 — ${out.replace(/^\[llm-health\]\s*/, '').slice(0, 140)}`);
+      }
+    }
+  }
+
   // 2026-08-22: 상류 소스 헬스(Yahoo/SEC/FRED/CNN)를 주기 감시로 옮겼다.
   //   종전에는 pre-push 의 verify-all 에서만 돌았고, 그 자리에서 exit 2 로 push 를 막았다.
   //   바깥 세상 상태는 코드 diff 와 무관한데 발간 시간대마다 경합으로 push 가 막혔다(실측 2회).

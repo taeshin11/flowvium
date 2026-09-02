@@ -25,7 +25,8 @@ import { sessionBudgetMin, maxSessionBudgetMin, getPublishTarget } from './lib/r
 import { launcherWipesWorktree } from './lib/report-launcher.mjs';
 import { checkResourcePressure } from './lib/resource-pressure.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
-import { DEFAULT_COLD_TIMEOUT_MS as COLD_PROBE_MS } from './lib/llm-health.mjs';
+import { DEFAULT_COLD_TIMEOUT_MS as COLD_PROBE_MS, probeWithColdRetry } from './lib/llm-health.mjs';
+import { resolveLlm } from './lib/llm-config.mjs';
 import { backupStatus } from './lib/backup-health.mjs';
 import { findStaleJobs, listProcesses, loadJobPolicy } from './lib/stale-jobs.mjs';
 import { dbHealth } from './lib/db-health.mjs';
@@ -198,6 +199,27 @@ async function checkOnce() {
       // 여기도 조용히 삼키면 위와 같은 함정이다. 왜 못 쟀는지는 남긴다.
       issues.push(`LLM 프로브 자체가 실패 — ${String(e?.message ?? e).slice(0, 100)} (모델 기대집합을 못 읽었거나 .env.local 접근 불가)`);
     }
+  }
+
+  // ── [6-b] 웹 레인(:8001) — 2026-09-02 신설 ────────────────────────────────────
+  //   왜 필요한가(실측): 09-01 05:58 :8001 이 Metal OOM 으로 죽었다
+  //   (mlx-web.log: RuntimeError: [METAL] Command buffer execution failed: Insufficient Memory).
+  //   그 뒤 37시간 동안 유튜브 자동 게시가 6회 연속 실패했고(대본을 :8001 로 뽑는다)
+  //   사이트 번역·챗도 함께 죽어 있었는데, 모니터는 20분마다 돌면서 **아무 말도 하지 않았다.**
+  //   [6] 이 :8000 만 보기 때문이다. 레인을 하나 더 띄웠으면 감시도 하나 더 있어야 한다.
+  //
+  //   보고서 실행 중에도 건너뛰지 않는다 — :8001 은 보고서가 쓰지 않으므로 혼잡하지 않다.
+  //   (동시처리도 2 로 :8000 의 1 보다 여유가 있다.)
+  try {
+    const { url: webUrl } = resolveLlm('web');
+    const r = await probeWithColdRetry({ url: webUrl, timeoutMs: 15_000, coldTimeoutMs: COLD_PROBE_MS });
+    if (r.ok) {
+      info.push(`웹 레인 ✓ ${webUrl} 생성 확인${r.cold ? ' (콜드 재시도로 통과)' : ''}`);
+    } else {
+      issues.push(`WEB LLM DEAD: ${webUrl} 이 토큰을 못 냈다 [${r.stage}] ${r.detail} — 사이트 번역·챗과 유튜브 대본이 이 레인을 쓴다(09-01 여기가 죽어 37시간 무탐지). 조치: node scripts/llm-health-check.mjs --lane=web --repair`);
+    }
+  } catch (e) {
+    issues.push(`웹 레인 프로브 자체가 실패 — ${String(e?.message ?? e).slice(0, 100)}`);
   }
 
   // [2] cron verify-loop 결과 age

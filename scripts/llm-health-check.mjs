@@ -30,7 +30,7 @@
  *   node scripts/llm-health-check.mjs --lane=web # 웹 레인(:8001). --lane web 도 같다
  */
 import { execFileSync } from 'child_process';
-import { probeWithColdRetry } from './lib/llm-health.mjs';
+import { probeWithColdRetry, waitUntilServing } from './lib/llm-health.mjs';
 import { resolveLlm, resolveLaunchdLabel } from './lib/llm-config.mjs';
 import { canReload, reclaimableBytes, weightBytes, modelPathFromPlist } from './lib/llm-memory.mjs';
 
@@ -159,6 +159,12 @@ if (busy) {
 }
 
 if (!restartService()) process.exit(1);
+
+// 2026-09-02: 여기서 바로 프로브를 쏘면 포트가 아직 안 열려 ECONNREFUSED 를 받고
+//   "재기동 후에도 불합격" 으로 중단했다. 실제로는 2초 뒤 살아났다 — 복구에 성공하고도
+//   실패로 보고한 것이다(:8001 37시간 정지를 고치던 중 실측). 서빙 시작을 먼저 기다린다.
+const boot = await waitUntilServing({ url, timeoutMs: Math.min(reloadTimeoutMs, 120_000) });
+log(boot.ok ? `서빙 시작 확인 (${(boot.ms / 1000).toFixed(1)}s, ${boot.tries}회)` : `⚠️ ${boot.detail}`);
 
 const second = await probeWithColdRetry({ url, timeoutMs: reloadTimeoutMs, coldTimeoutMs: reloadTimeoutMs });
 if (second.ok) {

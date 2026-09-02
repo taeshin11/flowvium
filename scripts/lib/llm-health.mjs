@@ -167,3 +167,37 @@ export async function probeWithColdRetry(opt) {
     detail: `${second.detail} — 재시도(${(coldTimeoutMs / 1000).toFixed(0)}s 상한)까지 실패했다. 느린 것이 아니라 사망으로 본다`,
   };
 }
+
+/**
+ * 서버가 *서빙을 시작할 때까지* 기다린다. 재기동 직후 전용이다.
+ *
+ * 왜 probeWithColdRetry 로 안 되는가 (2026-09-02 실측 사고):
+ *   그 함수는 stage==='models' 면 재시도 없이 즉시 사망 판정한다. 평상시엔 옳다 —
+ *   포트가 닫혔으면 느린 게 아니라 죽은 것이다.
+ *   그런데 막 kickstart 한 직후엔 포트가 안 열린 게 **정상**이다(실측: 프로세스 시작에서
+ *   `Starting httpd` 까지 1.1~2s). 그 규칙을 그대로 적용해서 :8001 복구가 실제로 성공했는데도
+ *   "재기동 후에도 불합격" 으로 보고하고 중단했다. 유튜브가 37시간 멈춘 사건을 고치는 중에
+ *   복구 자체는 됐으면서 안 됐다고 말한 것이다.
+ *   상태가 다르면 판정도 달라야 한다 — 그래서 경로를 나눈다.
+ *
+ * @param {{url:string, timeoutMs?:number, intervalMs?:number, fetchImpl?:Function}} opt
+ * @returns {Promise<{ok:boolean, ms:number, tries:number, detail:string}>}
+ */
+export async function waitUntilServing(opt) {
+  const { url, timeoutMs = 120_000, intervalMs = 1_000, fetchImpl = fetch } = opt || {};
+  const base = String(url || '').replace(/\/+$/, '');
+  const t0 = Date.now();
+  let tries = 0;
+  let last = '';
+  // 상한을 두는 이유: 영영 안 뜨는 경우 크론이 여기서 영구히 멈추면 그게 더 큰 사고다.
+  while (Date.now() - t0 < timeoutMs) {
+    tries++;
+    try {
+      const r = await fetchImpl(`${base}/models`, { signal: AbortSignal.timeout(8_000) });
+      if (r?.ok) return { ok: true, ms: Date.now() - t0, tries, detail: `${tries}회 만에 서빙 시작` };
+      last = `HTTP ${r?.status}`;
+    } catch (e) { last = describe(e); }
+    await new Promise((res) => setTimeout(res, intervalMs));
+  }
+  return { ok: false, ms: Date.now() - t0, tries, detail: `${(timeoutMs / 1000).toFixed(0)}s 안에 서빙을 시작하지 않았다 (${last})` };
+}
