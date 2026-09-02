@@ -1,12 +1,29 @@
 {
-  "generatedAt": "2026-09-01T22:20:22.810Z",
+  "generatedAt": "2026-09-02T07:20:23.700Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "054780.KQ",
+      "name": "키이스트",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 4.8× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 10.6,
+      "runup5dPct": 9.8,
+      "medDollarVolUsd": 30795,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "190510.KQ",
       "name": "나무가",
@@ -15,13 +32,49 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 5.9,
-      "runup5dPct": 1.8,
-      "medDollarVolUsd": 508164,
+      "runup20dPct": -0.1,
+      "runup5dPct": -1.2,
+      "medDollarVolUsd": 503864,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "056190.KQ",
+      "name": "에스에프에이",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 6개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 11.1,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 1711462,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "048530.KQ",
+      "name": "인트론바이오",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 5.4,
+      "runup5dPct": -0.2,
+      "medDollarVolUsd": 169507,
       "smartAccum": true,
       "official": null
     }
