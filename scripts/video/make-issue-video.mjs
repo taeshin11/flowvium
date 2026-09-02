@@ -289,10 +289,16 @@ async function askLLM(nudge) {
   try {
     const m = String(txt).match(/\[[\s\S]*\]/);
     arr = JSON.parse(m ? m[0] : txt);
-  } catch {
+  } catch (err) {
     // 잘린 것과 형식이 틀린 것은 대응이 다르다 — 길이와 **끝부분**을 같이 낸다.
+    // 2026-09-03: 끝 120자만으로는 원인을 못 짚었다(09-02 22:00 실패 때 끝은 "}])" 로 멀쩡했다).
+    //   JSON.parse 는 깨진 위치를 알려 주므로 그 자리 앞뒤를 같이 낸다 — 다음 실패는 바로 읽힌다.
     const t = String(txt);
-    throw new Error(`대본 파싱 실패 (${t.length}자, 끝: …${t.slice(-120).replace(/\n/g, ' ')})`);
+    const at = Number(/position (\d+)/.exec(err?.message ?? '')?.[1]);
+    const where = Number.isFinite(at)
+      ? ` · ${at}번째 글자 부근: …${t.slice(Math.max(0, at - 70), at + 70).replace(/\n/g, ' ')}…`
+      : '';
+    throw new Error(`대본 파싱 실패 (${t.length}자, ${err?.message ?? ''}${where}, 끝: …${t.slice(-120).replace(/\n/g, ' ')})`);
   }
   return (arr ?? []).filter((x) => x?.say && x?.title).slice(0, SCENES);
 }
@@ -312,7 +318,19 @@ for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
   const nudge = (attempt === 1 ? '' : (isKo
     ? `\n- 직전 시도는 총 ${chars}자로 너무 짧았다. 이번엔 총 ${Math.round(budgetChars * 1.15)}자 이상 쓰라. 장면마다 2~3문장.`
     : `\n- Your previous attempt was only ${chars} characters, too short. Write at least ${Math.round(budgetChars * 1.15)} characters total this time — 2 to 3 sentences per scene.`)) + groundNudge;
-  try { scenes = await askLLM(nudge); } catch (e) { console.error(`❌ ${e.message}`); process.exit(1); }
+  // 2026-09-03: 종전엔 여기서 바로 process.exit(1) 이었다. 그래서 09-02 22:00 회차가
+  //   "대본 파싱 실패 (5315자, 끝: …\"visual\":\"news desk\"}])" 하나로 통째로 죽었다.
+  //   이 루프는 이미 *짧은 대본*·*근거 없는 내용* 을 재시도로 다룬다. JSON 이 깨지는 것도
+  //   같은 종류다 — 4B 가 가끔 내는 산출물 품질 문제이고, 다시 물으면 대개 낫다.
+  //   한 번 깨졌다고 그날 영상을 통째로 버리는 건 과하다. 마지막 시도까지 실패하면 그때 멈춘다.
+  try {
+    scenes = await askLLM(nudge);
+  } catch (e) {
+    console.log(`  [대본] 시도 ${attempt}: ${e.message}`);
+    if (attempt < MAX_TRIES) { groundNudge = ''; continue; }   // 다음 시도는 깨끗한 프롬프트로
+    console.error(`❌ ${MAX_TRIES}회 모두 대본을 못 만들었다 — ${e.message}`);
+    process.exit(1);
+  }
   chars = scenes.reduce((n, x) => n + x.say.length, 0);
   if (scenes.length < 3) { console.log(`  [대본] 시도 ${attempt}: 장면 ${scenes.length}개 — 부족, 재시도`); continue; }
   // [사실 검증] 헤드라인에 없는 고유명사·숫자가 있으면 지어낸 것이다.
