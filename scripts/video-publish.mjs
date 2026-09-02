@@ -13,7 +13,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { buildTitle, buildDescription, buildTags, orderForTitle } from './lib/video-meta.mjs';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, readFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { ROOT } from './lib/project-root.mjs';
 import { resolveMediaRoot } from './lib/media-root.mjs';
@@ -28,7 +28,11 @@ const LOCALE = arg('--locale', 'en');
 const DRY = argv.includes('--dry-run');
 const node = process.execPath;
 const t0 = Date.now();
-const log = (...a) => console.log(new Date().toISOString().slice(0, 19).replace('T', ' '), '[publish]', ...a);
+// 2026-09-03: toISOString 은 **UTC** 다. 이 저장소의 다른 로그(cron·report)는 전부 KST 라
+//   video.log 만 9시간 어긋나 있었다 — 실제로 내가 "다음 21:00" 이라고 잘못 말한 적이 있다.
+//   보는 사람의 시계와 같은 시각을 쓴다.
+const log = (...a) => console.log(
+  new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[publish]', ...a);
 
 // 출력을 **그대로 흘려보낸다**(inherit). 모아 뒀다가 끝에 뱉으면 6분짜리 렌더 중에
 //   아무것도 안 보여서 멈춘 건지 도는 건지 알 수 없다(2026-08-28).
@@ -66,22 +70,33 @@ const run = (args, label) => {
 }
 
 // ── 1. 렌더 ────────────────────────────────────────────────────────────────
-log(`렌더 시작 (locale=${LOCALE})`);
-run([resolve(ROOT, 'scripts/video/make-issue-video.mjs'), '--locale', LOCALE], '렌더');
+// 2026-09-03 (사용자 "그냥 쇼츠만 하자"): 기본 포맷이 세로 쇼츠다.
+//   가로 6분짜리는 --format=long 으로 남겨 둔다 — 지운 게 아니라 부르지 않을 뿐이다.
+const FORMAT = arg('--format', 'shorts');
+const isShorts = FORMAT === 'shorts';
+log(`렌더 시작 (locale=${LOCALE} · 포맷 ${FORMAT})`);
+run(isShorts
+  ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
+  : [resolve(ROOT, 'scripts/video/make-issue-video.mjs'), '--locale', LOCALE], '렌더');
 const MEDIA = resolveMediaRoot({
   configured: envValue('MEDIA_ROOT'),
   localFallback: resolve(ROOT, 'reports/video'),
   allowLocal: argv.includes('--local-media'),
 });
-const VIDEO = join(MEDIA.root, `issue-${LOCALE}.mp4`);
-const THUMB = join(MEDIA.root, `issue-${LOCALE}-thumb.jpg`);
+const VIDEO = join(MEDIA.root, isShorts ? `shorts-${LOCALE}.mp4` : `issue-${LOCALE}.mp4`);
+// 쇼츠는 썸네일을 붙이지 않는다. 유튜브가 세로 영상에서 자동으로 뽑고,
+//   여기서 가로(16:9) 썸네일을 붙이면 쇼츠 선반에서 잘려 보인다.
+//   옛 가로 회차의 issue-ko-thumb.jpg 가 남아 있으면 그게 붙는다 — 경로 자체를 비운다.
+const THUMB = isShorts ? null : join(MEDIA.root, `issue-${LOCALE}-thumb.jpg`);
 if (!existsSync(VIDEO)) throw new Error(`영상이 없다: ${VIDEO}`);
 log(`렌더 완료 · ${(statSync(VIDEO).size / 1048576).toFixed(1)}MB`);
 
 // ── 2. 이번 편이 다룬 이슈 → 제목·설명 ──────────────────────────────────────
 // 편성 기록의 **마지막 항목**이 방금 만든 편이다. 렌더가 성공했을 때만 기록되므로 믿을 수 있다.
-const editions = readLog(resolve(ROOT, `data/video-editions-${LOCALE}.json`));
-const last = editions[editions.length - 1] ?? { headlines: [], keywords: [] };
+// 쇼츠는 자체 meta.json 을 남긴다(가로 편의 편성 기록과 형식이 다르다).
+const last = isShorts
+  ? JSON.parse(readFileSync(join(MEDIA.root, `shorts-${LOCALE}-meta.json`), 'utf8'))
+  : (readLog(resolve(ROOT, `data/video-editions-${LOCALE}.json`)).slice(-1)[0] ?? { headlines: [], keywords: [] });
 const heads = (last.headlines ?? []).filter(Boolean);
 if (!heads.length) throw new Error('편성 기록이 비었다 — 어떤 뉴스를 다뤘는지 모른 채 올릴 수 없다');
 
@@ -109,7 +124,9 @@ const top = pickHeadlines(heads, 6);
 //   제목 문자열은 언제나 헤드라인 원문에서만 나온다(지어내지 않는다).
 const isKoUpload = LOCALE === 'ko';
 const { proud } = orderForTitle(top, isKoUpload);
-const title = buildTitle(top, isKoUpload);
+let title = buildTitle(top, isKoUpload);
+// 쇼츠는 제목·설명에 #Shorts 가 있어야 유튜브가 쇼츠 선반에 올린다(세로+3분이하 만으로는 놓칠 때가 있다).
+if (isShorts && !/#Shorts/i.test(title)) title = `${title.slice(0, 100 - 9)} #Shorts`;
 if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다(국뽕)');
 
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
@@ -125,6 +142,6 @@ const upArgs = [resolve(ROOT, 'scripts/youtube-upload.mjs'),
   '--file', VIDEO, '--title', title, '--desc', desc,
   '--tags', tagWords.join(','), '--locale', LOCALE,
   '--privacy', arg('--privacy', 'public')];
-if (existsSync(THUMB)) upArgs.push('--thumb', THUMB);
+if (THUMB && existsSync(THUMB)) upArgs.push('--thumb', THUMB);
 run(upArgs, '업로드');
 log(`끝 · ${((Date.now() - t0) / 60000).toFixed(1)}분`);
