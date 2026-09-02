@@ -19,20 +19,27 @@ if (!tokenPresent()) { console.error('❌ 토큰 없음 — node scripts/youtube
  * 이미 들어 있으면 두 번 넣지 않는다.
  */
 const SITE = process.env.SITE_URL || 'flowvium.net';
-// 영어 채널이므로 **영어로 강제**하는 주소를 쓴다. 그냥 flowvium.net 을 걸면
-//   한국 시청자의 브라우저 언어를 보고 한국어 사이트로 떨어진다(2026-08-29 실측).
-const SITE_LINK = process.env.SITE_LINK || `https://${SITE}/go/en`;
-const withSite = (d) => {
+// 로케일을 **강제**하는 주소를 쓴다. 그냥 flowvium.net 을 걸면 시청자의 브라우저 언어를
+//   보고 엉뚱한 언어의 사이트로 떨어진다(2026-08-29 실측).
+// 2026-09-03: 종전엔 `/go/en` 과 영어 문구가 **고정**이었다. --locale 을 받으면서 링크에는
+//   안 썼다. 한국어 채널로 전환하니 한국어 영상 설명란에 영어 안내와 영어 사이트 링크가
+//   붙는다 — 클릭한 사람이 영어 사이트로 간다. 링크와 문구를 로케일에서 뽑는다.
+const siteLink = (locale) => process.env.SITE_LINK || `https://${SITE}/go/${locale}`;
+const SITE_CTA = {
+  ko: (link) => `▶ 전체 기사 · 실시간 시장 데이터 · 심층 분석: ${link}`,
+  en: (link) => `▶ Full coverage, live market data and deeper analysis: ${link}`,
+};
+const withSite = (d, locale) => {
   const t = String(d ?? '');
   if (t.includes(SITE)) return t;
-  const line = `▶ Full coverage, live market data and deeper analysis: ${SITE_LINK}`;
+  const line = (SITE_CTA[locale] ?? SITE_CTA.en)(siteLink(locale));
   return t.trim() ? `${t.trimEnd()}\n\n${line}` : line;
 };
 
 try {
   const r = await upload({
     file: arg('--file'), title: arg('--title'),
-    description: withSite(arg('--desc', '')), privacy: arg('--privacy', 'public'),
+    description: withSite(arg('--desc', ''), arg('--locale', 'ko')), privacy: arg('--privacy', 'public'),
     tags: (arg('--tags', '') || '').split(',').filter(Boolean),
     locale: arg('--locale', 'ko'),
     // 의도한 채널이 아니면 올리지 않는다. .env.local 의 YOUTUBE_CHANNEL_ID 가 기준이다.

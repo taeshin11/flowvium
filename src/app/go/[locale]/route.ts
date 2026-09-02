@@ -10,6 +10,14 @@
 //   그것 때문에 기존 링크·SEO·사이트맵을 전부 흔들 이유가 없다.
 //
 // next-intl 은 NEXT_LOCALE 쿠키를 Accept-Language 보다 우선한다 — 그 쿠키를 심어준다.
+//
+// 2026-09-03: Location 을 **상대 경로**로 낸다. 종전엔 `new URL(dest, url.origin)` 으로
+//   절대 주소를 만들었는데, 이 사이트는 Cloudflare 터널 뒤라 req.url 이 내부 주소다.
+//   그래서 실제 응답이 이랬다:
+//     curl -I https://flowvium.net/go/ko → 307 Location: https://localhost:3000/ko
+//   **유튜브 설명란 링크를 누른 사람이 전부 로컬호스트로 떨어졌다** — 유입이 통째로 사라진다.
+//   프록시 뒤에서 req.url 로 공개 주소를 알 방법은 없다. x-forwarded-host 를 믿는 방법도
+//   있지만, 상대 경로는 믿을 것이 없다 — 브라우저가 현재 origin 기준으로 푼다(RFC 7231 §7.1.2).
 import { NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
 
@@ -24,7 +32,7 @@ export async function GET(
 
   // 모르는 로케일이면 조용히 홈으로. 임의 값으로 쿠키를 심게 두지 않는다.
   if (!(routing.locales as readonly string[]).includes(locale)) {
-    return NextResponse.redirect(new URL('/', url.origin), 307);
+    return new NextResponse(null, { status: 307, headers: { Location: '/' } });
   }
 
   // 기본 로케일은 접두사가 없고, 나머지는 /{locale} 로 간다.
@@ -33,7 +41,8 @@ export async function GET(
   const to = url.searchParams.get('to');
   const suffix = to && /^\/[A-Za-z0-9/_-]*$/.test(to) ? to : '';
 
-  const res = NextResponse.redirect(new URL(`${dest}${suffix}`.replace(/\/{2,}/g, '/'), url.origin), 307);
+  const location = `${dest}${suffix}`.replace(/\/{2,}/g, '/');
+  const res = new NextResponse(null, { status: 307, headers: { Location: location } });
   res.cookies.set('NEXT_LOCALE', locale, {
     path: '/', maxAge: ONE_YEAR, sameSite: 'lax',
   });
