@@ -159,7 +159,9 @@ const REGION_SOURCES = isKo
 
 const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
 const rows = db.prepare(
-  `SELECT source, headline, link FROM news_archive
+  // 2026-09-03: summary 를 같이 읽는다. 종전엔 안 읽어서 인용 카드가 이슈 12개 중 1개뿐이었다 —
+  //   헤드라인에 따옴표가 없으면 인용이 없는데, 요약에는 화자와 발언이 그대로 들어 있다.
+  `SELECT source, headline, summary, link FROM news_archive
    WHERE source IN (${REGION_SOURCES.map(() => '?').join(',')})
      AND datetime(captured_at) >= datetime('now','-12 hours')`,
 ).all(...REGION_SOURCES);
@@ -184,7 +186,26 @@ const issues = issueArg === 'auto'
 // 각 이슈의 대표 발언. "그 사건" 을 화면에 직접 띄우는 유일한 수단이다 —
 //   아카이브 사진은 인물이 맞아도 그 기사가 아니고, SNS 원본은 재사용 심사에 걸린다.
 //   방송사가 하듯 **인용을 다시 그린다**(quote-card).
-for (const c of issues) c.quote = bestQuote(c.headlines ?? []);
+//   헤드라인과 요약을 **둘 다** 본다. 요약 쪽에 실제 발언이 훨씬 많다(실측):
+//     "(서울=연합뉴스) … 한국은행은 2일 \"9월 소비자물가 상승률은 …\"이라고 예상했다."
+//
+//   요약에는 원문 RSS 의 **HTML 이 그대로** 들어 있다(실측: 머니투데이가 썸네일을
+//     <table><tr><td><img src=…></td></tr></table> 로 앞에 붙인다). 걷어내지 않으면
+//     src= 뒤의 따옴표가 인용으로 잡혀 카드에 이미지 주소가 뜬다.
+//     news_archive.summary 자체를 고치는 편이 근본이지만 그건 재수집이 필요하고,
+//     읽는 쪽에서 거르면 기존 데이터도 같이 살아난다.
+const stripHtml = (t) => String(t ?? '')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&(nbsp|#160);/g, ' ')
+  .replace(/&(quot|#34);/g, '"').replace(/&(amp|#38);/g, '&')
+  .replace(/&(lt|#60);/g, '<').replace(/&(gt|#62);/g, '>')
+  .replace(/&(apos|#39);/g, "'")
+  .replace(/https?:\/\/\S+/g, ' ')          // 남은 주소도 턴다 — 따옴표가 붙어 오는 일이 있다
+  .replace(/\s+/g, ' ').trim();
+for (const c of issues) {
+  const texts = [...(c.headlines ?? []), ...(c.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
+  c.quote = bestQuote(texts);
+}
 // 길이는 이슈 개수를 따른다. 이슈가 6개인데 90초면 한 건에 12초라 다 못 담고,
 //   2개인데 180초면 한 건을 90초씩 늘여 읽어 늘어진다.
 //   이슈당 약 28초 + 도입·마무리 20초. 상한 10분(유튜브 브리핑으로는 그게 한계다).

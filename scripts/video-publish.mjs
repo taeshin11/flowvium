@@ -12,6 +12,7 @@
  * 사용: node scripts/video-publish.mjs [--locale en] [--dry-run] [--privacy public]
  */
 import { spawnSync } from 'node:child_process';
+import { buildTitle, buildDescription, buildTags, orderForTitle } from './lib/video-meta.mjs';
 import { existsSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { ROOT } from './lib/project-root.mjs';
@@ -100,29 +101,21 @@ function pickHeadlines(list, n) {
 }
 
 const top = pickHeadlines(heads, 6);
-// 제목: 상위 두 건을 잇는다. 100자 제한 안에서 **헤드라인 그대로** — 지어내지 않는다.
-let title = top[0];
-if (top[1] && (title.length + top[1].length + 3) <= 96) title = `${title} — ${top[1]}`;
-title = title.slice(0, 100);
+// 제목·설명·태그는 video-meta.mjs 가 만든다. 종전엔 여기서 영어로 하드코딩돼 있었고
+//   ("In this update:" · "Daily US politics" · "#USNews"), 태그는 [A-Za-z0-9'] 로 잘라
+//   **한글이 통째로 사라졌다.** 로케일 분기를 호출부에 흩으면 다음에 또 어긋난다.
+// 국뽕(사용자 "제목에 국뽕 섞을수있으면 섞어")은 **고르는 문제**로 다룬다 —
+//   헤드라인 중 한국 성과를 말하는 것이 있으면 앞세우고, 없으면 순서를 흔들지 않는다.
+//   제목 문자열은 언제나 헤드라인 원문에서만 나온다(지어내지 않는다).
+const isKoUpload = LOCALE === 'ko';
+const { proud } = orderForTitle(top, isKoUpload);
+const title = buildTitle(top, isKoUpload);
+if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다(국뽕)');
 
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
-const tagWords = [...new Set((last.keywords ?? []).concat(
-  top.join(' ').split(/[^A-Za-z0-9']+/).filter((w) => /^[A-Z]/.test(w) && w.length > 2),
-))].slice(0, 14);
+const tagWords = buildTags(top, last.keywords, isKoUpload);
 
-const desc = [
-  top.slice(0, 3).join(' '),
-  '',
-  'In this update:',
-  ...top.map((h) => `• ${h}`),
-  '',
-  'Daily US politics and economy, told straight — no filler, no hype.',
-  'Subscribe for a new briefing every day.',
-  '',
-  'Footage: public domain / CC0 / Pexels License.',
-  '',
-  `#USNews #Politics #Economy #Markets #BreakingNews #DailyNews #Flowvium`,
-].join('\n');
+const desc = buildDescription(top, isKoUpload);
 
 log(`제목: ${title}`);
 if (DRY) { log('--dry-run — 업로드하지 않는다'); process.exit(0); }

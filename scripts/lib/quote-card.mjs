@@ -20,6 +20,19 @@ const CLOSE = '"”’」';
 //   'star of "The Rocky Horror Picture Show," dies' 의 따옴표는 발언이 아니다.
 const SAY = /\b(say|says|said|tells|told|posts|posted|writes|wrote|announce[sd]?|claims?|warns?|adds?|states?)\b|말했|밝혔|전했|덧붙였|강조했|주장했/i;
 
+// 한국어 인용은 **인용격 조사**로 판별하는 편이 낫다(2026-09-03).
+//   동사를 나열하면 계속 빠진다 — 실측에서 "예상했다" 하나 때문에 한국은행 발언을 통째로 놓쳤다:
+//     한국은행은 2일 "9월 소비자물가 상승률은 …"이라고 예상했다.
+//   지적했다·답했다·설명했다·촉구했다·반박했다·내다봤다… 를 언제까지 더할 수는 없다.
+//   구조는 하나다: 닫는 따옴표 바로 뒤에 `라고`/`이라고`/`라며`/`고` 가 오고 서술어가 따른다.
+//   그 조사를 보면 어떤 서술어가 와도 인용으로 잡힌다.
+//   `라` 없이 바로 붙는 형태도 흔하다 — 실측에서 이것 때문에 대량으로 놓쳤다:
+//     "내년부터 북미 수주 가속화가 기대된다"며 투자의견 '매수'를…
+//     "정부 결정을 존중하되…"라며 / "…"이라고 / "…"고 말했다
+//   그래서 (이?라) 를 **선택**으로 두고 고·며·면서를 받는다.
+//   `는` 은 넣지 않는다 — "블랙핑크"는 … 처럼 인용이 아닌 주제 조사와 구분되지 않는다.
+const KO_QUOTATIVE = /^\s*(이?라)?(고|며|면서)\s*\S/;
+
 /**
  * 발언인가, 작품 제목인가.
  *
@@ -54,13 +67,22 @@ export function extractQuote(headline, opts = {}) {
     const before = h.slice(0, m.index);
     const after = h.slice(m.index + m[0].length);
     // 발언 신호가 앞이나 뒤에 있어야 인용이다. 없으면 작품 제목·별명일 확률이 높다.
-    if (!SAY.test(before) && !SAY.test(after)) continue;
+    //   한국어는 조사(라고·고…)로도 인정한다 — 서술어 목록에 의존하지 않기 위해서다.
+    if (!SAY.test(before) && !SAY.test(after) && !KO_QUOTATIVE.test(after)) continue;
     if (!isSpeech(text)) continue;
     if (!best || text.length > best.text.length) {
       // 화자: 발언 신호 **앞**의 구절. 앞에 신호가 없으면(한국어 "…라고 말했다") 그 앞 전부.
       const mSay = before.match(SAY);
-      const speaker = (mSay ? before.slice(0, mSay.index) : before)
-        .replace(/[,:\s]+$/, '').replace(/^\W+/, '').trim();
+      let speaker = (mSay ? before.slice(0, mSay.index) : before).replace(/[,:\s]+$/, '');
+      // 통신사 요약은 바이라인으로 시작한다 — "(서울=연합뉴스) 한지훈 기자 = 한국은행은 2일 …".
+      //   그걸 화자로 쓰면 카드에 기자 이름이 뜬다. 바이라인은 `= ` 로 끝나므로 그 뒤만 취한다.
+      speaker = speaker.replace(/^.*?\)\s*[^=]*=\s*/, '');
+      // 앞쪽 기호를 턴다. **\W 를 쓰면 안 된다** — JS 의 \W 는 비ASCII 를 전부 포함해서
+      //   한글 화자를 통째로 먹는다(2026-09-03 실측: "(서울=연합뉴스) … 한국은행은 2일" → "2일").
+      //   글자·숫자가 아닌 것만 턴다(유니코드 속성, u 플래그).
+      speaker = speaker.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+      // 날짜·시각 부사구는 화자가 아니다("한국은행은 2일" → "한국은행은").
+      speaker = speaker.replace(/\s+\d+[일월시분]\s*$/, '').trim();
       best = { text, speaker: speaker || null };
     }
   }
