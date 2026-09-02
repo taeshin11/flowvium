@@ -88,5 +88,43 @@ const M = await import('./video-meta.mjs');
   en.includes('Fed') && en.includes('Samsung') ? ok('영어는 고유명사 추출 유지') : bad(`영어 태그가 깨졌다: ${JSON.stringify(en)}`);
 }
 
+// ── 국뽕 앞머리 (2026-09-03, 사용자 "더 국뽕스럽게 최대한 만들어. 오글거리게") ─────
+//   선은 하나다: **사실을 주장하지 않는다.** "세계가 놀랐다" 는 안 된다 — 놀랐는지 모른다.
+//   "또 해냈습니다" 는 감탄이라 검증 대상 명제가 아니다.
+{
+  const proudHeads = ['삼성전자, HBM 세계 1위 탈환… SK하이닉스 제쳐', '코스피 2% 상승'];
+  const plainHeads = ['미 연준 9월 동결 전망 우세', '국제유가 1% 상승'];
+
+  const t0 = M.buildTitle(proudHeads, true, 0);
+  /🇰🇷/.test(t0) ? ok(`국뽕이면 앞머리를 붙인다 ("${t0.slice(0, 30)}…")`) : bad(`앞머리가 없다: ${t0}`);
+  !/🇰🇷/.test(M.buildTitle(plainHeads, true, 0)) ? ok('국뽕이 아니면 안 붙인다') : bad('아무 데나 붙였다');
+
+  // 회전 — 하루 5편인데 같은 앞머리가 계속 붙으면 더 싸구려로 보인다
+  const set = new Set([0, 1, 2, 3, 4].map((i) => M.buildTitle(proudHeads, true, i).split(' ')[1]));
+  set.size >= 3 ? ok(`앞머리가 회전한다 (${set.size}종)`) : bad(`회전이 안 된다: ${[...set].join(',')}`);
+  M.buildTitle(proudHeads, true, 7) === M.buildTitle(proudHeads, true, 7)
+    ? ok('같은 씨앗이면 같은 제목(결정론)') : bad('무작위라 재현이 안 된다');
+
+  // 앞머리를 붙여도 100자를 넘지 않는다
+  const long = ['가'.repeat(70) + ' 세계 1위 한국', '나'.repeat(70)];
+  M.buildTitle(long, true, 0).length <= 100
+    ? ok(`앞머리를 붙여도 100자 이내 (${M.buildTitle(long, true, 0).length}자)`)
+    : bad(`${M.buildTitle(long, true, 0).length}자 — 유튜브에서 잘린다`);
+
+  // 앞머리를 뺀 나머지는 여전히 헤드라인 원문이어야 한다 — 감탄은 붙이되 사실은 못 지어낸다
+  // 앞머리는 두 어절짜리도 있다("또 해냈습니다"). 한 어절만 걷으면 이 검사가 헛돈다 —
+  //   실제로 처음 실행에서 그렇게 실패했다. 원문 헤드라인이 어디서 시작하는지로 자른다.
+  const body = t0.slice(t0.indexOf(proudHeads[0]));
+  proudHeads.some((h) => body.startsWith(h))
+    ? ok('앞머리 뒤는 헤드라인 원문 그대로')
+    : bad(`본문이 헤드라인과 다르다: "${body.slice(0, 40)}"`);
+
+  // 확인할 수 없는 반응을 앞머리에 넣지 않는다
+  const allPrefixes = [0, 1, 2, 3, 4].map((i) => M.buildTitle(proudHeads, true, i));
+  !allPrefixes.some((t) => /놀랐|충격|난리|경악|들썩/.test(t.split('—')[0]))
+    ? ok('앞머리에 확인 불가한 반응 주장이 없다')
+    : bad(`검증 못 하는 반응을 주장한다: ${allPrefixes.find((t) => /놀랐|충격/.test(t))}`);
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

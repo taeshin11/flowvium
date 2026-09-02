@@ -37,14 +37,39 @@ export function orderForTitle(heads, isKo) {
 }
 
 /**
- * 제목. 100자 상한 안에서 **헤드라인 그대로** 잇는다 — 문구를 지어내지 않는다.
- * 유튜브 제목은 100자가 상한이고, 넘으면 잘려서 뒤가 안 보인다.
+ * 국뽕 제목 앞머리(사용자 "더 국뽕스럽게 최대한 만들어. 오글거리게").
+ *
+ * 지켜야 할 선은 하나다 — **사실을 주장하지 않는다.**
+ *   "세계가 놀랐다"·"전 세계 충격" 은 안 된다. 놀랐는지 우리가 모른다. 그건 거짓 사실이다.
+ *   반면 "또 해냈습니다"·"이게 대한민국입니다" 는 감탄이지 검증 대상 명제가 아니다.
+ *   자극적이되 없는 사실을 붙이지 않는다 — 뒤에 오는 헤드라인 원문이 근거를 댄다.
+ *
+ * 돌려 쓰는 이유: 하루 5편인데 같은 앞머리가 계속 붙으면 그게 더 싸구려로 보인다.
+ * 편성 기록 수를 씨앗으로 돌린다(무작위가 아니라 결정론 — 같은 편은 같은 제목이 나온다).
  */
-export function buildTitle(heads, isKo) {
-  const { ordered } = orderForTitle(heads, isKo);
+const PROUD_PREFIX = [
+  '🇰🇷 또 해냈습니다',
+  '🇰🇷 이게 대한민국입니다',
+  '🇰🇷 국뽕 차오릅니다',
+  '🇰🇷 자랑스럽습니다',
+  '🇰🇷 대한민국 클라스',
+];
+
+/**
+ * 제목. 100자 상한 안에서 **헤드라인 그대로** 잇는다 — 문구를 지어내지 않는다.
+ * 국뽕 헤드라인이 앞에 올 때만 감탄 앞머리를 붙인다(사실 주장 아님, 위 주석 참조).
+ * 유튜브 제목은 100자가 상한이고, 넘으면 잘려서 뒤가 안 보인다.
+ *
+ * @param {number} [seed] 앞머리 회전용. 편성 회차 수를 넣으면 편마다 달라진다.
+ */
+export function buildTitle(heads, isKo, seed = 0) {
+  const { ordered, proud } = orderForTitle(heads, isKo);
   let t = ordered[0] ?? '';
-  if (ordered[1] && (t.length + ordered[1].length + 3) <= 96) t = `${t} — ${ordered[1]}`;
-  return t.slice(0, 100);
+  const prefix = proud ? `${PROUD_PREFIX[Math.abs(Math.trunc(seed)) % PROUD_PREFIX.length]} ` : '';
+  // 앞머리를 붙이면 두 번째 헤드라인까지 넣을 자리가 줄어든다. 남는 만큼만 잇는다.
+  const room = 96 - prefix.length;
+  if (ordered[1] && (t.length + ordered[1].length + 3) <= room) t = `${t} — ${ordered[1]}`;
+  return `${prefix}${t}`.slice(0, 100);
 }
 
 const DESC = {
