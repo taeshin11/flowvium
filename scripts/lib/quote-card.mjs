@@ -83,6 +83,15 @@ export function extractQuote(headline, opts = {}) {
       speaker = speaker.replace(/^[^\p{L}\p{N}]+/u, '').trim();
       // 날짜·시각 부사구는 화자가 아니다("한국은행은 2일" → "한국은행은").
       speaker = speaker.replace(/\s+\d+[일월시분]\s*$/, '').trim();
+      // 요약 한가운데의 인용은 앞이 통째로 문단이다(실측: 화자에 200자짜리 문단이 들어왔다).
+      //   화자는 발언 **바로 앞** 의 이름구다. 문장 경계에서 끊고 뒤쪽만 취한다.
+      const lastSent = speaker.split(/(?<=[.!?。])\s+/).pop() ?? speaker;
+      const W = lastSent.split(/\s+/).filter(Boolean);
+      speaker = (W.length > 5 ? W.slice(-5) : W).join(' ');
+      // 그래도 길면 화자가 아니다 — 없는 편이 낫다(카드에 문단이 뜨는 것보다).
+      //   문턱은 **문단만** 걸러낼 만큼만 둔다. 처음 28자로 잡았다가
+      //   "Dolly Parton theme park president"(33자) 같은 정상 직함을 잘라 먹었다(테스트가 잡았다).
+      if (speaker.length > 60) speaker = '';
       best = { text, speaker: speaker || null };
     }
   }
