@@ -104,17 +104,24 @@ export function cuesFromAlignment(alignment, opts = {}) {
   // 3) maxChars / maxDur 안에서 묶는다.
   const cues = [];
   let cur = null;
-  for (const p of parts) {
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    // 다음 토큰을 봐야 약어를 가릴 수 있다(위 isSentenceEnd 의 ③). 붙여읽기 조각(glue)은
+    // 같은 단어의 뒷부분이므로 "다음 단어" 가 아니다 — 건너뛰고 진짜 다음 토큰을 찾는다.
+    let n = i + 1;
+    while (n < parts.length && parts[n].glue) n++;
+    const nextText = parts[n]?.text;
+    const ends = isSentenceEnd(p.text, nextText);
     const sep = cur && !p.glue ? ' ' : '';
     const wouldLen = cur ? cur.text.length + sep.length + p.text.length : p.text.length;
     const wouldDur = cur ? en[p.to] - st[cur.from] : en[p.to] - st[p.from];
     if (cur && wouldLen <= budget && wouldDur <= maxDur && !cur.sentenceEnd) {
       cur.text += sep + p.text;
       cur.to = p.to;
-      cur.sentenceEnd = SENT_END.test(p.text);
+      cur.sentenceEnd = ends;
     } else {
       if (cur) cues.push(cur);
-      cur = { text: p.text, from: p.from, to: p.to, sentenceEnd: SENT_END.test(p.text) };
+      cur = { text: p.text, from: p.from, to: p.to, sentenceEnd: ends };
     }
   }
   if (cur) cues.push(cur);
@@ -133,9 +140,51 @@ export function cuesFromAlignment(alignment, opts = {}) {
  * 왜(2026-08-27 실측): 글자 수만으로 묶었더니 "…she was / real. Lauren" 처럼 앞 문장의 끝과
  *   다음 문장의 첫 단어가 한 화면에 섞였다. 읽는 사람이 거기서 두 번 멈춘다.
  *   방송 자막은 글자 수가 아니라 문장·절 경계로 끊는다.
- * 소수점·약어(U.S.)를 문장 끝으로 오인하지 않도록 **뒤에 아무것도 없는** 부호만 본다.
+ *
+ * 2026-09-02 정정: 종전 주석은 "소수점·약어(U.S.)를 오인하지 않도록 뒤에 아무것도 없는 부호만
+ *   본다" 고 적혀 있었다. **절반만 사실이었다.** 소수점은 실제로 안전하다("0.50" 은 숫자로
+ *   끝나 매치되지 않는다). 그러나 약어는 토큰 자체가 "U.S." 라서 그대로 걸린다.
+ *   업로드 영상 프레임을 뽑아 보고 잡았다(youtu.be/ZqfPqLFtaJQ):
+ *     "The U.S. Federal Reserve held…"      → 한 화면에 "The U.S." 만
+ *     "Palo Alto Networks Inc. reported…"   → "Palo Alto Networks Inc." 에서 끊김
+ *     "Dr. Powell said…"                    → "Dr." 만
+ *   문장 경계로 끊으려고 넣은 규칙이 약어에서 정확히 같은 증상을 새로 만들고 있었다.
  */
 const SENT_END = /[.!?。！？]["'\u2019\u201d)\]]?$/;
+
+/**
+ * 머리글자 약어(U.S., U.K., A.I.) — 한 글자 + 마침표가 두 번 이상 반복되는 꼴.
+ * 목록이 아니라 형태로 판정하므로 새 약어가 나와도 자동으로 걸린다.
+ */
+const INITIALISM = /^(?:[A-Za-z]\.){2,}$/;
+
+/**
+ * 형태만으로는 못 거르는 약어들. 목록은 최소로 둔다 — 영어 철자법상 "Inc." 와 문장 끝
+ * "Inc." 는 형태가 같아서, 이건 원리적으로 목록이나 문맥 없이는 구분되지 않는다.
+ * 그래서 아래 nextStartsLower 규칙을 1차로 쓰고, 이 목록은 그것으로도 안 잡히는 경우만 받는다.
+ */
+const ABBREV = new Set(['inc.', 'corp.', 'ltd.', 'co.', 'llc.', 'plc.', 'mr.', 'mrs.', 'ms.', 'dr.',
+  'prof.', 'sr.', 'jr.', 'st.', 'vs.', 'etc.', 'est.', 'no.', 'approx.', 'fig.']);
+
+/**
+ * 이 토큰에서 큐를 닫아도 되는가.
+ * @param {string} token 지금 토큰
+ * @param {string|undefined} next 다음 토큰(없으면 undefined)
+ *
+ * 판정 순서(구조 신호를 목록보다 먼저 본다):
+ *   ① 문장부호로 안 끝나면 문장 끝이 아니다
+ *   ② 머리글자 약어면 아니다 — 형태로 판정
+ *   ③ 다음 단어가 소문자로 시작하면 문장이 이어지는 것이다. 목록 없이 쓰는 가장 넓은 신호로,
+ *      "Inc. reported" · "Dr. said" 같은 경우를 전부 덮는다
+ *   ④ 그래도 남는 것(뒤가 대문자인 "Dr. Powell", "St. Louis")은 목록으로 받는다
+ */
+function isSentenceEnd(token, next) {
+  if (!SENT_END.test(token)) return false;
+  if (INITIALISM.test(token)) return false;
+  if (next && /^[a-z\u00e0-\u024f]/.test(next)) return false;
+  if (ABBREV.has(token.toLowerCase())) return false;
+  return true;
+}
 
 /**
  * 큐 사이의 짧은 빈틈을 앞 큐로 덮는다.

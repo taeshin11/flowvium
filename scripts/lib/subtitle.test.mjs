@@ -277,5 +277,56 @@ const align = (text, step = 0.1, from = 0) => ({
   else bad('vcenterY 를 안 줬는데 \\pos 가 붙었다');
 }
 
+// ── 2026-09-02: 약어를 문장 끝으로 오인해 큐가 끊겼다 ──────────────────────────
+//   눈검증(youtu.be/ZqfPqLFtaJQ 프레임 추출)에서 잡았다. subtitle.mjs 의 SENT_END 주석은
+//   "소수점·약어(U.S.)를 문장 끝으로 오인하지 않도록 뒤에 아무것도 없는 부호만 본다" 고
+//   적혀 있는데, 실제로는 약어를 전혀 못 거른다. 토큰이 곧 "U.S." 라서 마침표로 끝나기 때문이다.
+//   실측 출력:
+//     "The U.S. Federal Reserve held rates steady this week"
+//       → | The U.S.                       ← 한 화면에 이것만 뜬다
+//         | Federal Reserve held / rates steady this week
+//     "Palo Alto Networks Inc. reported strong quarterly results"
+//       → | Palo Alto Networks Inc.
+//         | reported strong / quarterly results
+//   SENT_END 를 넣은 이유가 "앞 문장 끝과 다음 문장 첫 단어가 섞여 두 번 멈춘다" 였는데,
+//   약어에서 정확히 그 증상을 새로 만들고 있었다.
+//   (소수점은 실제로 안전하다 — "0.50" 은 숫자로 끝나 매치되지 않는다. 주석의 절반만 사실이었다.)
+{
+  const mkAlign = (text) => {
+    const ch = [...text];
+    return { characters: ch,
+             character_start_times_seconds: ch.map((_, i) => i * 0.06),
+             character_end_times_seconds: ch.map((_, i) => i * 0.06 + 0.06) };
+  };
+  const cueTexts = (t) => M.cuesFromAlignment(mkAlign(t), { maxChars: 24, maxLines: 2, maxDur: 3.0 })
+    .map((c) => c.text.replace(/\n/g, ' '));
+
+  const us = cueTexts('The U.S. Federal Reserve held rates steady this week');
+  !us.some((t) => /^The U\.S\.$/.test(t.trim()))
+    ? ok('머리글자 약어(U.S.)에서 안 끊는다')
+    : bad(`"The U.S." 만 한 화면에 뜬다: ${JSON.stringify(us)}`);
+
+  const inc = cueTexts('Palo Alto Networks Inc. reported strong quarterly results');
+  !inc.some((t) => /Inc\.$/.test(t.trim()))
+    ? ok('회사 약어(Inc.)에서 안 끊는다')
+    : bad(`"…Inc." 에서 끊겼다: ${JSON.stringify(inc)}`);
+
+  // 뒷 단어가 소문자면 문장이 이어지는 것이다 — 목록 없이도 판정할 수 있는 구조 신호.
+  const dr = cueTexts('Dr. Powell said the committee will wait for more data');
+  !dr.some((t) => /^Dr\.$/.test(t.trim())) ? ok('경칭(Dr.) 뒤에서 안 끊는다') : bad(`Dr. 에서 끊겼다: ${JSON.stringify(dr)}`);
+
+  // 그러나 진짜 문장 끝은 여전히 끊어야 한다 — 이걸 잃으면 원래 고치려던 결함이 돌아온다.
+  const real = cueTexts('She was real. Lauren opened the report and started reading');
+  real.some((t) => /real\.$/.test(t.trim()))
+    ? ok('진짜 문장 끝은 그대로 끊는다')
+    : bad(`문장 경계를 잃었다: ${JSON.stringify(real)}`);
+
+  // 소수점은 원래대로 안전해야 한다
+  const num = cueTexts('Tourmaline Oil declares a dividend of 0.50 Canadian dollars per share');
+  num.some((t) => /0\.50/.test(t))
+    ? ok('소수점은 붙어 있다 (0.50)')
+    : bad(`소수를 쪼갰다: ${JSON.stringify(num)}`);
+}
+
 console.log(fail ? `\n❌ subtitle ${fail} 실패` : '\n✅ subtitle 전부 통과');
 process.exit(fail ? 1 : 0);
