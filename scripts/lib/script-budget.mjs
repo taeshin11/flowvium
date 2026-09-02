@@ -11,21 +11,19 @@
  *   · 장면을 버리면 이슈 하나가 통째로 사라진다.   → 장면 수는 유지한다.
  *   · 장면당 최소 1문장. 빈 대본은 TTS 가 던진다.
  */
+import { splitIntoSentences } from './sentence-end.mjs';
 
 /** 문장 단위로 쪼갠다. 종결부호를 문장 끝에 붙여서 돌려준다(한국어 "…다." / 영어 "…." 공통). */
 export function splitSentences(text) {
-  const t = String(text ?? '').trim();
-  if (!t) return [];
-  // 종결부호 + (공백 또는 끝). 부호를 앞 문장에 남기려고 lookbehind 대신 matchAll 을 쓴다.
-  const out = [];
-  let buf = '';
-  for (const ch of t) {
-    buf += ch;
-    if (/[.!?。！？]/.test(ch)) { out.push(buf.trim()); buf = ''; }
-  }
-  if (buf.trim()) out.push(buf.trim());
-  return out;
+  // 2026-09-02: 종전엔 글자 하나씩 훑다가 마침표를 만나면 그 자리에서 끊었다.
+  //   주석엔 "종결부호 + (공백 또는 끝)" 이라 적혀 있었지만 그 검사가 없었다.
+  //   결과: "a dividend of 0.50 Canadian dollars" → ["a dividend of 0.", "50 Canadian dollars"]
+  //   → fitScript 가 예산에 맞춰 뒤를 버리면 "a dividend of 0." 만 남아 그대로 방송됐다
+  //     (youtu.be/ZqfPqLFtaJQ t=130s·t=295s 자막에서 눈으로 확인).
+  //   판정 규칙은 sentence-end.mjs 한 곳에 둔다 — subtitle.mjs 와 따로 두면 또 어긋난다.
+  return splitIntoSentences(text);
 }
+
 
 /**
  * @param {{say:string}[]} scenes

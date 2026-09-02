@@ -9,6 +9,7 @@
  *   위치를 스타일로 한 번에 지정할 수 있다. drawtext 로 하면 큐마다 필터를 쌓아야 해서
  *   장면 6개 × 큐 10개 = 필터 60개짜리 명령이 된다.
  */
+import { isSentenceEnd } from './sentence-end.mjs';
 
 /** 초 → ASS 시각 H:MM:SS.cc */
 export function assTime(sec) {
@@ -135,56 +136,17 @@ export function cuesFromAlignment(alignment, opts = {}) {
 }
 
 /**
- * 문장 끝 판정. 마침표·물음표·느낌표로 끝나는 토큰이면 거기서 큐를 닫는다.
+ * 문장 끝 판정은 sentence-end.mjs 한 곳에 있다.
  *
- * 왜(2026-08-27 실측): 글자 수만으로 묶었더니 "…she was / real. Lauren" 처럼 앞 문장의 끝과
- *   다음 문장의 첫 단어가 한 화면에 섞였다. 읽는 사람이 거기서 두 번 멈춘다.
- *   방송 자막은 글자 수가 아니라 문장·절 경계로 끊는다.
+ * 왜 여기 없나 (2026-09-02): 같은 판정이 이 파일과 script-budget.mjs 에 따로 있었고
+ *   **둘 다 틀렸으며 틀린 방식도 달랐다.** 여기서는 "The U.S." · "Dr." 만 뜨는 조각 자막이
+ *   나왔고, 저기서는 "a dividend of 0." 처럼 숫자가 잘렸다. 두 파일 모두 주석에는
+ *   "소수점·약어를 오인하지 않는다" 고 적혀 있었는데 그 검사가 어느 쪽에도 없었다.
+ *   규칙을 두 곳에 두면 또 어긋난다.
  *
- * 2026-09-02 정정: 종전 주석은 "소수점·약어(U.S.)를 오인하지 않도록 뒤에 아무것도 없는 부호만
- *   본다" 고 적혀 있었다. **절반만 사실이었다.** 소수점은 실제로 안전하다("0.50" 은 숫자로
- *   끝나 매치되지 않는다). 그러나 약어는 토큰 자체가 "U.S." 라서 그대로 걸린다.
- *   업로드 영상 프레임을 뽑아 보고 잡았다(youtu.be/ZqfPqLFtaJQ):
- *     "The U.S. Federal Reserve held…"      → 한 화면에 "The U.S." 만
- *     "Palo Alto Networks Inc. reported…"   → "Palo Alto Networks Inc." 에서 끊김
- *     "Dr. Powell said…"                    → "Dr." 만
- *   문장 경계로 끊으려고 넣은 규칙이 약어에서 정확히 같은 증상을 새로 만들고 있었다.
+ * (원래 이 규칙을 넣은 이유는 2026-08-27 의 "…she was / real. Lauren — 읽는 사람이 두 번
+ *  멈춘다" 였다. 그 목적은 그대로 지킨다 — 진짜 문장 끝은 여전히 끊는다.)
  */
-const SENT_END = /[.!?。！？]["'\u2019\u201d)\]]?$/;
-
-/**
- * 머리글자 약어(U.S., U.K., A.I.) — 한 글자 + 마침표가 두 번 이상 반복되는 꼴.
- * 목록이 아니라 형태로 판정하므로 새 약어가 나와도 자동으로 걸린다.
- */
-const INITIALISM = /^(?:[A-Za-z]\.){2,}$/;
-
-/**
- * 형태만으로는 못 거르는 약어들. 목록은 최소로 둔다 — 영어 철자법상 "Inc." 와 문장 끝
- * "Inc." 는 형태가 같아서, 이건 원리적으로 목록이나 문맥 없이는 구분되지 않는다.
- * 그래서 아래 nextStartsLower 규칙을 1차로 쓰고, 이 목록은 그것으로도 안 잡히는 경우만 받는다.
- */
-const ABBREV = new Set(['inc.', 'corp.', 'ltd.', 'co.', 'llc.', 'plc.', 'mr.', 'mrs.', 'ms.', 'dr.',
-  'prof.', 'sr.', 'jr.', 'st.', 'vs.', 'etc.', 'est.', 'no.', 'approx.', 'fig.']);
-
-/**
- * 이 토큰에서 큐를 닫아도 되는가.
- * @param {string} token 지금 토큰
- * @param {string|undefined} next 다음 토큰(없으면 undefined)
- *
- * 판정 순서(구조 신호를 목록보다 먼저 본다):
- *   ① 문장부호로 안 끝나면 문장 끝이 아니다
- *   ② 머리글자 약어면 아니다 — 형태로 판정
- *   ③ 다음 단어가 소문자로 시작하면 문장이 이어지는 것이다. 목록 없이 쓰는 가장 넓은 신호로,
- *      "Inc. reported" · "Dr. said" 같은 경우를 전부 덮는다
- *   ④ 그래도 남는 것(뒤가 대문자인 "Dr. Powell", "St. Louis")은 목록으로 받는다
- */
-function isSentenceEnd(token, next) {
-  if (!SENT_END.test(token)) return false;
-  if (INITIALISM.test(token)) return false;
-  if (next && /^[a-z\u00e0-\u024f]/.test(next)) return false;
-  if (ABBREV.has(token.toLowerCase())) return false;
-  return true;
-}
 
 /**
  * 큐 사이의 짧은 빈틈을 앞 큐로 덮는다.

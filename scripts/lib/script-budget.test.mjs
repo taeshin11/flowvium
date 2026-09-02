@@ -122,7 +122,12 @@ const total = (sc) => sc.reduce((n, s) => n + s.say.length, 0);
   const S8 = () => Array.from({ length: 8 }, () => ({
     title: 't',
     // 85 / 110 / 60 자 문장 세 개. 실제 대본의 길이 분포를 흉내낸다.
-    say: `${'a'.repeat(83)}. ${'b'.repeat(108)}. ${'c'.repeat(58)}.`,
+    // 2026-09-02: 문장 첫 글자를 대문자로 바꿨다. 종전엔 전부 소문자('aaa. bbb.')였는데,
+    //   문장 끝 판정이 "다음 낱말이 소문자면 이어지는 문장" 을 신호로 쓰게 되면서
+    //   합성 데이터가 한 문장으로 붙어 버렸다. 이 검사의 목적은 **예산 배분 계산**이지
+    //   문장 탐지가 아니므로, 실제 내레이션처럼 대문자로 시작하게 고쳤다.
+    //   (소문자로 시작하는 문장은 붙는다 — 그 한계는 아래에서 따로 검사한다.)
+    say: `A${'a'.repeat(82)}. B${'b'.repeat(107)}. C${'c'.repeat(57)}.`,
   }));
   const budget = 1467;
   const r = M.fitScript(S8(), { budgetChars: budget });
@@ -132,6 +137,63 @@ const total = (sc) => sc.reduce((n, s) => n + s.say.length, 0);
   else bad(`초과: ${total}`);
   if (total >= budget * 0.8) ok(`고르지 않은 문장에서도 예산을 채운다 (${pct}%)`);
   else bad(`예산의 ${pct}% 만 남겼다 (${total}/${budget}) — 영상이 목표보다 크게 짧아진다`);
+}
+
+// ── 2026-09-02: 소수점·약어를 문장 끝으로 오인해 대본이 잘렸다 ──────────────────
+//   눈검증에서 잡았다. 업로드 영상(youtu.be/ZqfPqLFtaJQ)의 t=130s·t=295s 자막이
+//   "a dividend of 0." 였다. 원문 헤드라인은 "Tourmaline Oil declares CAD 0.50 dividend".
+//
+//   처음엔 4B 모델이 숫자를 잘라 썼다고 봤는데 **틀렸다.** 우리 코드다:
+//     splitSentences 가 마침표 뒤를 보지 않고 무조건 끊는다
+//       "a dividend of 0.50 Canadian dollars" → ["a dividend of 0.", "50 Canadian dollars"]
+//     그 뒤 fitScript 가 예산에 맞춰 뒤 조각을 버리면 "a dividend of 0." 만 남는다.
+//   주석은 "종결부호 + (공백 또는 끝)" 이라고 적혀 있었으나 그 검사가 코드에 없었다 —
+//   subtitle.mjs 의 SENT_END 와 **정확히 같은 유형**(주석이 방어를 주장하는데 방어가 없음)이다.
+//   그래서 규칙을 sentence-end.mjs 한 곳으로 모았다. 두 곳에 두면 또 어긋난다.
+{
+  const S = await import('./script-budget.mjs');
+
+  const dec = S.splitSentences('Tourmaline Oil declares a dividend of 0.50 Canadian dollars per share.');
+  dec.length === 1 ? ok('소수점에서 안 끊는다 (0.50)') : bad(`소수를 쪼갰다: ${JSON.stringify(dec)}`);
+
+  const abbr = S.splitSentences('The U.S. Federal Reserve held rates steady.');
+  abbr.length === 1 ? ok('머리글자 약어에서 안 끊는다 (U.S.)') : bad(`약어를 쪼갰다: ${JSON.stringify(abbr)}`);
+
+  const multi = S.splitSentences('Revenue rose 9.1 percent to 1.2 billion dollars.');
+  multi.length === 1 ? ok('한 문장 안 여러 소수도 온전하다') : bad(`쪼갰다: ${JSON.stringify(multi)}`);
+
+  const inc = S.splitSentences('Palo Alto Networks Inc. reported strong results.');
+  inc.length === 1 ? ok('회사 약어에서 안 끊는다 (Inc.)') : bad(`쪼갰다: ${JSON.stringify(inc)}`);
+
+  // 진짜 문장 경계는 그대로 나눠야 한다 — 이걸 잃으면 예산 절삭이 문장 중간을 자른다
+  const two = S.splitSentences('Stocks fell today. Bonds rallied instead.');
+  two.length === 2 ? ok('진짜 문장 경계는 그대로 나눈다') : bad(`문장을 못 나눴다: ${JSON.stringify(two)}`);
+
+  // 그리고 예산 절삭까지 태워도 숫자가 안 잘려야 한다 — 이게 실제로 화면에 나온 증상이다
+  const fit = S.fitScript(
+    [{ say: 'Tourmaline Oil declares a dividend of 0.50 Canadian dollars per share. It was announced Tuesday.' }],
+    { budgetChars: 40 });
+  !/of 0\.$/.test(fit.scenes[0].say)
+    ? ok(`예산 절삭 후에도 숫자가 온전하다: "${fit.scenes[0].say.slice(0, 60)}…"`)
+    : bad(`화면에 나온 그 증상이 그대로다: "${fit.scenes[0].say}"`);
+}
+
+// ── 알려진 한계를 숨기지 않는다 ────────────────────────────────────────────────
+//   문장 끝 판정은 "다음 낱말이 소문자면 문장이 이어진다" 를 쓴다. 목록 없이 "Inc. reported"
+//   "Dr. said" 를 덮는 가장 넓은 신호라 그렇게 뒀다. 대신 **소문자로 시작하는 진짜 문장** 은
+//   앞 문장에 붙는다. 실제 내레이션은 대문자로 시작하므로 운영에서는 거의 안 걸리지만,
+//   모르고 있다가 나중에 놀라는 것보다 검사로 적어 두는 편이 낫다.
+{
+  const merged = M.splitSentences('He left the room. she arrived an hour later.');
+  merged.length === 1
+    ? ok('한계 확인: 소문자로 시작하는 다음 문장은 붙는다(약어 오판을 막는 대가)')
+    : ok(`소문자 문장도 나눈다 (${merged.length}개) — 한계가 사라졌다면 이 주석을 지울 것`);
+
+  // 대문자·숫자로 시작하면 정상적으로 나뉜다 — 실제 대본이 이 모양이다
+  const cap = M.splitSentences('He left the room. She arrived an hour later.');
+  cap.length === 2 ? ok('대문자로 시작하는 문장은 정상 분리') : bad(`대문자인데 못 나눴다: ${JSON.stringify(cap)}`);
+  const num = M.splitSentences('Stocks fell today. 2026 has been volatile so far.');
+  num.length === 2 ? ok('숫자로 시작하는 문장도 분리') : bad(`숫자 시작을 못 나눴다: ${JSON.stringify(num)}`);
 }
 
 console.log(fail ? `\n❌ script-budget ${fail} 실패` : '\n✅ script-budget 전부 통과');
