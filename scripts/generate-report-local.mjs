@@ -6797,6 +6797,27 @@ function postProcessPortfolio(portfolio) {
     console.log(`  [반복추천] 계산 건너뜀(${String(e?.message).slice(0, 50)})`);
   }
 
+  // 2026-09-04: **미국 티커도 풀과 대조한다.** 종전엔 KR 6자리만 검사했다(CLAUDE.md 4중 안전망).
+  //   그래서 회사 이름이 티커로 들어와도 통과했다 — 실측: "TSMC"(→TSM), "NVIDIA"(→NVDA).
+  //   둘 다 Yahoo 404 라 가격도 손익도 영영 안 붙는다. 풀에 없으면 낸다는 뜻이 없다.
+  try {
+    const usPool = new Set(CANDIDATE_TICKERS.filter((t) => !/\.(KS|KQ)$/.test(t)));
+    const before = items.length;
+    const dropped = [];
+    items = items.filter((p) => {
+      const t = String(p.ticker ?? '').toUpperCase();
+      if (!t || /\.(KS|KQ)$/.test(t)) return true;          // KR 은 위에서 이미 봤다
+      if (usPool.has(t)) return true;
+      dropped.push(t);
+      return false;
+    });
+    for (const t of dropped) console.log(`  [티커차단] ${t} — 종목 풀에 없다(회사 이름을 티커로 낸 것으로 보인다)`);
+    // 전부 걸리면 되돌린다 — 풀이 덜 채워진 상태에서 포트폴리오를 비우면 보고서가 망가진다.
+    if (!items.length && before) { console.log('  [티커차단] 전 종목이 걸려 되돌린다'); items = portfolio.slice(0, before); }
+  } catch (e) {
+    console.log(`  [티커차단] 건너뜀(${String(e?.message).slice(0, 50)})`);
+  }
+
   // 2026-09-04 6번째 안전망: **물타기 차단.**
   //   사용자가 이틀에 걸쳐 짚은 것 — "하우멧 폭락했는데 매수엔진 결함 아니냐" →
   //   "둘째 날 셋째 날에 봤으면 손해잖아". 실측: 005490.KS 는 14일에 37회(하루 2.6회) 추천됐다.

@@ -14,6 +14,7 @@
  *   node scripts/evaluate-recommendations.mjs --limit=10   # 상위 10건만
  */
 import { realizedPnlPct, markToMarketPnlPct } from './lib/realized-pnl.mjs';
+import { toYahooTicker } from './lib/ticker-normalize.mjs';
 import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary,
          getUnverifiedOutcomes, updateVerifiedOutcome } from './lib/db.mjs';
 
@@ -26,8 +27,11 @@ const ALL = args.includes('--all'); // 14d 윈도우 무시 — 조기 baseline 
 const VERIFY = args.includes('--verify');
 const limit = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1] ?? '0', 10);
 
-async function fetchYahooOHLC(ticker, fromIso, toIso) {
-  // ticker normalization: 000660.KS 같은 KS suffix 는 Yahoo 가 그대로 받음
+async function fetchYahooOHLC(rawTicker, fromIso, toIso) {
+  // 2026-09-04: 손익이 안 채워진 55건 중 24건이 BRK.B 였다.
+  //   BRK.B → HTTP 404 "symbol may be delisted" / BRK-B → 200. 상장폐지가 아니라 표기 차이다.
+  //   우리 티커 풀에는 둘 다 들어 있어 풀 검사로는 안 걸린다 — 가져올 때 바꿔야 한다.
+  const ticker = toYahooTicker(rawTicker);
   const p1 = Math.floor(new Date(fromIso).getTime() / 1000);
   const p2 = Math.floor(new Date(toIso).getTime() / 1000);
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${p1}&period2=${p2}&interval=1d`;
