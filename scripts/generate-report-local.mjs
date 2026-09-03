@@ -73,7 +73,7 @@ import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '.
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
-import { filterConflicts } from './lib/buy-sell-conflict.mjs';
+import { filterConflicts, filterAveragingDown } from './lib/buy-sell-conflict.mjs';
 
 // 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
 //   DB 적재 블록에서 saveShadowHits 로 저장(모듈 상태, 프로세스당 1회 실행이라 안전).
@@ -6795,6 +6795,29 @@ function postProcessPortfolio(portfolio) {
     }
   } catch (e) {
     console.log(`  [반복추천] 계산 건너뜀(${String(e?.message).slice(0, 50)})`);
+  }
+
+  // 2026-09-04 6번째 안전망: **물타기 차단.**
+  //   사용자가 이틀에 걸쳐 짚은 것 — "하우멧 폭락했는데 매수엔진 결함 아니냐" →
+  //   "둘째 날 셋째 날에 봤으면 손해잖아". 실측: 005490.KS 는 14일에 37회(하루 2.6회) 추천됐다.
+  //   여러 번 밀었는데 첫 추천보다 내려간 종목은 논지가 틀린 것이다. 같은 논지를 반복하지 않는다.
+  //   '반복'만으로는 안 막는다(TSM 8회 -0.5% 는 제자리다). '하락'만으로도 안 막는다(첫 추천일 수 있다).
+  //   둘이 겹칠 때만 막는다 — 실측 21종목 중 4종목.
+  try {
+    const AVG_MIN = Number(process.env.AVG_DOWN_MIN_COUNT || 5);
+    const AVG_DD = Number(process.env.AVG_DOWN_MAX_DD || -5);
+    const { kept, blocked } = filterAveragingDown(
+      items,
+      (t) => { const h = recommendationHistory(t, { days: 30 }); return h && { count: h.count, firstEntryMid: h.firstEntryMid }; },
+      (t) => { const p = items.find((x) => x.ticker === t); return Number(p?.currentPrice ?? p?.price ?? p?.price_at_gen) || null; },
+      { minCount: AVG_MIN, maxDrawdownPct: AVG_DD });
+    for (const b of blocked) {
+      console.log(`  [물타기차단] ${b.ticker} — 30일 ${b.count}회 추천, 첫 진입 ${b.firstEntryMid?.toFixed?.(1)} 대비 ${b.driftPct}%`);
+    }
+    if (kept.length) items = kept;
+    else if (blocked.length) console.log('  [물타기차단] 전 종목이 걸려 차단을 건너뛴다 — 경고만 남긴다');
+  } catch (e) {
+    console.log(`  [물타기차단] 건너뜀(${String(e?.message).slice(0, 50)})`);
   }
 
   const total = items.reduce((s, p) => s + (p.allocation ?? 0), 0);

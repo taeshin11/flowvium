@@ -32,3 +32,39 @@ export function filterConflicts(items, sellMap, { blockUrgency = 'high' } = {}) 
   }
   return { kept, blocked, flagged };
 }
+
+/**
+ * 물타기 차단 — 여러 번 밀었는데 첫 추천보다 내려간 종목은 더 사라고 하지 않는다.
+ *
+ * 2026-09-04. 사용자가 이틀에 걸쳐 짚은 것이 이거였다:
+ *   "하우멧 폭락했는데 매수엔진 결함 아니냐" → "둘째 날 셋째 날에 봤으면 손해잖아"
+ *   실측: 005490.KS 는 14일 동안 37회(하루 2.6회) 추천됐다. 같은 종목을 매 회차 민다.
+ *   HWM 은 19회 추천 중 14회가 그날 산 독자에게 손실이었다.
+ *
+ * 판정: 최근 30일 N회 이상 + 첫 추천 진입가 대비 -X% 이하.
+ *   "여러 번 밀었다"만으로는 부족하다 — TSM 은 8회지만 -0.5% 로 제자리다. 그건 문제가 아니다.
+ *   "내려갔다"만으로도 부족하다 — 처음 추천한 종목이 하루 빠진 건 흔한 일이다.
+ *   **둘이 겹칠 때**가 물타기다: 논지가 틀렸는데 같은 논지를 반복하는 것.
+ *   실측으로 21종목 중 4종목만 걸린다(HWM -9.3% · 483650.KS -14.9% · AMAT -7.4% · 214450.KQ -7.1%).
+ *   오른 종목(DE +13.9% · FCX +10.4%)과 제자리(TSM -0.5%)는 건드리지 않는다.
+ *
+ * @param {Array} items 포트폴리오
+ * @param {(ticker:string)=>({count:number, firstEntryMid:number|null}|null)} history 종목별 이력 조회
+ * @param {(ticker:string)=>number|null} priceOf 현재가 조회
+ */
+export function filterAveragingDown(items, history, priceOf, { minCount = 5, maxDrawdownPct = -5 } = {}) {
+  const kept = [];
+  const blocked = [];
+  for (const it of items ?? []) {
+    const h = history?.(it?.ticker);
+    const now = priceOf?.(it?.ticker);
+    if (!h || !h.firstEntryMid || !now || h.count < minCount) { kept.push(it); continue; }
+    const drift = (now / h.firstEntryMid - 1) * 100;
+    if (drift <= maxDrawdownPct) {
+      blocked.push({ ticker: it.ticker, count: h.count, driftPct: Number(drift.toFixed(1)), firstEntryMid: h.firstEntryMid });
+      continue;
+    }
+    kept.push(it);
+  }
+  return { kept, blocked };
+}

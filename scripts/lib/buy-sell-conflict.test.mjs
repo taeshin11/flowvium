@@ -30,5 +30,29 @@ r.kept.some((x) => x.ticker === 'NVDA') && !r.kept.find((x) => x.ticker === 'NVD
 filterConflicts([], new Map()).kept.length === 0 ? ok('빈 입력 안전') : bad('빈 입력에서 이상');
 filterConflicts(items, null).kept.length === 3 ? ok('매도 목록이 없으면 전부 통과') : bad('매도 목록 없을 때 오작동');
 
+
+// ── 물타기 차단 (2026-09-04) ───────────────────────────────────────────────────
+{
+  const { filterAveragingDown } = await import('./buy-sell-conflict.mjs');
+  const hist = {
+    HWM:  { count: 10, firstEntryMid: 270 },    // -9.3% — 실측으로 걸렸던 것
+    TSM:  { count: 8,  firstEntryMid: 417.5 },  // -0.5% — 제자리, 건드리면 안 된다
+    DE:   { count: 6,  firstEntryMid: 613 },    // +13.9% — 오른 것
+    NEW:  { count: 1,  firstEntryMid: 100 },    // 처음 추천 — 횟수 미달
+  };
+  const px = { HWM: 244.95, TSM: 415.5, DE: 698.37, NEW: 90 };
+  const r = filterAveragingDown(
+    ['HWM', 'TSM', 'DE', 'NEW'].map((t) => ({ ticker: t })),
+    (t) => hist[t], (t) => px[t]);
+
+  r.blocked.length === 1 && r.blocked[0].ticker === 'HWM'
+    ? ok(`물타기만 막는다 (HWM ${r.blocked[0].driftPct}%)`) : bad(`막힌 것: ${r.blocked.map((b) => b.ticker).join(',')}`);
+  r.kept.some((x) => x.ticker === 'TSM') ? ok('제자리(-0.5%)는 통과 — 반복만으로 막지 않는다') : bad('TSM 을 막는다');
+  r.kept.some((x) => x.ticker === 'DE') ? ok('오른 종목은 통과') : bad('오른 종목을 막는다');
+  r.kept.some((x) => x.ticker === 'NEW') ? ok('처음 추천은 통과 — 하락만으로 막지 않는다') : bad('첫 추천을 막는다');
+  filterAveragingDown([{ ticker: 'X' }], () => null, () => null).kept.length === 1
+    ? ok('이력·가격을 모르면 막지 않는다') : bad('모르는 것을 막는다');
+}
+
 console.log(fail === 0 ? '\n✅ buy-sell-conflict 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);
