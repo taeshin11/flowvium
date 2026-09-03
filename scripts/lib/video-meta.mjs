@@ -62,14 +62,43 @@ const PROUD_PREFIX = [
  *
  * @param {number} [seed] 앞머리 회전용. 편성 회차 수를 넣으면 편마다 달라진다.
  */
-export function buildTitle(heads, isKo, seed = 0) {
+export function buildTitle(heads, isKo, seed = 0, opts = {}) {
   const { ordered, proud } = orderForTitle(heads, isKo);
   let t = ordered[0] ?? '';
   const prefix = proud ? `${PROUD_PREFIX[Math.abs(Math.trunc(seed)) % PROUD_PREFIX.length]} ` : '';
+  // 상한. 유튜브 제목은 100자가 최대지만 **쇼츠 피드는 한두 줄만 보여준다** —
+  //   2026-09-03 실측 95자 제목은 시청자에게 앞 토막만 보였다. 호출부가 상한을 준다.
+  const cap = Math.max(20, Math.trunc(opts.maxLen ?? 100));
+  if (cap < 100) {
+    // 짧게 써야 하면 헤드라인을 잇지 않는다. 하나를 자연스러운 자리에서 끊는다.
+    return `${prefix}${clip(t, cap - prefix.length)}`;
+  }
   // 앞머리를 붙이면 두 번째 헤드라인까지 넣을 자리가 줄어든다. 남는 만큼만 잇는다.
   const room = 96 - prefix.length;
   if (ordered[1] && (t.length + ordered[1].length + 3) <= room) t = `${t} — ${ordered[1]}`;
   return `${prefix}${t}`.slice(0, 100);
+}
+
+/**
+ * 헤드라인을 상한 안으로 끊는다. **원문 앞부분만 남긴다** — 없는 말을 지어내지 않는다.
+ *
+ * 절 경계(쉼표·가운뎃점·줄표)에서 끊는 것을 먼저 시도한다. 신문 제목은 "주체, 내용" 꼴이 많아
+ * 그 자리가 가장 덜 어색하다. 경계가 없으면 낱말 경계에서 끊고 말줄임표를 붙인다.
+ * 낱말 한가운데를 자르면 뜻이 뭉개진다.
+ */
+function clip(text, max) {
+  const t = String(text ?? '').trim();
+  if (t.length <= max) return t;
+  // 절 경계 후보 — 상한 안에 들어오는 가장 뒤쪽 경계를 쓴다(정보를 최대한 남긴다).
+  let best = -1;
+  for (let i = 0; i < Math.min(t.length, max); i++) {
+    if (/[,·…]|\s—\s/.test(t[i])) best = i;
+  }
+  // 너무 앞에서 끊기면 제목이 뜻을 잃는다("전남대 캠퍼스혁신파크," 만 남는 식).
+  if (best >= Math.floor(max * 0.5)) return t.slice(0, best).trim();
+  const cut = t.slice(0, max - 1);
+  const sp = cut.lastIndexOf(' ');
+  return `${(sp >= Math.floor(max * 0.5) ? cut.slice(0, sp) : cut).trim()}…`;
 }
 
 const DESC = {

@@ -147,5 +147,30 @@ const M = await import('./video-meta.mjs');
   !/flowvium\.net/.test(lines.slice(0, 3).join('\n')) || ok('링크 자리는 upload 가 채운다');
 }
 
+
+// ── 쇼츠 제목 길이 (2026-09-03, 사용자 "유입 모으자") ──────────────────────────
+// 실측: 올라간 쇼츠 제목이 95자였다 —
+//   "전남대 캠퍼스혁신파크, '800조 반도체 시대' 산학연 혁신거점 구축 본격화 — 아주대·삼성전자, …"
+//   쇼츠 피드는 제목을 한두 줄만 보여준다. 신문 제목 두 개를 이어 붙이면 시청자는 앞 토막만 본다.
+//   장편(가로)은 100자를 다 써도 되지만 쇼츠는 다르다 — 같은 함수에 상한만 달리 준다.
+{
+  const heads = [
+    "전남대 캠퍼스혁신파크, '800조 반도체 시대' 산학연 혁신거점 구축 본격화",
+    "아주대·삼성전자, 반도체 EUV 공정 한계 넘을 '하이브리드 신소재' 개발",
+  ];
+  const t = M.buildTitle(heads, true, 0, { maxLen: 46 });
+  t.length <= 46 ? ok(`쇼츠 제목 ${t.length}자 — 피드에서 안 잘린다`) : bad(`${t.length}자: "${t}"`);
+  !t.includes('—') ? ok('헤드라인 두 개를 잇지 않는다') : bad(`두 개를 이었다: "${t}"`);
+  !/\s$/.test(t) && !/[,·]$/.test(t) ? ok('어중간한 기호로 끝나지 않는다') : bad(`끝이 지저분하다: "${t}"`);
+
+  // 잘라도 원문에서만 나와야 한다 — 없는 말을 지어내면 안 된다.
+  const bare = t.replace(/^🇰🇷[^ ]* /, '').replace(/…$/, '');
+  heads[0].startsWith(bare) ? ok('잘린 제목도 헤드라인 원문의 앞부분 그대로') : bad(`원문에 없는 말: "${bare}"`);
+
+  // 장편은 종전대로 길게 쓴다 — 상한을 안 주면 동작이 바뀌면 안 된다.
+  const long = M.buildTitle(heads, true, 0);
+  long.length > 46 ? ok(`장편은 종전대로 길게 (${long.length}자)`) : bad(`장편까지 짧아졌다: ${long.length}자`);
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

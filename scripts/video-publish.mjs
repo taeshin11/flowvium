@@ -124,9 +124,22 @@ const top = pickHeadlines(heads, 6);
 //   제목 문자열은 언제나 헤드라인 원문에서만 나온다(지어내지 않는다).
 const isKoUpload = LOCALE === 'ko';
 const { proud } = orderForTitle(top, isKoUpload);
-let title = buildTitle(top, isKoUpload);
+// 쇼츠 제목 상한. 유튜브 제목은 100자까지 받지만 **쇼츠 피드는 한두 줄만 보여준다** —
+//   2026-09-03 실측: 올라간 제목이 95자였고 시청자에겐 앞 토막만 보였다.
+//   " #Shorts"(8자) 자리를 미리 빼고 계산한다.
+const SHORTS_TITLE_MAX = Number(process.env.SHORTS_TITLE_MAX || 46);
+// 국뽕 앞머리 회전 씨앗. 종전엔 0 고정이라 5편 내내 같은 앞머리가 붙었다 — 그게 더 싸구려로 보인다.
+//   편성 대장의 누적 편수를 쓴다(무작위가 아니라 결정론 — 같은 회차는 같은 제목이 나온다).
+let seed = 0;
+if (isShorts) {
+  try { seed = (await import('./lib/db.mjs')).shortsPublishedCount(); }
+  catch { /* 대장을 못 읽어도 제목은 나와야 한다 — 앞머리가 안 돌 뿐이다 */ }
+}
+let title = isShorts
+  ? buildTitle(top, isKoUpload, seed, { maxLen: SHORTS_TITLE_MAX - 8 })
+  : buildTitle(top, isKoUpload);
 // 쇼츠는 제목·설명에 #Shorts 가 있어야 유튜브가 쇼츠 선반에 올린다(세로+3분이하 만으로는 놓칠 때가 있다).
-if (isShorts && !/#Shorts/i.test(title)) title = `${title.slice(0, 100 - 9)} #Shorts`;
+if (isShorts && !/#Shorts/i.test(title)) title = `${title} #Shorts`;
 if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다(국뽕)');
 
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다

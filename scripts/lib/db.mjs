@@ -1875,3 +1875,9 @@ export function markShortsPublished({ issueKey, headline, videoId = null }) {
      VALUES (?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId, new Date().toISOString());
 }
+
+/** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */
+export function shortsPublishedCount() {
+  const db = openDb();
+  return db.prepare('SELECT COUNT(*) AS n FROM shorts_published').get()?.n ?? 0;
+}
