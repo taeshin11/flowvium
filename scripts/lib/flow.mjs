@@ -336,9 +336,28 @@ async function closeDefaults(page, { tries = 5 } = {}) {
       await page.waitForTimeout(900);
       if (!(await defaultsPanelOpen(page))) return true;
     }
-    // 마지막 수단: 화면 왼쪽 빈 곳을 눌러 패널 밖 클릭으로 닫는다.
-    await page.mouse.click(w * 0.25, 400).catch(() => {});
-    await page.waitForTimeout(900);
+    // 마지막 수단: 패널 밖을 눌러 닫는다.
+    // ⚠ 2026-09-03 사용자: "구글 flow 쓸때 이거 설정 좀 안바꾸면 안되겠니?"
+    //   종전엔 (가로 25%, y=400) 을 **그 자리에 무엇이 있는지 보지 않고** 눌렀다.
+    //   그 자리에 토글이나 타일이 있으면 그대로 눌린다 — 사용자의 보기 설정
+    //   (그리드 크기 · 마우스오버 사운드 · 무음 동영상 반환 · 타일 세부정보 · 제출 시 프롬프트 지우기)이
+    //   우리가 모르는 새 바뀐다. 남의 설정을 건드리는 건 조용한 부작용 중 최악이다.
+    //   누르기 전에 그 지점에 무엇이 있는지 보고, **눌러도 되는 것일 때만** 누른다.
+    const safe = await page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return true;                       // 아무것도 없으면 빈 곳이다
+      // 누르면 상태가 바뀌는 것들 — 하나라도 걸리면 누르지 않는다.
+      return !el.closest('button, a, input, select, textarea, [role=button], [role=switch], [role=tab], [role=menuitem], [contenteditable=true], video, img');
+    }, { x: Math.round(w * 0.25), y: 400 }).catch(() => false);
+    if (safe) {
+      await page.mouse.click(w * 0.25, 400).catch(() => {});
+      await page.waitForTimeout(900);
+    } else {
+      // 빈 곳이 아니면 누르지 않는다. Escape 를 한 번 더 주고 다음 회차에 맡긴다 —
+      //   패널이 안 닫히는 것보다 사용자의 설정이 바뀌는 쪽이 나쁘다.
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(700);
+    }
   }
   return !(await defaultsPanelOpen(page));
 }
@@ -395,10 +414,23 @@ export async function typePrompt(page, text) {
       return true;
     },
     // ③ 작성기 영역 좌표 클릭(최후).
+    //    2026-09-03: 여기도 그 자리에 무엇이 있는지 보지 않고 눌렀다.
+    //    작성기가 그 자리에 없으면 엉뚱한 것(설정 토글·타일)을 누른다 —
+    //    사용자의 Flow 보기 설정이 우리도 모르게 바뀌던 원인이다.
+    //    **입력창이거나 빈 곳일 때만** 누른다. 목적이 입력창 포커스이므로 그것만 허용하면 된다.
     async () => {
       const size = await page.evaluate(() => ({ w: innerWidth, h: innerHeight })).catch(() => null);
       if (!size) return false;
-      await page.mouse.click(size.w * 0.5, size.h * 0.86).catch(() => {});
+      const x = Math.round(size.w * 0.5);
+      const y = Math.round(size.h * 0.86);
+      const ok = await page.evaluate(({ x, y }) => {
+        const el = document.elementFromPoint(x, y);
+        if (!el) return true;                                  // 빈 곳
+        if (el.closest('[contenteditable=true], textarea')) return true;   // 노리던 입력창
+        return !el.closest('button, a, input, select, [role=button], [role=switch], [role=tab], [role=menuitem], video, img');
+      }, { x, y }).catch(() => false);
+      if (!ok) return false;                                   // 다른 게 있으면 누르지 않는다
+      await page.mouse.click(x, y).catch(() => {});
       return true;
     },
   ];
