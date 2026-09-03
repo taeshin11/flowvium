@@ -62,6 +62,12 @@ const dup = db.prepare(`
            MAX(COALESCE(r.entry_low, r.price_at_gen)) hi
     FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
     WHERE o.pnl_pct IS NOT NULL
+      -- 2026-09-03: stop_loss / hit_target 은 제외한다. 이 둘의 손익은 손절가·목표가에서 나오는데
+      --   LLM 이 손절을 **진입가의 고정 비율**로 잡는다(실측: 005490.KS 진입 406560 · 손절 378101
+      --   = 정확히 -7.00%). 그러면 진입가가 달라도 손익이 같은 게 정상이다.
+      --   이 검사가 잡으려던 것은 매도엔진의 단일 pnlPct 가 여러 건에 그대로 복사되던 일이고,
+      --   그건 'sold' 경로의 문제였다. 정상 동작까지 결함으로 세면 신호가 늘 빨개져 아무도 안 본다.
+      AND o.outcome NOT IN ('stop_loss', 'hit_target')
     GROUP BY r.ticker, o.evaluated_at, o.pnl_pct
     HAVING n > 1 AND lo > 0 AND (hi - lo) / lo > 0.005)`).get().c;
 dup === 0
