@@ -610,6 +610,9 @@ export function hasDistinctiveTerm(terms) {
     //   실측: "LH Corporation" 이 통째로 막혀 공공기관 편의 네 장면이 전부 빈 카드가 됐다.
     //   대문자 약칭은 그 자체로 고유명사다.
     if (/^[A-Z]{2,}$/.test(raw) && !GENERIC_TERM.has(w)) return true;
+    // 한글은 두 글자가 흔한 고유명사다 — 부산·서울·대구·인천·삼성.
+    //   영어 기준(3자)을 그대로 쓰면 지명이 통째로 막힌다(실측: "부산"이 막혀 예인선 편이 카드로 갔다).
+    if (/[가-힣]/.test(raw)) return raw.length >= 2 && !GENERIC_TERM.has(w);
     if (w.length < 3) return false;
     if (GENERIC_TERM.has(w)) return false;
     return true;
@@ -629,6 +632,11 @@ export function isRealFootage(c) {
   //   그렇게 좁히지 않으면 "대전 시청"·"전주" 같은 멀쩡한 것까지 걸린다.
   if (/(?:^|[\s(])(?:전|前)\s*(?:총리|국무총리|대통령|장관|차관|의원|위원장|청장|시장|지사|회장|사장|대표)/.test(t)) return false;
   if (/\bformer\s+(?:prime\s+minister|president|minister|chairman|ceo|governor|mayor)\b/i.test(t)) return false;
+  // 축제·공연 사진은 뉴스 화면이 아니다. 실측: 부산 예인선 전복(6명 실종) 기사에
+  //   "Busan Sea Festival" 무대와 관객 사진이 붙었다. 그 도시가 맞아도 그 사건이 아니고,
+  //   사망·실종 기사에 축제 사진을 붙이는 건 틀린 정도가 아니라 무례하다.
+  if (/\b(festival|concert|parade|carnival|fireworks)\b/i.test(t)) return false;
+  if (/(축제|불꽃놀이|콘서트|공연장)/.test(t)) return false;
   return true;
 }
 
@@ -720,4 +728,27 @@ export function needsKoreaAnchor(terms) {
 /** 기관 질의일 때, 결과 제목이 한국을 가리키는가. */
 export function looksKorean(title) {
   return KOREA_MARK.test(String(title ?? ''));
+}
+
+
+/**
+ * 지명 하나만으로는 찾지 않는다.
+ *
+ * 2026-09-03 실측: 부산 예인선 전복(6명 실종) 기사에서 visual 이 비어 "부산"으로 찾았더니
+ *   해수욕장 피서객 사진이 네 장면에 깔렸다. 그 도시가 맞긴 하지만 **그 사건이 아니고**,
+ *   실종 사고에 해변에서 노는 사람들을 붙이는 건 틀린 정도가 아니라 무례하다.
+ *   지명은 사건이 아니라 배경이다. 다른 말과 함께일 때만 뜻이 있다("부산 해경", "부산 예인선").
+ *   혼자 남으면 그 도시의 관광 사진이 1순위로 온다.
+ * 회색 카드가 낫다.
+ */
+const PLACE_ALONE = new Set([
+  '부산', '서울', '대구', '인천', '광주', '대전', '울산', '세종', '제주', '경기', '강원',
+  '충북', '충남', '전북', '전남', '경북', '경남', '수원', '창원', '고양', '용인', '성남', '진주',
+  'busan', 'seoul', 'daegu', 'incheon', 'gwangju', 'daejeon', 'ulsan', 'sejong', 'jeju', 'korea',
+]);
+
+/** 이 질의가 지명 하나뿐인가. 그렇다면 검색하지 않는다. */
+export function isBarePlace(terms) {
+  const t = (terms ?? []).map((x) => String(x).toLowerCase().trim()).filter(Boolean);
+  return t.length === 1 && PLACE_ALONE.has(t[0]);
 }

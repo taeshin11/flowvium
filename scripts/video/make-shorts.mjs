@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -367,6 +367,11 @@ for (let i = 0; i < scenes.length; i++) {
     //   그 예외가 있는 한 스톡은 무조건 통과했다. 남겨두면 다시 새는 구멍이 된다.
     //   isRealFootage: 문장·도표·국기·로고는 현장이 아니다(실측으로 기재부 '문장 svg'가 뽑혔다).
     // 기관을 가리키는 질의면 결과가 한국 것이어야 한다 — 안 그러면 온타리오 농무부·탄자니아 국회가 붙는다.
+    // 한 낱말짜리 질의는 뜻이 너무 넓다 — 지명이면 관광 사진, 보통명사면 동음이의어가 온다.
+    if (terms.length < 2 || isBarePlace(terms)) {
+      log(`[화면] ${i + 1} "${terms.join(' ')}" 는 낱말이 하나 — 검색 생략(뜻이 너무 넓다)`);
+      break;
+    }
     const koAnchor = needsKoreaAnchor(terms);
     const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
       && titleRelevant(c.title, terms) && near(c.title)
@@ -379,15 +384,25 @@ for (let i = 0; i < scenes.length; i++) {
   // 영문 질의로 못 찾았으면 **한국어 개체명**으로 한 번 더. 그 사건에 제일 가까운 자료가
   //   한국어 제목으로 들어 있는 경우가 많다(실측: 용혜인 의원 영상 .webm).
   if (!scenes[i].pick) {
-    for (const kw of koreanEntities(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 3 })) {
-      // 직책 단독으로는 찾지 않는다 — 역대 아무나 나온다(실측: '총리' → 2003년 고건 총리).
-      if (!hasDistinctiveTerm([kw])) { log(`[화면] ${i + 1} "${kw}" 는 직책·범용어 — 건너뜀`); continue; }
+    // 2026-09-03: 낱말 **하나**로는 찾지 않는다. 한국어 단어 하나는 너무 여러 뜻을 가진다 —
+    //   실측: "전복"(배가 뒤집힘) → 방파제 횟집의 전복·해삼 사진,
+    //         "수색"(수색 작업) → 적십자 구조견 사진, "구조" → 단백질 구조 그림.
+    //   두 낱말이 함께여야 뜻이 좁혀진다("예인선 부산", "부산 해경").
+    //   좁힐 낱말이 없으면 찾지 않는다 — 회색 카드가 엉뚱한 사진보다 낫다.
+    const koWords = koreanEntities(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 4 })
+      .filter((k) => hasDistinctiveTerm([k]));
+    const koPairs = [];
+    for (let x = 0; x < koWords.length && koPairs.length < 3; x++) {
+      for (let y = x + 1; y < koWords.length && koPairs.length < 3; y++) koPairs.push([koWords[x], koWords[y]]);
+    }
+    for (const pair of koPairs) {
+      const kw = pair.join(' ');
       let ko = [];
       for (const fn of [searchCommons, searchOpenverse]) {
-        try { ko = ko.concat(await fn([kw], { limit: 8 })); } catch { /* 다음 소스로 */ }
+        try { ko = ko.concat(await fn(pair, { limit: 8 })); } catch { /* 다음 소스로 */ }
       }
-      const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, [kw]));
-      const pick = pickFootageMany(preferRecent(rel), 1, { terms: [kw], preferFree: true });
+      const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair));
+      const pick = pickFootageMany(preferRecent(rel), 1, { terms: pair, preferFree: true });
       if (pick.length) {
         scenes[i].pick = pick[0];
         log(`[화면] ${i + 1} 영문 실패 → 한국어 "${kw}" 로 찾음`);
