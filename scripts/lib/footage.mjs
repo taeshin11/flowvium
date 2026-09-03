@@ -468,6 +468,47 @@ export async function searchCommons(terms, { limit = 8 } = {}) {
 }
 
 /**
+ * 한국 정부·지자체가 공공누리로 푼 사진만 골라 찾는다 (2026-09-03).
+ *
+ * 왜 따로 두나: 사용자가 "구글에서 찾아서 출처만 적어" 라고 했을 때, 먼저 지금 소스가 한계인지
+ *   재봤다. CC 이미지 검색(Openverse)에는 한국 시사 사진이 사실상 없었다 —
+ *   "예인선 부산" 0건, "김민석 총리" 0건, "용혜인 의원" 0건.
+ *   그래서 정부·지자체 보도자료 쪽을 훑었는데, 공공누리 포털·공유마당·서울 미디어허브는
+ *   전부 JS 렌더라 긁기 어렵고 깨지기 쉽다.
+ *   그런데 **Commons 에 이미 공공누리 파일이 14,229건 올라와 있었다.** 새 통합이 필요 없다.
+ *
+ * 이게 왜 좋은가:
+ *   · 정부가 직접 찍어 공공누리로 푼 것이라 **상업 이용이 된다**(출처 표시 조건).
+ *   · 현직 인물·실제 행사다 — "Yong Hye-in's Portrait (2023.12)", "20251124 원민경 성평등가족부 장관",
+ *     "20200304 부산시-구군 긴급비상대책회의".
+ *   · 통신사 사진을 무단으로 쓰는 길(저작권 경고 3회 = 채널 삭제)을 피할 수 있다.
+ *
+ * 한계도 적어 둔다: 사건 현장 사진은 거의 없다. 인물·기관·회의가 대부분이다.
+ *   실측 — 용혜인 6건 · 법무부 24건 · 취약계층 11건 / 예인선 0건 · 새마을금고 0건.
+ *   보도자료에 PDF 가 많이 섞여 있어 이미지 확장자로 거른다.
+ */
+export async function searchKoglCommons(terms, { limit = 8 } = {}) {
+  // insource:"KOGL" 은 파일 설명에 공공누리 틀이 붙은 것만 남긴다.
+  const q = encodeURIComponent(`insource:"KOGL" ${terms.join(' ')}`);
+  const d = await j(`https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${q}&gsrnamespace=6&gsrlimit=${limit}&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1920`);
+  return Object.values(d?.query?.pages ?? []).map((p) => {
+    const i = p.imageinfo?.[0] ?? {};
+    const meta = i.extmetadata ?? {};
+    const strip = (v) => String(v?.value ?? '').replace(/<[^>]*>/g, '').trim() || null;
+    return {
+      kind: 'image', rank: Number.isFinite(p.index) ? p.index : 999,
+      url: i.thumburl ?? i.url, width: i.width, height: i.height,
+      license: strip(meta.LicenseShortName) ?? 'KOGL',
+      title: p.title?.replace(/^File:/, ''),
+      author: strip(meta.Artist), source: '공공누리/Wikimedia Commons', pageUrl: i.descriptionurl,
+    };
+  // PDF·문서는 **썸네일이 .jpg 로 나온다** — url 확장자만 보면 통과한다(실측: 국회회의록 pdf).
+  //   원본 파일 이름으로 걸러야 한다. 보도자료는 PDF 가 많다.
+  }).filter((c) => c.url && /\.(jpe?g|png|webp)(\?|$)/i.test(c.url)
+    && !/\.(pdf|svg|djvu|tiff?|ogv|webm)$/i.test(String(c.title ?? '')));
+}
+
+/**
  * Pexels 의 여러 화질 중 하나를 고른다.
  *
  * 실측(2026-08-27): 같은 영상이 426x240 / 640x360 / 960x540 / 1280x720 / 1920x1080 /

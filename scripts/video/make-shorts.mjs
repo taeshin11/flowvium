@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -343,7 +343,9 @@ for (let i = 0; i < scenes.length; i++) {
   //   남는 것은 실제 인물·기관·장소가 찍힌 아카이브다. 정지 사진이 늘겠지만(켄번스로 움직인다)
   //   "그 사건"이라는 조건이 "움직인다"보다 앞선다.
   //   Archive 를 먼저 두는 이유: 여기에만 실제 영상 파일이 있다.
-  for (const fn of [searchArchiveVideo, searchCommons, searchOpenverse]) {
+  // 공공누리(정부·지자체가 직접 찍어 푼 사진)를 **먼저** 본다 — 현직 인물·실제 행사이고
+  //   상업 이용이 허용된다(출처 표시 조건). 없으면 아카이브로 내려간다.
+  for (const fn of [searchKoglCommons, searchArchiveVideo, searchCommons, searchOpenverse]) {
     try { cands = cands.concat(await fn(terms, { limit: 10 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
     // pickFootage 는 관련 결과가 없으면 **무관한 것으로 되돌린다**("틀린 사진이라도 회색 카드보다 낫다").
     //   가로 편에서는 57컷 중 한 장이라 그 판단이 맞다. 쇼츠는 컷이 4개뿐이고 한 장이 화면을
@@ -400,7 +402,7 @@ for (let i = 0; i < scenes.length; i++) {
     for (const pair of koPairs) {
       const kw = pair.join(' ');
       let ko = [];
-      for (const fn of [searchCommons, searchOpenverse]) {
+      for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
         try { ko = ko.concat(await fn(pair, { limit: 8 })); } catch { /* 다음 소스로 */ }
       }
       const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair));
