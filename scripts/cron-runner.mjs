@@ -231,6 +231,23 @@ async function runMonitor() {
     }
     recordRun('sourceHealth');
   }
+  // 2026-09-03 좀비 브라우저 수거 (사용자 "좀비 프로세스 … 끄고. 컴퓨터 다운되지 않게 조치하고").
+  //   youtube-studio / flow-clip 이 띄운 크롬은 스크립트가 끝나도 남는다. 실측으로 46분 된 것이
+  //   프로세스 9개 · 0.88GB 를 물고 있었고, 48GB 기계의 여유 메모리가 0.19GB 까지 떨어져 있었다.
+  //   판정은 나이가 아니라 **디버깅 포트에 붙은 클라이언트 유무**다 — 붙어 있으면 남의 작업이라
+  //   그대로 둔다(같은 기계에서 다른 세션이 돌 수 있다. 실측으로 있었다).
+  try {
+    const { stdout } = await execFileAsync('node', ['scripts/reap-zombies.mjs', '--confirm'], { timeout: 60000, windowsHide: true });
+    const reaped = (stdout.match(/✂/g) || []).length;
+    if (reaped) {
+      result.checks.zombieReap = `${reaped}건 수거`;
+      log(`[reap] 주인 없는 자동화 브라우저 ${reaped}건 수거`);
+    }
+  } catch (e) {
+    // 수거 실패가 모니터를 멈출 이유는 없다. 다만 조용히 넘기면 메모리가 다시 찬다.
+    result.checks.zombieReap = `실패(${String(e?.message ?? '').slice(0, 40)})`;
+  }
+
   // 2026-06-12 GPU 열 감시 (사용자 "GPU 96%/82°C — 컴퓨터 꺼지지 않게 조치 철저히"; 6/7 hard
   //   freeze 기여 의심): 83°C+ 결함 표면화, 87°C+ 이고 보고서 파이프라인이 아니면 ollama 모델
   //   강제 언로드(load shed). 웹측 semaphore(llm-local)와 이중 방어.

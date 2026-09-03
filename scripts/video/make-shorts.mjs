@@ -82,7 +82,8 @@ const stripHtml = (t) => String(t ?? '').replace(/<[^>]*>/g, ' ')
   .replace(/&(nbsp|#160);/g, ' ').replace(/&(quot|#34);/g, '"').replace(/&(amp|#38);/g, '&')
   .replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim();
 
-const issues = topDistinctIssues(rows, 8);
+// 후보를 넉넉히 뽑는다. 8개만 보면 이미 다룬 것을 걸렀을 때 금방 바닥난다(하루 5편).
+const issues = topDistinctIssues(rows, Number(process.env.SHORTS_ISSUE_POOL || 24));
 if (!issues.length) { console.error('❌ 이슈를 못 묶었다'); process.exit(1); }
 // 매체가 많이 다룬 것 = 그날 실제로 큰 뉴스다. 다만 **이미 내보낸 이슈는 건너뛴다**.
 //   2026-09-03 실측: 07:38 / 09:42 / 10:02 세 편이 전부 같은 헤드라인이었다. 24시간 기사 풀은
@@ -93,10 +94,16 @@ const fresh = issues.filter((it) => !already.has(normalizeIssueKey(it.keyword)))
 if (already.size) {
   log(`[편성] 최근 24시간에 이미 다룬 이슈 ${already.size}건 — 남은 후보 ${fresh.length}/${issues.length}`);
 }
-// 다 소진했으면 멈추지 않고 1위로 돌아간다 — 뉴스가 정말 없는 날에 발행 자체를 거르는 것보다
-//   같은 큰 뉴스를 다시 내는 편이 낫다. 다만 그 사실을 로그에 남긴다.
-if (!fresh.length) log('⚠ 새 이슈가 없다 — 1위 이슈로 돌아간다(중복 가능)');
-const issue = (fresh.length ? fresh : issues)[0];
+// 2026-09-03 사용자: "제목과 설명이 같은 영상이 세 개나 올라갔지? 다음부터는 안그러게 해라."
+//   처음엔 새 이슈가 없으면 1위로 돌아가게 뒀는데, 그게 바로 중복이 나는 길이다.
+//   **거르는 편이 낫다** — 한 회차 건너뛰면 그날 4편이지만, 중복은 채널에 영구히 남고
+//   유튜브가 노출까지 누른다. 되돌릴 수 없는 쪽을 피한다.
+if (!fresh.length) {
+  console.error(`❌ 새 이슈가 없다 — 후보 ${issues.length}개가 모두 최근 ${process.env.SHORTS_DEDUP_HOURS || 24}시간 안에 나갔다.`);
+  console.error('   중복 발행 대신 이번 회차를 거른다. 다음 슬롯에 새 기사가 쌓이면 정상 발행된다.');
+  process.exit(3);   // 3 = 낼 것이 없음(실패가 아니다). 호출부가 실패와 구분할 수 있게 한다.
+}
+const issue = fresh[0];
 const headlines = issue.headlines ?? [];
 const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);
