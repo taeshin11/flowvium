@@ -144,4 +144,17 @@ const upArgs = [resolve(ROOT, 'scripts/youtube-upload.mjs'),
   '--privacy', arg('--privacy', 'public')];
 if (THUMB && existsSync(THUMB)) upArgs.push('--thumb', THUMB);
 run(upArgs, '업로드');
+
+// 편성 대장에 남긴다 — 다음 편이 같은 뉴스를 다시 고르지 않게 한다(2026-09-03 중복 3편 사건).
+//   업로드가 성공한 뒤에만 남긴다. 실패한 편을 "다뤘다"고 적으면 그 뉴스를 영영 놓친다.
+if (isShorts && last.keyword) {
+  try {
+    const { markShortsPublished } = await import('./lib/db.mjs');
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0] });
+    log(`편성 기록: "${last.keyword}" — 24시간 안에는 다시 안 고른다`);
+  } catch (e) {
+    // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
+    log(`⚠ 편성 대장 기록 실패 — 다음 편이 같은 뉴스를 고를 수 있다: ${e.message}`);
+  }
+}
 log(`끝 · ${((Date.now() - t0) / 60000).toFixed(1)}분`);

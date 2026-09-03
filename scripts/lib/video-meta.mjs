@@ -73,8 +73,11 @@ export function buildTitle(heads, isKo, seed = 0) {
 }
 
 const DESC = {
+  // 첫 줄은 **대표 헤드라인 하나**다. 종전엔 3개를 이어붙여 벽이 됐다(실측 eoP5ycHs92o).
+  //   유튜브는 '더보기' 전에 두어 줄만 보여주므로 이 자리가 사실상 유일하게 읽히는 문장이고,
+  //   검색에서도 가장 무겁게 쓰인다. 나머지 헤드라인은 아래 '오늘 다룬 이슈' 가 이미 다 담는다.
   ko: (top, tags) => [
-    top.slice(0, 3).join(' '),
+    top[0] ?? '',
     '',
     '오늘 다룬 이슈',
     ...top.map((h) => `• ${h}`),
@@ -87,7 +90,7 @@ const DESC = {
     tags,
   ].join('\n'),
   en: (top, tags) => [
-    top.slice(0, 3).join(' '),
+    top[0] ?? '',
     '',
     'In this update:',
     ...top.map((h) => `• ${h}`),

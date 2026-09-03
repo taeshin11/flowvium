@@ -35,6 +35,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
+import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
 
 loadEnvLocal();
 const argv = process.argv.slice(2);
@@ -83,8 +84,19 @@ const stripHtml = (t) => String(t ?? '').replace(/<[^>]*>/g, ' ')
 
 const issues = topDistinctIssues(rows, 8);
 if (!issues.length) { console.error('❌ 이슈를 못 묶었다'); process.exit(1); }
-// 매체가 많이 다룬 것 = 그날 실제로 큰 뉴스다. 그중 첫 번째를 쓴다.
-const issue = issues[0];
+// 매체가 많이 다룬 것 = 그날 실제로 큰 뉴스다. 다만 **이미 내보낸 이슈는 건너뛴다**.
+//   2026-09-03 실측: 07:38 / 09:42 / 10:02 세 편이 전부 같은 헤드라인이었다. 24시간 기사 풀은
+//   몇 시간 사이에 거의 안 바뀌므로 issues[0] 은 하루 종일 같은 것을 가리킨다.
+//   사용자 요구는 "하루 5편이면 그날 큰 뉴스 5개" 이고, 중복 쇼츠는 노출도 눌린다.
+const already = recentShortsIssues(Number(process.env.SHORTS_DEDUP_HOURS || 24));
+const fresh = issues.filter((it) => !already.has(normalizeIssueKey(it.keyword)));
+if (already.size) {
+  log(`[편성] 최근 24시간에 이미 다룬 이슈 ${already.size}건 — 남은 후보 ${fresh.length}/${issues.length}`);
+}
+// 다 소진했으면 멈추지 않고 1위로 돌아간다 — 뉴스가 정말 없는 날에 발행 자체를 거르는 것보다
+//   같은 큰 뉴스를 다시 내는 편이 낫다. 다만 그 사실을 로그에 남긴다.
+if (!fresh.length) log('⚠ 새 이슈가 없다 — 1위 이슈로 돌아간다(중복 가능)');
+const issue = (fresh.length ? fresh : issues)[0];
 const headlines = issue.headlines ?? [];
 const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);

@@ -69,5 +69,34 @@ M.clusterIssues([]).length === 0 && M.clusterIssues(null).length === 0
   !bad1 ? ok('불용어는 키워드가 되지 않는다') : bad(`불용어 클러스터: ${cl.map((c) => c.keyword).join(', ')}`);
 }
 
+
+// ── 연도·범용어는 주제가 아니다 (2026-09-03, 중복 방지 도입 뒤 드러남) ──────────
+// 실측: 쇼츠 이슈 2위가 keyword "2026" 이었고 묶인 기사가 "How much will a $100,000
+//   annuity pay each month in 2026?" 였다. 연도는 아무 기사에나 들어가므로 서로 관계없는
+//   기사를 한 덩어리로 만든다. "가능성"·"글로벌" 같은 범용 명사도 같은 문제를 낸다.
+//   1위를 이미 다뤄 걸렀을 때 이런 것이 다음 편의 주제가 되면 중복보다 나쁘다.
+{
+  const items = [
+    { source: 'A', headline: '연금은 2026 년에 얼마를 주나' },
+    { source: 'B', headline: '집값 전망 2026 상반기' },
+    { source: 'C', headline: '유가 흐름 2026 년 전망' },
+    { source: 'D', headline: '삼성전자 2026 년 투자 계획' },
+  ];
+  const cl = M.topDistinctIssues(items, 8);
+  !cl.some((c) => /^\d{4}$/.test(c.keyword))
+    ? ok('연도는 키워드가 되지 않는다')
+    : bad(`연도 클러스터: ${cl.map((c) => c.keyword).join(', ')}`);
+
+  const generic = [
+    { source: 'A', headline: '실현 가능성 희박하다' },
+    { source: 'B', headline: '반등 가능성 제기' },
+    { source: 'C', headline: '추가 인하 가능성 커져' },
+  ];
+  const cg = M.topDistinctIssues(generic, 8);
+  !cg.some((c) => c.keyword === '가능성')
+    ? ok('범용 명사는 키워드가 되지 않는다')
+    : bad(`범용어 클러스터: ${cg.map((c) => c.keyword).join(', ')}`);
+}
+
 console.log(fail === 0 ? '\n✅ issue-cluster 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

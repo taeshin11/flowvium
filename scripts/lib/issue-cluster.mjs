@@ -19,14 +19,23 @@ const STOP = new Set([
   'over','into','about','out','up','down','how','why','what','when','who','his','her','their','its','this','that',
   'not','no','all','one','two','last','first','than','then','also','may','might','just','now','still','back',
   '것','수','등','및','대한','위해','통해','관련','이번','올해','지난','오늘','내일','기자','뉴스','속보','단독',
+  // 2026-09-03: 중복 방지를 넣고 1위를 걸렀더니 2위가 keyword "2026" 이었고, 묶인 기사가
+  //   "How much will a $100,000 annuity pay each month in 2026?" 였다. 아무 주제도 아니다.
+  //   아래는 **어느 기사에나 들어가는 말**이라 서로 관계없는 기사를 한 덩어리로 만든다.
+  //   불용어를 늘리는 게 아니라 '주제가 될 수 없는 말' 을 빼는 것이다.
+  '가능성','글로벌','전망','계획','추진','발표','확대','강화','검토','논의','방안','대책','상황','문제',
+  '가운데','밝혀','대해','따르면','예정','최근','상반기','하반기','국내','우리','사람','시장','업계','정부',
 ]);
+
+/** 주제가 될 수 없는 토큰. 연도·순수 숫자는 아무 기사에나 들어간다. */
+const NOT_A_TOPIC = (w) => /^\d+$/.test(w);
 
 const normalize = (s) => String(s ?? '')
   .replace(/[’'`]/g, '')
   .replace(/[^\p{L}\p{N}\s]/gu, ' ')
   .toLowerCase()
   .split(/\s+/)
-  .filter((w) => w.length >= 3 && !STOP.has(w));
+  .filter((w) => w.length >= 3 && !STOP.has(w) && !NOT_A_TOPIC(w));
 
 /**
  * @param {Array<{source:string, headline:string, link?:string}>} items

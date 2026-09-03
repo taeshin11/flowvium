@@ -29,11 +29,17 @@ const SITE_CTA = {
   ko: (link) => `▶ 전체 기사 · 실시간 시장 데이터 · 심층 분석: ${link}`,
   en: (link) => `▶ Full coverage, live market data and deeper analysis: ${link}`,
 };
+// 2026-09-03 (사용자 "유입 모으자"): 종전엔 설명란 **맨 끝**에 붙였다. 실측한 영상은 링크가
+//   15줄 아래에 있었다 — 유튜브는 '더보기' 전에 두어 줄만 보여주고, 쇼츠는 설명란을 여는
+//   사람 자체가 드물다. 맨 끝 링크는 없는 링크다. 그래서 **첫 줄 바로 아래**에 끼운다.
+//   첫 줄(대표 헤드라인)은 검색과 가독성을 위해 남기고, 그 다음 줄을 링크가 차지한다.
 const withSite = (d, locale) => {
   const t = String(d ?? '');
-  if (t.includes(SITE)) return t;
   const line = (SITE_CTA[locale] ?? SITE_CTA.en)(siteLink(locale));
-  return t.trim() ? `${t.trimEnd()}\n\n${line}` : line;
+  if (t.includes(SITE)) return t;
+  if (!t.trim()) return line;
+  const lines = t.trimEnd().split('\n');
+  return [lines[0], line, ...lines.slice(1)].join('\n');
 };
 
 try {

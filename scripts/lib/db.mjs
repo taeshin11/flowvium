@@ -406,6 +406,22 @@ CREATE INDEX IF NOT EXISTS idx_segments_fetched ON company_segments(fetched_at);
 --   원칙 "숫자는 DB 가 쓰고 LLM 은 evidenceId 만 고른다". catalyst/fundamentalBasis 렌더러가 이 테이블의
 --   value_num 으로 문장 생성 → LLM numeric 환각 통로 제거. SEC EDGAR(XBRL)/OpenDART 가 1차 source.
 --   D7 단계: ①스키마(now) ②수집 collector ③렌더러 consume ④Ollama schema 강제.
+-- 쇼츠로 이미 내보낸 이슈. 같은 뉴스가 하루에 여러 번 나가는 것을 막는다.
+-- 2026-09-03: 실측 — 07:38 / 09:42 / 10:02 세 편이 **전부 같은 헤드라인**이었다.
+--   make-shorts 가 매번 issues[0](그날 1위)를 골랐고, 24시간 기사 풀은 몇 시간으로 안 바뀌기 때문.
+--   사용자 요구는 "하루 5편이면 그날 큰 뉴스 5개". 중복 쇼츠는 유튜브가 노출도 눌러 유입에 직접 손해다.
+--   기록을 파일이 아니라 DB 에 두는 이유: cron 이 매 실행마다
+--   git checkout origin/master -- data/*.json 을 돌려 JSON 대장은 되돌아간다(CLAUDE.md).
+CREATE TABLE IF NOT EXISTS shorts_published (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  issue_key    TEXT NOT NULL,            -- topDistinctIssues 의 keyword (정규화해 저장)
+  headline     TEXT,                     -- 대표 헤드라인 (사람이 로그에서 알아보기 위함)
+  video_id     TEXT,                     -- 업로드 성공 시 유튜브 id
+  published_at TEXT NOT NULL             -- ISO. 하루 단위 조회에 쓴다
+);
+CREATE INDEX IF NOT EXISTS idx_shorts_pub_at ON shorts_published(published_at);
+CREATE INDEX IF NOT EXISTS idx_shorts_pub_key ON shorts_published(issue_key);
+
 CREATE TABLE IF NOT EXISTS evidence_claims (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   ticker       TEXT NOT NULL,
@@ -1832,4 +1848,30 @@ export function saveMonitorObservation({ runId, observedAt, base, authState, ren
 export function getLatestMonitorRun() {
   const db = openDb();
   return db.prepare('SELECT * FROM monitor_runs ORDER BY observed_at DESC LIMIT 1').get() ?? null;
+}
+
+// ── 쇼츠 중복 편성 방지 (2026-09-03) ─────────────────────────────────────────────
+
+/** 이슈 키를 비교 가능한 형태로 — 공백·기호를 걷어내고 소문자로. */
+export function normalizeIssueKey(k) {
+  return String(k ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+/** 최근 `hours` 시간 안에 이미 쇼츠로 나간 이슈 키 집합. */
+export function recentShortsIssues(hours = 24) {
+  const db = openDb();
+  const rows = db.prepare(
+    `SELECT issue_key FROM shorts_published
+      WHERE datetime(published_at) >= datetime('now', ?)`,
+  ).all(`-${Number(hours)} hours`);
+  return new Set(rows.map((r) => r.issue_key));
+}
+
+/** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
+export function markShortsPublished({ issueKey, headline, videoId = null }) {
+  const db = openDb();
+  db.prepare(
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at)
+     VALUES (?, ?, ?, ?)`,
+  ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId, new Date().toISOString());
 }

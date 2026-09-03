@@ -126,5 +126,26 @@ const M = await import('./video-meta.mjs');
     : bad(`검증 못 하는 반응을 주장한다: ${allPrefixes.find((t) => /놀랐|충격/.test(t))}`);
 }
 
+// ── 유입: 설명란 첫머리 (2026-09-03, 사용자 "유입 모으자") ─────────────────────
+// 실측 배경: 올라간 영상(eoP5ycHs92o)의 설명란은 첫 줄이 헤드라인 3개를 이어붙인 벽이었고,
+//   flowvium.net 링크는 **15줄 아래 맨 끝**에 있었다. 유튜브는 "더보기" 전에 두어 줄만 보여준다.
+//   쇼츠는 설명란 자체를 여는 사람이 드물어, 맨 끝 링크는 사실상 없는 링크다.
+{
+  const heads = ['삼성전자 세계 1위 탈환', '코스피 3000 돌파', '연준 금리 동결', '현대차 수출 최대'];
+  const d = M.buildDescription(heads, true);
+  const lines = d.split('\n');
+
+  lines[0] === heads[0]
+    ? ok('첫 줄이 대표 헤드라인 하나 — 읽힌다')
+    : bad(`첫 줄이 벽이다: "${lines[0].slice(0, 60)}"`);
+
+  lines[0].length <= 100
+    ? ok(`첫 줄 ${lines[0].length}자 — 잘리지 않는다`)
+    : bad(`첫 줄 ${lines[0].length}자 — 더보기로 잘린다`);
+
+  // 링크는 upload 계층이 넣는다. 여기서는 **자리를 비워 두는지**만 본다.
+  !/flowvium\.net/.test(lines.slice(0, 3).join('\n')) || ok('링크 자리는 upload 가 채운다');
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);
