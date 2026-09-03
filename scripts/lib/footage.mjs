@@ -644,6 +644,11 @@ const GENERIC_TERM = new Set([
   '지사', '시장', '군수', '구청장', '검찰총장', '경찰청장', '대표', '회장', '사장', '부회장',
   '정부', '국회', '청와대', '대통령실', '공공기관', '지자체', '당국', '여당', '야당',
   '시스템', '사업', '정책', '제도', '예산', '조사', '회의', '발언', '입장', '대응',
+  // 2026-09-04: "외국인" 으로 찾으니 관광객 단체사진과 '외국인 소방안전교육 방수 체험' 이 왔다.
+  //   기사에서 "외국인" 은 **투자 주체**인데 검색은 글자 그대로 외국 사람을 찾는다.
+  //   사람 부류·시장 주체를 가리키는 말은 그림으로 특정되지 않는다.
+  '외국인', '내국인', '국민', '시민', '소비자', '투자자', '기관', '개인', '유권자',
+  '순매수', '순매도', '매수', '매도', '금리', '지수', '환율', '주가', '수익률', '거래대금',
 ]);
 
 /** 검색어에 구별되는 말이 하나라도 있는가. 없으면 검색해도 엉뚱한 나라가 잡힌다. */
@@ -672,7 +677,10 @@ export function isRealFootage(c) {
   // 실측으로 걸린 것들: "Emblem of the Ministry…", "Tanzanian National Assembly chart.svg"
   // 복수형을 빠뜨려 "Charts of fishing industry in Taiwan 1930s" 가 통과했다(실측 2026-09-03).
   //   도표·지도·문장은 단수만 막아도 소용없다.
-  if (/\b(emblems?|logos?|coats? of arms|seals?|flags?|charts?|graphs?|diagrams?|maps?|icons?|symbols?|posters?|infographics?)\b/.test(t)) return false;
+  // 2026-09-04: 낱말 경계(\b)로 막으니 "logobase"·"logotype" 이 빠져나갔다(Amundi 로고 파일).
+  //   로고·아이콘류는 낱말 안에 붙어 오는 경우가 많아 경계를 풀어 본다.
+  if (/\b(emblems?|coats? of arms|seals?|flags?|charts?|graphs?|diagrams?|maps?|symbols?|posters?|infographics?)\b/.test(t)) return false;
+  if (/(logo|icon|wordmark|lettermark|brandmark)/.test(t)) return false;
   // 전직 인물 사진은 지금 뉴스가 아니다. 실측: "총리" 검색에 '이완구 전 총리'가 걸렸다.
   //   '전/前/former' 는 그 자체로 "지금 그 자리에 없다"는 뜻이라 현재 기사에 붙이면 틀린 그림이 된다.
   //   '전' 은 흔한 글자라 **직책 앞에 붙었을 때만** 본다("전 총리", "전 대통령").
@@ -832,4 +840,60 @@ export function canSearchAlone(term) {
   if (isBarePlace([t])) return false;             // 지명
   if (BROAD_EVENT_WORD.has(t)) return false;      // 뜻이 여럿인 사건 낱말
   return true;
+}
+
+// ── 고유명사 추출 (2026-09-04) ──────────────────────────────────────────────────
+//
+// 흔한 말을 하나씩 막는 방식(블랙리스트)으로는 끝이 없다는 걸 이틀에 걸쳐 확인했다:
+//   총리 → 2003년 고건 · 부산 → 해수욕장 · 전복 → 횟집 전복 · 외국인 → 관광객 단체사진
+//   · 모두 → 아무거나 16건 · Busan Sea → 바다축제 · Invesco → 미식축구 경기장
+// 막을 때마다 새 낱말이 샌다. 방향을 뒤집어 "고유명사인가"를 묻기로 했는데,
+// **모양만 보는 방법도 틀렸다** — 성씨 글자가 흔한 낱말과 겹친다("모두"의 모, "전복"의 전).
+//
+// 그래서 **문맥**을 본다. 헤드라인에는 그 대상이 무엇인지가 같이 쓰여 있다:
+//   "용혜인 의원"·"김민석 총리"·"최태원 SK 회장"  → 앞의 말이 사람 이름이다
+//   "한국은행"·"삼성전자"·"진주시"                → 기관 접미사가 붙어 있다
+// 문맥이 말해 주지 않으면 찾지 않는다. 회색 카드가 엉뚱한 사진보다 낫다.
+
+/** 사람임을 알려 주는 뒷말. 이 앞에 오는 2~4자가 이름이다. */
+const PERSON_MARKER = '의원|장관|차관|총리|대통령|대표|사장|회장|부회장|위원장|청장|처장|지사|시장|군수|구청장|후보|대법관|검사|판사|교수|본부장|원장|이사장';
+/** 기관·기업임을 알려 주는 접미사. */
+const ORG_SUFFIX = /(전자|그룹|공사|공단|은행|증권|화학|중공업|건설|물산|생명|카드|통신|제철|바이오|보험|자동차|백화점|마트|금고|대학교|병원|시청|도청|구청|군청)$/;
+const ADMIN_UNIT = /^[가-힣]{2,4}(시|군|구|도)$/;
+/** 영어 문장 첫머리에 흔히 오는 낱말. 대문자여도 고유명사가 아니다. */
+const EN_COMMON = new Set([
+  'only', 'should', 'whether', 'these', 'those', 'this', 'that', 'here', 'there', 'when', 'where',
+  'what', 'which', 'while', 'after', 'before', 'about', 'from', 'with', 'without', 'their', 'they',
+  'have', 'will', 'would', 'could', 'more', 'most', 'many', 'some', 'both', 'each', 'every',
+  'new', 'now', 'how', 'why', 'who', 'was', 'were', 'been', 'does', 'did', 'has', 'had',
+  'the', 'and', 'but', 'for', 'not', 'you', 'your', 'our', 'his', 'her', 'its', 'can', 'may',
+  'top', 'best', 'first', 'last', 'next', 'one', 'two', 'three', 'here\u2019s', 'rising', 'clean',
+]);
+
+/**
+ * 헤드라인에서 **문맥이 뒷받침하는** 고유명사만 뽑는다.
+ * 뽑히지 않으면 그 장면은 소재를 찾지 않는다 — 모르면 안 찾는 쪽으로 실패한다.
+ */
+export function properNounsFrom(text, { max = 4 } = {}) {
+  const t = String(text ?? '');
+  const out = new Map();
+  const add = (w) => {
+    const k = String(w).trim();
+    if (k.length >= 2 && hasDistinctiveTerm([k]) && !isBarePlace([k])) out.set(k, (out.get(k) ?? 0) + 1);
+  };
+  // 사람: 이름 + 직책 (직책은 빼고 이름만 쓴다 — 직책으로 찾으면 역대 아무나 나온다)
+  for (const m of t.matchAll(new RegExp(`([가-힣]{2,4})\\s*(?:${PERSON_MARKER})`, 'g'))) add(m[1]);
+  // 기관·기업: 접미사로 끝나는 말
+  for (const m of t.matchAll(/[가-힣A-Za-z]{2,12}/g)) {
+    if (ORG_SUFFIX.test(m[0]) || ADMIN_UNIT.test(m[0])) add(m[0]);
+  }
+  // 영문 대문자 약칭·고유명 (SK·LH·Samsung). 소문자만인 낱말은 뺀다.
+  //   2026-09-04: 영어 문장은 첫 낱말이 대문자라 "Only"·"Should"·"Whether" 가 고유명사로 잡혔다.
+  //   그걸로 소재를 세니 엉뚱한 이슈가 편성됐다. 흔한 영어 낱말은 대문자여도 고유명사가 아니다.
+  for (const m of t.matchAll(/\b([A-Z]{2,}|[A-Z][A-Za-z]{2,})\b/g)) {
+    if (/^[A-Z]{2,}$/.test(m[1])) { add(m[1]); continue; }   // 약칭은 그대로
+    if (EN_COMMON.has(m[1].toLowerCase())) continue;
+    add(m[1]);
+  }
+  return [...out.entries()].sort((a, b) => b[1] - a[1]).slice(0, max).map(([w]) => w);
 }

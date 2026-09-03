@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -103,7 +103,29 @@ if (!issues.length) { console.error('❌ 이슈를 못 묶었다'); process.exit
 //   이때는 편성 대장을 보지 않는다 — 이미 다룬 이슈를 **일부러** 고르는 것이기 때문이다.
 const FORCE_ISSUE = arg('issue', '');
 const already = FORCE_ISSUE ? new Set() : recentShortsIssues(Number(process.env.SHORTS_DEDUP_HOURS || 24));
-const fresh = issues.filter((it) => !already.has(normalizeIssueKey(it.keyword)));
+
+// 2026-09-04: **한국어 기사 위주로 고른다.**
+//   실측 — 영어 헤드라인만 있는 "trump" 이슈로 만들었더니 대본이 깨졌다:
+//     "트럼프는 키빈 워시가 할 일을 할 것이라고" → "당했습니다."  (뜻이 안 통한다)
+//     훅도 "폭탄," "소통," "시장," 처럼 낱말 하나에 쉼표만 남았다.
+//   4B 모델이 영어를 한국어로 옮기면서 무너진다. 한국어 기사로 만든 편(홈플러스·용혜인)은 멀쩡했다.
+//   소재가 맞아도 대본이 깨지면 볼 수 없는 영상이다 — 소재보다 앞선 조건이다.
+const koShare = (it) => {
+  const hs = (it.headlines ?? []).slice(0, 6);
+  if (!hs.length) return 0;
+  return hs.filter((h) => /[가-힣]/.test(String(h))).length / hs.length;
+};
+const KO_MIN = Number(process.env.SHORTS_KO_MIN_SHARE || 0.6);
+let fresh = issues.filter((it) => !already.has(normalizeIssueKey(it.keyword)));
+{
+  const koOnly = fresh.filter((it) => koShare(it) >= KO_MIN);
+  if (koOnly.length) {
+    if (koOnly.length !== fresh.length) log(`[편성] 한국어 기사 위주 이슈 ${koOnly.length}/${fresh.length} 만 남긴다(영어 원문은 대본이 깨진다)`);
+    fresh = koOnly;
+  } else {
+    log('⚠ 한국어 기사 이슈가 없다 — 영어 이슈로 간다(대본 품질 주의)');
+  }
+}
 if (already.size) {
   log(`[편성] 최근 24시간에 이미 다룬 이슈 ${already.size}건 — 남은 후보 ${fresh.length}/${issues.length}`);
 }
@@ -138,7 +160,9 @@ async function footageScore(it) {
   //   여기만 규칙이 달라, "부산" 하나로 관광 사진 8건을 세고 "소재 있음"으로 판정했다.
   //   그래서 실종자 6명 기사가 편성됐고, 정작 화면에는 해동용궁사 앞바다 사진이 세 장면에 깔렸다.
   //   **재는 잣대와 쓰는 잣대가 다르면 재는 의미가 없다.** 장면 검색과 같은 규칙으로 센다.
-  const ko = koreanEntities(text, { max: 4 }).filter((k) => hasDistinctiveTerm([k]));
+  // 2026-09-04: koreanEntities(빈도순 낱말)는 "모두"·"외국인" 같은 흔한 말을 내놓았고
+  //   그걸로 16건을 세어 엉뚱한 이슈를 편성했다. 문맥이 뒷받침하는 고유명사만 쓴다.
+  const ko = properNounsFrom(text, { max: 4 });
   const queries = [];
   for (let x = 0; x < ko.length && queries.length < 4; x++) {
     for (let y = x + 1; y < ko.length && queries.length < 4; y++) queries.push([ko[x], ko[y]]);
@@ -226,6 +250,12 @@ ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.spea
 - 한국이 잘한 이야기면 대놓고 자랑하라. "이게 대한민국입니다", "또 해냈습니다" 같은 말을 써도 좋다.
   단 **헤드라인에 있는 사실로만** — 없는 순위·기록·반응을 지어내면 거짓말이다.
 - hook: 화면 위에 크게 박을 문구. **12자 이내**, 명사로 끝내라. 예: "삼성 세계 1위 탈환"
+  · **1번 장면의 hook 은 썸네일이 된다**(쇼츠는 첫 화면이 썸네일이다).
+    답을 다 말하지 말고 **궁금하게** 만들어라 — 숫자나 결과 한 조각만 보여주고 이유는 감춘다.
+    좋음: "1.5조 수주, 어디서" / "코스피 6650, 왜" / "장관 후보 법안 0건"
+    나쁨(다 말해버림): "한화오션이 컨테이너선 6척을 수주했습니다"
+    나쁨(낚시 — 없는 사실): "충격", "경악", "난리", "세계가 놀랐다"
+    ⚠ 궁금하게 만들되 **헤드라인에 있는 사실만** 쓴다. 없는 걸 암시하지 마라.
 - visual: 그 장면 배경으로 찾을 검색어. **영어 2~3단어**.
   · 헤드라인에 나오는 **고유명사**를 우선 써라 — 회사·기관·도시 이름. 그게 제일 잘 맞는다.
     좋음: "Samsung Electronics", "Seoul National Assembly", "semiconductor wafer fab"
@@ -335,6 +365,13 @@ for (let i = 0; i < scenes.length; i++) {
   //   프롬프트로 지시했지만 4B 는 지키지 않을 때가 있다 — **코드가 대비한다.**
   //   비면 그 장면의 훅과 이 편의 헤드라인에서 고유명사를 뽑아 쓴다(영문·숫자 토큰).
   let vis = String(scenes[i].visual ?? '').trim();
+  // 2026-09-04: LLM 의 visual 을 무조건 먼저 쓰다가 틀린 그림이 붙었다 —
+  //   중기부 기사인데 "Korea Trade Fair" 를 줘서 **공정거래위원회** 건물이 걸렸다.
+  //   헤드라인에서 문맥으로 검증된 고유명사(중기부·이소영·양향자)가 있으면 그쪽을 먼저 쓴다.
+  //   4B 가 지어낸 영어 어구보다, 기사에 실제로 있는 이름이 믿을 만하다.
+  //   ⚠ 2026-09-04: 처음엔 고유명사로 **덮어썼는데** 전 장면이 카드가 됐다(중기부 편).
+  //   "중기부" 같은 한글 기관명은 아카이브에 거의 없다. 덮지 말고 **먼저 시도할 후보**로만 둔다.
+  const ownNouns = properNounsFrom(`${scenes[i].hook ?? ''} ${headlines.slice(0, 3).join(' ')}`, { max: 2 });
   if (!vis) {
     const pool = `${scenes[i].hook ?? ''} ${headlines.join(' ')}`;
     // 2026-09-03: 종전엔 영문 고유명사를 먼저 썼다. 한국 기사에는 영문이 드물게 섞이는데
@@ -342,7 +379,7 @@ for (let i = 0; i < scenes.length; i++) {
     //   네 장면 전부에 감시카메라와 **중국 CCTV 방송국 건물**이 깔렸다.
     //   같은 기사의 한국어 개체명(예인선·부산)으로는 8건이 잡히고 있었다.
     //   한글이 있는 기사면 **한국어 개체명을 먼저** 쓴다. 영문은 그다음이다.
-    const ko = /[가-힣]/.test(pool) ? koreanEntities(pool, { max: 3 }).filter((k) => hasDistinctiveTerm([k])) : [];
+    const ko = properNounsFrom(pool, { max: 3 });
     if (ko.length) {
       vis = ko.slice(0, 2).join(' ');
       log(`[화면] ${i + 1} visual 비어 있음 → 한국어 개체명 "${vis}" 사용`);
@@ -352,7 +389,12 @@ for (let i = 0; i < scenes.length; i++) {
       if (vis) log(`[화면] ${i + 1} visual 비어 있음 → 헤드라인에서 "${vis}" 추출`);
     }
   }
-  const terms = searchTerms({ visual: vis }, { max: 3 });
+  // 헤드라인 고유명사를 먼저, LLM 의 visual 을 그다음으로 시도한다.
+  //   앞의 것이 아무것도 못 찾으면 뒤의 것으로 넘어간다 — 덮어쓰지 않는다.
+  const termCandidates = [];
+  if (ownNouns.length) termCandidates.push(searchTerms({ visual: ownNouns.join(' ') }, { max: 3 }));
+  if (vis) termCandidates.push(searchTerms({ visual: vis }, { max: 3 }));
+  const terms = termCandidates[0] ?? [];
   // 질의가 비면 **검색하지 않는다.** titleRelevant 는 질의어가 없으면 전부 통과시키므로
   //   (그 자체는 옳다 — 근거 없이 버리면 안 되니까) 빈 질의로 부르면 아무 사진이나 1순위로 들어온다.
   //   실측: LLM 이 visual 을 비운 회차에서 벨라루스 등대 사진이 네 장면에 전부 깔렸다.
@@ -413,6 +455,24 @@ for (let i = 0; i < scenes.length; i++) {
     const got = pickFootageMany(preferRecent(relevant), 1, { terms, preferFree: true });
     if (got.length) { scenes[i].pick = got[0]; break; }
   }
+  // 첫 후보(헤드라인 고유명사)로 못 찾았으면 **LLM 의 visual** 로 한 번 더.
+  //   2026-09-04: 고유명사로 덮어쓰기만 했다가 전 장면이 카드가 됐다("중기부"는 아카이브에 없다).
+  //   덮지 않고 순서대로 시도한다 — 믿을 만한 것 먼저, 그다음이 4B 가 지어낸 어구.
+  if (!scenes[i].pick && termCandidates.length > 1) {
+    const alt = termCandidates[1];
+    if (alt.length >= 2 && !isBarePlace(alt)) {
+      let cands2 = [];
+      for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
+        try { cands2 = cands2.concat(await fn(alt, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
+      }
+      const koA = needsKoreaAnchor(alt);
+      const rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
+        && titleRelevant(c.title, alt) && (!koA || looksKorean(c.title)));
+      const p2 = pickFootageMany(preferRecent(rel2), 1, { terms: alt, preferFree: true });
+      if (p2.length) { scenes[i].pick = p2[0]; log(`[화면] ${i + 1} 고유명사 실패 → visual "${alt.join(' ')}" 로 찾음`); }
+    }
+  }
+
   // 영문 질의로 못 찾았으면 **한국어 개체명**으로 한 번 더. 그 사건에 제일 가까운 자료가
   //   한국어 제목으로 들어 있는 경우가 많다(실측: 용혜인 의원 영상 .webm).
   if (!scenes[i].pick) {
@@ -421,8 +481,7 @@ for (let i = 0; i < scenes.length; i++) {
     //         "수색"(수색 작업) → 적십자 구조견 사진, "구조" → 단백질 구조 그림.
     //   두 낱말이 함께여야 뜻이 좁혀진다("예인선 부산", "부산 해경").
     //   좁힐 낱말이 없으면 찾지 않는다 — 회색 카드가 엉뚱한 사진보다 낫다.
-    const koWords = koreanEntities(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 4 })
-      .filter((k) => hasDistinctiveTerm([k]));
+    const koWords = properNounsFrom(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 4 });
     const koPairs = [];
     // 단독으로 찾아도 되는 낱말이 먼저다 — 이름 하나가 짝보다 잘 맞는다.
     for (const k of koWords) if (canSearchAlone(k) && koPairs.length < 3) koPairs.push([k]);
@@ -458,11 +517,16 @@ for (let i = 0; i < scenes.length; i++) {
     // 2026-09-03 사용자 "마지막엔 영상 사진도 아예없네".
     //   못 찾았다고 바로 카드로 떨어뜨리지 않는다. 같은 편 안의 다른 장면 소재를 다시 쓴다 —
     //   같은 이슈를 다루는 편이라 맥락이 어긋나지 않고, 빈 카드보다 훨씬 낫다.
-    const donor = scenes.slice(0, i).reverse().find((x) => x.media && !x.isOutro);
+    // 2026-09-04: 재사용을 무제한으로 두니 **같은 사진이 네 장면에 그대로** 깔렸다(중기부 편 실측).
+    //   정지 화면이나 다름없다. 한 소재는 최대 두 장면까지만 쓰고, 그 뒤는 카드로 간다.
+    //   빈 카드보다 낫다는 판단은 '한 번 더'까지만 참이다.
+    const REUSE_MAX = Number(process.env.SHORTS_REUSE_MAX || 2);
+    const useCount = (m) => scenes.filter((x) => x.media === m).length;
+    const donor = scenes.slice(0, i).reverse().find((x) => x.media && !x.isOutro && useCount(x.media) < REUSE_MAX);
     if (donor) {
       scenes[i].media = donor.media;
       scenes[i].credit = donor.credit;
-      log(`[화면] ${i + 1} 소재 없음 — 앞 장면(${scenes.indexOf(donor) + 1}) 소재 재사용`);
+      log(`[화면] ${i + 1} 소재 없음 — 앞 장면(${scenes.indexOf(donor) + 1}) 소재 재사용 (${useCount(donor.media)}/${REUSE_MAX})`);
     } else {
       log(`[화면] ${i + 1} 소재 없음 — 카드로 간다`);
     }
