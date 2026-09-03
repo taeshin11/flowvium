@@ -35,6 +35,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
+import { searchGoogleImages, closeGoogleImages } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
 
 loadEnvLocal();
@@ -455,6 +456,27 @@ for (let i = 0; i < scenes.length; i++) {
     const got = pickFootageMany(preferRecent(relevant), 1, { terms, preferFree: true });
     if (got.length) { scenes[i].pick = got[0]; break; }
   }
+  // 2026-09-04: **구글 검색을 먼저 쓴다** — 한국어를 그대로 넣을 수 있어서다.
+  //   아카이브는 영어로 옮겨 찾아야 해서 충돌이 끊이지 않았다
+  //   (총리→2003년 고건 · 부산→해수욕장 · 전복→조개 · GAP→프랑스 도시).
+  //   구글은 "중기부" 를 넣으면 중기부 사진을 준다.
+  //   ⚠ 저작권: 여기 나오는 사진은 대개 언론사 것이다. 사용자 지시("출처만 적어")에 따르되
+  //     통신사 도메인은 riskyDomain 으로 표시해 크레딧 파일에 남긴다.
+  if (!scenes[i].pick && process.env.GOOGLE_CSE_CX) {
+    const koq = properNounsFrom(`${scenes[i].hook ?? ''} ${headlines.slice(0, 3).join(' ')}`, { max: 2 })
+      .filter((w) => /[가-힣]/.test(w));
+    if (koq.length) {
+      try {
+        const g = await searchGoogleImages(koq, { limit: 6 });
+        const fresh2 = g.filter((c) => !usedMedia.has(c.url));
+        if (fresh2.length) {
+          scenes[i].pick = fresh2[0];
+          log(`[화면] ${i + 1} 구글 "${koq.join(' ')}" → ${fresh2[0].source}${fresh2[0].riskyDomain ? ' ⚠통신사' : ''}`);
+        }
+      } catch (e) { log(`[화면] ${i + 1} 구글 검색 실패: ${String(e.message).slice(0, 40)}`); }
+    }
+  }
+
   // 첫 후보(헤드라인 고유명사)로 못 찾았으면 **LLM 의 visual** 로 한 번 더.
   //   2026-09-04: 고유명사로 덮어쓰기만 했다가 전 장면이 카드가 됐다("중기부"는 아카이브에 없다).
   //   덮지 않고 순서대로 시도한다 — 믿을 만한 것 먼저, 그다음이 4B 가 지어낸 어구.
@@ -532,6 +554,8 @@ for (let i = 0; i < scenes.length; i++) {
     }
   }
 }
+
+closeGoogleImages();
 
 // ── 5. 오버레이 (장면마다 훅·캡션이 다르다) ─────────────────────────────────────
 const browser = await chromium.launch();
