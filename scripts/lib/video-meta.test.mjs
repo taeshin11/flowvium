@@ -172,5 +172,31 @@ const M = await import('./video-meta.mjs');
   long.length > 46 ? ok(`장편은 종전대로 길게 (${long.length}자)`) : bad(`장편까지 짧아졌다: ${long.length}자`);
 }
 
+
+// ── 후원 계좌 (2026-09-03, 사용자 "기부해달라고 설명 좀 달아놔라") ─────────────
+// 계좌는 코드에 박지 않는다 — 유튜브에는 공개되지만 저장소 이력에 개인정보를 남길 이유가 없다.
+//   .env.local(gitignore 됨)의 DONATION_ACCOUNT 를 읽고, 없으면 그 줄 자체를 넣지 않는다.
+{
+  const heads = ['삼성전자 세계 1위 탈환', '코스피 3000 돌파'];
+
+  const saved = process.env.DONATION_ACCOUNT;
+  process.env.DONATION_ACCOUNT = '카카오뱅크 000-0000 홍길동';
+  const d = M.buildDescription(heads, true);
+  /카카오뱅크 000-0000 홍길동/.test(d) ? ok('후원 계좌가 설명란에 들어간다') : bad('계좌가 없다');
+  /후원|응원/.test(d) ? ok('무엇을 해달라는 건지 한 줄로 설명한다') : bad('계좌만 덩그러니 있다');
+
+  // 링크가 계좌 때문에 아래로 밀리면 안 된다 — 유입이 목적인 줄이 먼저다.
+  const lines = d.split('\n');
+  const acct = lines.findIndex((l) => l.includes('카카오뱅크'));
+  const heads0 = lines.findIndex((l) => l.includes('오늘 다룬 이슈'));
+  acct > heads0 ? ok(`계좌는 헤드라인 목록 뒤에 온다 (${acct + 1}번째 줄)`) : bad('계좌가 본문보다 앞에 있다');
+
+  // 계좌가 설정 안 된 환경(다른 기계·CI)에서 "undefined" 가 찍히면 안 된다.
+  delete process.env.DONATION_ACCOUNT;
+  const d2 = M.buildDescription(heads, true);
+  !/undefined|null|후원/.test(d2) ? ok('계좌가 없으면 그 줄 자체를 빼고, 빈 문구를 남기지 않는다') : bad(`빈 값이 새어 나온다: ${d2.slice(0, 80)}`);
+  if (saved !== undefined) process.env.DONATION_ACCOUNT = saved;
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

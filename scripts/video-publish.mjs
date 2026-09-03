@@ -13,6 +13,10 @@
  */
 import { spawnSync } from 'node:child_process';
 import { buildTitle, buildDescription, buildTags, orderForTitle } from './lib/video-meta.mjs';
+// 2026-09-03: .env.local 을 읽지 않고 있었다. 후원 계좌(DONATION_ACCOUNT)가 거기 있는데
+//   안 읽으면 설명란에서 그 줄이 **조용히 빠진 채** 발행된다. 조용한 누락이 제일 나쁘다.
+import { loadEnvLocal } from './lib/llm-config.mjs';
+loadEnvLocal();
 import { existsSync, statSync, readFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { ROOT } from './lib/project-root.mjs';
@@ -161,6 +165,12 @@ const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-uplo
 const tagWords = buildTags(top, last.keywords, isKoUpload);
 
 const desc = buildDescription(top, isKoUpload);
+// 넣기로 한 것이 빠졌으면 말한다. 설명란은 올린 뒤에 확인하기 번거롭다.
+if (!String(process.env.DONATION_ACCOUNT ?? '').trim()) {
+  log('⚠ DONATION_ACCOUNT 가 비어 있다 — 후원 안내가 빠진 채로 올라간다 (.env.local 확인)');
+} else if (!desc.includes(process.env.DONATION_ACCOUNT.trim())) {
+  log('⚠ 후원 계좌가 설명란에 들어가지 않았다 — video-meta 확인');
+}
 
 log(`제목: ${title}`);
 if (DRY) { log('--dry-run — 업로드하지 않는다'); process.exit(0); }

@@ -101,6 +101,37 @@ function clip(text, max) {
   return `${(sp >= Math.floor(max * 0.5) ? cut.slice(0, sp) : cut).trim()}…`;
 }
 
+
+/**
+ * 후원 계좌 줄 (2026-09-03, 사용자 "기부해달라고 설명 좀 달아놔라").
+ *
+ * 계좌는 코드에 박지 않고 .env.local 의 DONATION_ACCOUNT 에서 읽는다 —
+ *   유튜브 설명란에는 어차피 공개되지만, 저장소 이력에 개인정보를 남길 이유는 없다(.env.local 은 gitignore).
+ * 값이 없으면 **줄 자체를 넣지 않는다**. "후원: undefined" 가 공개로 나가면 안 된다.
+ *
+ * 위치는 헤드라인 목록 뒤다. 설명란 첫머리는 유입 링크 자리이고, 그걸 밀어내면 안 된다.
+ */
+function donationLines(isKo) {
+  const acct = String(process.env.DONATION_ACCOUNT ?? '').trim();
+  if (!acct) return [];
+  // 2026-09-03 사용자: "채널 유지를 위해서 부탁한다고 좀 애절하게".
+  //   다만 없는 사실은 쓰지 않는다 — "밤새 만든다" 같은 건 자동으로 도는 파이프라인이라 거짓이 된다.
+  //   사실인 것만 쓴다: 광고가 없고, 서버·데이터 비용이 들고, 그게 끊기면 채널이 멈춘다.
+  return isKo
+    ? ['',
+      '🙏 이 채널은 광고 하나 없이 운영됩니다.',
+      '매일 다섯 편을 만드는 데 서버비와 데이터 비용이 들어갑니다.',
+      '솔직히 혼자 감당하기가 버겁습니다. 커피 한 잔 값이라도 보태 주시면',
+      '이 채널을 멈추지 않고 계속 이어갈 수 있습니다. 간절히 부탁드립니다.',
+      acct,
+      '작은 후원 하나가 내일 영상을 만듭니다. 정말 감사합니다.']
+    : ['',
+      '🙏 This channel runs with no ads at all.',
+      'Server and data costs add up for five briefings a day.',
+      'Even the price of a coffee helps keep it going. Thank you sincerely.',
+      acct];
+}
+
 const DESC = {
   // 첫 줄은 **대표 헤드라인 하나**다. 종전엔 3개를 이어붙여 벽이 됐다(실측 eoP5ycHs92o).
   //   유튜브는 '더보기' 전에 두어 줄만 보여주므로 이 자리가 사실상 유일하게 읽히는 문장이고,
@@ -113,8 +144,9 @@ const DESC = {
     '',
     '한국과 미국의 정치·경제를 매일 정리합니다. 군더더기 없이, 과장 없이.',
     '매일 새 브리핑이 올라옵니다 — 구독해 두시면 놓치지 않습니다.',
+    ...donationLines(true),
     '',
-    '영상 소재: 공공 도메인 / CC0 / Pexels 라이선스.',
+    '영상 소재: 공공 도메인 / CC0 / 아카이브 라이선스.',
     '',
     tags,
   ].join('\n'),
@@ -126,8 +158,9 @@ const DESC = {
     '',
     'Daily US politics and economy, told straight — no filler, no hype.',
     'Subscribe for a new briefing every day.',
+    ...donationLines(false),
     '',
-    'Footage: public domain / CC0 / Pexels License.',
+    'Footage: public domain / CC0 / archive licenses.',
     '',
     tags,
   ].join('\n'),
