@@ -1537,9 +1537,17 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
   // 2026-06-04: 매도추천 나간 종목 = 보유 종료 → 해당 매수추천의 outcome 을 'sold' 로 마감.
   //   (이전엔 안 닫아서 still_holding 으로 남아 매 보고서 재-매도추천 + "매수했던 목록" 과다 누적)
   // 종목당 *모든* open 매수추천 (여러 보고서가 같은 ticker 매수추천 → 전부 닫아야 보유목록서 빠짐)
+  // 2026-09-04: **매도 시각보다 앞선 매수만** 마감한다.
+  //   종전에는 시각을 보지 않아, 매도추천 뒤에 새로 나온 매수추천까지 그 매도로 닫혔다.
+  //   실측 — 005380.KS 06-03 추천이 05-29 매도로 닫혀 청산이 추천보다 5.2일 앞섰다.
+  //   사지도 않은 것을 그 전에 판 기록이 되고, OHLC 구간이 음수라 Yahoo 가 HTTP 400 을 준다.
+  //   그 결과 손익이 영영 안 채워진다(실측 126건).
+  //   그리고 **하루는 지나야** 손익을 낼 수 있다 — 같은 날 마감은 거래일이 0이라 계산할 값이 없다.
+  //   그런 건은 닫지 않고 다음 회차로 넘긴다. 잘못 닫는 것보다 열어 두는 편이 낫다.
   const findAllOpenBuy = db.prepare(`
     SELECT r.id FROM recommendations r
     WHERE r.ticker = ? AND r.action = 'buy'
+      AND datetime(r.generated_at) <= datetime(?, '-1 day')
       AND r.id NOT IN (SELECT recommendation_id FROM recommendation_outcomes WHERE outcome IN ('sold','hit_target','stop_loss'))
   `);
   // 2026-06-05: 'sold' 마감에도 quality_score 배선(이전 누락 → 100% NULL 원인 中 하나).
@@ -1562,7 +1570,7 @@ export function saveSellRecommendations(reportId, generatedAt, sellRecs = []) {
       //   다만 '검증 전에는 손익을 주장하지 않는다': pnl 은 NULL 로 두고 미검증으로 표시한다.
       //   evaluate-recommendations 가 OHLC 로 체결을 확인한 뒤 건별 진입가로 채운다.
       try {
-        for (const open of findAllOpenBuy.all(c.ticker)) {
+        for (const open of findAllOpenBuy.all(c.ticker, generatedAt)) {
           closeOutcome.run(open.id, generatedAt, parseAmount(c.currentPrice), null, null,
             JSON.stringify({
               closedBy: 'sell-recommendation', reportId,
