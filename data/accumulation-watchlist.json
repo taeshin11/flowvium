@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-02T22:20:36.403Z",
+  "generatedAt": "2026-09-03T07:20:23.819Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 5,
@@ -7,41 +7,6 @@
   "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "054780.KQ",
-      "name": "키이스트",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 4.8× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 10.6,
-      "runup5dPct": 9.8,
-      "medDollarVolUsd": 30795,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "056190.KQ",
-      "name": "에스에프에이",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 11.1,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 1711462,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "100120.KQ",
       "name": "뷰웍스",
@@ -54,9 +19,27 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 5.3,
-      "runup5dPct": -1.7,
-      "medDollarVolUsd": 445735,
+      "runup20dPct": 2.5,
+      "runup5dPct": -1.5,
+      "medDollarVolUsd": 414479,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "038460.KQ",
+      "name": "바이오스마트",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -7.7,
+      "runup5dPct": -2.8,
+      "medDollarVolUsd": 267658,
       "smartAccum": true,
       "official": null
     },
@@ -72,33 +55,47 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -10,
-      "runup5dPct": -2,
-      "medDollarVolUsd": 4633832,
+      "runup20dPct": -13.5,
+      "runup5dPct": -7.6,
+      "medDollarVolUsd": 4520107,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "030530.KQ",
-      "name": "원익홀딩스",
+      "ticker": "056190.KQ",
+      "name": "에스에프에이",
       "tier": "watch",
-      "score": 26,
+      "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.9× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -14.5,
-      "runup5dPct": -9.4,
-      "medDollarVolUsd": 9661012,
+      "runup20dPct": 9.9,
+      "runup5dPct": -1.6,
+      "medDollarVolUsd": 1656562,
       "smartAccum": true,
-      "official": {
-        "category": "warning",
-        "reason": null,
-        "fewAccount": false,
-        "designatedDate": "2026-08-10"
-      }
+      "official": null
+    },
+    {
+      "ticker": "358570.KQ",
+      "name": "지아이이노베이션",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -7,
+      "runup5dPct": -5,
+      "medDollarVolUsd": 2897878,
+      "smartAccum": true,
+      "official": null
     }
   ]
 }
