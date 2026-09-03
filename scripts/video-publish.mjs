@@ -58,9 +58,24 @@ const run = (args, label) => {
   const cores = cpus().length || 8;
   const load1 = loadavg()[0];
   const limit = Number(arg('--max-load', String(cores * 0.9)));
+  // 2026-09-03: 종전엔 여기서 그냥 나갔다. 실측 결과 **건너뛴 11회가 전부 이 사유**였고,
+  //   그래서 하루 5편 예약이 실제로는 절반만 나갔다(사용자 "하루에 5번 올라가는 거 맞지?").
+  //   렌더는 1.5분인데 다음 슬롯은 몇 시간 뒤다 — 포기할 게 아니라 **기다리는 게 맞다**.
+  //   보고서는 30~60분이면 끝난다. 그 안에 비면 그 회차를 살린다.
+  const WAIT_MAX_MS = Number(process.env.VIDEO_GPU_WAIT_MIN || 75) * 60_000;
   if (!skipGuard && busy) {
-    log(`건너뜀 — 보고서 파이프라인이 도는 중이다(단일 GPU 경합). --force 로 무시할 수 있다.`);
-    process.exit(0);
+    log(`보고서 파이프라인이 도는 중 — 최대 ${Math.round(WAIT_MAX_MS / 60000)}분 기다린다(단일 GPU 경합).`);
+    const until = Date.now() + WAIT_MAX_MS;
+    let free = false;
+    while (Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 120_000));
+      if (!(await isReportPipelineRunning().catch(() => false))) { free = true; break; }
+    }
+    if (!free) {
+      log(`건너뜀 — ${Math.round(WAIT_MAX_MS / 60000)}분을 기다렸는데도 보고서가 안 끝났다. 다음 슬롯에 맡긴다.`);
+      process.exit(0);
+    }
+    log(`보고서 종료 확인 — ${Math.round((WAIT_MAX_MS - (until - Date.now())) / 60000)}분 대기 후 진행한다.`);
   }
   if (!skipGuard && load1 > limit) {
     log(`건너뜀 — 부하 ${load1.toFixed(1)} > 한계 ${limit.toFixed(1)} (코어 ${cores}). --force 로 무시할 수 있다.`);
