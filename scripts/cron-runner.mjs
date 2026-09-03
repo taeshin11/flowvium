@@ -248,6 +248,23 @@ async function runMonitor() {
     result.checks.zombieReap = `실패(${String(e?.message ?? '').slice(0, 40)})`;
   }
 
+  // 2026-09-03 디스크 정리 (사용자 "이미 만들어서 올린 것들은 … 다 정리해서 용량 확보도 해야 되고").
+  //   중간물은 손대지 않으면 계속 쌓인다 — 실측으로 playwright 잔재만 550MB, 검증 스크린샷 3일치 초과
+  //   529개 115MB 였다. 완성 영상(--keep-videos)은 건드리지 않는다: 유튜브에서 내린 편은
+  //   로컬 사본이 유일본이라 사람이 정할 일이다. 롱폼 자산(anchor·brand·broll·cards)도 보존한다.
+  //   하루 한 번이면 충분하다 — 20분마다 디스크를 훑을 이유가 없다.
+  const DISK_REAP_MS = 24 * 60 * 60 * 1000;
+  if (Date.now() - (_lastRun.diskReap ?? 0) > DISK_REAP_MS) {
+    try {
+      const { stdout } = await execFileAsync('node', ['scripts/reap-disk.mjs', '--keep-videos', '--confirm'], { timeout: 180000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 });
+      const m = stdout.match(/✅ ([\d.]+)GB 회수/);
+      if (m && Number(m[1]) > 0.01) { result.checks.diskReap = `${m[1]}GB 회수`; log(`[reap-disk] ${m[1]}GB 회수`); }
+    } catch (e) {
+      result.checks.diskReap = `실패(${String(e?.message ?? '').slice(0, 40)})`;
+    }
+    recordRun('diskReap');
+  }
+
   // 2026-06-12 GPU 열 감시 (사용자 "GPU 96%/82°C — 컴퓨터 꺼지지 않게 조치 철저히"; 6/7 hard
   //   freeze 기여 의심): 83°C+ 결함 표면화, 87°C+ 이고 보고서 파이프라인이 아니면 ollama 모델
   //   강제 언로드(load shed). 웹측 semaphore(llm-local)와 이중 방어.
