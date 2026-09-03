@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -66,9 +66,18 @@ const log = (...a) => console.log(' ', ...a);
 
 // ── 1. 소재가 될 이슈 하나 ──────────────────────────────────────────────────────
 // 쇼츠는 한 편에 한 주제다. 여러 이슈를 담으면 45초 안에 아무것도 전달 못 한다.
-const SRC = ['연합뉴스 정치', '연합뉴스 사회', '연합뉴스 국제', '연합뉴스 경제',
-  '한국경제 정치', '한국경제 사회', '한국경제', '머니투데이',
-  'Yahoo Finance', 'MarketWatch', 'CBS 톱뉴스', 'Politico 정치'];
+// 2026-09-03 사용자: "주제를 정치랑 경제만 하자."
+//   사회면(연합뉴스 사회 528건)이 사고·재난·사건의 출처였다. 그쪽은 소재도 없고
+//   (정부가 사고 현장을 공공누리로 풀지 않는다) 톤도 위험하다 —
+//   실종자 6명 기사에 해동용궁사 관광 사진이 붙는 일이 실제로 났다.
+//   정치·경제는 인물·기관 사진이 공공누리에 있어 소재가 맞는다.
+//   스포츠·연예도 뺀다(원래 안 쓰고 있었지만 명시해 둔다).
+const SRC = ['연합뉴스 정치', '연합뉴스 경제', '연합뉴스 국제',
+  '한국경제 정치', '한국경제', '머니투데이',
+  'Yahoo Finance', 'MarketWatch', 'SCMP Business',
+  'Politico 정치', 'NPR 정치'];
+// Seeking Alpha(407건/일)는 뺐다 — 양이 한국 기사를 압도하는데 클러스터가
+//   "stocks"·"investors"·"tech" 같은 흔한 말로 뭉쳐 소재가 0건이었다. 한국어 채널에 신호가 안 된다.
 const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
 const rows = db.prepare(
   `SELECT source, headline, summary, link FROM news_archive
@@ -118,18 +127,37 @@ if (!fresh.length) {
 const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 12);
 async function footageScore(it) {
   // 헤드라인의 영문 고유명사 = 아카이브에서 찾을 수 있는 이름. 한글만 있는 이슈는 애초에 자료가 없다.
-  const text = String((it.headlines ?? []).join(' '));
+  // 2026-09-03: 클러스터의 **모든** 헤드라인에서 개체명을 뽑고 있었다.
+  //   실측: "etf" 이슈에서 "국힘"(정당)으로 6건이 잡혀 "소재 있음"이 됐는데,
+  //   정작 영상 주제는 Healthcare ETF 비교였다 — 전혀 다른 기사의 소재를 세고 있었다.
+  //   영상이 다루는 것은 대표 헤드라인 몇 개다. 그것만으로 센다.
+  const text = String((it.headlines ?? []).slice(0, 3).join(' '));
   // 한국 뉴스는 영문 고유명사가 거의 없다. 한국어 개체명으로 찾는 게 본선이고 영문은 보조다.
   //   실측: 아카이브가 "홈플러스 스페셜 대구점.jpg"·"…용혜인 기본소득당 대표 예방.webm" 을 들고 있다.
-  const ko = koreanEntities(text, { max: 2 });
+  // 2026-09-03: 탐색기가 **낱말 하나**로 세고 있었다. 장면 검색은 두 낱말을 요구하는데
+  //   여기만 규칙이 달라, "부산" 하나로 관광 사진 8건을 세고 "소재 있음"으로 판정했다.
+  //   그래서 실종자 6명 기사가 편성됐고, 정작 화면에는 해동용궁사 앞바다 사진이 세 장면에 깔렸다.
+  //   **재는 잣대와 쓰는 잣대가 다르면 재는 의미가 없다.** 장면 검색과 같은 규칙으로 센다.
+  const ko = koreanEntities(text, { max: 4 }).filter((k) => hasDistinctiveTerm([k]));
+  const queries = [];
+  for (let x = 0; x < ko.length && queries.length < 4; x++) {
+    for (let y = x + 1; y < ko.length && queries.length < 4; y++) queries.push([ko[x], ko[y]]);
+  }
   const en = [...new Set((text.match(/[A-Z][A-Za-z]{2,}/g) ?? []))].slice(0, 3);
-  const queries = [...ko.map((k) => [k]), ...(en.length && hasDistinctiveTerm(en) ? [en] : [])];
-  if (!queries.length) return { n: 0, terms: [] };
-  let best = { n: 0, terms: queries[0] };
-  for (const q of queries) {
+  if (en.length >= 2 && hasDistinctiveTerm(en)) queries.push(en);
+  // 단독으로 찾아도 되는 낱말(사람 이름·회사·기관 고유명)은 단독 질의를 **앞에** 둔다.
+  //   짝만 요구하면 "용혜인 의원직" 같은 조합이 되어 아무것도 안 걸린다(실측 0건).
+  const solo = ko.filter((k) => canSearchAlone(k)).map((k) => [k]);
+  const usable = [...solo, ...queries.filter((q) => q.length >= 2 && !isBarePlace(q))];
+  if (!usable.length) return { n: 0, terms: [] };
+  let best = { n: 0, terms: usable[0] };
+  for (const q of usable) {
     try {
-      const r = await searchCommons(q, { limit: 8 });
-      const n = (r ?? []).filter((c) => isRealFootage(c) && titleRelevant(c.title, q)).length;
+      let r = [];
+      for (const fn of [searchKoglCommons, searchCommons]) {
+        try { r = r.concat(await fn(q, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
+      }
+      const n = r.filter((c) => isRealFootage(c) && titleRelevant(c.title, q)).length;
       if (n > best.n) best = { n, terms: q };
       if (best.n >= 2) break;
     } catch { /* 한 질의가 죽어도 나머지로 */ }
@@ -372,7 +400,7 @@ for (let i = 0; i < scenes.length; i++) {
     //   isRealFootage: 문장·도표·국기·로고는 현장이 아니다(실측으로 기재부 '문장 svg'가 뽑혔다).
     // 기관을 가리키는 질의면 결과가 한국 것이어야 한다 — 안 그러면 온타리오 농무부·탄자니아 국회가 붙는다.
     // 한 낱말짜리 질의는 뜻이 너무 넓다 — 지명이면 관광 사진, 보통명사면 동음이의어가 온다.
-    if (terms.length < 2 || isBarePlace(terms)) {
+    if ((terms.length < 2 && !canSearchAlone(terms[0])) || isBarePlace(terms)) {
       log(`[화면] ${i + 1} "${terms.join(' ')}" 는 낱말이 하나 — 검색 생략(뜻이 너무 넓다)`);
       break;
     }
@@ -396,8 +424,10 @@ for (let i = 0; i < scenes.length; i++) {
     const koWords = koreanEntities(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 4 })
       .filter((k) => hasDistinctiveTerm([k]));
     const koPairs = [];
-    for (let x = 0; x < koWords.length && koPairs.length < 3; x++) {
-      for (let y = x + 1; y < koWords.length && koPairs.length < 3; y++) koPairs.push([koWords[x], koWords[y]]);
+    // 단독으로 찾아도 되는 낱말이 먼저다 — 이름 하나가 짝보다 잘 맞는다.
+    for (const k of koWords) if (canSearchAlone(k) && koPairs.length < 3) koPairs.push([k]);
+    for (let x = 0; x < koWords.length && koPairs.length < 5; x++) {
+      for (let y = x + 1; y < koWords.length && koPairs.length < 5; y++) koPairs.push([koWords[x], koWords[y]]);
     }
     for (const pair of koPairs) {
       const kw = pair.join(' ');

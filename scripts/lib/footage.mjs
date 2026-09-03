@@ -670,7 +670,9 @@ export function isRealFootage(c) {
   const t = String(c?.title ?? '').toLowerCase();
   if (/\.(svg|pdf|tif|tiff)(\?|$)/.test(u)) return false;
   // 실측으로 걸린 것들: "Emblem of the Ministry…", "Tanzanian National Assembly chart.svg"
-  if (/\b(emblem|logo|coat of arms|seal|flag|chart|diagram|map|icon|symbol)\b/.test(t)) return false;
+  // 복수형을 빠뜨려 "Charts of fishing industry in Taiwan 1930s" 가 통과했다(실측 2026-09-03).
+  //   도표·지도·문장은 단수만 막아도 소용없다.
+  if (/\b(emblems?|logos?|coats? of arms|seals?|flags?|charts?|graphs?|diagrams?|maps?|icons?|symbols?|posters?|infographics?)\b/.test(t)) return false;
   // 전직 인물 사진은 지금 뉴스가 아니다. 실측: "총리" 검색에 '이완구 전 총리'가 걸렸다.
   //   '전/前/former' 는 그 자체로 "지금 그 자리에 없다"는 뜻이라 현재 기사에 붙이면 틀린 그림이 된다.
   //   '전' 은 흔한 글자라 **직책 앞에 붙었을 때만** 본다("전 총리", "전 대통령").
@@ -681,6 +683,10 @@ export function isRealFootage(c) {
   //   "Busan Sea Festival" 무대와 관객 사진이 붙었다. 그 도시가 맞아도 그 사건이 아니고,
   //   사망·실종 기사에 축제 사진을 붙이는 건 틀린 정도가 아니라 무례하다.
   if (/\b(festival|concert|parade|carnival|fireworks)\b/i.test(t)) return false;
+  // 명명권 건물은 그 기업이 아니다. 실측: "Invesco" 로 찾으니 "Invesco Field at Mile High"
+  //   (미식축구 경기장)가 왔다. 이름만 같고 기사와는 무관하다.
+  if (/\b(field|stadium|arena|ballpark|colise?um|dome)\s+(at|of|in)\b/i.test(t)) return false;
+  if (/\b(stadium|arena|ballpark|colise?um)\b/i.test(t)) return false;
   if (/(축제|불꽃놀이|콘서트|공연장)/.test(t)) return false;
   return true;
 }
@@ -796,4 +802,34 @@ const PLACE_ALONE = new Set([
 export function isBarePlace(terms) {
   const t = (terms ?? []).map((x) => String(x).toLowerCase().trim()).filter(Boolean);
   return t.length === 1 && PLACE_ALONE.has(t[0]);
+}
+
+
+/**
+ * 이 낱말 하나만으로 찾아도 되는가.
+ *
+ * 2026-09-03: 처음엔 "낱말 하나면 무조건 안 된다"로 막았다가 지나쳤다.
+ *   사람 이름은 하나로 충분하다 — "용혜인" → 본인 초상 사진(공공누리)이 나온다.
+ *   반대로 두 낱말을 요구하면 "용혜인 의원직" 같은 조합이 되어 **아무것도 안 걸린다**(실측 0건).
+ *
+ * 하나로 찾으면 안 되는 것은 따로 있다:
+ *   · 직책·범용어 (GENERIC_TERM)      "총리" → 2003년 고건
+ *   · 지명 (PLACE_ALONE)              "부산" → 해수욕장·해동용궁사 관광 사진
+ *   · 여러 뜻을 가진 사건 낱말 (아래)   "전복" → 횟집의 전복·해삼
+ *                                     "수색" → 적십자 구조견
+ *                                     "구조" → 단백질 구조 그림
+ * 이 셋만 짝을 요구하고, 나머지(이름·회사·기관 고유명)는 하나로도 찾는다.
+ */
+const BROAD_EVENT_WORD = new Set([
+  '전복', '수색', '구조', '사고', '화재', '침몰', '실종', '부상', '사망', '피해', '현장',
+  '이전', '감축', '개편', '인상', '인하', '확대', '축소', '연기', '중단', '재개',
+]);
+
+export function canSearchAlone(term) {
+  const t = String(term ?? '').trim();
+  if (!t) return false;
+  if (!hasDistinctiveTerm([t])) return false;     // 직책·범용어
+  if (isBarePlace([t])) return false;             // 지명
+  if (BROAD_EVENT_WORD.has(t)) return false;      // 뜻이 여럿인 사건 낱말
+  return true;
 }

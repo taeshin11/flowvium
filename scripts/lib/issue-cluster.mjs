@@ -18,6 +18,12 @@ const STOP = new Set([
   'be','been','has','have','had','will','would','can','could','say','says','said','new','more','after','before',
   'over','into','about','out','up','down','how','why','what','when','who','his','her','their','its','this','that',
   'not','no','all','one','two','last','first','than','then','also','may','might','just','now','still','back',
+  // 2026-09-03 정치·경제 소스로 좁히며 드러남: 영어 기사가 흔한 말로 뭉친다.
+  //   실측 키워드 — "these"·"stocks"·"tech"·"investors"·"stock" 이 이슈가 됐고 전부 소재 0건이었다.
+  //   주제가 아니라 그 바닥 어디에나 나오는 말이다.
+  'these','those','stock','stocks','share','shares','market','markets','investor','investors',
+  'tech','company','companies','business','report','reports','news','week','year','years','day',
+  'here','there','why','how','what','who','when','where','best','top','more','most','many','some',
   '것','수','등','및','대한','위해','통해','관련','이번','올해','지난','오늘','내일','기자','뉴스','속보','단독',
   // 2026-09-03: 중복 방지를 넣고 1위를 걸렀더니 2위가 keyword "2026" 이었고, 묶인 기사가
   //   "How much will a $100,000 annuity pay each month in 2026?" 였다. 아무 주제도 아니다.
