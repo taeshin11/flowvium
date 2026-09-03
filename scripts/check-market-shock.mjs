@@ -52,7 +52,17 @@ async function yahooQuote(sym) {
       const j = await (await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`, { headers: UA, signal: AbortSignal.timeout(8000) })).json();
       const m = j?.chart?.result?.[0]?.meta;
       if (m?.regularMarketPrice != null && m?.chartPreviousClose != null) {
-        return { price: m.regularMarketPrice, prevClose: m.chartPreviousClose, chgPct: (m.regularMarketPrice / m.chartPreviousClose - 1) * 100 };
+        // 2026-09-03: 시세가 **언제 것인지**를 같이 돌려준다.
+        //   장이 닫혀 있으면 야후는 마지막 종가를 준다. 그걸 "당일 등락"으로 읽으면
+        //   이미 지나간 하락에 쇼크가 다시 걸린다 —
+        //   실측: 09-03 07:20 KST(한국 장 개장 전)에 09-02 의 -4.0% 를 "KOSPI 당일 -3.8%" 로 보고
+        //   비정기 보고서를 돌렸다. 그날 저녁·심야 보고서가 이미 다룬 하락이었고, GPU 2시간 8분을 썼다.
+        const at = Number(m.regularMarketTime ?? 0) * 1000;
+        return {
+          price: m.regularMarketPrice, prevClose: m.chartPreviousClose,
+          chgPct: (m.regularMarketPrice / m.chartPreviousClose - 1) * 100,
+          at, ageH: at ? (Date.now() - at) / 3600000 : Infinity,
+        };
       }
     } catch { /* 다음 host */ }
   }
@@ -83,15 +93,22 @@ try {
 
 // [B] VIX 인트라데이 급변 (미국 장중)
 const vix = await yahooQuote('^VIX');
-if (vix) {
+if (vix && !(vix.ageH <= Number(process.env.SHOCK_QUOTE_MAX_AGE_H || 4))) {
+  signals.push(`(VIX 시세가 ${vix.ageH.toFixed(1)}시간 전 것 — 인트라데이로 안 셈)`);
+} else if (vix) {
   if (vix.chgPct >= 20) add(4, `VIX 인트라데이 +${vix.chgPct.toFixed(0)}% (${vix.prevClose.toFixed(1)}→${vix.price.toFixed(1)})`);
   else if (vix.chgPct >= 12) add(2, `VIX +${vix.chgPct.toFixed(0)}% 급등 중`);
 }
 
 // [C] KOSPI / 원화 (한국 장중)
+// 시세가 오래된 것이면 쓰지 않는다. 지수의 '당일 등락'은 장이 열려 있을 때만 뜻이 있다.
+//   장 마감 직후(몇 시간)까지는 유효하다고 본다 — 그 뒤로는 이미 다른 보고서가 다뤘다.
+const FRESH_H = Number(process.env.SHOCK_QUOTE_MAX_AGE_H || 4);
+const fresh = (q) => q && q.ageH <= FRESH_H;
 const ks = await yahooQuote('^KS11');
-if (ks && ks.chgPct <= -3) add(3, `KOSPI 당일 ${ks.chgPct.toFixed(1)}%`);
-else if (ks && ks.chgPct <= -2) add(1, `KOSPI ${ks.chgPct.toFixed(1)}%`);
+if (ks && !fresh(ks)) signals.push(`(KOSPI 시세가 ${ks.ageH.toFixed(1)}시간 전 것 — 당일 등락으로 안 셈)`);
+if (fresh(ks) && ks.chgPct <= -3) add(3, `KOSPI 당일 ${ks.chgPct.toFixed(1)}%`);
+else if (fresh(ks) && ks.chgPct <= -2) add(1, `KOSPI ${ks.chgPct.toFixed(1)}%`);
 const krw = await yahooQuote('KRW=X');
 if (krw && Math.abs(krw.chgPct) >= 1.5) add(2, `USD/KRW 당일 ${krw.chgPct > 0 ? '+' : ''}${krw.chgPct.toFixed(1)}% 급변`);
 

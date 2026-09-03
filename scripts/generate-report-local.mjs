@@ -72,7 +72,8 @@ import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers } from './lib/db.mjs';
+import { filterConflicts } from './lib/buy-sell-conflict.mjs';
 
 // 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
 //   DB 적재 블록에서 saveShadowHits 로 저장(모듈 상태, 프로세스당 1회 실행이라 안전).
@@ -6739,6 +6740,29 @@ function postProcessPortfolio(portfolio) {
     }
   }
   items = Array.from(dedupMap.values());
+
+  // 2026-09-03 5번째 안전망: **매도 엔진이 긴급 경고한 종목은 사지 않는다.**
+  //   사용자 지적("하우멧 폭락했는데 매수엔진 결함 아니냐")으로 조사한 결과,
+  //   매도는 08-22 에 "50MA 이탈·RSI 36·손절선 접근"으로 제대로 경고했는데
+  //   매수가 08-24·25·31·09-01(×3) 에 같은 종목을 계속 냈다. 같은 보고서가 서로 반대를 말한 셈이다.
+  //   전수: 매도 7일 이내 재매수 766건, 그중 긴급도 high 직후가 324건 — 구조적 결함이다.
+  //   차익 실현(medium, "목표가 도달")까지 막으면 잘 오른 종목을 영영 못 사므로 high 만 막고
+  //   medium 은 경고를 달아 드러낸다.
+  try {
+    const sellMap = recentSellTickers(Number(process.env.BUY_SELL_CONFLICT_DAYS || 7));
+    if (sellMap.size) {
+      const { kept, blocked, flagged } = filterConflicts(items, sellMap);
+      for (const b of blocked) {
+        console.log(`  [매수차단] ${b.ticker} — ${b.at?.slice(0, 10)} 긴급 매도 경고: ${String(b.rationale).slice(0, 60)}`);
+      }
+      for (const f of flagged) console.log(`  [매수주의] ${f.ticker} — ${f.at?.slice(0, 10)} 매도 경고(${f.urgency}) 있음, 경고 표시하고 유지`);
+      // 전부 걸러지면 포트폴리오가 비어 보고서가 망가진다. 그럴 땐 막지 않고 경고만 남긴다.
+      if (kept.length) items = kept;
+      else console.log('  [매수차단] 전 종목이 걸려 차단을 건너뛴다 — 경고만 남긴다');
+    }
+  } catch (e) {
+    console.log(`  [매수차단] 건너뜀(${String(e?.message).slice(0, 60)}) — 차단 실패가 보고서를 막지는 않는다`);
+  }
 
   const total = items.reduce((s, p) => s + (p.allocation ?? 0), 0);
   if (total > 0 && Math.abs(total - 100) > 2) {

@@ -1881,3 +1881,31 @@ export function shortsPublishedCount() {
   const db = openDb();
   return db.prepare('SELECT COUNT(*) AS n FROM shorts_published').get()?.n ?? 0;
 }
+
+// ── 매수·매도 엔진 모순 차단 (2026-09-03) ───────────────────────────────────────
+// 사용자: "너가 추천했던 하우멧 에어로스페이스 폭락했는데 매수엔진의 결함아니냐?"
+//
+// 실측한 것: 매도 엔진은 제대로 경고했다.
+//   HWM 08-22 매도 high — "50MA 이탈, RSI 36 약세 전환, 손절선 접근" (당시 273달러)
+//   그 뒤 8/31 244.95 까지 하락. **경고는 맞았다.**
+//   그런데 매수 엔진이 08-24, 08-25, 08-31, 09-01(×3) 에 같은 종목을 계속 샀다.
+//   같은 보고서가 "긴급 매도"와 "확신 high 매수"를 동시에 말한 셈이다.
+//
+// 전수 조사: 매도 추천 7일 안에 같은 종목을 다시 매수 추천한 것이 **766건**,
+//   그중 **324건이 긴급도 high 매도 직후**였다(매도 추천 총 517건 대비).
+//   한두 번의 사고가 아니라 두 엔진이 서로를 안 보는 구조적 결함이다.
+
+/** 최근 `days` 일 안에 매도 추천이 나온 종목 → { ticker: {urgency, at, rationale} } */
+export function recentSellTickers(days = 7) {
+  const db = openDb();
+  const rows = db.prepare(
+    `SELECT ticker, urgency, generated_at, rationale FROM sell_recommendations
+      WHERE julianday('now') - julianday(generated_at) <= ?
+      ORDER BY generated_at DESC`).all(Number(days));
+  const out = new Map();
+  for (const r of rows) {
+    // 같은 종목이 여러 번이면 가장 최근 것 하나만 본다(rows 가 최신순이므로 첫 것).
+    if (!out.has(r.ticker)) out.set(r.ticker, { urgency: r.urgency, at: r.generated_at, rationale: r.rationale });
+  }
+  return out;
+}
