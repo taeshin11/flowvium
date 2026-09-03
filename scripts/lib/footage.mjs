@@ -437,7 +437,11 @@ const j = async (url, headers = {}) => {
 /** Openverse — 키 불필요. license_type=commercial 로 서버에서 1차로 거른다. */
 export async function searchOpenverse(terms, { limit = 8 } = {}) {
   const q = encodeURIComponent(terms.join(' '));
-  const d = await j(`https://api.openverse.org/v1/images/?q=${q}&page_size=${limit}&license=cc0,pdm,by,by-sa&size=large&aspect_ratio=wide&mature=false`);
+  // 2026-09-03: aspect_ratio=wide 를 걸고 있었다. 가로 편(1920×1080) 시절의 조건인데
+  //   쇼츠는 소재를 레터박스로 앉히므로 세로·정사각 사진도 그대로 쓸 수 있다.
+  //   인물 사진은 세로가 많아 이 조건 하나로 상당수를 버리고 있었다.
+  //   size=large 도 뺀다 — 소재 영역이 1080×760 이라 초대형이 필요하지 않고, 뉴스 사진은 대개 중간 크기다.
+  const d = await j(`https://api.openverse.org/v1/images/?q=${q}&page_size=${limit}&license=cc0,pdm,by,by-sa&mature=false`);
   return (d?.results ?? []).map((r, i) => ({
     kind: 'image', rank: i, url: r.url, width: r.width, height: r.height,
     license: [r.license, r.license_version].filter(Boolean).join(' '),
