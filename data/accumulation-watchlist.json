@@ -1,48 +1,12 @@
 {
-  "generatedAt": "2026-09-03T07:20:23.819Z",
+  "generatedAt": "2026-09-03T22:20:22.864Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 5,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 5,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "100120.KQ",
-      "name": "뷰웍스",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 2.5,
-      "runup5dPct": -1.5,
-      "medDollarVolUsd": 414479,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "038460.KQ",
-      "name": "바이오스마트",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -7.7,
-      "runup5dPct": -2.8,
-      "medDollarVolUsd": 267658,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "189300.KQ",
       "name": "인텔리안테크",
@@ -80,20 +44,19 @@
       "official": null
     },
     {
-      "ticker": "358570.KQ",
-      "name": "지아이이노베이션",
+      "ticker": "056730.KQ",
+      "name": "CNT85",
       "tier": "watch",
-      "score": 34,
+      "score": 26,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "거래량 추세 1.6× 상승",
+        "거래량 3.7× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -7,
-      "runup5dPct": -5,
-      "medDollarVolUsd": 2897878,
+      "runup20dPct": -5.3,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 7776,
       "smartAccum": true,
       "official": null
     }
