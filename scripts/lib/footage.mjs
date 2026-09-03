@@ -604,7 +604,12 @@ const GENERIC_TERM = new Set([
 /** 검색어에 구별되는 말이 하나라도 있는가. 없으면 검색해도 엉뚱한 나라가 잡힌다. */
 export function hasDistinctiveTerm(terms) {
   return (terms ?? []).some((t) => {
-    const w = String(t).toLowerCase();
+    const raw = String(t);
+    const w = raw.toLowerCase();
+    // 2026-09-03: 짧다고 무조건 버리면 안 된다. LH·SK·KT·GS 는 두 글자지만 특정 기관이다.
+    //   실측: "LH Corporation" 이 통째로 막혀 공공기관 편의 네 장면이 전부 빈 카드가 됐다.
+    //   대문자 약칭은 그 자체로 고유명사다.
+    if (/^[A-Z]{2,}$/.test(raw) && !GENERIC_TERM.has(w)) return true;
     if (w.length < 3) return false;
     if (GENERIC_TERM.has(w)) return false;
     return true;
@@ -691,4 +696,28 @@ export function preferRecent(cands, { now = new Date().getFullYear() } = {}) {
       return a.i - b.i;               // 같으면 원래 적합도 순서 유지
     })
     .map((x) => x.c);
+}
+
+/**
+ * 한국 기사에 다른 나라 기관 사진이 붙는 것을 막는다.
+ *
+ * 2026-09-03 실측으로 반복해서 걸린 것들:
+ *   "National Assembly"        → 탄자니아·방글라데시·파키스탄·남아공 국회
+ *   "Ministry Agriculture Food"→ 온타리오·이스라엘 농무부, 「Ministry of Food, Agriculture
+ *                                 and Light Industry」(다른 나라 부처)
+ * 나라 이름 목록을 만드는 방법은 끝이 없고 새 나라마다 샌다.
+ * 규칙으로 잡는다 — **기관을 가리키는 질의**라면 결과 제목에 한국을 가리키는 말이 있어야 한다.
+ * 기관이 아닌 질의(사람 이름·회사·지명)에는 걸지 않는다. 그쪽은 이름 자체가 특정해 준다.
+ */
+const INSTITUTION_WORD = /\b(ministry|assembly|parliament|congress|government|agency|commission|authority|bureau|department|court|council|administration)\b/i;
+const KOREA_MARK = /(korea|korean|republic of korea|rok|seoul|busan|incheon|daegu|daejeon|gwangju|ulsan|sejong|gyeong|jeon|chungc|gangwon|jeju|한국|대한민국|서울|부산|인천|대구|대전|광주|울산|세종)/i;
+
+/** 질의가 기관을 가리키는가 — 그렇다면 결과에 한국 표시를 요구한다. */
+export function needsKoreaAnchor(terms) {
+  return (terms ?? []).some((t) => INSTITUTION_WORD.test(String(t)));
+}
+
+/** 기관 질의일 때, 결과 제목이 한국을 가리키는가. */
+export function looksKorean(title) {
+  return KOREA_MARK.test(String(title ?? ''));
 }

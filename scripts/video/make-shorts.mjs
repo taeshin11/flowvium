@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent, needsKoreaAnchor, looksKorean } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -89,7 +89,11 @@ if (!issues.length) { console.error('❌ 이슈를 못 묶었다'); process.exit
 //   2026-09-03 실측: 07:38 / 09:42 / 10:02 세 편이 전부 같은 헤드라인이었다. 24시간 기사 풀은
 //   몇 시간 사이에 거의 안 바뀌므로 issues[0] 은 하루 종일 같은 것을 가리킨다.
 //   사용자 요구는 "하루 5편이면 그날 큰 뉴스 5개" 이고, 중복 쇼츠는 노출도 눌린다.
-const already = recentShortsIssues(Number(process.env.SHORTS_DEDUP_HOURS || 24));
+// --issue=<키워드> 로 특정 이슈를 다시 만들 수 있다. 잘못 나간 편을 같은 주제로 다시 낼 때 쓴다
+//   (2026-09-03: 직책 검색 때문에 옛날 총리 사진이 붙은 편을 다시 만들어야 했다).
+//   이때는 편성 대장을 보지 않는다 — 이미 다룬 이슈를 **일부러** 고르는 것이기 때문이다.
+const FORCE_ISSUE = arg('issue', '');
+const already = FORCE_ISSUE ? new Set() : recentShortsIssues(Number(process.env.SHORTS_DEDUP_HOURS || 24));
 const fresh = issues.filter((it) => !already.has(normalizeIssueKey(it.keyword)));
 if (already.size) {
   log(`[편성] 최근 24시간에 이미 다룬 이슈 ${already.size}건 — 남은 후보 ${fresh.length}/${issues.length}`);
@@ -131,7 +135,17 @@ async function footageScore(it) {
   return best;
 }
 let issue = fresh[0];
-{
+if (FORCE_ISSUE) {
+  const want = normalizeIssueKey(FORCE_ISSUE);
+  const hit = issues.find((it) => normalizeIssueKey(it.keyword) === want);
+  if (!hit) {
+    console.error(`❌ 지정한 이슈 "${FORCE_ISSUE}" 가 최근 24시간 후보에 없다.`);
+    console.error(`   있는 것: ${issues.map((i) => i.keyword).join(', ')}`);
+    process.exit(3);
+  }
+  issue = hit;
+  log(`[편성] --issue 지정 → "${issue.keyword}" (편성 대장 무시)`);
+} else {
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
     const { n, terms } = await footageScore(cand);
@@ -352,7 +366,11 @@ for (let i = 0; i < scenes.length; i++) {
     // Pexels 를 뺐으므로 '큐레이션 소스는 면제' 예외도 없앤다 — 이제 모든 후보가 같은 검사를 받는다.
     //   그 예외가 있는 한 스톡은 무조건 통과했다. 남겨두면 다시 새는 구멍이 된다.
     //   isRealFootage: 문장·도표·국기·로고는 현장이 아니다(실측으로 기재부 '문장 svg'가 뽑혔다).
-    const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, terms) && near(c.title));
+    // 기관을 가리키는 질의면 결과가 한국 것이어야 한다 — 안 그러면 온타리오 농무부·탄자니아 국회가 붙는다.
+    const koAnchor = needsKoreaAnchor(terms);
+    const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
+      && titleRelevant(c.title, terms) && near(c.title)
+      && (!koAnchor || looksKorean(c.title)));
     // 최신 자료를 앞으로. 아카이브에는 20년 전 사진이 그대로 남아 있다
     //   (실측: '총리' 로 2003년 고건 총리 사진이 잡혔다).
     const got = pickFootageMany(preferRecent(relevant), 1, { terms, preferFree: true });
