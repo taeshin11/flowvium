@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchPexelsVideo, pickFootageMany, creditLine, titleRelevant } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -103,7 +103,50 @@ if (!fresh.length) {
   console.error('   중복 발행 대신 이번 회차를 거른다. 다음 슬롯에 새 기사가 쌓이면 정상 발행된다.');
   process.exit(3);   // 3 = 낼 것이 없음(실패가 아니다). 호출부가 실패와 구분할 수 있게 한다.
 }
-const issue = fresh[0];
+// 2026-09-03 사용자 "사건과 관련있는 영상과 사진만 넣어".
+//   Pexels(스톡)를 빼고 나니 이슈에 따라 **소재가 하나도 없는 날**이 생긴다 —
+//   실측: "공공기관" 이슈에서 네 장면이 전부 회색 카드로 떨어졌다.
+//   순서를 뒤집는다. 뉴스를 먼저 고르고 소재를 찾는 게 아니라,
+//   **보여줄 수 있는 뉴스를 고른다.** 큰 뉴스 여럿 중 무엇을 낼지는 어차피 우리 선택이다.
+//   비용: 후보당 검색 1회. 전부 훑지 않고 앞쪽 몇 개만 본다.
+const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 6);
+async function footageScore(it) {
+  // 헤드라인의 영문 고유명사 = 아카이브에서 찾을 수 있는 이름. 한글만 있는 이슈는 애초에 자료가 없다.
+  const text = String((it.headlines ?? []).join(' '));
+  // 한국 뉴스는 영문 고유명사가 거의 없다. 한국어 개체명으로 찾는 게 본선이고 영문은 보조다.
+  //   실측: 아카이브가 "홈플러스 스페셜 대구점.jpg"·"…용혜인 기본소득당 대표 예방.webm" 을 들고 있다.
+  const ko = koreanEntities(text, { max: 2 });
+  const en = [...new Set((text.match(/[A-Z][A-Za-z]{2,}/g) ?? []))].slice(0, 3);
+  const queries = [...ko.map((k) => [k]), ...(en.length && hasDistinctiveTerm(en) ? [en] : [])];
+  if (!queries.length) return { n: 0, terms: [] };
+  let best = { n: 0, terms: queries[0] };
+  for (const q of queries) {
+    try {
+      const r = await searchCommons(q, { limit: 8 });
+      const n = (r ?? []).filter((c) => isRealFootage(c) && titleRelevant(c.title, q)).length;
+      if (n > best.n) best = { n, terms: q };
+      if (best.n >= 2) break;
+    } catch { /* 한 질의가 죽어도 나머지로 */ }
+  }
+  return best;
+}
+let issue = fresh[0];
+{
+  const scored = [];
+  for (const cand of fresh.slice(0, PROBE_N)) {
+    const { n, terms } = await footageScore(cand);
+    scored.push({ cand, n, terms });
+    log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건`);
+    if (n >= 2) break;   // 두 장면 이상 채울 수 있으면 충분하다. 더 찾느라 시간 쓰지 않는다.
+  }
+  scored.sort((a, b) => b.n - a.n);
+  if (scored[0]?.n > 0) {
+    issue = scored[0].cand;
+    if (issue !== fresh[0]) log(`[편성] 1순위 "${fresh[0].keyword}" 는 소재가 없어 "${issue.keyword}" 로 바꾼다`);
+  } else {
+    log('⚠ 후보 어디에도 관련 소재가 없다 — 1순위로 간다(카드 위주가 된다)');
+  }
+}
 const headlines = issue.headlines ?? [];
 const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);
@@ -239,6 +282,9 @@ async function download(url, dest) {
   return dest;
 }
 
+// 장면끼리 같은 그림을 쓰지 않는다. 2026-09-03 실측: 홈플러스 편에서 같은 매장 사진이
+//   네 장면에 그대로 깔렸다 — 소재가 맞아도 같은 그림이 반복되면 정지 화면이나 다름없다.
+const usedMedia = new Set();
 for (let i = 0; i < scenes.length; i++) {
   if (scenes[i].isOutro) { log(`[화면] ${i + 1} 마무리 — 채널 그래픽`); continue; }
   // LLM 이 visual 을 자주 비운다(실측: 4장면 중 3장면이 빈 회차가 반복됐다).
@@ -255,13 +301,22 @@ for (let i = 0; i < scenes.length; i++) {
   // 질의가 비면 **검색하지 않는다.** titleRelevant 는 질의어가 없으면 전부 통과시키므로
   //   (그 자체는 옳다 — 근거 없이 버리면 안 되니까) 빈 질의로 부르면 아무 사진이나 1순위로 들어온다.
   //   실측: LLM 이 visual 을 비운 회차에서 벨라루스 등대 사진이 네 장면에 전부 깔렸다.
+  // 검색어가 흔한 말뿐이어도 검색하지 않는다. 2026-09-03 실측: "National Assembly" 로
+  //   탄자니아·방글라데시·파키스탄·남아공 국회가 전부 통과했다 — 낱말은 맞지만 그 나라가 아니다.
   if (!terms.length) { log(`[화면] ${i + 1} 검색어 없음 — 검색 생략(아래에서 재사용/카드)`); }
+  else if (!hasDistinctiveTerm(terms)) { log(`[화면] ${i + 1} "${terms.join(' ')}" 흔한 말뿐 — 검색 생략(엉뚱한 나라가 잡힌다)`); }
   else {
   let cands = [];
   // 2026-09-03 사용자 "왤케 영상이 아니고 다 사진만 나오냐".
   //   종전 순서가 Commons(사진) → Openverse(사진) → Pexels(동영상) 이라 사진이 늘 먼저 잡혔다.
   //   쇼츠는 정지 화면이 6초씩 이어지면 바로 지루해진다 — **동영상을 먼저** 찾는다.
-  for (const fn of [searchPexelsVideo, searchCommons, searchOpenverse]) {
+  // 2026-09-03 사용자 "픽셀 쓰지마" / "사건과 관련있는 영상과 사진만 넣어".
+  //   Pexels 를 뺐다. 스톡은 질의에 **어울리는** 그림을 주지 그 사건을 주지 않는다 —
+  //   용혜인 의원 논란에 경복궁·군중 영상이 깔렸다. 움직이지만 그 사건이 아니다.
+  //   남는 것은 실제 인물·기관·장소가 찍힌 아카이브다. 정지 사진이 늘겠지만(켄번스로 움직인다)
+  //   "그 사건"이라는 조건이 "움직인다"보다 앞선다.
+  //   Archive 를 먼저 두는 이유: 여기에만 실제 영상 파일이 있다.
+  for (const fn of [searchArchiveVideo, searchCommons, searchOpenverse]) {
     try { cands = cands.concat(await fn(terms, { limit: 10 })); } catch { /* 한 소스가 죽어도 나머지로 */ }
     // pickFootage 는 관련 결과가 없으면 **무관한 것으로 되돌린다**("틀린 사진이라도 회색 카드보다 낫다").
     //   가로 편에서는 57컷 중 한 장이라 그 판단이 맞다. 쇼츠는 컷이 4개뿐이고 한 장이 화면을
@@ -283,12 +338,32 @@ for (let i = 0; i < scenes.length; i++) {
     //   낱말 매칭이 통째로 실패해 **동영상이 전부 걸러졌다.**
     //   Pexels 는 큐레이션된 스톡이라 검색 자체가 질의에 맞는 것을 준다. 느슨한 결과를
     //   채워 넣는 쪽은 Commons·Openverse 다 — 필터가 필요한 곳은 거기다.
-    const isCurated = (c) => /pexels/i.test(String(c.source ?? ''));
-    const relevant = cands.filter((c) => isCurated(c) || (titleRelevant(c.title, terms) && near(c.title)));
+    // Pexels 를 뺐으므로 '큐레이션 소스는 면제' 예외도 없앤다 — 이제 모든 후보가 같은 검사를 받는다.
+    //   그 예외가 있는 한 스톡은 무조건 통과했다. 남겨두면 다시 새는 구멍이 된다.
+    //   isRealFootage: 문장·도표·국기·로고는 현장이 아니다(실측으로 기재부 '문장 svg'가 뽑혔다).
+    const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, terms) && near(c.title));
     const got = pickFootageMany(relevant, 1, { terms, preferFree: true });
     if (got.length) { scenes[i].pick = got[0]; break; }
   }
+  // 영문 질의로 못 찾았으면 **한국어 개체명**으로 한 번 더. 그 사건에 제일 가까운 자료가
+  //   한국어 제목으로 들어 있는 경우가 많다(실측: 용혜인 의원 영상 .webm).
+  if (!scenes[i].pick) {
+    for (const kw of koreanEntities(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 3 })) {
+      let ko = [];
+      for (const fn of [searchCommons, searchOpenverse]) {
+        try { ko = ko.concat(await fn([kw], { limit: 8 })); } catch { /* 다음 소스로 */ }
+      }
+      const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, [kw]));
+      const pick = pickFootageMany(rel, 1, { terms: [kw], preferFree: true });
+      if (pick.length) {
+        scenes[i].pick = pick[0];
+        log(`[화면] ${i + 1} 영문 실패 → 한국어 "${kw}" 로 찾음`);
+        break;
+      }
+    }
+  }
   if (scenes[i].pick) {
+    usedMedia.add(scenes[i].pick.url);
     const ext = /\.mp4(\?|$)/i.test(scenes[i].pick.url) ? 'mp4' : 'jpg';
     try {
       scenes[i].media = await download(scenes[i].pick.url, `${WORK}/m${i}.${ext}`);

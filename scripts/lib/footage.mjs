@@ -568,3 +568,81 @@ export async function searchPexelsVideo(terms, { limit = 8, apiKey = envValue('P
     };
   }).filter(Boolean);
 }
+
+// ── 사건과 무관한 그림이 들어오는 두 경로를 막는다 (2026-09-03) ──────────────────
+// 사용자: "왜 죄다 픽셀에서 또 만들었냐.. 픽셀 쓰지마" / "사건과 관련있는 영상과 사진만 넣어"
+//
+// 경로 ①: 스톡 영상. Pexels 는 질의에 '어울리는' 그림을 주지 그 사건을 주지 않는다.
+//   실측: 용혜인 의원 논란 기사에 경복궁·군중 스톡 영상이 깔렸다. 움직이지만 그 사건이 아니다.
+//   → 호출부에서 소스 목록을 뺐다.
+//
+// 경로 ②: 검색어가 흔한 말뿐일 때. 실측: "National Assembly" 로 검색하니
+//   탄자니아·방글라데시·파키스탄·남아공 국회가 전부 '관련 있음'으로 통과했다.
+//   낱말은 다 맞지만 **그 나라가 아니다.**
+//   나라 이름 목록을 만드는 방법도 있으나 끝이 없고 새 나라마다 샌다.
+//   규칙으로 잡는다 — **구별되는 고유명사가 하나도 없으면 검색 자체를 하지 않는다.**
+//   "Seoul National Assembly" 는 Seoul 이 구별해 주므로 통과한다.
+
+/** 어느 나라·어느 조직에나 있는 말. 이것만으로는 대상을 특정하지 못한다. */
+const GENERIC_TERM = new Set([
+  'national', 'assembly', 'parliament', 'congress', 'senate', 'ministry', 'minister', 'ministers',
+  'government', 'president', 'presidential', 'prime', 'court', 'supreme', 'central', 'bank',
+  'city', 'hall', 'state', 'federal', 'public', 'office', 'department', 'agency', 'commission',
+  'university', 'college', 'hospital', 'school', 'company', 'corporation', 'group', 'holdings',
+  'market', 'markets', 'stock', 'exchange', 'police', 'military', 'army', 'navy', 'election',
+  'party', 'building', 'center', 'centre', 'institute', 'council', 'committee', 'union', 'international',
+]);
+
+/** 검색어에 구별되는 말이 하나라도 있는가. 없으면 검색해도 엉뚱한 나라가 잡힌다. */
+export function hasDistinctiveTerm(terms) {
+  return (terms ?? []).some((t) => {
+    const w = String(t).toLowerCase();
+    if (w.length < 3) return false;
+    if (GENERIC_TERM.has(w)) return false;
+    return true;
+  });
+}
+
+/** 도표·문장(紋章)·아이콘은 현장이 아니다. 벡터 파일은 전부 뺀다. */
+export function isRealFootage(c) {
+  const u = String(c?.url ?? '').toLowerCase();
+  const t = String(c?.title ?? '').toLowerCase();
+  if (/\.(svg|pdf|tif|tiff)(\?|$)/.test(u)) return false;
+  // 실측으로 걸린 것들: "Emblem of the Ministry…", "Tanzanian National Assembly chart.svg"
+  if (/\b(emblem|logo|coat of arms|seal|flag|chart|diagram|map|icon|symbol)\b/.test(t)) return false;
+  return true;
+}
+
+/**
+ * 한국어 헤드라인에서 검색에 쓸 개체명을 뽑는다.
+ *
+ * 왜 필요한가 (2026-09-03): 소재를 영문 고유명사로만 찾고 있었다. 한국 뉴스 헤드라인에는
+ *   영문이 거의 없어서 탐색이 전부 0건으로 나왔다. 그런데 실측해 보니 아카이브는 한국어 제목을
+ *   그대로 들고 있다 — "홈플러스 스페셜 대구점.jpg" 7건, "국회" 11건,
+ *   그리고 **"2025년 8월 5일 … 용혜인 기본소득당 대표 예방.webm"** 처럼 실제 인물의 영상까지 있다.
+ *   영어로만 찾으면 정작 그 사건에 제일 가까운 자료를 놓친다.
+ *
+ * 형태소 분석기 없이 근사한다 — 조사를 떼고, 용언 어미로 끝나는 말을 버린다.
+ * buildTags 와 같은 방식이다(거기서 검증된 규칙을 옮겨 쓴다).
+ */
+const KO_PARTICLE = /(은|는|이|가|을|를|의|에|와|과|로|으로|도|만|까지|부터|에서|에게|께서)$/;
+const KO_VERB_END = /(고|서|며|록|게|지|니|면|다|자|아|어|여|왔|했|한|될|될까)$/;
+const KO_STOP = new Set(['오늘','내일','어제','올해','작년','내년','이번','지난','최근','대표','기자',
+  '뉴스','속보','단독','종합','논란','의혹','추진','발표','확대','강화','검토','전망','계획','상황']);
+
+export function koreanEntities(text, { max = 4 } = {}) {
+  const words = String(text ?? '')
+    .replace(/\[[^\]]*\]/g, ' ')                    // [더벨] 같은 매체 꼬리표
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => /[가-힣]/.test(w));
+  const seen = new Map();
+  for (const raw of words) {
+    const w = raw.replace(KO_PARTICLE, '');
+    if (w.length < 2 || w.length > 8) continue;
+    if (KO_STOP.has(w)) continue;
+    if (KO_VERB_END.test(w) && w.length < 5) continue;
+    seen.set(w, (seen.get(w) ?? 0) + 1);
+  }
+  // 자주 나온 말이 그 기사의 주인공이다.
+  return [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, max).map(([w]) => w);
+}
