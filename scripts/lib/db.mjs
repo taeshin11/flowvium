@@ -1909,3 +1909,33 @@ export function recentSellTickers(days = 7) {
   }
   return out;
 }
+
+/**
+ * 종목별 추천 이력. **오늘 처음 보는 독자에게 맥락을 주기 위한 것**이다.
+ *
+ * 사용자(2026-09-03): "둘째 날 셋째 날 넷째 날에 봤을 수도 있잖아."
+ *   실측: HWM 은 19번 추천됐고, 그날 사서 지금까지 들고 있으면 14번이 손실이었다.
+ *   상위 15종목으로 넓히면 승률 38.9%(354승 556패).
+ *   시스템 자체 평가는 +2.27% (SPY +0.52%) 로 나쁘지 않은데, 그건 매도 신호까지 따랐을 때다.
+ *   매수 목록만 보는 독자에게는 그 차이가 통째로 손실이 된다.
+ *   그런데 보고서는 12번째 추천도 첫 추천과 똑같이 "확신 high 매수" 로 보인다.
+ *   숨기지 말고 **몇 번째인지, 첫 추천가 대비 지금 어디인지**를 같이 보여준다.
+ */
+export function recommendationHistory(ticker, { days = 90 } = {}) {
+  const db = openDb();
+  const rows = db.prepare(
+    `SELECT generated_at, price_at_gen, entry_low, entry_high FROM recommendations
+      WHERE ticker = ? AND julianday('now') - julianday(generated_at) <= ?
+      ORDER BY generated_at`).all(String(ticker), Number(days));
+  if (!rows.length) return null;
+  const first = rows[0];
+  const firstMid = (Number(first.entry_low) + Number(first.entry_high)) / 2 || Number(first.price_at_gen) || null;
+  return {
+    count: rows.length,
+    firstAt: first.generated_at,
+    firstPrice: Number(first.price_at_gen) || null,
+    firstEntryMid: firstMid,
+    // 마지막 추천 이후 며칠 지났는지 — 매일 같은 것을 미는 중인지 드러난다.
+    lastAt: rows[rows.length - 1].generated_at,
+  };
+}

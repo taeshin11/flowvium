@@ -72,7 +72,7 @@ import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers } from './lib/db.mjs';
+import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
 import { filterConflicts } from './lib/buy-sell-conflict.mjs';
 
 // 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
@@ -6762,6 +6762,39 @@ function postProcessPortfolio(portfolio) {
     }
   } catch (e) {
     console.log(`  [매수차단] 건너뜀(${String(e?.message).slice(0, 60)}) — 차단 실패가 보고서를 막지는 않는다`);
+  }
+
+  // 2026-09-03 사용자: "둘째 날 셋째 날 넷째 날에 봤을 수도 있잖아."
+  //   맞는 지적이다. 실측: HWM 은 19번 추천했고 그날 사서 지금 들고 있으면 14번이 손실이었다.
+  //   상위 15종목 승률 38.9%. 시스템 자체 평가(+2.27%, SPY +0.52%)와 벌어지는 만큼이
+  //   **매도 신호를 안 읽은 독자의 손실**이다.
+  //   그런데 보고서에서는 12번째 추천도 첫 추천과 똑같이 "확신 high 매수" 로 보인다.
+  //   숨기지 않는다 — 몇 번째인지, 첫 추천가 대비 지금 어디인지를 종목마다 붙인다.
+  //   (막지는 않는다. 계속 추천할 근거가 있을 수 있다. 다만 독자가 알고 판단해야 한다.)
+  try {
+    items = items.map((p) => {
+      const h = recommendationHistory(p.ticker, { days: 90 });
+      if (!h || h.count < 2) return p;
+      const now = Number(p.currentPrice ?? p.price ?? p.price_at_gen);
+      const drift = (h.firstEntryMid && now) ? ((now / h.firstEntryMid - 1) * 100) : null;
+      return {
+        ...p,
+        repeatInfo: {
+          count: h.count,
+          firstAt: h.firstAt,
+          firstEntryMid: h.firstEntryMid,
+          sinceFirstPct: drift == null ? null : Number(drift.toFixed(1)),
+        },
+      };
+    });
+    const repeats = items.filter((p) => p.repeatInfo);
+    for (const p of repeats) {
+      const r = p.repeatInfo;
+      console.log(`  [반복추천] ${p.ticker} ${r.count}회째 · 첫 추천 ${String(r.firstAt).slice(0, 10)} @${r.firstEntryMid?.toFixed?.(1)}`
+        + (r.sinceFirstPct == null ? '' : ` · 그때 샀다면 ${r.sinceFirstPct > 0 ? '+' : ''}${r.sinceFirstPct}%`));
+    }
+  } catch (e) {
+    console.log(`  [반복추천] 계산 건너뜀(${String(e?.message).slice(0, 50)})`);
   }
 
   const total = items.reduce((s, p) => s + (p.allocation ?? 0), 0);
