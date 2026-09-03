@@ -113,7 +113,9 @@ if (!fresh.length) {
 //   순서를 뒤집는다. 뉴스를 먼저 고르고 소재를 찾는 게 아니라,
 //   **보여줄 수 있는 뉴스를 고른다.** 큰 뉴스 여럿 중 무엇을 낼지는 어차피 우리 선택이다.
 //   비용: 후보당 검색 1회. 전부 훑지 않고 앞쪽 몇 개만 본다.
-const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 6);
+// 2026-09-03 하루 5편 → 8편. 뒤 회차일수록 앞 이슈가 대장에 쌓여 후보가 얕아지므로
+//   탐색 범위를 넓힌다. 실측: 이슈 14개 중 소재가 있는 것은 6개였다 — 6개만 보면 뒤 회차가 굶는다.
+const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 12);
 async function footageScore(it) {
   // 헤드라인의 영문 고유명사 = 아카이브에서 찾을 수 있는 이름. 한글만 있는 이슈는 애초에 자료가 없다.
   const text = String((it.headlines ?? []).join(' '));
