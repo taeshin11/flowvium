@@ -30,7 +30,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, preferRecent } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
@@ -293,9 +293,20 @@ for (let i = 0; i < scenes.length; i++) {
   let vis = String(scenes[i].visual ?? '').trim();
   if (!vis) {
     const pool = `${scenes[i].hook ?? ''} ${headlines.join(' ')}`;
-    const proper = (pool.match(/[A-Z][A-Za-z]{2,}/g) ?? []).slice(0, 3);
-    vis = proper.join(' ');
-    if (vis) log(`[화면] ${i + 1} visual 비어 있음 → 헤드라인에서 "${vis}" 추출`);
+    // 2026-09-03: 종전엔 영문 고유명사를 먼저 썼다. 한국 기사에는 영문이 드물게 섞이는데
+    //   그 드문 하나가 뽑히면 엉뚱한 데로 간다 — 실측: 부산 예인선 사고 기사에서 "CCTV" 가 뽑혀
+    //   네 장면 전부에 감시카메라와 **중국 CCTV 방송국 건물**이 깔렸다.
+    //   같은 기사의 한국어 개체명(예인선·부산)으로는 8건이 잡히고 있었다.
+    //   한글이 있는 기사면 **한국어 개체명을 먼저** 쓴다. 영문은 그다음이다.
+    const ko = /[가-힣]/.test(pool) ? koreanEntities(pool, { max: 3 }).filter((k) => hasDistinctiveTerm([k])) : [];
+    if (ko.length) {
+      vis = ko.slice(0, 2).join(' ');
+      log(`[화면] ${i + 1} visual 비어 있음 → 한국어 개체명 "${vis}" 사용`);
+    } else {
+      const proper = (pool.match(/[A-Z][A-Za-z]{2,}/g) ?? []).slice(0, 3);
+      vis = proper.join(' ');
+      if (vis) log(`[화면] ${i + 1} visual 비어 있음 → 헤드라인에서 "${vis}" 추출`);
+    }
   }
   const terms = searchTerms({ visual: vis }, { max: 3 });
   // 질의가 비면 **검색하지 않는다.** titleRelevant 는 질의어가 없으면 전부 통과시키므로
@@ -342,19 +353,23 @@ for (let i = 0; i < scenes.length; i++) {
     //   그 예외가 있는 한 스톡은 무조건 통과했다. 남겨두면 다시 새는 구멍이 된다.
     //   isRealFootage: 문장·도표·국기·로고는 현장이 아니다(실측으로 기재부 '문장 svg'가 뽑혔다).
     const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, terms) && near(c.title));
-    const got = pickFootageMany(relevant, 1, { terms, preferFree: true });
+    // 최신 자료를 앞으로. 아카이브에는 20년 전 사진이 그대로 남아 있다
+    //   (실측: '총리' 로 2003년 고건 총리 사진이 잡혔다).
+    const got = pickFootageMany(preferRecent(relevant), 1, { terms, preferFree: true });
     if (got.length) { scenes[i].pick = got[0]; break; }
   }
   // 영문 질의로 못 찾았으면 **한국어 개체명**으로 한 번 더. 그 사건에 제일 가까운 자료가
   //   한국어 제목으로 들어 있는 경우가 많다(실측: 용혜인 의원 영상 .webm).
   if (!scenes[i].pick) {
     for (const kw of koreanEntities(`${scenes[i].hook ?? ''} ${headlines.join(' ')}`, { max: 3 })) {
+      // 직책 단독으로는 찾지 않는다 — 역대 아무나 나온다(실측: '총리' → 2003년 고건 총리).
+      if (!hasDistinctiveTerm([kw])) { log(`[화면] ${i + 1} "${kw}" 는 직책·범용어 — 건너뜀`); continue; }
       let ko = [];
       for (const fn of [searchCommons, searchOpenverse]) {
         try { ko = ko.concat(await fn([kw], { limit: 8 })); } catch { /* 다음 소스로 */ }
       }
       const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, [kw]));
-      const pick = pickFootageMany(rel, 1, { terms: [kw], preferFree: true });
+      const pick = pickFootageMany(preferRecent(rel), 1, { terms: [kw], preferFree: true });
       if (pick.length) {
         scenes[i].pick = pick[0];
         log(`[화면] ${i + 1} 영문 실패 → 한국어 "${kw}" 로 찾음`);

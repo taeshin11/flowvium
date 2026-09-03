@@ -591,6 +591,14 @@ const GENERIC_TERM = new Set([
   'university', 'college', 'hospital', 'school', 'company', 'corporation', 'group', 'holdings',
   'market', 'markets', 'stock', 'exchange', 'police', 'military', 'army', 'navy', 'election',
   'party', 'building', 'center', 'centre', 'institute', 'council', 'committee', 'union', 'international',
+  // 2026-09-03 사용자: "총리얘기하면서 왜 옛날 총리가 나오냐".
+  //   직책은 수십 년치 인물이 공유한다. "총리" 로 찾으면 고건(2003)·이완구(2015) 가 나온다.
+  //   사람을 특정하려면 **이름**이어야 한다 — "김민석"으로 찾으면 현직 사진이 실제로 나온다.
+  //   자료가 없는 게 아니라 질의가 틀렸던 것이다.
+  '총리', '국무총리', '대통령', '장관', '차관', '의원', '국회의원', '위원장', '청장', '처장',
+  '지사', '시장', '군수', '구청장', '검찰총장', '경찰청장', '대표', '회장', '사장', '부회장',
+  '정부', '국회', '청와대', '대통령실', '공공기관', '지자체', '당국', '여당', '야당',
+  '시스템', '사업', '정책', '제도', '예산', '조사', '회의', '발언', '입장', '대응',
 ]);
 
 /** 검색어에 구별되는 말이 하나라도 있는가. 없으면 검색해도 엉뚱한 나라가 잡힌다. */
@@ -610,6 +618,12 @@ export function isRealFootage(c) {
   if (/\.(svg|pdf|tif|tiff)(\?|$)/.test(u)) return false;
   // 실측으로 걸린 것들: "Emblem of the Ministry…", "Tanzanian National Assembly chart.svg"
   if (/\b(emblem|logo|coat of arms|seal|flag|chart|diagram|map|icon|symbol)\b/.test(t)) return false;
+  // 전직 인물 사진은 지금 뉴스가 아니다. 실측: "총리" 검색에 '이완구 전 총리'가 걸렸다.
+  //   '전/前/former' 는 그 자체로 "지금 그 자리에 없다"는 뜻이라 현재 기사에 붙이면 틀린 그림이 된다.
+  //   '전' 은 흔한 글자라 **직책 앞에 붙었을 때만** 본다("전 총리", "전 대통령").
+  //   그렇게 좁히지 않으면 "대전 시청"·"전주" 같은 멀쩡한 것까지 걸린다.
+  if (/(?:^|[\s(])(?:전|前)\s*(?:총리|국무총리|대통령|장관|차관|의원|위원장|청장|시장|지사|회장|사장|대표)/.test(t)) return false;
+  if (/\bformer\s+(?:prime\s+minister|president|minister|chairman|ceo|governor|mayor)\b/i.test(t)) return false;
   return true;
 }
 
@@ -645,4 +659,36 @@ export function koreanEntities(text, { max = 4 } = {}) {
   }
   // 자주 나온 말이 그 기사의 주인공이다.
   return [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, max).map(([w]) => w);
+}
+
+/**
+ * 제목에서 촬영 연도를 뽑는다. 아카이브 파일명은 대개 연도를 담고 있다 —
+ *   "대한민국 총리 고건 …", "210609 김민석.jpg", "2015년 10월 20일 강릉…", "… June 2021.png"
+ * 못 찾으면 null. **모르는 것을 오래됐다고 취급하지 않는다.**
+ */
+export function footageYear(title) {
+  const t = String(title ?? '');
+  const y4 = t.match(/(19[89]\d|20[0-4]\d)/);          // 1980~2049
+  if (y4) return Number(y4[1]);
+  // YYMMDD 형태(210609 = 2021-06-09). 6자리 숫자가 날짜로 읽히면 쓴다.
+  const y2 = t.match(/(?:^|\D)(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?:\D|$)/);
+  if (y2) return 2000 + Number(y2[1]);
+  return null;
+}
+
+/**
+ * 최신 자료를 앞으로. 연도를 모르는 것은 **중간에 둔다** —
+ *   뒤로 밀면 연도가 안 적힌 좋은 자료(대부분의 건물·기관 사진)를 잃는다.
+ * 원본 순서(검색 적합도)를 완전히 뒤집지 않도록 안정 정렬을 쓴다.
+ */
+export function preferRecent(cands, { now = new Date().getFullYear() } = {}) {
+  return (cands ?? [])
+    .map((c, i) => ({ c, i, y: footageYear(c?.title) }))
+    .sort((a, b) => {
+      const ay = a.y ?? now - 6;      // 연도 미상 = 6년 전쯤으로 본다(중간)
+      const by = b.y ?? now - 6;
+      if (ay !== by) return by - ay;
+      return a.i - b.i;               // 같으면 원래 적합도 순서 유지
+    })
+    .map((x) => x.c);
 }

@@ -45,5 +45,31 @@ const { hasDistinctiveTerm, isRealFootage, titleRelevant } = await import('./foo
     ? ok('Seoul 이 없으면 방글라데시 국회는 탈락') : bad('엉뚱한 나라가 통과한다');
 }
 
+
+// ── 직책으로 찾으면 역대 아무나 나온다 (2026-09-03, 사용자 "총리얘기하면서 왜 옛날 총리가 나오냐") ──
+// 실측: "총리" 로 Commons 를 찾으면 고건(2003년 총리)·이완구 전 총리(2015) 가 나온다.
+//   직책은 수십 년치 인물이 공유한다. 사람을 특정하려면 **이름**이어야 한다.
+//   "김민석"(현 총리)으로 찾으면 실제 사진이 나온다 — 자료가 없는 게 아니라 질의가 틀렸던 것이다.
+{
+  !hasDistinctiveTerm(['총리']) ? ok('"총리" 단독 검색 안 함 (고건·이완구가 나오던 질의)') : bad('직책만으로 검색한다');
+  !hasDistinctiveTerm(['대통령']) ? ok('"대통령" 단독 검색 안 함') : bad('대통령을 통과시킨다');
+  !hasDistinctiveTerm(['장관', '정부']) ? ok('"장관 정부" 조합도 안 함') : bad('직책 조합을 통과시킨다');
+  hasDistinctiveTerm(['김민석']) ? ok('사람 이름은 통과 — 현직 총리 사진이 실제로 있다') : bad('사람 이름을 막는다');
+  hasDistinctiveTerm(['김민석', '총리']) ? ok('이름+직책은 통과(이름이 특정해 준다)') : bad('이름이 있는데 막는다');
+}
+
+// ── 전직 인물 사진은 지금 뉴스가 아니다 ────────────────────────────────────────
+{
+  const cases = [
+    [{ title: '이완구 전 총리 (headshot).png', url: 'x/a.png' }, false, '전 총리'],
+    [{ title: 'Former Prime Minister Kim', url: 'x/b.jpg' }, false, 'Former'],
+    [{ title: '前 대통령 방문', url: 'x/c.jpg' }, false, '前'],
+    [{ title: '대한민국 국무총리 김민석 2026', url: 'x/d.jpg' }, true, '현직 인물'],
+    [{ title: 'Homeplus Dongchon branch', url: 'x/e.jpg' }, true, '인물 아닌 것은 그대로'],
+  ];
+  for (const [c, want, label] of cases)
+    isRealFootage(c) === want ? ok(`${label}: ${want ? '통과' : '차단'}`) : bad(`${label} 판정 틀림`);
+}
+
 console.log(fail === 0 ? '\n✅ footage-relevance 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);
