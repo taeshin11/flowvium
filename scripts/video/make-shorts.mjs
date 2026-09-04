@@ -22,7 +22,7 @@ import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
@@ -508,9 +508,19 @@ for (let i = 0; i < scenes.length; i++) {
       try {
         const g = await searchGoogleImages(koq, { limit: 6 });
         const fresh2 = g.filter((c) => !usedMedia.has(c.url));
-        if (fresh2.length) {
-          scenes[i].pick = fresh2[0];
-          log(`[화면] ${i + 1} 구글 "${koq.join(' ')}" → ${fresh2[0].source}${fresh2[0].riskyDomain ? ' ⚠통신사' : ''}`);
+        // 2026-09-04: 첫 후보만 잡고 끝냈다가, 그게 PDF 면(korea.kr download.do 는 보도자료 문서다)
+        //   그 장면이 그대로 카드로 떨어졌다 — 실측 4장면 100% 카드.
+        //   **받아보고 되는 것을 고른다.** 안 되면 다음 후보로.
+        for (const c of fresh2) {
+          usedMedia.add(c.url);
+          try {
+            const ext = /\.mp4(\?|$)/i.test(c.url) ? 'mp4' : 'jpg';
+            scenes[i].media = await download(c.url, `${WORK}/m${i}.${ext}`);
+            scenes[i].pick = c;
+            scenes[i].credit = c.source ? `출처- ${c.source}` : null;
+            log(`[화면] ${i + 1} 구글 "${koq.join(' ')}" → ${c.source}${c.riskyDomain ? ' ⚠통신사' : ''}`);
+            break;
+          } catch (e) { log(`[화면] ${i + 1} 구글 후보 건너뜀: ${e.message.slice(0, 40)}`); }
         }
       } catch (e) { log(`[화면] ${i + 1} 구글 검색 실패: ${String(e.message).slice(0, 40)}`); }
     }
@@ -572,7 +582,11 @@ for (let i = 0; i < scenes.length; i++) {
       scenes[i].media = await download(scenes[i].pick.url, `${WORK}/m${i}.${ext}`);
       scenes[i].credit = scenes[i].pick.source ? `출처- ${scenes[i].pick.source}` : null;
       log(`[화면] ${i + 1} "${terms.join(' ')}" → ${(scenes[i].pick.title ?? '').slice(0, 40)} [${scenes[i].pick.source}]`);
-    } catch (e) { log(`[화면] ${i + 1} 내려받기 실패: ${e.message.slice(0, 50)}`); }
+    } catch (e) {
+      // 실패한 후보를 pick 에 남겨 두면 뒤 단계가 '이미 골랐다'고 보고 건너뛴다 — 비운다.
+      log(`[화면] ${i + 1} 내려받기 실패: ${e.message.slice(0, 50)}`);
+      scenes[i].pick = null;
+    }
   }
   }
   if (!scenes[i].media) {
@@ -596,6 +610,29 @@ for (let i = 0; i < scenes.length; i++) {
 }
 
 closeGoogleImages();
+
+// ── 소재 선택 기록 (2026-09-04, 사용자 "지켜보면서 고치자") ─────────────────────
+//   매 회차 어떤 질의로 무엇이 붙었는지 한 줄씩 쌓는다.
+//   며칠 지나면 "어떤 종류의 질의가 틀린 그림을 물어오는가" 를 눈짐작이 아니라 숫자로 볼 수 있다.
+//   지금까지는 매번 영상을 열어 확인해야 했고, 그래서 두 번은 올린 뒤에야 알았다.
+try {
+  const line = JSON.stringify({
+    at: new Date().toISOString(),
+    issue: issue.keyword,
+    koIssue: KO_ISSUE,
+    scenes: scenes.filter((x) => !x.isOutro).map((x) => ({
+      hook: x.hook ?? null,
+      picked: x.pick ? {
+        title: String(x.pick.title ?? '').slice(0, 80),
+        source: x.pick.source ?? null,
+        risky: x.pick.riskyDomain ?? false,
+      } : null,
+      reused: !x.pick && !!x.media,
+      card: !x.media,
+    })),
+  });
+  appendFileSync(resolve(ROOT, 'logs/footage-picks.jsonl'), line + '\n');
+} catch { /* 기록 실패가 발행을 막지는 않는다 */ }
 
 // ── 5. 오버레이 (장면마다 훅·캡션이 다르다) ─────────────────────────────────────
 const browser = await chromium.launch();

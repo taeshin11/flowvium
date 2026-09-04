@@ -70,9 +70,17 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
     // 2026-09-04: 구글 캐시 썸네일(encrypted-tbn0.gstatic.com)은 195~335px 라 1080 폭에 못 쓴다.
     //   실측: 그걸 받아 쓰다 장면 렌더가 실패했다. **원본 파일 링크를 앞세운다.**
     //   원본이 하나도 없으면 그 질의는 포기한다 — 흐린 그림을 넣느니 다음 소스로 넘긴다.
-    const isOriginal = (r) => /\.(jpe?g|png|webp)(\?|$)/i.test(r.href) || /download|attach|image/i.test(r.href);
-    const ordered = [...rows.filter(isOriginal), ...rows.filter((r) => !isOriginal(r))];
-    return ordered.filter(isOriginal).slice(0, limit).map((r) => {
+    //   2026-09-04 정정: 썸네일을 **전부 버렸더니 카드가 100%** 가 됐다(실측).
+    //   korea.kr 의 download.do 는 보도자료 **문서(PDF)** 라 원본이 아예 없다.
+    //   흐린 사진이 회색 카드보다는 낫다 — 원본을 앞세우되 썸네일도 후보로 남긴다.
+    //   문서 전용 경로는 아예 뺀다(받아봐야 PDF 다).
+    const isDoc = (u) => /korea\.kr\/common\/download\.do/i.test(u) || /\.(pdf|hwp|docx?)(\?|$)/i.test(u);
+    const isOriginal = (r) => !isDoc(r.href) && (/\.(jpe?g|png|webp)(\?|$)/i.test(r.href) || /attach|image|photo/i.test(r.href));
+    //   2026-09-04 재정정: 썸네일을 허용했더니 **PDF 문서 스캔과 '정책브리핑' 로고 배너**가 깔렸다(눈으로 확인).
+    //   korea.kr 이미지 검색 결과는 사진이 아니라 문서 미리보기가 대부분이다.
+    //   회색 카드가 문서 스캔보다 낫다 — 원본 사진만 쓴다. 없으면 이 소스는 포기한다.
+    const ordered = rows.filter(isOriginal);
+    return ordered.slice(0, limit).map((r) => {
       let host = '';
       try { host = new URL(r.href).hostname; } catch { /* noop */ }
       return {
