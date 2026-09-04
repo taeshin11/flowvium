@@ -1,76 +1,43 @@
 {
-  "generatedAt": "2026-09-03T13:00:23.073Z",
+  "generatedAt": "2026-09-04T09:20:58.360Z",
   "universe": "US",
   "scanned": 284,
-  "count": 12,
+  "count": 9,
   "strongCount": 0,
-  "watchCount": 12,
+  "watchCount": 9,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "SPWH",
       "name": "Sportsman's Warehouse Holdings,",
       "tier": "watch",
-      "score": 31,
+      "score": 36,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)",
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 4.3× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 11.3,
-      "runup5dPct": 13.3,
+      "runup20dPct": 5.9,
+      "runup5dPct": 9.6,
       "medDollarVolUsd": 410144,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "STKE",
-      "name": "Sol Strategies Inc.",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 11.4,
-      "runup5dPct": -10,
-      "medDollarVolUsd": 176297,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NMCO",
-      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "ticker": "GLP",
+      "name": "Global Partners LP",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 4.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.7,
-      "runup5dPct": -6.1,
-      "medDollarVolUsd": 1853240,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KRNY",
-      "name": "Kearny Financial",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.5× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 3.1,
-      "runup5dPct": 1.5,
-      "medDollarVolUsd": 4926688,
+      "runup20dPct": 8.2,
+      "runup5dPct": 4.1,
+      "medDollarVolUsd": 3587760,
       "smartAccum": false,
       "official": null
     },
@@ -81,12 +48,46 @@
       "score": 25,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 추세 2.4× 상승(지속 매집)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": -1.5,
-      "runup5dPct": -0.3,
-      "medDollarVolUsd": 552531,
+      "runup20dPct": -2.2,
+      "runup5dPct": -0.2,
+      "medDollarVolUsd": 558600,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "KELYA",
+      "name": "Kelly Services, Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 7,
+      "runup5dPct": -2.2,
+      "medDollarVolUsd": 4841856,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PSFE",
+      "name": "Paysafe Limited",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -9.7,
+      "runup5dPct": 1,
+      "medDollarVolUsd": 2116212,
       "smartAccum": false,
       "official": null
     },
@@ -99,94 +100,11 @@
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -10.8,
-      "runup5dPct": 3,
-      "medDollarVolUsd": 4747683,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GLP",
-      "name": "Global Partners LP",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.8,
-      "runup5dPct": 5.7,
-      "medDollarVolUsd": 3587760,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PLAB",
-      "name": "Photronics, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -14.5,
-      "runup5dPct": -4.9,
-      "medDollarVolUsd": 33772867,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RERE",
-      "name": "ATRenew Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 1.7,
-      "runup5dPct": 6.9,
-      "medDollarVolUsd": 3619200,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "FLXS",
-      "name": "Flexsteel Industries, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 4.9,
-      "runup5dPct": -0.3,
-      "medDollarVolUsd": 3594195,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BOW",
-      "name": "Bowhead Specialty Holdings Inc.",
-      "tier": "watch",
-      "score": 19,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": 0.5,
-      "runup5dPct": 0.1,
-      "medDollarVolUsd": 5268480,
+      "runup20dPct": -7.4,
+      "runup5dPct": 1.5,
+      "medDollarVolUsd": 4747683,
       "smartAccum": false,
       "official": null
     },
@@ -194,15 +112,48 @@
       "ticker": "IMOS",
       "name": "ChipMOS TECHNOLOGIES INC.",
       "tier": "watch",
-      "score": 16,
+      "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": 7.1,
-      "runup5dPct": 1.1,
-      "medDollarVolUsd": 6328865,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 6254165,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NMCO",
+      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": 3.2,
+      "medDollarVolUsd": 1854336,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GLAS",
+      "name": "Glass House Brands Inc. Subordi",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -11.2,
+      "runup5dPct": -12.1,
+      "medDollarVolUsd": 3360500,
       "smartAccum": false,
       "official": null
     }
