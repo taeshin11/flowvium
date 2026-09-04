@@ -418,6 +418,42 @@ async function checkOnce() {
     issues.push(`교정기 드리프트 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
+  // ── 보고서 누락 감시 (2026-09-05 신설) ────────────────────────────────────────
+  //   09-04 evening(20:00)이 사전점검 실패로 아예 안 나갔는데 **아무도 몰랐다**.
+  //   사람이 다음 날 "보고서 잘 올라가고 있나" 라고 물어서 찾았다.
+  //   영상 쪽에는 감시를 붙였는데 보고서에는 없었다 — 정작 이쪽이 본체다.
+  //   판정: 예정 시각 + 여유(150분)가 지났는데 그 세션 기록이 없으면 누락이다.
+  //   150분: 생성이 50~90분 걸리고 재시도(최대 10분)와 정시 발간 대기를 감안한 값이다.
+  try {
+    const { openDb: odb } = await import('./lib/db.mjs');
+    const PLAN = { morning: [5, 30], noon: [10, 30], afternoon: [14, 30], evening: [20, 0], midnight: [22, 30] };
+    const GRACE = Number(process.env.REPORT_GRACE_MIN || 150);
+    const now = new Date(Date.now() + 9 * 3600000);            // KST
+    const today = now.toISOString().slice(0, 10);
+    const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const db2 = odb();
+    const rows2 = db2.prepare(
+      `SELECT session, generated_at FROM reports WHERE datetime(generated_at) >= datetime('now','-2 days')`).all();
+    const seen = new Set(rows2.map((r) => {
+      const k = new Date(new Date(r.generated_at).getTime() + 9 * 3600000).toISOString().slice(0, 10);
+      return `${k}:${r.session}`;
+    }));
+    const missing = [];
+    for (const [ses, [h, m]] of Object.entries(PLAN)) {
+      const due = h * 60 + m + GRACE;
+      if (nowMin < due) continue;                              // 아직 시간이 안 됐다
+      if (!seen.has(`${today}:${ses}`)) missing.push(`${ses}(${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')})`);
+    }
+    if (missing.length) {
+      issues.push(`보고서 누락 ${missing.length}건 — ${missing.join(', ')} 가 예정 시각 +${GRACE}분이 지나도 없다. `
+        + `조치: tail -20 logs/report-<세션>.log (사전점검 rc=2 로 중단됐을 수 있다)`);
+    } else {
+      info.push('보고서 ✓ 오늘 예정 세션 누락 없음');
+    }
+  } catch (e) {
+    issues.push(`보고서 누락 감시 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
   // ── 쇼츠 발행 실패 감시 (2026-09-04 신설) ──────────────────────────────────────
   //   09:00 정기 발행이 렌더 오류로 죽었는데(받은 파일이 PDF 였다) **한 시간 넘게 아무도 몰랐다.**
   //   사람이 로그를 뒤져서 알았다. 시작만 하고 끝나지 않은 회차를 감시가 잡아야 한다.

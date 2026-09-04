@@ -95,10 +95,26 @@ log "[INFO] LLM 정상 (생성 확인됨)"
 
 # ── 2. 사전점검 (조용한 실패 방지). 종료코드 2 = 치명 → 중단 ──────────────────
 if [ "${SKIP_PREFLIGHT:-0}" != "1" ]; then
-  log "[INFO] 데이터 소스 사전점검"
-  "$NODE_BIN" scripts/audit-data-sources.mjs >> "$LOG_FILE" 2>&1
-  rc=$?
-  if [ "$rc" -ge 2 ]; then log "[FATAL] 치명 데이터 소스 실패(rc=$rc) — 생성 중단"; exit 2; fi
+  # 2026-09-05: 사전점검이 한 번 실패했다고 그 회차를 통째로 버렸다 —
+  #   09-04 evening 이 20:01 에 rc=2 로 중단됐고, 몇 분 뒤 확인하니 소스는 멀쩡했다(일시 장애).
+  #   외부 API 는 잠깐씩 죽는다. 그때마다 보고서 한 편을 잃을 이유가 없다.
+  #   5분 간격으로 3번까지 다시 본다. 그래도 안 되면 그때 중단한다.
+  PRECHECK_TRIES="${PRECHECK_TRIES:-3}"
+  PRECHECK_WAIT="${PRECHECK_WAIT:-300}"
+  try=1
+  while : ; do
+    log "[INFO] 데이터 소스 사전점검 (${try}/${PRECHECK_TRIES})"
+    "$NODE_BIN" scripts/audit-data-sources.mjs >> "$LOG_FILE" 2>&1
+    rc=$?
+    if [ "$rc" -lt 2 ]; then break; fi
+    if [ "$try" -ge "$PRECHECK_TRIES" ]; then
+      log "[FATAL] 치명 데이터 소스 실패(rc=$rc) — ${PRECHECK_TRIES}회 재시도 후 생성 중단"
+      exit 2
+    fi
+    log "[WARN] 치명 소스 실패(rc=$rc) — ${PRECHECK_WAIT}초 뒤 재시도"
+    sleep "$PRECHECK_WAIT"
+    try=$((try+1))
+  done
   [ "$rc" -eq 1 ] && log "[WARN] 일부 소스 실패(rc=1) — 계속"
 fi
 
