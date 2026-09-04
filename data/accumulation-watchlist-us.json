@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-04T09:20:58.360Z",
+  "generatedAt": "2026-09-04T13:05:16.721Z",
   "universe": "US",
   "scanned": 284,
-  "count": 9,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 9,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -25,73 +25,6 @@
       "official": null
     },
     {
-      "ticker": "GLP",
-      "name": "Global Partners LP",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.2,
-      "runup5dPct": 4.1,
-      "medDollarVolUsd": 3587760,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EHI",
-      "name": "Western Asset Global High Incom",
-      "tier": "watch",
-      "score": 25,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -2.2,
-      "runup5dPct": -0.2,
-      "medDollarVolUsd": 558600,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KELYA",
-      "name": "Kelly Services, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 7,
-      "runup5dPct": -2.2,
-      "medDollarVolUsd": 4841856,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PSFE",
-      "name": "Paysafe Limited",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -9.7,
-      "runup5dPct": 1,
-      "medDollarVolUsd": 2116212,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "KE",
       "name": "Kimball Electronics, Inc.",
       "tier": "watch",
@@ -105,23 +38,6 @@
       "runup20dPct": -7.4,
       "runup5dPct": 1.5,
       "medDollarVolUsd": 4747683,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "IMOS",
-      "name": "ChipMOS TECHNOLOGIES INC.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.1,
-      "runup5dPct": -2,
-      "medDollarVolUsd": 6254165,
       "smartAccum": false,
       "official": null
     },
