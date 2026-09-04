@@ -418,6 +418,40 @@ async function checkOnce() {
     issues.push(`교정기 드리프트 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
+  // ── 쇼츠 발행 실패 감시 (2026-09-04 신설) ──────────────────────────────────────
+  //   09:00 정기 발행이 렌더 오류로 죽었는데(받은 파일이 PDF 였다) **한 시간 넘게 아무도 몰랐다.**
+  //   사람이 로그를 뒤져서 알았다. 시작만 하고 끝나지 않은 회차를 감시가 잡아야 한다.
+  //   판정: 최근 시작 기록이 있는데 그 뒤 '끝 ·' 도 '건너뜀' 도 없으면 실패다.
+  try {
+    const { readFileSync: rf, existsSync: ex } = await import('fs');
+    const { homedir } = await import('os');
+    const vlog = `${homedir()}/flowvium_runtime/video.log`;
+    if (!ex(vlog)) {
+      info.push('쇼츠 발행 로그 없음 — 아직 안 돌았거나 경로가 바뀌었다');
+    } else {
+      const lines = rf(vlog, 'utf8').split('\n').slice(-400);
+      const starts = [];
+      for (const l of lines) {
+        const m = l.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[publish\] (렌더 시작|시작 가능|건너뜀|끝 ·)/);
+        if (m) starts.push({ at: m[1], kind: m[2] });
+      }
+      // 마지막 '렌더 시작' 뒤에 마무리(끝·건너뜀)가 있었는가
+      const lastStart = [...starts].reverse().find((x) => x.kind === '렌더 시작');
+      if (lastStart) {
+        const after = starts.filter((x) => x.at > lastStart.at && (x.kind === '끝 ·' || x.kind === '건너뜀'));
+        const ageMin = (Date.now() - new Date(lastStart.at.replace(' ', 'T') + '+09:00').getTime()) / 60000;
+        if (!after.length && ageMin > 30) {
+          issues.push(`쇼츠 발행 실패 의심 — ${lastStart.at} 렌더 시작 뒤 ${Math.round(ageMin)}분째 마무리 기록이 없다. `
+            + `조치: tail -30 ~/flowvium_runtime/video.log`);
+        } else if (after.length) {
+          info.push(`쇼츠 발행 ✓ 마지막 회차 ${lastStart.at} → ${after[after.length - 1].kind.trim()}`);
+        }
+      }
+    }
+  } catch (e) {
+    issues.push(`쇼츠 발행 감시 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
   return { issues, info };
 }
 
