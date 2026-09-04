@@ -22,7 +22,7 @@ import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
@@ -353,12 +353,51 @@ async function download(url, dest) {
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const buf = Buffer.from(await r.arrayBuffer());
   if (buf.length > MAX_DL) throw new Error(`너무 큼 ${(buf.length / 1048576).toFixed(0)}MB`);
+  // 2026-09-04: **받은 것이 정말 그림인지 앞부분으로 확인한다.**
+  //   09:00 정기 발행이 통째로 죽었다 — "mjpeg: unsupported coding type (c8)".
+  //   korea.kr download.do 가 준 건 그림이 아니라 **PDF** 였다(file: PDF document, version 1.6).
+  //   확장자·URL 로는 알 수 없다. 파일 앞 몇 바이트가 진실이다.
+  const kind = (b) => {
+    if (b.length < 12) return null;
+    if (b[0] === 0xFF && b[1] === 0xD8) return 'jpeg';
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'png';
+    if (b.slice(0, 4).toString('ascii') === 'RIFF' && b.slice(8, 12).toString('ascii') === 'WEBP') return 'webp';
+    if (b.slice(4, 8).toString('ascii') === 'ftyp') return 'mp4';
+    if (b.slice(0, 4).toString('ascii') === '\u001aE\u00df\u00a3') return 'webm';
+    return null;
+  };
+  const k = kind(buf);
+  if (!k) {
+    const head = buf.slice(0, 8).toString('ascii').replace(/[^\x20-\x7e]/g, '.');
+    throw new Error(`그림이 아니다 (앞부분 "${head}")`);
+  }
   writeFileSync(dest, buf);
+  // 2026-09-04: **받은 것이 실제로 쓸 수 있는 그림인지 확인한다.**
+  //   09:00 정기 발행이 통째로 죽었다 —
+  //     mjpeg: unsupported coding type (c8) / Error: 렌더 실패 (exit 1)
+  //   korea.kr download.do 가 준 파일을 ffmpeg 가 못 읽었다. 검사 없이 쓴 게 원인이다.
+  //   한 장이 나쁘면 그 장면만 포기하면 된다 — 편 전체를 죽일 일이 아니다.
+  //   ffprobe 는 이 저장소에 없다(ffmpeg-static 만 있다). ffmpeg 로 **디코딩을 시켜 본다** —
+  //   실제로 풀리는지가 우리가 알아야 할 전부다.
+  const probe = spawnSync(ffmpegPath, ['-v', 'error', '-i', dest, '-frames:v', '1', '-f', 'null', '-'],
+    { encoding: 'utf8', timeout: 30000 });
+  if (probe.status !== 0) {
+    try { unlinkSync(dest); } catch { /* noop */ }
+    throw new Error(`디코딩 불가(${String(probe.stderr ?? '').split('\n')[0].slice(0, 60)})`);
+  }
   return dest;
 }
 
 // 장면끼리 같은 그림을 쓰지 않는다. 2026-09-03 실측: 홈플러스 편에서 같은 매장 사진이
 //   네 장면에 그대로 깔렸다 — 소재가 맞아도 같은 그림이 반복되면 정지 화면이나 다름없다.
+// 2026-09-04: **한국 뉴스에는 한국 것만 붙인다.**
+//   약칭이 계속 남의 것을 물어왔다 —
+//     GCC → 이집트항공 A320(등록기호 SU-GCC) · FTA → 대만 총통 · IPO → 필리핀 유역
+//     Invesco → 미식축구 경기장 · Vanguard → 화물선 · GAP → 프랑스 도시
+//   낱말을 하나씩 막는 대신 조건을 뒤집는다: 한국어 기사를 다루는 편이면 결과 제목에도
+//   한국 표시가 있어야 한다. 없으면 안 쓴다 — 카드가 남의 나라 사진보다 낫다.
+const KO_ISSUE = /[가-힣]/.test(headlines.slice(0, 3).join(' '));
+if (KO_ISSUE) log('[화면] 한국 기사 — 소재도 한국 것만 쓴다');
 const usedMedia = new Set();
 for (let i = 0; i < scenes.length; i++) {
   if (scenes[i].isOutro) { log(`[화면] ${i + 1} 마무리 — 채널 그래픽`); continue; }
@@ -447,7 +486,7 @@ for (let i = 0; i < scenes.length; i++) {
       log(`[화면] ${i + 1} "${terms.join(' ')}" 는 낱말이 하나 — 검색 생략(뜻이 너무 넓다)`);
       break;
     }
-    const koAnchor = needsKoreaAnchor(terms);
+    const koAnchor = KO_ISSUE || needsKoreaAnchor(terms);
     const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
       && titleRelevant(c.title, terms) && near(c.title)
       && (!koAnchor || looksKorean(c.title)));
@@ -487,7 +526,7 @@ for (let i = 0; i < scenes.length; i++) {
       for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
         try { cands2 = cands2.concat(await fn(alt, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
       }
-      const koA = needsKoreaAnchor(alt);
+      const koA = KO_ISSUE || needsKoreaAnchor(alt);
       const rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
         && titleRelevant(c.title, alt) && (!koA || looksKorean(c.title)));
       const p2 = pickFootageMany(preferRecent(rel2), 1, { terms: alt, preferFree: true });
@@ -516,7 +555,8 @@ for (let i = 0; i < scenes.length; i++) {
       for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
         try { ko = ko.concat(await fn(pair, { limit: 8 })); } catch { /* 다음 소스로 */ }
       }
-      const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair));
+      const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair)
+        && (!KO_ISSUE || looksKorean(c.title)));
       const pick = pickFootageMany(preferRecent(rel), 1, { terms: pair, preferFree: true });
       if (pick.length) {
         scenes[i].pick = pick[0];
