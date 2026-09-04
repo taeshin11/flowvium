@@ -448,6 +448,24 @@ async function checkOnce() {
         }
       }
     }
+    // 2026-09-04: 위 검사는 **렌더**가 죽은 것만 잡는다. 오늘은 렌더가 성공하고
+    //   **업로드만** 죽었다(invalid_grant) — 네 회차가 그렇게 조용히 날아갔고,
+    //   사람이 저녁에 물어봐서 알았다. 업로드 오류를 따로 본다.
+    try {
+      const { readFileSync: rf2, existsSync: ex2 } = await import('fs');
+      const { homedir: hd2 } = await import('os');
+      const vlog2 = `${hd2()}/flowvium_runtime/video.log`;
+      if (ex2(vlog2)) {
+        const tail = rf2(vlog2, 'utf8').split('\n').slice(-300).join('\n');
+        const authErr = /invalid_grant|Token has been expired or revoked|업로드 실패/i.test(tail);
+        if (authErr) {
+          const kind = /invalid_grant|expired or revoked/i.test(tail) ? '유튜브 인증 만료(invalid_grant)' : '업로드 실패';
+          issues.push(`${kind} — 렌더는 되는데 업로드가 죽고 있다. 발행이 멈춘 상태다. `
+            + `조치: node scripts/youtube-auth.mjs 로 재인증. `
+            + `근본: OAuth 앱이 '테스트' 상태면 갱신 토큰이 7일마다 폐기된다 — 프로덕션으로 올려야 한다`);
+        }
+      }
+    } catch { /* 이 검사가 실패해도 위 검사는 남는다 */ }
   } catch (e) {
     issues.push(`쇼츠 발행 감시 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
