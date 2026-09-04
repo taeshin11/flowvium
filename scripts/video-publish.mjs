@@ -183,6 +183,15 @@ if (!String(process.env.DONATION_ACCOUNT ?? '').trim()) {
   log('⚠ 후원 계좌가 설명란에 들어가지 않았다 — video-meta 확인');
 }
 
+// 2026-09-04 마지막 관문: **한국어 채널에 영어 제목을 올리지 않는다.**
+//   이슈 단계에서 막았지만 거기서 새면 그대로 나간다 — 실제로 22:09 에
+//   "Should Investors Ride the Silver… #Shorts" 가 올라갔다.
+//   제목에 한글이 하나도 없으면 발행을 멈춘다. 렌더는 버려도 되지만 채널에 남는 건 못 지운다.
+if (isKoUpload && !/[가-힣]/.test(title)) {
+  log(`❌ 제목에 한글이 없다 — 발행 중단: ${title.slice(0, 60)}`);
+  log('   한국어 채널에 영어 제목이 나가면 시청자에게 안 걸리고 되돌리기도 어렵다.');
+  process.exit(3);
+}
 log(`제목: ${title}`);
 if (DRY) { log('--dry-run — 업로드하지 않는다'); process.exit(0); }
 

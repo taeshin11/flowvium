@@ -45,7 +45,15 @@ const WIN = /세계\s*1위|사상\s*최[대고초]|역대\s*최[대고]|신기�
  * @returns {{ordered: string[], proud: boolean}} proud = 국뽕 헤드라인을 앞세웠는가
  */
 export function orderForTitle(heads, isKo) {
-  const list = (heads ?? []).filter(Boolean);
+  let list = (heads ?? []).filter(Boolean);
+  // 2026-09-04 사용자: "왜 제목 설명이 영어로 나갔어?"
+  //   한국어 채널인데 "Should Investors Ride the Silver…" 가 제목으로 나갔다.
+  //   같은 이슈 묶음에 한국어 헤드라인이 넷이나 있었는데 **첫 줄이 영어**라 그게 제목이 됐다.
+  //   한국어 편이면 한글 헤드라인을 앞세운다. 하나도 없으면 그대로 둔다(호출부가 막는다).
+  if (isKo) {
+    const ko = list.filter((h) => /[가-힣]/.test(String(h)));
+    if (ko.length) list = [...ko, ...list.filter((h) => !/[가-힣]/.test(String(h)))];
+  }
   if (!isKo || list.length < 2) return { ordered: list, proud: false };
   const i = list.findIndex((h) => KOREA.test(h) && WIN.test(h) && !FOREIGN_LEAD.test(String(h).trim()));
   if (i <= 0) return { ordered: list, proud: i === 0 };

@@ -124,7 +124,14 @@ let fresh = issues.filter((it) => !already.has(normalizeIssueKey(it.keyword)));
     if (koOnly.length !== fresh.length) log(`[편성] 한국어 기사 위주 이슈 ${koOnly.length}/${fresh.length} 만 남긴다(영어 원문은 대본이 깨진다)`);
     fresh = koOnly;
   } else {
-    log('⚠ 한국어 기사 이슈가 없다 — 영어 이슈로 간다(대본 품질 주의)');
+    // 2026-09-04 사용자: "왜 제목 설명이 영어로 나갔어? 수정해."
+    //   종전엔 한국어 이슈가 없으면 영어로 넘어갔다. 그 결과 한국어 채널에
+    //   "Should Investors Ride the Silver… #Shorts" 가 나갔다(22:09 실측).
+    //   제목·설명이 영어면 한국 시청자에게 안 걸리고, 대본도 4B 번역이라 깨진다.
+    //   **거르는 편이 낫다** — 한 회차 빠지는 것보다 영어 영상이 채널에 남는 게 나쁘다.
+    console.error('❌ 한국어 기사 이슈가 없다 — 이번 회차를 거른다(영어 영상을 내지 않는다).');
+    console.error('   다음 슬롯에 한국 기사가 쌓이면 정상 발행된다.');
+    process.exit(3);   // 3 = 낼 것이 없음(실패와 구분)
   }
 }
 if (already.size) {
