@@ -93,10 +93,21 @@ const run = (args, label) => {
 //   가로 6분짜리는 --format=long 으로 남겨 둔다 — 지운 게 아니라 부르지 않을 뿐이다.
 const FORMAT = arg('--format', 'shorts');
 const isShorts = FORMAT === 'shorts';
-log(`렌더 시작 (locale=${LOCALE} · 포맷 ${FORMAT})`);
-run(isShorts
-  ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
-  : [resolve(ROOT, 'scripts/video/make-issue-video.mjs'), '--locale', LOCALE], '렌더');
+// 2026-09-04 (--use-existing): **이미 만들어 둔 파일을 그대로 올린다.**
+//   종전엔 발행할 때마다 렌더를 다시 돌렸다. 그래서 사람이 눈으로 확인한 영상과
+//   실제로 올라간 영상이 **다른 것**이었다 — 오늘 아침 확인본의 훅은 "7월 흑자 420억, 이유?" 였는데
+//   올라간 것은 "반도체 표적관세" 였다. 확인의 의미가 없다.
+//   4B 모델은 같은 프롬프트에도 회차마다 다르게 낸다. 보고 올리려면 그 파일을 올려야 한다.
+//   정기 발행은 확인할 사람이 없으므로 종전대로 새로 만든다(기본값).
+const USE_EXISTING = argv.includes('--use-existing');
+if (USE_EXISTING) {
+  log('--use-existing — 이미 만들어 둔 파일을 그대로 올린다(렌더 생략)');
+} else {
+  log(`렌더 시작 (locale=${LOCALE} · 포맷 ${FORMAT})`);
+  run(isShorts
+    ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
+    : [resolve(ROOT, 'scripts/video/make-issue-video.mjs'), '--locale', LOCALE], '렌더');
+}
 const MEDIA = resolveMediaRoot({
   configured: envValue('MEDIA_ROOT'),
   localFallback: resolve(ROOT, 'reports/video'),
