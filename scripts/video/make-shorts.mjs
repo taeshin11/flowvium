@@ -618,6 +618,21 @@ for (let i = 0; i < scenes.length; i++) {
 
 closeGoogleImages();
 
+// 2026-09-05: **전 장면이 카드면 내지 않는다.**
+//   07:00 편이 네 장면 모두 카드로 나가 회색 화면만 남았다(사용자가 보고 내리라고 했다).
+//   소재를 하나도 못 찾았다는 건 그 주제를 보여줄 수 없다는 뜻이다 — 그런 편은 영상이 아니다.
+//   한 장이라도 있으면 낸다(나머지는 재사용·카드로 메운다).
+{
+  const real = scenes.filter((x) => !x.isOutro && x.media).length;
+  const total = scenes.filter((x) => !x.isOutro).length;
+  if (!real) {
+    console.error(`❌ ${total}장면 모두 소재 없음 — 회색 카드만 남는다. 이번 회차를 거른다.`);
+    console.error('   다음 슬롯에 다른 주제가 잡히면 정상 발행된다.');
+    process.exit(3);   // 3 = 낼 것이 없음
+  }
+  if (real < total) log(`[화면] 소재 ${real}/${total} — 나머지는 재사용·카드`);
+}
+
 // ── 소재 선택 기록 (2026-09-04, 사용자 "지켜보면서 고치자") ─────────────────────
 //   매 회차 어떤 질의로 무엇이 붙었는지 한 줄씩 쌓는다.
 //   며칠 지나면 "어떤 종류의 질의가 틀린 그림을 물어오는가" 를 눈짐작이 아니라 숫자로 볼 수 있다.
@@ -698,9 +713,13 @@ body{background:radial-gradient(760px 560px at 50% 45%,#25406e 0%,rgba(0,0,0,0) 
   linear-gradient(140deg,#080d1a,#16224061 55%,#080d1a);
   font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;
   display:flex;align-items:center;justify-content:center}
-.k{font-size:150px;font-weight:900;color:rgba(255,255,255,.14);letter-spacing:-.03em;
-  text-align:center;padding:0 60px;line-height:1.1}
-</style><div class="k">${String(issue.keyword ?? '').slice(0, 10)}</div>`);
+/* 2026-09-05: 여기에 **이슈 키워드를 그대로** 찍고 있었다. 그래서 화면에 "ipo" 라는
+   원시 낱말이 크게 떠 있는 영상이 나갔다(사용자: "영상에 ipo만 떡하니 있는데?").
+   키워드는 우리 내부 분류일 뿐 시청자에게는 아무 뜻이 없다.
+   글자를 지우고 브랜드 마크만 은은하게 둔다 — 소재가 없을 때의 배경이지 정보가 아니다. */
+.k{font-size:64px;font-weight:900;color:rgba(255,255,255,.10);letter-spacing:.32em;
+  text-indent:.32em;text-align:center}
+</style><div class="k">FLOWVIUM</div>`);
 await page.screenshot({ path: `${WORK}/card.png` });
 await browser.close();
 
