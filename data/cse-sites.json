@@ -1,0 +1,18 @@
+{
+  "note": "구글 프로그래밍 검색에 등록할 도메인. 2026-03 부터 '전체 웹 검색' 이 폐지돼 사이트를 직접 넣어야 한다(최대 50 고유 도메인).",
+  "safe": [
+    "korea.kr", "mss.go.kr", "moef.go.kr", "motie.go.kr", "mois.go.kr", "molit.go.kr",
+    "mafra.go.kr", "me.go.kr", "mofa.go.kr", "moj.go.kr", "msit.go.kr", "mohw.go.kr",
+    "moel.go.kr", "bok.or.kr", "fss.or.kr", "assembly.go.kr", "president.go.kr",
+    "seoul.go.kr", "busan.go.kr", "incheon.go.kr", "gg.go.kr",
+    "commons.wikimedia.org", "ko.wikipedia.org", "flickr.com"
+  ],
+  "press": [
+    "yna.co.kr", "hankyung.com", "mt.co.kr", "newsis.com", "news1.kr",
+    "chosun.com", "biz.chosun.com", "joongang.co.kr", "donga.com", "hani.co.kr",
+    "khan.co.kr", "mk.co.kr", "sedaily.com", "edaily.co.kr", "fnnews.com",
+    "kbs.co.kr", "imbc.com", "sbs.co.kr", "ytn.co.kr", "jtbc.co.kr",
+    "yonhapnewstv.co.kr", "etnews.com", "zdnet.co.kr", "thebell.co.kr", "asiae.co.kr",
+    "heraldcorp.com"
+  ]
+}
