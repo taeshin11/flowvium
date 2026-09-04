@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-03T22:20:22.864Z",
+  "generatedAt": "2026-09-04T07:20:25.275Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 3,
@@ -8,20 +8,20 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "189300.KQ",
-      "name": "인텔리안테크",
+      "ticker": "044490.KQ",
+      "name": "태웅",
       "tier": "watch",
-      "score": 34,
+      "score": 41,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -13.5,
-      "runup5dPct": -7.6,
-      "medDollarVolUsd": 4520107,
+      "runup20dPct": 9.3,
+      "runup5dPct": -1.8,
+      "medDollarVolUsd": 2770471,
       "smartAccum": true,
       "official": null
     },
@@ -37,9 +37,9 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 9.9,
-      "runup5dPct": -1.6,
-      "medDollarVolUsd": 1656562,
+      "runup20dPct": 9.7,
+      "runup5dPct": -1,
+      "medDollarVolUsd": 1607233,
       "smartAccum": true,
       "official": null
     },
@@ -50,12 +50,12 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 3.7× 급증(가격 평탄)",
+        "거래량 추세 1.7× 상승",
+        "거래량 2.8× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -5.3,
-      "runup5dPct": -0.1,
+      "runup20dPct": -11.3,
+      "runup5dPct": 0.2,
       "medDollarVolUsd": 7776,
       "smartAccum": true,
       "official": null
