@@ -31,7 +31,12 @@ let _blockedUntil = 0;
 /** 마지막 호출 시각 — 연속 호출을 벌린다. 내가 테스트로 6번 연달아 불러 차단을 자초했다. */
 let _lastCall = 0;
 const BLOCK_COOLDOWN_MS = Number(process.env.CSE_COOLDOWN_MS || 30 * 60_000);
-const MIN_GAP_MS = Number(process.env.CSE_MIN_GAP_MS || 6_000);
+// 2026-09-05: 6초 간격으로 하루 8슬롯 × 9회를 부르다 19:00 회차에서 봇 확인에 걸렸다.
+//   30분 쿨다운이 걸려 그 회차가 통째로 걸러졌다(회색 카드 대신 거른 건 옳다).
+//   간격을 넓히고 흔들어 준다 — 일정한 간격 자체가 기계처럼 보인다.
+const MIN_GAP_MS = Number(process.env.CSE_MIN_GAP_MS || 14_000);
+/** 같은 질의를 이 프로세스 안에서 다시 부르지 않는다. 한 회차에 같은 낱말이 여러 번 온다. */
+const _cache = new Map();
 /** 위젯을 담을 최소 페이지. http 출처라야 cse.js 가 뜬다(file:// 에서는 안 뜬다 — 실측). */
 async function ensureServer(cx) {
   if (_srv) return _port;
@@ -78,7 +83,11 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
     console.error(`[구글] 봇 확인 쿨다운 중 — ${Math.ceil((_blockedUntil - Date.now()) / 60000)}분 남음, 건너뛴다`);
     return [];
   }
-  const gap = MIN_GAP_MS - (Date.now() - _lastCall);
+  const key = `${q}|${limit}|${countOnly ? 'c' : 'f'}`;
+  if (_cache.has(key)) return _cache.get(key);
+  // 일정한 간격은 그 자체로 기계의 표시다 — ±40% 흔든다.
+  const jitter = MIN_GAP_MS * (0.8 + Math.random() * 0.6);
+  const gap = jitter - (Date.now() - _lastCall);
   if (gap > 0) await new Promise((r) => setTimeout(r, gap));
   _lastCall = Date.now();
   const port = await ensureServer(cx);
@@ -137,12 +146,14 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
     //   후보마다 페이지를 여러 개 열어야 해서 느리다 — 개수만 세고 돌아간다.
     if (countOnly) {
       const pages = [...new Set(rows.map((r) => r.href).filter((u) => !isDoc(u)))];
-      return pages.slice(0, limit).map((u) => {
+      const out = pages.slice(0, limit).map((u) => {
         let host = '';
         try { host = new URL(u).hostname; } catch { /* noop */ }
         return { kind: 'image', url: u, title: (rows.find((r) => r.href === u)?.alt) || host,
           source: host.replace(/^www\./, ''), pageUrl: u, riskyDomain: RISKY.test(host) };
       });
+      _cache.set(key, out);
+      return out;
     }
     if (!ordered.length) {
       const pages = [...new Set(rows.map((r) => r.href).filter((u) => !isDoc(u)))].slice(0, limit * 2);
@@ -180,7 +191,7 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
       }));
       ordered = got.filter(Boolean);
     }
-    return ordered.slice(0, limit).map((r) => {
+    const result = ordered.slice(0, limit).map((r) => {
       // 출처는 이미지가 올려진 CDN 이 아니라 **기사 도메인**이어야 한다.
       //   화면에 "img.newsis.net" 이 아니라 "newsis.com" 이 찍혀야 사람이 알아본다.
       let host = '';
@@ -195,5 +206,7 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
         riskyDomain: RISKY.test(host),
       };
     });
+    _cache.set(key, result);
+    return result;
   } finally { await p.close().catch(() => {}); }
 }
