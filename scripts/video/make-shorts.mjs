@@ -453,8 +453,21 @@ for (let a = 1; a <= 3; a++) {
       if (!t) return true;
       return !/(습니다|입니다|습니까|십시오|하십시오)[.!?]?$/.test(t);
     }).length;
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''} — 다시 쓴다`);
+    // 2026-09-05: 훅이 "다우 0.5% 하락" 과 "다우 0.5% 내리" 로 거의 같게 나왔다.
+    //   프롬프트에 "훅마다 다른 말로 시작하라" 를 넣었지만 4B 가 지키지 않는다 — 코드가 본다.
+    //   낱말 집합이 절반 넘게 겹치면 같은 훅으로 친다.
+    const hookWords = (h) => new Set(String(h ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((w) => w.length >= 1));
+    let dupHooks = 0;
+    for (let x = 0; x < scenes.length; x++) {
+      for (let y = x + 1; y < scenes.length; y++) {
+        const a = hookWords(scenes[x].hook); const b = hookWords(scenes[y].hook);
+        if (!a.size || !b.size) continue;
+        let hit = 0; for (const w of a) if (b.has(w)) hit += 1;
+        if (hit / Math.min(a.size, b.size) > 0.5) dupHooks += 1;
+      }
+    }
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }
@@ -730,7 +743,15 @@ for (let i = 0; i < scenes.length; i++) {
     }
   }
 
-  if (!scenes[i].pick && process.env.GOOGLE_CSE_CX) {
+  // 2026-09-05: 시세 주제인데 구글을 불러 **새 봇 차단을 자초했다**(22:00 회차, 질의 "뉴욕증시 금리인상").
+  //   시세는 그날 사진만 쓸 수 있는데 구글 결과는 대개 지난 기사다 — 불러도 거의 버린다.
+  //   기사 경로가 이미 오늘 사진을 줬으니 여기서 더 부를 이유가 없다.
+  //   편성 단계에서는 이미 빼 뒀는데 장면 단계에 그대로 남아 있었다.
+  const skipGoogle = TIME_SENSITIVE.test(headlines[0] ?? '');
+  if (!scenes[i].pick && skipGoogle) {
+    log(`[화면] ${i + 1} 시세 주제 — 구글은 부르지 않는다(그날 사진이 아니면 못 쓴다)`);
+  }
+  if (!scenes[i].pick && !skipGoogle && process.env.GOOGLE_CSE_CX) {
     // 2026-09-05: 고유명사 추출에만 기댔더니 "김승원 법무장관 후보자" 편에서 "법무" 가 뽑혔다.
     //   **이슈 키워드가 이 회차의 주제어다** — 편성이 그걸로 이 이슈를 골랐다. 앞에 세운다.
     //   구글은 한국어를 그대로 받으므로 "김승원" 이 가장 정확한 질의다.
