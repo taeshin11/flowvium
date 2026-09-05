@@ -37,6 +37,7 @@ import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } fro
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
 import { isCoherentIssue, isSameStory, hasParticle } from '../lib/issue-coherence.mjs';
+import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
@@ -401,6 +402,10 @@ ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.spea
 
 규칙:
 - 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
+- **남의 주장은 누가 했는지 밝혀라.** 정당·인물의 공격 표현을 채널의 말처럼 쓰지 마라.
+  실측으로 나간 것: 훅에 "좌파 카르텔 인사 농단" 만 크게 떴고 그 아래는 상대 인물 사진이었다.
+  · 나쁨: 좌파 카르텔 인사 농단   · 좋음: 국힘 "좌파 카르텔" / 野, 인사 농단 주장
+  사람을 규정하는 말(카르텔·농단·3인방·몸통·적폐 …)은 **반드시 발화자와 함께** 쓴다.
 - **정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.** 줄이거나 바꾸지 마라.
   실측으로 나간 오기: "국민의힘"→"국민힘", "정부"→"청와대"(현 정부는 대통령실이다).
   뉴스 채널에서 이름을 틀리면 그 한 글자가 신뢰를 깎는다.
@@ -493,8 +498,13 @@ for (let a = 1; a <= 3; a++) {
         if (hit / Math.min(a.size, b.size) > 0.5) dupHooks += 1;
       }
     }
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''} — 다시 쓴다`);
+    // 2026-09-06: 훅에 "좌파 카르텔 인사 농단" 이 인용 표시 없이 떴다. 한쪽 정당의 공격 표현인데
+    //   화면만 보면 **채널이 그렇게 규정한 것**으로 읽힌다 — 그 아래는 상대 인물 사진이었다.
+    //   어제 성적을 재보니 정치갈등이 반응률 1위였다(1.61%). 반응률만 좇으면 이런 편이 늘어난다.
+    //   남의 주장은 누가 했는지 밝혀야 한다.
+    const unattributed = attributionIssues(scenes);
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !unattributed.length) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }
