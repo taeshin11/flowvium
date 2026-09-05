@@ -36,6 +36,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
+import { isCoherentIssue, isSameStory } from '../lib/issue-coherence.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
@@ -265,6 +266,33 @@ if (FORCE_ISSUE) {
   issue = hit;
   log(`[편성] --issue 지정 → "${issue.keyword}" (편성 대장 무시)`);
 } else {
+  // 2026-09-05: 묶음이 **한 사건인지** 먼저 본다. "대통령" 키워드로 수출 기록·이창동 영화·
+  //   두테르테 체포영장이 한 묶음이 됐고, 대본 네 장면이 서로 다른 이야기를 했다(내렸다).
+  //   직함은 어느 기사에나 있어 그것만으로 묶으면 이슈가 아니다.
+  // 같은 기사가 **다른 키워드로** 다시 나가는 것도 막는다. 원장은 키워드로만 보는데,
+  //   12:00 에 "아파트" 로 낸 기사가 여기서 "홍지선" 으로 다시 1순위가 됐다(실측).
+  let publishedHeads = [];
+  try {
+    const { recentShortsHeadlines } = await import('../lib/db.mjs');
+    publishedHeads = recentShortsHeadlines(24);
+  } catch { /* 못 읽어도 편성은 계속한다 — 키워드 원장이 1차 방어다 */ }
+  const dupBefore = fresh.length;
+  fresh = fresh.filter((c) => !isSameStory((c.headlines ?? [])[0] ?? '', publishedHeads));
+  if (fresh.length !== dupBefore) log(`[편성] 이미 낸 기사와 같은 사건 ${dupBefore - fresh.length}건 제외`);
+
+  const before = fresh.length;
+  fresh = fresh.filter((c) => isCoherentIssue(c.keyword, c.headlines ?? []));
+  if (fresh.length !== before) log(`[편성] 한 사건으로 안 보이는 묶음 ${before - fresh.length}건 제외 — 남은 후보 ${fresh.length}`);
+  // ⚠ `issue` 는 이 블록 **앞에서** fresh[0] 로 이미 정해졌다. 여기서 후보를 걸러 놓고
+  //   issue 를 다시 가리키지 않으면, 아래 점수 매기기에서 아무도 점수를 못 받았을 때
+  //   **걸러낸 후보가 그대로 나간다** — 실측으로 중복 기사가 그 경로로 통과했다.
+  issue = fresh[0];
+  if (!fresh.length) {
+    console.error('❌ 한 사건으로 묶이는 이슈가 없다 — 이번 회차를 거른다.');
+    console.error('   서로 다른 사건을 한 영상에 담느니 거른다.');
+    process.exit(3);
+  }
+
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
     const sc = await footageScore(cand);
@@ -393,8 +421,16 @@ for (let a = 1; a <= 3; a++) {
   try {
     scenes = await askLLM();
     const chars = scenes.reduce((n, x) => n + String(x.say ?? '').length, 0);
-    if (scenes.length >= 2 && chars >= MIN_CHARS) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자 — 부족(최소 ${MIN_CHARS}자)`);
+    // 2026-09-05: 프롬프트가 "-습니다/-입니다 로 맺는다. 반말·해체 금지" 라고 시키는데
+    //   4B 가 어겨 "구조됐다·이루어졌다·밝혔다" 로 나왔다. 앵커가 반말로 읽으면 딴 채널이 된다.
+    //   길이와 같은 이치다 — 지시하되 **코드가 보장한다**.
+    const plain = scenes.filter((x) => {
+      const t = String(x.say ?? '').trim();
+      // 문장 끝만 본다. 문장 중간의 '-다' 는 정상이다("~했다고 밝혔습니다").
+      return /(?:다|요|지|네|군|damn)[.!?]?$/.test(t) && !/(습니다|입니다|습니까|십시오)[.!?]?$/.test(t);
+    }).length;
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 반말 ${plain}장면` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }

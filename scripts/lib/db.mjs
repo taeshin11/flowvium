@@ -1866,6 +1866,19 @@ export function normalizeIssueKey(k) {
 }
 
 /** 최근 `hours` 시간 안에 이미 쇼츠로 나간 이슈 키 집합. */
+/**
+ * 최근에 낸 **기사 제목**들. 키워드만으로는 같은 사건이 다른 키워드로 다시 나간다
+ * (2026-09-05: 12:00 "아파트" 로 낸 기사가 16:00 "홍지선" 으로 다시 1순위가 됐다).
+ */
+export function recentShortsHeadlines(hours = 24) {
+  const db = openDb();
+  const rows = db.prepare(
+    `SELECT headline FROM shorts_published
+      WHERE datetime(published_at) >= datetime('now', ?) AND headline IS NOT NULL`,
+  ).all(`-${Number(hours)} hours`);
+  return rows.map((r) => r.headline).filter(Boolean);
+}
+
 export function recentShortsIssues(hours = 24) {
   const db = openDb();
   const rows = db.prepare(
