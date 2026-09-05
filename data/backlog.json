@@ -55,8 +55,8 @@
   },
   "MDT": {
     "rpoUsd": 400000000,
-    "rpoYoYPct": 33.3,
-    "end": "2026-04-24",
+    "rpoYoYPct": 0,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "CAT": {
@@ -192,9 +192,9 @@
     "tag": "RPO"
   },
   "CSCO": {
-    "rpoUsd": 43462000000,
-    "rpoYoYPct": 4.3,
-    "end": "2026-04-25",
+    "rpoUsd": 46734000000,
+    "rpoYoYPct": 7.4,
+    "end": "2026-07-25",
     "tag": "RPO"
   },
   "ADP": {
@@ -804,21 +804,21 @@
     "tag": "RPO"
   },
   "ZS": {
-    "rpoUsd": 6459300000,
-    "rpoYoYPct": 29.8,
-    "end": "2026-04-30",
+    "rpoUsd": 7365400000,
+    "rpoYoYPct": 27.4,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "KEYS": {
-    "rpoUsd": 660000000,
-    "rpoYoYPct": 18.5,
-    "end": "2026-04-30",
+    "rpoUsd": 616000000,
+    "rpoYoYPct": 16.4,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "HPE": {
-    "rpoUsd": 10800000000,
-    "rpoYoYPct": 38.5,
-    "end": "2026-04-30",
+    "rpoUsd": 10900000000,
+    "rpoYoYPct": 7.9,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "HPQ": {
@@ -1080,9 +1080,9 @@
     "tag": "RPO"
   },
   "GTLB": {
-    "rpoUsd": 1100000000,
-    "rpoYoYPct": 15.2,
-    "end": "2026-04-30",
+    "rpoUsd": 1200000000,
+    "rpoYoYPct": 21.4,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "OVV": {
@@ -1381,8 +1381,8 @@
   },
   "CIEN": {
     "rpoUsd": 2500000000,
-    "rpoYoYPct": 47.1,
-    "end": "2026-05-02",
+    "rpoYoYPct": 25,
+    "end": "2026-08-01",
     "tag": "RPO"
   },
   "FIX": {
@@ -2190,9 +2190,9 @@
     "tag": "RPO"
   },
   "SNOW": {
-    "rpoUsd": 9200000000,
-    "rpoYoYPct": 37.3,
-    "end": "2026-04-30",
+    "rpoUsd": 9000000000,
+    "rpoYoYPct": 30.4,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "NET": {
@@ -2244,9 +2244,9 @@
     "tag": "RPO"
   },
   "MDB": {
-    "rpoUsd": 1458600000,
-    "rpoYoYPct": 88.4,
-    "end": "2026-04-30",
+    "rpoUsd": 1519200000,
+    "rpoYoYPct": 91.3,
+    "end": "2026-07-31",
     "tag": "RPO"
   },
   "PATH": {
