@@ -51,7 +51,10 @@ const run = (args, label) => {
   const r = spawnSync(node, args, { cwd: ROOT, stdio: 'inherit' });
   if (r.error) throw new Error(`${label} 실행 실패: ${r.error.message}`);
   if (r.status === NOTHING_TO_PUBLISH) {
-    log(`${label} — 이번 회차는 낼 것이 없어 건너뛴다(고장 아님). 다음 슬롯에 다시 시도한다.`);
+    // 첫 낱말이 '건너뜀' 이어야 한다 — check-stall 이 `[publish] (렌더 시작|시작 가능|건너뜀|끝 ·)`
+    //   로 마무리를 찾는다. '건너뛴다' 로 적었더니 마무리로 안 세어 "160분째 마무리 없음" 으로
+    //   헛경보가 났다(실측). 감시기의 어휘가 계약이다.
+    log(`건너뜀 — ${label} 단계에서 이번 회차는 낼 것이 없다(고장 아님). 다음 슬롯에 다시 시도한다.`);
     process.exit(NOTHING_TO_PUBLISH);
   }
   if (r.status !== 0) throw new Error(`${label} 실패 (exit ${r.status}) — 위 출력을 볼 것`);

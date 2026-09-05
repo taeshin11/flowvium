@@ -208,6 +208,33 @@ async function runMonitor() {
     }
   }
 
+  // ── 보고서 레인 자가치유 (2026-09-05 신설) ───────────────────────────────────
+  //   위 웹 레인 치유를 만들 때 **보고서 레인(:8000)은 빼놓았다.** 그래서 오늘 그 잡이
+  //   08:00 에 언로드된 뒤 4시간 반 동안 아무도 살리지 않았고, 10:30 정오 보고서가
+  //   포트를 900초 기다리다 죽었다. 탐지는 있었는데 조치가 없던 08-28 과 같은 모양이다.
+  //
+  //   :8000 은 재기동이 더 조심스럽다 — 보고서가 이 레인으로 90분짜리 작업을 돈다.
+  //   그래서 llm-health-check 안의 가드에 맡긴다: 다른 생성이 진행 중이면 재기동을 거부하고,
+  //   연결 자체가 거부될 때(=아무도 안 듣고 있을 때)만 미기동으로 보고 되살린다.
+  const REPORT_HEAL_COOLDOWN_MS = 60 * 60 * 1000;
+  if (result.defects.some((d) => /LLM DEAD/.test(d) && !/WEB LLM DEAD/.test(d))) {
+    const since = Date.now() - (_lastRun.reportLaneHeal ?? 0);
+    if (since < REPORT_HEAL_COOLDOWN_MS) {
+      log(`[auto-monitor/self-heal] 보고서 레인 재기동 보류 — ${Math.round(since / 60000)}분 전에 이미 시도했다(사람이 볼 것)`);
+    } else {
+      _lastRun.reportLaneHeal = Date.now();
+      log('[auto-monitor/self-heal] 보고서 레인(:8000) 재기동 시도 — 보고서 생성이 이 레인을 쓴다');
+      try {
+        const { stdout } = await execFileAsync('node', ['scripts/llm-health-check.mjs', '--repair'],
+          { timeout: 10 * 60 * 1000, windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
+        log(`[auto-monitor/self-heal] ${(stdout.trim().split('\n').at(-1) ?? '완료').replace(/^\[llm-health\]\s*/, '')}`);
+      } catch (e) {
+        const out = ((e.stdout?.toString() || '') + (e.stderr?.toString() || '')).trim().split('\n').at(-1) ?? '';
+        log(`[auto-monitor/self-heal] 보고서 레인 재기동 실패 — ${out.replace(/^\[llm-health\]\s*/, '').slice(0, 140)}`);
+      }
+    }
+  }
+  
   // 2026-08-22: 상류 소스 헬스(Yahoo/SEC/FRED/CNN)를 주기 감시로 옮겼다.
   //   종전에는 pre-push 의 verify-all 에서만 돌았고, 그 자리에서 exit 2 로 push 를 막았다.
   //   바깥 세상 상태는 코드 diff 와 무관한데 발간 시간대마다 경합으로 push 가 막혔다(실측 2회).

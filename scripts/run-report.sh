@@ -71,9 +71,18 @@ cd "$APP_DIR"
 # 1-a. 포트 기동 대기. 이건 *기동* 확인일 뿐 정상 확인이 아니다 — 아래 1-b 가 진짜 판정이다.
 log "[INFO] LLM 기동 대기 $LLM_HEALTH (상한 ${LLM_WAIT_S}s)"
 deadline=$(( $(date +%s) + LLM_WAIT_S ))
+repaired=0
 until code=$(curl -s --max-time 8 -o /dev/null -w '%{http_code}' "$LLM_HEALTH" 2>/dev/null) && [ "$code" = "200" ]; do
+  # 2026-09-05: 여기서 **기다리기만** 했다. :8000 잡이 언로드돼 있으면 900초를 기다려도
+  #   아무 일도 일어나지 않는다 — 오늘 정오 보고서가 그렇게 통째로 날아갔다(10:30→10:45 중단).
+  #   기다릴 게 아니라 띄워야 한다. 한 번만 시도하고, 그래도 안 되면 원래대로 기다린다.
+  if [ "$repaired" = "0" ]; then
+    repaired=1
+    log "[WARN] LLM 포트 무응답(http=${code:-000}) — 복구 1회 시도"
+    node "$APP_DIR/scripts/llm-health-check.mjs" --repair 2>&1 | while IFS= read -r l; do log "  $l"; done
+  fi
   if [ "$(date +%s)" -ge "$deadline" ]; then
-    log "[ERROR] LLM 포트 무응답 (http=${code:-000}) — 중단"; exit 1
+    log "[ERROR] LLM 포트 무응답 (http=${code:-000}) — 복구 시도 후에도 안 뜬다. 중단"; exit 1
   fi
   sleep 15
 done

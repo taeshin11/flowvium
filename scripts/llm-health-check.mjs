@@ -30,6 +30,7 @@
  *   node scripts/llm-health-check.mjs --lane=web # 웹 레인(:8001). --lane web 도 같다
  */
 import { execFileSync } from 'child_process';
+import { existsSync } from 'fs';
 import { probeWithColdRetry, waitUntilServing } from './lib/llm-health.mjs';
 import { resolveLlm, resolveLaunchdLabel } from './lib/llm-config.mjs';
 import { canReload, reclaimableBytes, weightBytes, modelPathFromPlist } from './lib/llm-memory.mjs';
@@ -110,15 +111,35 @@ function pidOfLabel() {
  */
 function restartService() {
   const uid = process.getuid();
-  const listed = execFileSync('/bin/launchctl', ['list'], { encoding: 'utf8', timeout: 15_000 });
+  const plistPath = `${process.env.HOME}/Library/LaunchAgents/${label}.plist`;
+  let listed = execFileSync('/bin/launchctl', ['list'], { encoding: 'utf8', timeout: 15_000 });
   if (!listed.split('\n').some((l) => l.trim().endsWith(label))) {
-    log(`❌ launchd 잡 '${label}' 이 등록돼 있지 않다 — 재기동 경로 없음`);
-    return false;
+    // 2026-09-05: 여기서 그냥 포기했다. 그래서 **오늘 정오 보고서가 통째로 날아갔다** —
+    //   :8000 잡이 08:00 에 언로드된 채였고, 사전점검은 900초를 기다리다 죽었다.
+    //   등록돼 있지 않다면 등록하면 된다. plist 는 그 자리에 있고 KeepAlive·RunAtLoad 도 켜져 있다.
+    //   (kickstart 는 등록된 잡에만 통한다 — 그래서 load 가 먼저다.)
+    if (!existsSync(plistPath)) {
+      log(`❌ launchd 잡 '${label}' 도, plist 도 없다 — 재기동 경로 없음`);
+      return false;
+    }
+    log(`launchd 잡 '${label}' 이 언로드돼 있다 — plist 로 다시 올린다`);
+    try {
+      execFileSync('/bin/launchctl', ['load', '-w', plistPath], { encoding: 'utf8', timeout: 60_000 });
+    } catch (e) {
+      log(`❌ load 실패: ${String(e.message).slice(0, 120)}`);
+      return false;
+    }
+    listed = execFileSync('/bin/launchctl', ['list'], { encoding: 'utf8', timeout: 15_000 });
+    if (!listed.split('\n').some((l) => l.trim().endsWith(label))) {
+      log(`❌ load 했는데도 목록에 없다 — 재기동 경로 없음`);
+      return false;
+    }
+    log(`등록 완료 — RunAtLoad 로 기동한다`);
+    return true;   // 방금 올렸으니 kickstart 로 또 죽였다 살릴 이유가 없다
   }
 
   // 메모리 판정. 경로·크기를 코드에 박지 않고 plist 의 --model 에서 실측한다.
-  const plist = `${process.env.HOME}/Library/LaunchAgents/${label}.plist`;
-  const dir = modelPathFromPlist(plist);
+  const dir = modelPathFromPlist(plistPath);
   const weights = weightBytes(dir || '');
   if (weights > 0) {
     const verdict = canReload({ weights, reclaimable: reclaimableBytes(), releasing: footprintOf(pidOfLabel()) });
@@ -144,8 +165,14 @@ if (first.ok) {
 // 진단을 먼저 정직하게 만든다. 종전에는 이 판정이 --repair 안에만 있어서, 보고서가 도는 중
 // 프로브가 실패하면 로그에 "생성 스레드 사망 의심" 만 남았다(2026-08-31 11:24 실제로 그렇게 찍혔다).
 // 사람이 그 줄만 보면 멀쩡한 서버를 죽이러 간다. 원인 후보가 둘이면 어느 쪽인지 로그가 말해야 한다.
-const busy = otherGenerationRunning();
+// 2026-09-05: 연결 자체가 거부되면(ECONNREFUSED) **아무도 그 포트를 듣고 있지 않다.**
+//   혼잡은 응답이 느린 것이지 연결이 거부되는 것이 아니다. 둘을 같이 다루면
+//   서비스가 내려가 있어도 "혼잡" 으로 넘겨 복구를 건너뛴다 — 오늘 그 일이 났다.
+//   :8000 잡이 언로드된 채 정오 보고서가 900초를 기다리다 죽었고, --repair 도 같은 이유로 멈췄다.
+const refused = /ECONNREFUSED|ENOTFOUND|EADDRNOTAVAIL|socket hang up/i.test(String(first.detail ?? ''));
+const busy = !refused && otherGenerationRunning();
 log(`⚠️ 불합격 [${first.stage}] ${first.detail} (${(first.ms / 1000).toFixed(1)}s, 레인 ${lane} url ${url})`);
+if (refused) log('  └ 연결 거부 — 포트에 아무도 없다. 혼잡이 아니라 미기동이다.');
 if (busy) {
   log('  └ 다만 이 기계에서 다른 생성이 진행 중이다 — :8000 은 동시처리 1건이라 프로브가 큐에 밀린다.');
   log('    즉 혼잡일 가능성이 높다. 사망 판정은 그 작업이 끝난 뒤에 다시 볼 것.');
