@@ -1867,6 +1867,59 @@ export function normalizeIssueKey(k) {
 
 /** 최근 `hours` 시간 안에 이미 쇼츠로 나간 이슈 키 집합. */
 /**
+ * 영상 성적을 적어 둔다(2026-09-06 사용자 "조회수 안나오는 주제들은 하지마").
+ *
+ * 지금까지 발행만 기록하고 성적은 한 번도 되읽지 않았다 — 그러면 "어떤 주제가 낫다" 는 말이
+ * 전부 짐작이 된다. 조회수는 시간이 지나며 오르므로 **볼 때마다 한 줄씩** 쌓아 둔다.
+ */
+export function recordShortsStats(rows) {
+  const db = openDb();
+  ensureStatsTable(db);
+  const ins = db.prepare(
+    `INSERT OR REPLACE INTO shorts_stats (video_id, checked_at, views, likes, age_hours, title, privacy)
+     VALUES (?,?,?,?,?,?,?)`);
+  const now = new Date().toISOString();
+  const tx = db.transaction((list) => {
+    for (const r of list) ins.run(r.id, now, r.views, r.likes, r.ageHours, r.title ?? null, r.privacy ?? null);
+  });
+  tx(rows ?? []);
+  return (rows ?? []).length;
+}
+
+function ensureStatsTable(db) {
+  db.exec(`CREATE TABLE IF NOT EXISTS shorts_stats (
+    video_id TEXT NOT NULL, checked_at TEXT NOT NULL,
+    views INTEGER, likes INTEGER, age_hours REAL,
+    PRIMARY KEY (video_id, checked_at))`);
+  // 제목을 같이 둔다. 갈래는 제목만 있으면 알 수 있으므로 **편성 원장에 기대지 않는다** —
+  //   원장이 생기기 전에 올린 편들(전남대 산학연 3편 등)이 성적 판단에서 빠지고 있었다.
+  const cols = db.prepare('PRAGMA table_info(shorts_stats)').all().map((c) => c.name);
+  if (!cols.includes('title')) db.exec('ALTER TABLE shorts_stats ADD COLUMN title TEXT');
+  if (!cols.includes('privacy')) db.exec('ALTER TABLE shorts_stats ADD COLUMN privacy TEXT');
+}
+
+/**
+ * 발행분의 최신 성적. 조회수는 노출이 비슷해 잘 안 갈리고(실측 1157~1574),
+ * **좋아요율**이 25배까지 갈린다(0.08%~1.97%). 판단은 반응률로 한다.
+ *
+ * 영상마다 **가장 최근 관측만** 쓴다 — 같은 영상을 여러 번 재면 중복으로 세어진다.
+ * 너무 어린 영상은 뺀다(쇼츠는 몇 시간 뒤에야 노출이 붙는다 — 6.8시간짜리가 10회였다).
+ */
+export function shortsPerformance({ minAgeHours = 8 } = {}) {
+  const db = openDb();
+  ensureStatsTable(db);
+  // 원장(shorts_published)에 기대지 않는다 — 그게 생기기 전 편들이 통째로 빠졌다.
+  //   공개 상태인 것만 본다(내린 편은 성적을 볼 이유가 없다).
+  return db.prepare(`
+    SELECT s.video_id, s.title AS headline, s.views, s.likes, s.age_hours
+      FROM (SELECT video_id, MAX(checked_at) AS mx FROM shorts_stats GROUP BY video_id) t
+      JOIN shorts_stats s ON s.video_id = t.video_id AND s.checked_at = t.mx
+     WHERE s.age_hours >= ? AND s.views > 0 AND s.title IS NOT NULL
+       AND (s.privacy IS NULL OR s.privacy = 'public')`).all(minAgeHours);
+}
+
+
+/**
  * 최근에 낸 **기사 제목**들. 키워드만으로는 같은 사건이 다른 키워드로 다시 나간다
  * (2026-09-05: 12:00 "아파트" 로 낸 기사가 16:00 "홍지선" 으로 다시 1순위가 됐다).
  */

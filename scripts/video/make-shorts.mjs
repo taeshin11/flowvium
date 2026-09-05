@@ -307,6 +307,27 @@ if (FORCE_ISSUE) {
     } else log('[편성] 백필 — 국뽕 주제가 없다. 평소 순서로 간다');
   }
 
+  // 2026-09-06 사용자 "조회수 안나오는 주제들은 하지마".
+  //   실측: 조회수는 주제별로 잘 안 갈린다(1157~1574). 갈리는 건 **반응률**이고 25배 벌어진다.
+  //   정치갈등 1.81% · 수출수주 1.13% · 외교안보 0.96% · 부동산 0.90% · 사건사고 0.88%
+  //   · 시장종목 0.52% · **지역·기관 0.35%**(전남대 산학연 3편).
+  //   약한 갈래는 **버리지 않고 뒤로 민다** — 표본이 얇고 그날 그 주제뿐일 수도 있다.
+  //   짐작이 아니라 DB 에 쌓인 성적에서 온다. 성적이 없으면 아무것도 하지 않는다.
+  try {
+    const { shortsPerformance } = await import('../lib/db.mjs');
+    const { weakCategories, categoryOf } = await import('../lib/topic-score.mjs');
+    const weak = weakCategories(shortsPerformance({ minAgeHours: 8 }));
+    if (weak.size) {
+      const isWeak = (c) => weak.has(categoryOf((c.headlines ?? [])[0] ?? ''));
+      const back = fresh.filter(isWeak);
+      if (back.length && back.length < fresh.length) {
+        fresh = [...fresh.filter((c) => !isWeak(c)), ...back];
+        issue = fresh[0];
+        log(`[편성] 반응 약한 갈래 ${[...weak].join('·')} ${back.length}건을 뒤로 민다(성적 기반)`);
+      }
+    }
+  } catch (e) { log(`[편성] 성적 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
+
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
     const sc = await footageScore(cand);
