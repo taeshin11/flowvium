@@ -35,6 +35,7 @@ import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, search
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
+import { isProudHeadline } from '../lib/video-meta.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
@@ -156,6 +157,10 @@ if (!fresh.length) {
 // 2026-09-03 하루 5편 → 8편. 뒤 회차일수록 앞 이슈가 대장에 쌓여 후보가 얕아지므로
 //   탐색 범위를 넓힌다. 실측: 이슈 14개 중 소재가 있는 것은 6개였다 — 6개만 보면 뒤 회차가 굶는다.
 const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 12);
+/** 국뽕 대체 후보를 몇 개까지 뒤질지. 탐색마다 검색이 돌므로 무한정 뒤지지 않는다. */
+const PROUD_PROBE_N = Number(process.env.SHORTS_PROUD_PROBE || 6);
+/** 편성 때 구글을 몇 번까지 부를지. 한 번에 5초쯤 걸리므로 무한정 부르지 않는다. */
+let GOOGLE_PROBES_LEFT = Number(process.env.SHORTS_GOOGLE_PROBE || 5);
 /** 이 이슈가 한국 기사인가. 장면 쪽 KO_ISSUE 와 같은 판정을 편성 시점에도 쓴다. */
 let KO_TEXT = false;
 async function footageScore(it) {
@@ -217,6 +222,24 @@ async function footageScore(it) {
     } catch { /* 한 질의가 죽어도 나머지로 */ }
   }
   best.probed = probed.sort((a, b) => b.n - a.n).map((x) => x.q);
+
+  // 2026-09-05 사용자 "사진은 구글에 있겠지 왜없어?" — 맞는 지적이다.
+  //   여기(편성)는 아카이브만 뒤지는데 장면 단계는 구글도 쓴다. **재는 소스와 쓰는 소스가 달랐다.**
+  //   그래서 09:00 회차가 "한화에어로 → 0건" 으로 깎고 중기부를 골랐다.
+  //   같은 낱말을 구글에 넣으면 8건이 나온다(실측: 한화에어로·김승원·코스피 모두 0건 → 8건).
+  //   앞서 필터는 맞췄는데 소스를 안 맞춘 것이 남아 있었다.
+  //   비용 때문에 **아카이브가 0건일 때만**, 그리고 회차당 몇 번만 부른다(한 번에 약 5초).
+  if (best.n === 0 && process.env.GOOGLE_CSE_CX && GOOGLE_PROBES_LEFT > 0) {
+    GOOGLE_PROBES_LEFT -= 1;
+    const kw = String(it.keyword ?? '').trim();
+    if (kw && /[가-힣]/.test(kw)) {
+      try {
+        const g = await searchGoogleImages([kw], { limit: 8, countOnly: true });
+        const n = g.filter((c) => isRealFootage(c)).length;
+        if (n > 0) { best = { n, terms: [kw], probed: [[kw]], viaGoogle: true }; }
+      } catch { /* 구글이 막혀도 아카이브 결과로 간다 */ }
+    }
+  }
   return best;
 }
 let issue = fresh[0];
@@ -235,9 +258,10 @@ if (FORCE_ISSUE) {
 } else {
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
-    const { n, terms, probed } = await footageScore(cand);
+    const sc = await footageScore(cand);
+    const { n, terms, probed } = sc;
     scored.push({ cand, n, terms, probed });
-    log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건`);
+    log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건${sc.viaGoogle ? ' (구글)' : ''}`);
     if (n >= 2) break;   // 두 장면 이상 채울 수 있으면 충분하다. 더 찾느라 시간 쓰지 않는다.
   }
   scored.sort((a, b) => b.n - a.n);
@@ -246,7 +270,28 @@ if (FORCE_ISSUE) {
     PROBED = scored[0].probed ?? [];
     if (issue !== fresh[0]) log(`[편성] 1순위 "${fresh[0].keyword}" 는 소재가 없어 "${issue.keyword}" 로 바꾼다`);
   } else {
-    log('⚠ 후보 어디에도 관련 소재가 없다 — 1순위로 간다(카드 위주가 된다)');
+    // 2026-09-05 사용자 "소재없으면 최신 국뽕소재로라도 내".
+    //   앞 후보들에 소재가 없다고 회차를 거르지 않는다 — **소재가 있는 국뽕 주제로 바꿔** 낸다.
+    //   국뽕 판정은 제목 앞머리에 쓰던 것과 같은 기준이다(video-meta.isProudHeadline).
+    //   빈 영상을 내는 것과는 다르다. 여기서도 소재를 찾지 못하면 아래 관문이 회차를 거른다.
+    const proud = fresh.filter((c) => !scored.some((x) => x.cand === c)
+      && (c.headlines ?? []).some(isProudHeadline));
+    if (proud.length) {
+      log(`[편성] 앞 후보에 소재가 없다 — 국뽕 후보 ${proud.length}건을 뒤진다`);
+      for (const cand of proud.slice(0, PROUD_PROBE_N)) {
+        const { n, terms, probed } = await footageScore(cand);
+        log(`[소재탐색·국뽕] "${cand.keyword}" (${terms.join(' ') || '고유명사 없음'}) → ${n}건`);
+        if (n > 0) {
+          issue = cand;
+          PROBED = probed ?? [];
+          log(`[편성] 국뽕 주제 "${issue.keyword}" 로 낸다 — 거르는 것보다 낫다`);
+          break;
+        }
+      }
+    }
+    if (issue === fresh[0] && !(scored[0]?.n > 0)) {
+      log('⚠ 국뽕 후보에도 소재가 없다 — 1순위로 간다(카드면 아래 관문이 거른다)');
+    }
   }
 }
 const headlines = issue.headlines ?? [];
@@ -301,7 +346,8 @@ ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.spea
     나쁨: "factory investment", "cluster designation", "hybrid material"
   · 검색어가 안 맞으면 그 장면은 그래픽 카드로 나간다 — 틀린 사진보다는 낫지만 밋밋하다.
 - JSON 배열만 출력: [{"hook":"화면 문구(12자 이내)","say":"읽을 문장(${Math.round(budget / SCENES * 0.8)}~${Math.round(budget / SCENES * 1.2)}자)","visual":"english words"}]
-- 장면 ${SCENES}개. 총 ${budget}자 안팎.`;
+- 장면 ${SCENES}개. **총 ${budget}자 안팎으로 채워라** — ${Math.round(budget * 0.6)}자보다 짧으면 다시 쓴다.
+  각 장면의 say 를 한 문장으로 끝내지 말고, 사실이 더 있으면 두 문장까지 쓴다.`;
 
 async function askLLM() {
   const r = await fetch(`${llm.url}/chat/completions`, {
@@ -327,9 +373,17 @@ async function askLLM() {
 
 let scenes = [];
 // 파싱 실패는 재시도로 다룬다 — 4B 가 가끔 내는 품질 문제이고, 한 번 깨졌다고 편을 버릴 이유가 없다.
+// 2026-09-05: 재시도 조건이 "장면 2개 이상" 뿐이라 **너무 짧은 대본이 그대로 통과**했다.
+//   실측: 140자 → 16.6초 (목표 40초, 예산 268자). 쇼츠로 내기엔 짧고 담기는 내용도 적다.
+//   길이도 조건에 넣는다. 세 번 시도해도 짧으면 그냥 간다 — 짧은 편이 거르는 것보다 낫다.
+const MIN_CHARS = Math.round(budget * 0.6);
 for (let a = 1; a <= 3; a++) {
-  try { scenes = await askLLM(); if (scenes.length >= 2) break; log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 — 부족`); }
-  catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
+  try {
+    scenes = await askLLM();
+    const chars = scenes.reduce((n, x) => n + String(x.say ?? '').length, 0);
+    if (scenes.length >= 2 && chars >= MIN_CHARS) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자 — 부족(최소 ${MIN_CHARS}자)`);
+  } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }
 // 마지막 장면에 사이트 안내를 **말로** 붙인다. 화면에만 띄우면 보고 지나간다.

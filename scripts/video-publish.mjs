@@ -41,9 +41,19 @@ const log = (...a) => console.log(
 // 출력을 **그대로 흘려보낸다**(inherit). 모아 뒀다가 끝에 뱉으면 6분짜리 렌더 중에
 //   아무것도 안 보여서 멈춘 건지 도는 건지 알 수 없다(2026-08-28).
 //   메타데이터는 stdout 이 아니라 편성 기록에서 읽으므로 캡처할 이유도 없다.
+// exit 3 = "이번엔 낼 것이 없다". 실패가 아니다 —
+//   중복 이슈, 소재 없음, 한국어 이슈 없음일 때 렌더가 스스로 회차를 거른다.
+//   2026-09-05: 이 구분을 여기서 안 해서, 09:00 정기 실행이 정상적으로 회차를 걸렀는데도
+//   **스택 트레이스를 뱉고 exit 1 로 죽었다**(launchd 가 실패로 기록). 감시기도 헛울린다.
+//   거른 것과 고장난 것은 로그에서 한눈에 갈려야 한다.
+const NOTHING_TO_PUBLISH = 3;
 const run = (args, label) => {
   const r = spawnSync(node, args, { cwd: ROOT, stdio: 'inherit' });
   if (r.error) throw new Error(`${label} 실행 실패: ${r.error.message}`);
+  if (r.status === NOTHING_TO_PUBLISH) {
+    log(`${label} — 이번 회차는 낼 것이 없어 건너뛴다(고장 아님). 다음 슬롯에 다시 시도한다.`);
+    process.exit(NOTHING_TO_PUBLISH);
+  }
   if (r.status !== 0) throw new Error(`${label} 실패 (exit ${r.status}) — 위 출력을 볼 것`);
 };
 
@@ -208,8 +218,17 @@ run(upArgs, '업로드');
 if (isShorts && last.keyword) {
   try {
     const { markShortsPublished } = await import('./lib/db.mjs');
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0] });
-    log(`편성 기록: "${last.keyword}" — 24시간 안에는 다시 안 고른다`);
+    // 방금 올린 영상의 id 를 같이 남긴다. 업로더가 logs/last-upload.json 에 적어 둔다 —
+    //   여기서는 출력을 흘려보내(inherit) 직접 읽을 수 없기 때문이다.
+    //   id 가 없으면 어느 영상이 어느 회차인지 알 수 없어, 잘못 나간 편을 손으로 찾아야 한다.
+    let videoId = null;
+    try {
+      const up = JSON.parse(readFileSync(resolve(ROOT, 'logs/last-upload.json'), 'utf8'));
+      // 방금 것인지 확인한다 — 지난 회차의 id 를 이번 회차에 붙이면 추적이 더 나빠진다.
+      if (up?.id && Date.now() - Date.parse(up.at) < 30 * 60_000) videoId = up.id;
+    } catch { /* 없으면 id 없이 남긴다 */ }
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId });
+    log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
     log(`⚠ 편성 대장 기록 실패 — 다음 편이 같은 뉴스를 고를 수 있다: ${e.message}`);

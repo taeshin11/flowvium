@@ -5,6 +5,9 @@
  * 기본 공개범위는 **public** 이다(2026-08-28 지시). 비공개로 올리려면 --privacy private.
  * 사용: node scripts/youtube-upload.mjs --file reports/video/pilot.mp4 --title "제목" [--desc ...] [--tags a,b,c] [--thumb x.jpg] [--privacy unlisted]
  */
+import { writeFileSync } from 'fs';
+import { resolve } from 'path';
+import { ROOT } from './lib/project-root.mjs';
 import { upload, setThumbnail, credentialsPresent, tokenPresent } from './lib/youtube.mjs';
 import { envValue } from './lib/footage.mjs';
 
@@ -52,6 +55,13 @@ try {
     expectChannel: arg('--channel', envValue('YOUTUBE_CHANNEL_ID')),
   });
   console.log(`✅ ${r.url}  (${(r.bytes / 1048576).toFixed(1)}MB, ${arg('--privacy', 'public')})`);
+  // 2026-09-05: 부모(video-publish)는 출력을 그대로 흘려보내므로(inherit) 이 값을 못 받는다.
+  //   그래서 편성 대장의 video_id 가 계속 비어 있었다 — 어느 영상이 어느 회차인지 추적이 안 되고,
+  //   잘못 나간 편을 내릴 때 손으로 찾아야 했다(오늘 07:00 편이 그랬다). 파일로 넘긴다.
+  try {
+    writeFileSync(resolve(ROOT, 'logs/last-upload.json'),
+      JSON.stringify({ id: r.id, url: r.url, at: new Date().toISOString() }, null, 2));
+  } catch { /* 기록 실패가 발행을 되돌릴 이유는 없다 */ }
   const thumb = arg('--thumb');
   if (thumb) {
     const t = await setThumbnail(r.id, thumb);

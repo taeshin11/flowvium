@@ -71,7 +71,7 @@ export function closeGoogleImages() {
  * @param {string[]} terms 한국어 그대로 넣는다 — 영어로 옮기지 않는다.
  * @returns {Promise<Array<{url,title,source,pageUrl,riskyDomain}>>}
  */
-export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GOOGLE_CSE_CX, timeoutMs = 20000 } = {}) {
+export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GOOGLE_CSE_CX, timeoutMs = 20000, countOnly = false } = {}) {
   const q = (terms ?? []).join(' ').trim();
   if (!q || !cx) return [];
   if (Date.now() < _blockedUntil) {
@@ -133,6 +133,17 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
     //   나는 이걸 보고 "등록 도메인이 부족하다" 고 잘못 짚기까지 했다.
     //   기사 페이지의 대표 이미지(og:image)가 그 기사의 사진이다. 그걸 가져온다.
     //   구글 캐시 썸네일(encrypted-tbn0, 200~300px)은 1080 폭에 못 쓰므로 쓰지 않는다.
+    // 편성 단계는 "이 주제에 쓸 사진이 있는가" 만 알면 된다. og:image 까지 받아 오면
+    //   후보마다 페이지를 여러 개 열어야 해서 느리다 — 개수만 세고 돌아간다.
+    if (countOnly) {
+      const pages = [...new Set(rows.map((r) => r.href).filter((u) => !isDoc(u)))];
+      return pages.slice(0, limit).map((u) => {
+        let host = '';
+        try { host = new URL(u).hostname; } catch { /* noop */ }
+        return { kind: 'image', url: u, title: (rows.find((r) => r.href === u)?.alt) || host,
+          source: host.replace(/^www\./, ''), pageUrl: u, riskyDomain: RISKY.test(host) };
+      });
+    }
     if (!ordered.length) {
       const pages = [...new Set(rows.map((r) => r.href).filter((u) => !isDoc(u)))].slice(0, limit * 2);
       const got = await Promise.all(pages.map(async (u) => {

@@ -1,3 +1,7 @@
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
 /**
  * video-meta.mjs — 업로드 제목·설명·태그를 만든다.
  *
@@ -32,7 +36,10 @@ const FOREIGN_LEAD = /^(美|中|日|EU|英|獨|佛|露|印|臺|北)|^(미국|중
 //   "🇰🇷 또 해냈습니다 농식품부, GAP·친환경 교육 통합 등 규제…" 가 붙었다 — 우스꽝스럽다.
 //   흔한 말은 성과의 신호가 아니다. 그 자체로 성과를 뜻하는 말만 남긴다.
 //   '선정'도 같은 이유로 뺐다 — "규제 개선 우수과제 선정"(행정 표창)에 "이게 대한민국입니다"가 붙었다.
-const WIN = /세계\s*1위|사상\s*최[대고초]|역대\s*최[대고]|신기록|최초|1위|수출\s*(호조|증가|신기록|최대|확대)|돌파|제치|앞질|추월|급등|수주|점유율\s*(1위|확대|상승)|흑자|승격|수상|우승|금메달|쾌거|호실적|사상\s*첫|세계\s*최[대고초]|글로벌\s*1위|유치\s*성공|역전/;
+// 2026-09-05: '수출' 뒤에 올 수 있는 성과어가 좁아 "천무 수출 임박", "K2 수출 계약 체결" 을
+//   국뽕으로 못 잡았다(실측). 소재가 없을 때 국뽕 주제로 바꿔 내려면 이 판정이 맞아야 한다.
+//   다만 '수출' 만으로는 성과가 아니다 — "수출 감소", "수출 규제" 는 계속 걸러져야 한다.
+const WIN = /세계\s*1위|사상\s*최[대고초]|역대\s*최[대고]|신기록|최초|1위|수출\s*(호조|증가|신기록|최대|확대|임박|성사|타결|재개)|수출\s*계약|계약\s*(체결|임박|성사)|납품\s*계약|돌파|제치|앞질|추월|급등|수주|점유율\s*(1위|확대|상승)|흑자|승격|수상|우승|금메달|쾌거|호실적|사상\s*첫|세계\s*최[대고초]|글로벌\s*1위|유치\s*성공|역전/;
 
 /**
  * 제목에 쓸 헤드라인을 고른다.
@@ -44,6 +51,44 @@ const WIN = /세계\s*1위|사상\s*최[대고초]|역대\s*최[대고]|신기�
  * @param {boolean} isKo
  * @returns {{ordered: string[], proud: boolean}} proud = 국뽕 헤드라인을 앞세웠는가
  */
+/**
+ * 이 헤드라인이 "한국이 잘한 이야기" 인가.
+ *
+ * 제목 앞머리를 붙일 때 쓰던 판정을 **편성에서도** 쓴다(2026-09-05 사용자
+ * "소재없으면 최신 국뽕소재로라도 내"). 소재를 못 찾아 회차를 거르느니, 소재가 있는
+ * 국뽕 주제로 바꿔 낸다. 판정 기준을 한 곳에 두어야 제목과 편성이 어긋나지 않는다.
+ */
+/**
+ * 한국 상장사 이름이 들어 있는가.
+ *
+ * KOREA 정규식은 손으로 적은 목록이라 "현대로템"·"한국항공우주" 같은 회사를 못 잡았다
+ * (실측: "현대로템, 폴란드와 K2 전차 수출 계약 체결" 이 국뽕으로 안 걸렸다).
+ * CLAUDE.md 규칙대로 **가장 완전한 권위 소스**를 쓴다 — DART 상장사 3,989곳
+ * (`data/dart-corp-codes.json`, `npm run build:*` 계열이 갱신한다). 손으로 나열하지 않는다.
+ *
+ * 두 글자 이름(285개: 씨앗·우양·연우…)은 일상어와 겹쳐 오탐이 난다. 세 글자부터 본다 —
+ * 삼성·한화처럼 짧고 중요한 이름은 이미 KOREA 목록에 있다.
+ */
+let _corpNames = null;
+function listedKoreanCorp(text) {
+  if (_corpNames === null) {
+    try {
+      const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+      const d = JSON.parse(readFileSync(resolve(root, 'data/dart-corp-codes.json'), 'utf8'));
+      _corpNames = Object.values(d?.map ?? {})
+        .map((v) => v?.corpName)
+        .filter((n) => typeof n === 'string' && n.length >= 3);
+    } catch { _corpNames = []; }   // 파일이 없어도 판정이 멈추면 안 된다 — KOREA 목록으로 간다
+  }
+  return _corpNames.some((n) => text.includes(n));
+}
+
+export function isProudHeadline(h) {
+  const t = String(h ?? '');
+  if (!WIN.test(t) || FOREIGN_LEAD.test(t.trim())) return false;
+  return KOREA.test(t) || listedKoreanCorp(t);
+}
+
 export function orderForTitle(heads, isKo) {
   let list = (heads ?? []).filter(Boolean);
   // 2026-09-04 사용자: "왜 제목 설명이 영어로 나갔어?"
@@ -55,7 +100,7 @@ export function orderForTitle(heads, isKo) {
     if (ko.length) list = [...ko, ...list.filter((h) => !/[가-힣]/.test(String(h)))];
   }
   if (!isKo || list.length < 2) return { ordered: list, proud: false };
-  const i = list.findIndex((h) => KOREA.test(h) && WIN.test(h) && !FOREIGN_LEAD.test(String(h).trim()));
+  const i = list.findIndex((h) => isProudHeadline(h));
   if (i <= 0) return { ordered: list, proud: i === 0 };
   return { ordered: [list[i], ...list.filter((_, k) => k !== i)], proud: true };
 }
