@@ -706,6 +706,10 @@ for (let i = 0; i < scenes.length; i++) {
         if (sameDayOnly && g.length && !fresh2.length) {
           log(`[화면] ${i + 1} 시세 주제 — 오늘 기사 사진이 없다(옛 지수가 화면에 뜬다). 안 쓴다`);
         }
+        // 시세가 아니어도 **새 기사 사진이 낫다.** 인물·정책 사진도 오래되면 그 사람이 그 자리에
+        //   없거나 배경이 달라진다(전에 "총리" 검색에 2003년 고건 총리가 걸린 적이 있다).
+        //   날짜를 모르는 것은 뒤로 미루되 버리지는 않는다 — 날짜가 없다고 틀린 사진은 아니다.
+        fresh2.sort((a, b) => String(b.publishedAt ?? '').localeCompare(String(a.publishedAt ?? '')));
         if (g.length && !fresh2.length) log(`[화면] ${i + 1} 구글 ${g.length}건 모두 이 회차 이야기가 아니다 — 버린다`);
         // 2026-09-04: 첫 후보만 잡고 끝냈다가, 그게 PDF 면(korea.kr download.do 는 보도자료 문서다)
         //   그 장면이 그대로 카드로 떨어졌다 — 실측 4장면 100% 카드.
