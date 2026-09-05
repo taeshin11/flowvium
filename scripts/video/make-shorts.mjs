@@ -583,6 +583,27 @@ async function download(url, dest) {
 const KO_ISSUE = /[가-힣]/.test(headlines.slice(0, 3).join(' '));
 if (KO_ISSUE) log('[화면] 한국 기사 — 소재도 한국 것만 쓴다');
 const usedMedia = new Set();
+
+// ── 이 회차 기사들의 사진 (2026-09-05 신설) ──────────────────────────────────────
+//   오늘 하루 구글 위젯으로 "그 기사" 를 찾다 봇 차단에 두 번 걸리고 회차 셋을 잃었다.
+//   그런데 이슈를 묶는 뉴스 DB 에 **기사 링크가 전부 있다**(최근 24시간 38,821/38,821).
+//   우리가 다루기로 고른 바로 그 기사들이다 — 이미 손에 든 주소를 두고 검색엔진에 묻고 있었다.
+//   여기서 가져오면 봇 차단이 없고, 관련성을 추측할 필요도 없고(그 기사의 사진이다),
+//   날짜도 확실하다. 실측 0.3초에 7장.
+let ISSUE_IMAGES = [];
+try {
+  const { issueImages } = await import('../lib/article-image.mjs');
+  const raw = await issueImages(issue.items ?? [], { max: 10 });
+  const todayKst0 = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+  const sameDay = TIME_SENSITIVE.test(headlines[0] ?? '');
+  ISSUE_IMAGES = raw
+    .filter((c) => isRealFootage(c))
+    .filter((c) => !sameDay || String(c.publishedAt ?? '').slice(0, 10) === todayKst0)
+    .sort((a, b) => String(b.publishedAt ?? '').localeCompare(String(a.publishedAt ?? '')));
+  log(`[화면] 이 회차 기사에서 사진 ${ISSUE_IMAGES.length}장 확보${sameDay ? ' (시세 주제 — 오늘 기사만)' : ''}`);
+} catch (e) {
+  log(`[화면] 기사 사진 수집 실패: ${String(e.message).slice(0, 60)}`);
+}
 for (let i = 0; i < scenes.length; i++) {
   if (scenes[i].isOutro) { log(`[화면] ${i + 1} 마무리 — 채널 그래픽`); continue; }
   // LLM 이 visual 을 자주 비운다(실측: 4장면 중 3장면이 빈 회차가 반복됐다).
@@ -694,6 +715,21 @@ for (let i = 0; i < scenes.length; i++) {
   //   구글은 "중기부" 를 넣으면 중기부 사진을 준다.
   //   ⚠ 저작권: 여기 나오는 사진은 대개 언론사 것이다. 사용자 지시("출처만 적어")에 따르되
   //     통신사 도메인은 riskyDomain 으로 표시해 크레딧 파일에 남긴다.
+  // 이 회차 기사의 사진을 **먼저** 쓴다. 구글은 이걸로 못 채운 장면에만.
+  if (!scenes[i].pick && ISSUE_IMAGES.length) {
+    const c = ISSUE_IMAGES.find((x) => !usedMedia.has(x.url));
+    if (c) {
+      usedMedia.add(c.url);
+      try {
+        const ext = /\.mp4(\?|$)/i.test(c.url) ? 'mp4' : 'jpg';
+        scenes[i].media = await download(c.url, `${WORK}/m${i}.${ext}`);
+        scenes[i].pick = c;
+        scenes[i].credit = c.source ? `출처- ${c.source}` : null;
+        log(`[화면] ${i + 1} 기사 사진 → ${c.source} · ${String(c.title ?? '').slice(0, 40)}`);
+      } catch (e) { log(`[화면] ${i + 1} 기사 사진 건너뜀: ${e.message.slice(0, 40)}`); }
+    }
+  }
+
   if (!scenes[i].pick && process.env.GOOGLE_CSE_CX) {
     // 2026-09-05: 고유명사 추출에만 기댔더니 "김승원 법무장관 후보자" 편에서 "법무" 가 뽑혔다.
     //   **이슈 키워드가 이 회차의 주제어다** — 편성이 그걸로 이 이슈를 골랐다. 앞에 세운다.
