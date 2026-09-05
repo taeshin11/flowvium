@@ -55,6 +55,14 @@ if (last) {
 // 2026-09-05: 이 검사를 **주석에만 쓰고 구현하지 않았다.** 그래서 구글 쿨다운 중에 백필이 돌아
 //   회색 카드 3장 + 임시정부 청사 사진으로 한 편이 나갔다(내렸다). 문서와 코드가 어긋나면
 //   문서 쪽을 믿게 되어 더 나쁘다.
+// 2026-09-05: 20:45 백필이 저녁 보고서와 겹쳐 **75분을 기다렸다.** 백필은 메우는 일이라
+//   급하지 않다 — 기다리며 GPU 를 물고 있느니 다음 차례에 하는 게 낫다.
+//   (video-publish 는 정규 슬롯을 위해 기다리도록 만들어졌다. 백필은 그 대상이 아니다.)
+if (spawnSync('/usr/bin/pgrep', ['-f', 'generate-report-local'], { encoding: 'utf8' }).status === 0) {
+  log('보고서 생성 중 — 백필은 급하지 않다. 다음 차례에 본다');
+  process.exit(0);
+}
+
 const { googleCoolingDown } = await import('./lib/google-images.mjs');
 if (googleCoolingDown()) {
   log('구글 봇 확인 쿨다운 중 — 지금 만들면 소재가 없다. 다음 백필에 다시 본다');
