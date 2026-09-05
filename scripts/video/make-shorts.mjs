@@ -659,14 +659,26 @@ for (let i = 0; i < scenes.length; i++) {
         //   그래서 크로아티아 수출 대본에 폭발 사고 사진이 그대로 붙었다.
         //   이슈 키워드는 어차피 모든 결과에 들어 있다 — 그것을 **빼고** 겹치는지 본다.
         //   이 회차가 무슨 이야기인지(크로아티아·천무·수출)가 제목에 있어야 그 기사다.
+        // 2026-09-05: "낱말 하나만 겹치면 통과" 가 아직 느슨했다. 중기부 APEC 회의 편에
+        //   **"대검, 부산서 제32차 마약류 퇴치 국제협력회의"** 사진(검찰총장 직무대행 개회사)이
+        //   두 장면에 붙었다 — 겹친 낱말이 "제32차" 하나뿐이었다.
+        //   자막은 "이소영 중소벤처기업부 장관 후보자" 라고 말하는데 화면엔 다른 사람이 서 있다.
+        //   **서수·숫자는 관련성의 근거가 아니다**(제32차·26개국·4일 …). 세지 않는다.
+        //   그리고 낱말 하나로는 부족하다 — 이슈 키워드가 제목에 있거나, 뜻 있는 낱말이 둘 이상
+        //   겹쳐야 그 기사로 본다.
+        const ORDINAL = /^(제?\d+[차회기호년월일명건개국]*|\d+)$/;
+        const tokens = (t) => String(t ?? '').split(/[^가-힣A-Za-z0-9]+/)
+          .filter((w) => w.length >= 2 && !ORDINAL.test(w));
+        //   "이슈 키워드가 제목에 있으면 통과" 라는 특례를 뒀다가 **같은 부처의 다른 사건**이
+        //   줄줄이 통과했다(실측: "중기부, 플랫폼·제조 불공정에", "쿠폰 미환급…중기부, 야놀자 고발").
+        //   부처 이름은 그 부처의 모든 기사에 있다 — 그것만으로는 이 회차의 기사가 아니다.
+        //   특례를 없애고 **뜻 있는 낱말이 둘 이상** 겹치게 한다(키워드도 하나로 센다).
         const ownWords = new Set(
-          `${headlines.slice(0, 3).join(' ')} ${scenes[i].hook ?? ''}`
-            .split(/[^가-힣A-Za-z0-9]+/)
-            .filter((w) => w.length >= 2 && !issue.keyword.includes(w) && !w.includes(issue.keyword))
+          tokens(`${issue.keyword} ${headlines.slice(0, 3).join(' ')} ${scenes[i].hook ?? ''}`)
             .map((w) => w.toLowerCase()));
         const shares = (title) => {
-          const w = String(title ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((x) => x.length >= 2);
-          return w.some((x) => ownWords.has(x.toLowerCase()));
+          const hit = new Set(tokens(title).map((x) => x.toLowerCase()).filter((x) => ownWords.has(x)));
+          return hit.size >= 2;
         };
         // 구글 경로만 isRealFootage 검사를 안 받고 있었다 — 아카이브 경로에는 걸려 있다.
         //   같은 기준을 적용한다. 도표·로고·문서는 어느 소스에서 왔든 현장이 아니다.
@@ -682,7 +694,7 @@ for (let i = 0; i < scenes.length; i++) {
             scenes[i].media = await download(c.url, `${WORK}/m${i}.${ext}`);
             scenes[i].pick = c;
             scenes[i].credit = c.source ? `출처- ${c.source}` : null;
-            log(`[화면] ${i + 1} 구글 "${koq.join(' ')}" → ${c.source}${c.riskyDomain ? ' ⚠통신사' : ''}`);
+            log(`[화면] ${i + 1} 구글 "${koq.join(' ')}" → ${c.source}${c.riskyDomain ? ' ⚠통신사' : ''} · ${String(c.title ?? '').slice(0, 44)}`);
             break;
           } catch (e) { log(`[화면] ${i + 1} 구글 후보 건너뜀: ${e.message.slice(0, 40)}`); }
         }
