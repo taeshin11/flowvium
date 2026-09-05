@@ -155,7 +155,10 @@ if (!fresh.length) {
 // 2026-09-03 하루 5편 → 8편. 뒤 회차일수록 앞 이슈가 대장에 쌓여 후보가 얕아지므로
 //   탐색 범위를 넓힌다. 실측: 이슈 14개 중 소재가 있는 것은 6개였다 — 6개만 보면 뒤 회차가 굶는다.
 const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 12);
+/** 이 이슈가 한국 기사인가. 장면 쪽 KO_ISSUE 와 같은 판정을 편성 시점에도 쓴다. */
+let KO_TEXT = false;
 async function footageScore(it) {
+  KO_TEXT = /[가-힣]/.test(String((it.headlines ?? []).slice(0, 3).join(' ')));
   // 헤드라인의 영문 고유명사 = 아카이브에서 찾을 수 있는 이름. 한글만 있는 이슈는 애초에 자료가 없다.
   // 2026-09-03: 클러스터의 **모든** 헤드라인에서 개체명을 뽑고 있었다.
   //   실측: "etf" 이슈에서 "국힘"(정당)으로 6건이 잡혀 "소재 있음"이 됐는데,
@@ -181,22 +184,43 @@ async function footageScore(it) {
   //   짝만 요구하면 "용혜인 의원직" 같은 조합이 되어 아무것도 안 걸린다(실측 0건).
   const solo = ko.filter((k) => canSearchAlone(k)).map((k) => [k]);
   const usable = [...solo, ...queries.filter((q) => q.length >= 2 && !isBarePlace(q))];
-  if (!usable.length) return { n: 0, terms: [] };
-  let best = { n: 0, terms: usable[0] };
+  if (!usable.length) return { n: 0, terms: [], probed: [] };
+  let best = { n: 0, terms: usable[0], probed: [] };
+  // 2026-09-05: 여기서 **실제로 결과가 나온 질의**를 알아내고도 그냥 버렸다.
+  //   장면 검색은 헤드라인에서 고유명사를 다시 뽑느라 "법무 ETF" 같은 엉뚱한 조합을 만들었고,
+  //   네 장면이 전부 같은 폴백(국회 건물)으로 떨어졌다 — 눈으로 확인했다.
+  //   검증된 질의를 들고 나가서 장면에 나눠 준다. 재는 잣대와 쓰는 잣대를 맞추는 것과 같은 이치다.
+  const probed = [];
   for (const q of usable) {
     try {
       let r = [];
       for (const fn of [searchKoglCommons, searchCommons]) {
         try { r = r.concat(await fn(q, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
       }
-      const n = r.filter((c) => isRealFootage(c) && titleRelevant(c.title, q)).length;
-      if (n > best.n) best = { n, terms: q };
+      // 2026-09-05: 여기서 "법무 7건" 을 세고 편성했는데 장면 검색은 0건이었다.
+      //   장면은 koAnchor(한국 자료만)와 near(낱말이 붙어 있는가)를 더 본다.
+      //   **재는 잣대가 무르면 못 쓸 이슈를 고른다** — 파일 위쪽에 같은 교훈이 이미 적혀 있는데
+      //   그때는 낱말 수만 맞추고 필터는 안 맞췄다. 이번엔 필터까지 같게 한다.
+      const koA = KO_TEXT || needsKoreaAnchor(q);
+      const nearQ = (title) => {
+        const w = String(title ?? '').toLowerCase().split(/[^a-z0-9\u3131-\uD79D]+/).filter(Boolean);
+        const at = q.map((t) => w.indexOf(String(t).toLowerCase())).filter((x) => x >= 0);
+        if (at.length < q.length) return false;
+        return Math.max(...at) - Math.min(...at) <= q.length + 1;
+      };
+      const n = r.filter((c) => isRealFootage(c) && titleRelevant(c.title, q)
+        && nearQ(c.title) && (!koA || looksKorean(c.title))).length;
+      if (n > 0) probed.push({ q, n });
+      if (n > best.n) best = { n, terms: q, probed };
       if (best.n >= 2) break;
     } catch { /* 한 질의가 죽어도 나머지로 */ }
   }
+  best.probed = probed.sort((a, b) => b.n - a.n).map((x) => x.q);
   return best;
 }
 let issue = fresh[0];
+/** 편성 단계가 **실제로 결과를 확인한** 질의들. 장면마다 돌려 쓴다(전 장면 같은 그림 방지). */
+let PROBED = [];
 if (FORCE_ISSUE) {
   const want = normalizeIssueKey(FORCE_ISSUE);
   const hit = issues.find((it) => normalizeIssueKey(it.keyword) === want);
@@ -210,14 +234,15 @@ if (FORCE_ISSUE) {
 } else {
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
-    const { n, terms } = await footageScore(cand);
-    scored.push({ cand, n, terms });
+    const { n, terms, probed } = await footageScore(cand);
+    scored.push({ cand, n, terms, probed });
     log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건`);
     if (n >= 2) break;   // 두 장면 이상 채울 수 있으면 충분하다. 더 찾느라 시간 쓰지 않는다.
   }
   scored.sort((a, b) => b.n - a.n);
   if (scored[0]?.n > 0) {
     issue = scored[0].cand;
+    PROBED = scored[0].probed ?? [];
     if (issue !== fresh[0]) log(`[편성] 1순위 "${fresh[0].keyword}" 는 소재가 없어 "${issue.keyword}" 로 바꾼다`);
   } else {
     log('⚠ 후보 어디에도 관련 소재가 없다 — 1순위로 간다(카드 위주가 된다)');
@@ -439,8 +464,16 @@ for (let i = 0; i < scenes.length; i++) {
   // 헤드라인 고유명사를 먼저, LLM 의 visual 을 그다음으로 시도한다.
   //   앞의 것이 아무것도 못 찾으면 뒤의 것으로 넘어간다 — 덮어쓰지 않는다.
   const termCandidates = [];
+  // 편성이 결과를 확인한 질의를 **가장 먼저** 쓴다. 헤드라인에서 다시 뽑는 것보다 믿을 만하다.
+  //   장면마다 다른 질의를 집어 같은 피사체가 반복되지 않게 한다 — 앞 회차에서 국회 건물이
+  //   세 장면 연속으로 깔렸다. 질의가 하나뿐이면 어쩔 수 없이 같은 것을 쓴다.
   if (ownNouns.length) termCandidates.push(searchTerms({ visual: ownNouns.join(' ') }, { max: 3 }));
   if (vis) termCandidates.push(searchTerms({ visual: vis }, { max: 3 }));
+  // 편성이 결과를 확인한 질의는 **맨 뒤**에 둔다.
+  //   처음엔 맨 앞에 뒀는데 소재가 4/4 에서 1/4 로 떨어졌다(실측) — 편성 질의는 이슈 전체를
+  //   대표할 뿐이라 장면별 내용과는 멀다. 앞의 것들이 다 실패했을 때 회색 카드 대신 쓴다.
+  //   장면마다 다른 것을 집어 같은 그림이 연속되지 않게 한다.
+  if (PROBED.length) termCandidates.push(PROBED[i % PROBED.length]);
   const terms = termCandidates[0] ?? [];
   // 질의가 비면 **검색하지 않는다.** titleRelevant 는 질의어가 없으면 전부 통과시키므로
   //   (그 자체는 옳다 — 근거 없이 버리면 안 되니까) 빈 질의로 부르면 아무 사진이나 1순위로 들어온다.
@@ -509,12 +542,54 @@ for (let i = 0; i < scenes.length; i++) {
   //   ⚠ 저작권: 여기 나오는 사진은 대개 언론사 것이다. 사용자 지시("출처만 적어")에 따르되
   //     통신사 도메인은 riskyDomain 으로 표시해 크레딧 파일에 남긴다.
   if (!scenes[i].pick && process.env.GOOGLE_CSE_CX) {
-    const koq = properNounsFrom(`${scenes[i].hook ?? ''} ${headlines.slice(0, 3).join(' ')}`, { max: 2 })
+    // 2026-09-05: 고유명사 추출에만 기댔더니 "김승원 법무장관 후보자" 편에서 "법무" 가 뽑혔다.
+    //   **이슈 키워드가 이 회차의 주제어다** — 편성이 그걸로 이 이슈를 골랐다. 앞에 세운다.
+    //   구글은 한국어를 그대로 받으므로 "김승원" 이 가장 정확한 질의다.
+    const nouns = properNounsFrom(`${scenes[i].hook ?? ''} ${headlines.slice(0, 3).join(' ')}`, { max: 2 })
       .filter((w) => /[가-힣]/.test(w));
+    // 2026-09-05: 이슈 키워드만 넣었더니 **크로아티아 수출 계약** 대본에
+    //   **한화에어로 폭발 사고(4~5명 사망)** 사진이 세 장면에 붙었다. 회사명만으로 찾으면
+    //   그 회사의 가장 많이 퍼진 기사가 온다 — 이 회차가 무슨 이야기인지는 반영되지 않는다.
+    //   성과 소식에 사망 사고 사진을 붙이는 것은 관광 사진을 재난 기사에 붙이는 것보다 나쁘다.
+    //   **이 장면이 무엇을 말하는지**(훅)를 질의에 같이 넣는다.
+    // properNounsFrom 은 문맥이 뒷받침하는 고유명사만 내놓는다(그 자체는 옳다 — 흔한 말로
+    //   엉뚱한 이슈를 편성한 일이 있었다). 하지만 "크로아티아" 처럼 문맥 표지가 없는 지명은
+    //   못 뽑는다. 구글은 자연어를 그대로 받으므로 **헤드라인의 핵심어**를 직접 쓴다.
+    //   이슈 키워드(회사명)만으로는 그 회사의 가장 많이 퍼진 기사가 오기 때문이다.
+    const HEAD_STOP = /^(그리고|하지만|이번|올해|지난|오늘|내일|관련|위해|대한|따른|모두|경우|가능|예정|계획|규모|임박|전망|밝혀|한다|했다|또는)$/;
+    const headWords = `${headlines[0] ?? ''}`
+      .split(/[^가-힣A-Za-z0-9]+/)
+      .filter((w) => w.length >= 2 && /[가-힣]/.test(w) && !HEAD_STOP.test(w)
+        && !issue.keyword.includes(w) && !w.includes(issue.keyword))
+      .sort((a, b) => b.length - a.length);
+    const hookNouns = properNounsFrom(String(scenes[i].hook ?? ''), { max: 2 })
+      .filter((w) => /[가-힣]/.test(w));
+    const koq = [...new Set([
+      ...(/[가-힣]/.test(issue.keyword) ? [issue.keyword] : []),
+      ...hookNouns,
+      ...headWords,
+      ...nouns,
+    ])].slice(0, 2);
     if (koq.length) {
       try {
-        const g = await searchGoogleImages(koq, { limit: 6 });
-        const fresh2 = g.filter((c) => !usedMedia.has(c.url));
+        const g = await searchGoogleImages(koq, { limit: 8 });
+        // 질의에 걸렸다고 이 회차의 이야기인 것은 아니다 — 회사명만 맞고 내용은 사고 기사였다.
+        //   결과 제목이 이 회차의 헤드라인·훅과 **말이 겹치는지** 본다. 하나도 안 겹치면 버린다.
+        // 2026-09-05: 처음엔 "낱말이 하나라도 겹치면 통과" 로 했는데 **회사명 하나로 다 통과**했다.
+        //   그래서 크로아티아 수출 대본에 폭발 사고 사진이 그대로 붙었다.
+        //   이슈 키워드는 어차피 모든 결과에 들어 있다 — 그것을 **빼고** 겹치는지 본다.
+        //   이 회차가 무슨 이야기인지(크로아티아·천무·수출)가 제목에 있어야 그 기사다.
+        const ownWords = new Set(
+          `${headlines.slice(0, 3).join(' ')} ${scenes[i].hook ?? ''}`
+            .split(/[^가-힣A-Za-z0-9]+/)
+            .filter((w) => w.length >= 2 && !issue.keyword.includes(w) && !w.includes(issue.keyword))
+            .map((w) => w.toLowerCase()));
+        const shares = (title) => {
+          const w = String(title ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((x) => x.length >= 2);
+          return w.some((x) => ownWords.has(x.toLowerCase()));
+        };
+        const fresh2 = g.filter((c) => !usedMedia.has(c.url) && shares(c.title));
+        if (g.length && !fresh2.length) log(`[화면] ${i + 1} 구글 ${g.length}건 모두 이 회차 이야기가 아니다 — 버린다`);
         // 2026-09-04: 첫 후보만 잡고 끝냈다가, 그게 PDF 면(korea.kr download.do 는 보도자료 문서다)
         //   그 장면이 그대로 카드로 떨어졌다 — 실측 4장면 100% 카드.
         //   **받아보고 되는 것을 고른다.** 안 되면 다음 후보로.
@@ -536,19 +611,23 @@ for (let i = 0; i < scenes.length; i++) {
   // 첫 후보(헤드라인 고유명사)로 못 찾았으면 **LLM 의 visual** 로 한 번 더.
   //   2026-09-04: 고유명사로 덮어쓰기만 했다가 전 장면이 카드가 됐다("중기부"는 아카이브에 없다).
   //   덮지 않고 순서대로 시도한다 — 믿을 만한 것 먼저, 그다음이 4B 가 지어낸 어구.
-  if (!scenes[i].pick && termCandidates.length > 1) {
-    const alt = termCandidates[1];
-    if (alt.length >= 2 && !isBarePlace(alt)) {
-      let cands2 = [];
-      for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
-        try { cands2 = cands2.concat(await fn(alt, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
-      }
-      const koA = KO_ISSUE || needsKoreaAnchor(alt);
-      const rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
-        && titleRelevant(c.title, alt) && (!koA || looksKorean(c.title)));
-      const p2 = pickFootageMany(preferRecent(rel2), 1, { terms: alt, preferFree: true });
-      if (p2.length) { scenes[i].pick = p2[0]; log(`[화면] ${i + 1} 고유명사 실패 → visual "${alt.join(' ')}" 로 찾음`); }
+  // 2026-09-05: 후보가 두 개일 때 만든 코드라 [1] 하나만 봤다. 이제 후보가 셋이다
+  //   (편성이 확인한 질의 · 헤드라인 고유명사 · LLM 의 visual) — 남은 것을 순서대로 다 시도한다.
+  //   하나만 보고 포기하면 뒤에 있는 멀쩡한 질의가 그냥 버려진다.
+  for (let k = 1; k < termCandidates.length && !scenes[i].pick; k++) {
+    const alt = termCandidates[k];
+    if (!alt?.length) continue;
+    if (alt.length < 2 && !canSearchAlone(alt[0])) continue;
+    if (isBarePlace(alt)) continue;
+    let cands2 = [];
+    for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
+      try { cands2 = cands2.concat(await fn(alt, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
     }
+    const koA = KO_ISSUE || needsKoreaAnchor(alt);
+    const rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
+      && titleRelevant(c.title, alt) && (!koA || looksKorean(c.title)));
+    const p2 = pickFootageMany(preferRecent(rel2), 1, { terms: alt, preferFree: true });
+    if (p2.length) { scenes[i].pick = p2[0]; log(`[화면] ${i + 1} 대체 질의 "${alt.join(' ')}" 로 찾음`); }
   }
 
   // 영문 질의로 못 찾았으면 **한국어 개체명**으로 한 번 더. 그 사건에 제일 가까운 자료가

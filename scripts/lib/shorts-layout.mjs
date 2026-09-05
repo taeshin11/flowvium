@@ -66,8 +66,32 @@ const esc = (t) => String(t ?? '').replace(/[<>&"]/g, (c) => (
  *
  * @param {{hook?:string, caption?:string, credit?:string, brand?:string}} o
  */
+/**
+ * 화면 글자의 숫자 띄어쓰기를 붙인다.
+ *
+ * 왜 필요한가 (2026-09-05): 대본 프롬프트가 LLM 에게 "숫자는 한글로 풀어 쓴다(TTS 오독 방지)"
+ *   라고 시킨다. 그래서 "6 억 8 천만 원", "15 일", "왜 6 개" 로 나온다.
+ *   **음성에는 그 편이 낫지만 자막·훅은 사람이 쓴 글로 보여야 한다.**
+ *   실제로 나간 영상에서 "6 억 8 천만 원 재산신고" 로 떠서 티가 났다.
+ *   음성 대본은 건드리지 않는다 — 화면 글자에서만 붙인다.
+ *
+ * 단위만 붙인다. "6 개월 만에" 의 '만에' 처럼 단위가 아닌 낱말의 공백은 지우지 않는다 —
+ *   전부 붙이면 "6개월만에" 가 되어 오히려 읽기 나빠진다.
+ */
+const NUM_UNIT = '(?:억|조|만|천|백|십|원|일|월|년|개월|개|명|건|위|배|회|차|초|분|시간|주|퍼센트|달러|%)';
+export function tightenNumbers(text) {
+  let t = String(text ?? '');
+  if (!t) return '';
+  // 숫자 뒤 단위: "15 일" → "15일". 반복 적용해 "6 억 8 천만" 을 끝까지 훑는다.
+  for (let i = 0; i < 4; i++) t = t.replace(new RegExp(`(\\d)\\s+(${NUM_UNIT})`, 'g'), '$1$2');
+  // 단위 뒤에 바로 붙는 '원' 도 붙인다: "8천만 원" → "8천만원". 앞이 숫자일 때만이라
+  //   "천 원짜리 한 장" 같은 일반 문장은 건드리지 않는다.
+  t = t.replace(/(\d(?:억|조|만|천|백|십)+)\s+원/g, '$1원');
+  return t;
+}
+
 export function shortsOverlayHtml(o = {}) {
-  const [l1, l2] = splitHook(o.hook ?? '');
+  const [l1, l2] = splitHook(tightenNumbers(o.hook));
   const g = SHORTS;
   return `<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -95,7 +119,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;positi
   background:rgba(0,0,0,.45);padding:8px 14px}
 </style>
 <div class="top"><div class="h1">${esc(l1)}</div><div class="h2">${esc(l2)}</div></div>
-<div class="bot"><div class="cap">${esc(o.caption ?? '')}</div></div>
+<div class="bot"><div class="cap">${esc(tightenNumbers(o.caption))}</div></div>
 ${o.credit ? `<div class="credit">${esc(o.credit)}</div>` : ''}
 ${o.brand ? `<div class="brand">${esc(o.brand)}</div>` : ''}`;
 }
