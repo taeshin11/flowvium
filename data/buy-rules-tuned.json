@@ -1,13 +1,13 @@
 {
   "version": 1,
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-08-31T19:40:34.696Z",
-  "sampleSize": 430,
+  "tunedAt": "2026-09-05T19:20:00.115Z",
+  "sampleSize": 675,
   "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
   "rules": [
     {
       "id": "price_oversold_gap",
-      "score": 3,
+      "score": 2,
       "category": "price",
       "condition": {
         "type": "priceGapDown",
@@ -37,7 +37,7 @@
     },
     {
       "id": "price_pullback_50ma",
-      "score": 4,
+      "score": 3,
       "category": "price",
       "condition": {
         "type": "near50MA",
@@ -47,7 +47,7 @@
     },
     {
       "id": "price_mean_reversion",
-      "score": 4,
+      "score": 3,
       "category": "price",
       "condition": {
         "type": "below200MA",
@@ -105,7 +105,7 @@
     },
     {
       "id": "tech_rsi_oversold",
-      "score": 4,
+      "score": 3,
       "category": "technical",
       "condition": {
         "type": "rsiOversold",
@@ -124,7 +124,7 @@
     },
     {
       "id": "tech_200ma_reclaim",
-      "score": 4,
+      "score": 3,
       "category": "technical",
       "condition": {
         "type": "ma200Reclaim",
@@ -290,7 +290,7 @@
     },
     {
       "id": "micro_news_gap",
-      "score": 9,
+      "score": 10,
       "category": "micro",
       "condition": {
         "type": "newsGap",
@@ -329,7 +329,7 @@
     },
     {
       "id": "selflearn_boost_list",
-      "score": 5,
+      "score": 4,
       "category": "selflearn",
       "condition": {
         "type": "boostList"
@@ -432,7 +432,7 @@
     },
     {
       "id": "micro_kr_smart_flow",
-      "score": 4,
+      "score": 3,
       "category": "micro",
       "condition": {
         "type": "krFlowIntensity",
@@ -444,42 +444,21 @@
     }
   ],
   "outcomeStats": {
-    "total": 430,
-    "hits": 93,
-    "stops": 76,
-    "ne": 199,
-    "holding": 62,
-    "hitRate": 55,
-    "avgPnl": 3.4,
-    "avgAlpha": 0.1,
+    "total": 675,
+    "hits": 118,
+    "stops": 282,
+    "ne": 212,
+    "holding": 63,
+    "hitRate": 29.5,
+    "avgPnl": 0.2,
+    "avgAlpha": -1.6,
     "bySector": [
-      {
-        "sector": "Industrials",
-        "hit": 1,
-        "stop": 0,
-        "total": 9,
-        "hitRate": 100
-      },
-      {
-        "sector": "industrials",
-        "hit": 1,
-        "stop": 0,
-        "total": 6,
-        "hitRate": 100
-      },
       {
         "sector": "it-software",
         "hit": 37,
-        "stop": 2,
-        "total": 39,
-        "hitRate": 94.87179487179486
-      },
-      {
-        "sector": "Semiconductors",
-        "hit": 3,
-        "stop": 1,
-        "total": 10,
-        "hitRate": 75
+        "stop": 4,
+        "total": 41,
+        "hitRate": 90.2439024390244
       },
       {
         "sector": "Materials",
@@ -489,59 +468,122 @@
         "hitRate": 66.66666666666666
       },
       {
+        "sector": "financials",
+        "hit": 8,
+        "stop": 4,
+        "total": 13,
+        "hitRate": 66.66666666666666
+      },
+      {
+        "sector": "industrials",
+        "hit": 4,
+        "stop": 2,
+        "total": 13,
+        "hitRate": 66.66666666666666
+      },
+      {
+        "sector": "Semiconductors",
+        "hit": 3,
+        "stop": 5,
+        "total": 14,
+        "hitRate": 37.5
+      },
+      {
+        "sector": "consumer-discretionary",
+        "hit": 3,
+        "stop": 5,
+        "total": 8,
+        "hitRate": 37.5
+      },
+      {
         "sector": "Technology",
         "hit": 33,
-        "stop": 27,
-        "total": 204,
-        "hitRate": 55.00000000000001
+        "stop": 74,
+        "total": 254,
+        "hitRate": 30.8411214953271
       },
       {
-        "sector": "Automotive",
-        "hit": 2,
-        "stop": 8,
-        "total": 13,
-        "hitRate": 20
+        "sector": "defense",
+        "hit": 1,
+        "stop": 3,
+        "total": 12,
+        "hitRate": 25
       },
       {
-        "sector": "Insurance",
+        "sector": "energy",
         "hit": 1,
         "stop": 5,
         "total": 7,
         "hitRate": 16.666666666666664
       },
       {
-        "sector": "energy",
+        "sector": "Insurance",
         "hit": 1,
-        "stop": 5,
-        "total": 6,
-        "hitRate": 16.666666666666664
+        "stop": 8,
+        "total": 10,
+        "hitRate": 11.11111111111111
+      },
+      {
+        "sector": "Unknown",
+        "hit": 1,
+        "stop": 9,
+        "total": 10,
+        "hitRate": 10
+      },
+      {
+        "sector": "Automotive",
+        "hit": 3,
+        "stop": 35,
+        "total": 41,
+        "hitRate": 7.894736842105263
+      },
+      {
+        "sector": "Industrials",
+        "hit": 1,
+        "stop": 12,
+        "total": 21,
+        "hitRate": 7.6923076923076925
+      },
+      {
+        "sector": "semiconductors",
+        "hit": 2,
+        "stop": 25,
+        "total": 63,
+        "hitRate": 7.4074074074074066
+      },
+      {
+        "sector": "Metals & Mining",
+        "hit": 2,
+        "stop": 32,
+        "total": 36,
+        "hitRate": 5.88235294117647
       },
       {
         "sector": "IT Services",
         "hit": 0,
-        "stop": 2,
-        "total": 6,
+        "stop": 3,
+        "total": 7,
         "hitRate": 0
       },
       {
         "sector": "ai-cloud",
         "hit": 0,
-        "stop": 0,
-        "total": 8,
+        "stop": 15,
+        "total": 23,
         "hitRate": 0
       },
       {
-        "sector": "semiconductors",
+        "sector": "Banking",
         "hit": 0,
-        "stop": 11,
-        "total": 47,
+        "stop": 2,
+        "total": 5,
         "hitRate": 0
       },
       {
         "sector": "Consumer Defensive",
         "hit": 0,
-        "stop": 0,
-        "total": 6,
+        "stop": 6,
+        "total": 12,
         "hitRate": 0
       },
       {
@@ -554,14 +596,9 @@
     ],
     "bestTickers": [
       {
-        "ticker": "TSLA",
-        "avg": 16.508000000000003,
-        "n": 5
-      },
-      {
-        "ticker": "000660.KS",
-        "avg": 15.964285714285714,
-        "n": 7
+        "ticker": "CLX",
+        "avg": 18.6,
+        "n": 2
       },
       {
         "ticker": "082920.KQ",
@@ -569,92 +606,151 @@
         "n": 6
       },
       {
-        "ticker": "TRGP",
-        "avg": 8.236666666666666,
+        "ticker": "000660.KS",
+        "avg": 13.09375,
+        "n": 8
+      },
+      {
+        "ticker": "BRK.B",
+        "avg": 12.24,
         "n": 6
       },
       {
         "ticker": "NVDA",
-        "avg": 8.036470588235295,
-        "n": 17
+        "avg": 11.732272727272731,
+        "n": 22
       }
     ],
     "worstTickers": [
       {
         "ticker": "SMCI",
-        "avg": -37.61,
+        "avg": -25.426666666666666,
+        "n": 3
+      },
+      {
+        "ticker": "003550.KS",
+        "avg": -15.504999999999999,
         "n": 2
       },
       {
-        "ticker": "000810.KS",
-        "avg": -4.0566666666666675,
-        "n": 6
+        "ticker": "VZ",
+        "avg": -10,
+        "n": 2
       },
       {
-        "ticker": "005380.KS",
-        "avg": -2.1799999999999997,
-        "n": 14
+        "ticker": "000270.KS",
+        "avg": -7,
+        "n": 4
       },
       {
-        "ticker": "TSM",
-        "avg": -0.8633333333333334,
-        "n": 18
-      },
-      {
-        "ticker": "MSFT",
-        "avg": 1.6750000000000005,
-        "n": 8
+        "ticker": "MDB",
+        "avg": -7,
+        "n": 2
       }
     ]
   },
   "ruleEdge": {
-    "macro_fg_recovery": {
-      "n": 50,
-      "hitRate": 76,
-      "avgAlpha": 2,
-      "edge": 0.39
+    "price_oversold_gap": {
+      "n": 15,
+      "hitRate": 7,
+      "avgAlpha": -8.3,
+      "edge": -0.85
+    },
+    "tech_rsi_oversold": {
+      "n": 31,
+      "hitRate": 0,
+      "avgAlpha": -4.2,
+      "edge": -0.77
     },
     "tech_ma_golden_cross": {
-      "n": 50,
-      "hitRate": 76,
-      "avgAlpha": 2,
-      "edge": 0.39
+      "n": 108,
+      "hitRate": 35,
+      "avgAlpha": -2.1,
+      "edge": -0.26
     },
-    "fund_op_margin_expansion": {
-      "n": 13,
-      "hitRate": 31,
-      "avgAlpha": 7.7,
-      "edge": 0.08
+    "tech_200ma_reclaim": {
+      "n": 14,
+      "hitRate": 0,
+      "avgAlpha": -8.1,
+      "edge": -0.93
     },
     "fund_high_roe": {
-      "n": 49,
-      "hitRate": 76,
-      "avgAlpha": 2.1,
-      "edge": 0.39
-    },
-    "fund_revenue_growth": {
-      "n": 49,
-      "hitRate": 76,
-      "avgAlpha": 2.1,
-      "edge": 0.39
-    },
-    "price_momentum_52w_high": {
-      "n": 44,
-      "hitRate": 84,
-      "avgAlpha": 1.2,
-      "edge": 0.46
-    },
-    "price_breakout_high": {
-      "n": 16,
-      "hitRate": 63,
-      "avgAlpha": 2,
-      "edge": 0.23
+      "n": 97,
+      "hitRate": 39,
+      "avgAlpha": -1.8,
+      "edge": -0.2
     },
     "guru_buffett_moat": {
-      "n": 44,
-      "hitRate": 82,
-      "avgAlpha": 1.8,
-      "edge": 0.45
+      "n": 75,
+      "hitRate": 48,
+      "avgAlpha": -1.5,
+      "edge": -0.09
+    },
+    "fund_op_margin_expansion": {
+      "n": 50,
+      "hitRate": 8,
+      "avgAlpha": -2.3,
+      "edge": -0.6
+    },
+    "selflearn_boost_list": {
+      "n": 27,
+      "hitRate": 0,
+      "avgAlpha": -7.1,
+      "edge": -0.89
+    },
+    "price_momentum_52w_high": {
+      "n": 55,
+      "hitRate": 67,
+      "avgAlpha": 0.3,
+      "edge": 0.22
+    },
+    "fund_revenue_growth": {
+      "n": 107,
+      "hitRate": 35,
+      "avgAlpha": -3.1,
+      "edge": -0.31
+    },
+    "macro_fg_recovery": {
+      "n": 83,
+      "hitRate": 46,
+      "avgAlpha": -1.1,
+      "edge": -0.09
+    },
+    "micro_supply_contract": {
+      "n": 4,
+      "hitRate": 0,
+      "avgAlpha": -6.2,
+      "edge": -0.85
+    },
+    "fund_backlog_growth": {
+      "n": 14,
+      "hitRate": 7,
+      "avgAlpha": -2.6,
+      "edge": -0.62
+    },
+    "price_breakout_high": {
+      "n": 33,
+      "hitRate": 30,
+      "avgAlpha": -1.4,
+      "edge": -0.29
+    },
+    "price_pullback_50ma": {
+      "n": 22,
+      "hitRate": 0,
+      "avgAlpha": -6.7,
+      "edge": -0.87
+    },
+    "micro_volume_burst": {
+      "n": 30,
+      "hitRate": 73,
+      "avgAlpha": -1.7,
+      "edge": 0.21
+    },
+    "micro_kr_smart_flow": {
+      "n": 11,
+      "hitRate": 0,
+      "avgAlpha": -4.9,
+      "edge": -0.8
     },
     "micro_news_gap": {
       "n": 34,
@@ -662,35 +758,29 @@
       "avgAlpha": -0.2,
       "edge": 0.59
     },
-    "micro_volume_burst": {
-      "n": 23,
-      "hitRate": 96,
-      "avgAlpha": 0.2,
-      "edge": 0.56
-    },
     "micro_options_call_flow": {
       "n": 2,
       "hitRate": 50,
       "avgAlpha": -0.1,
       "edge": 0
     },
-    "fund_backlog_growth": {
-      "n": 6,
-      "hitRate": 17,
-      "avgAlpha": 3.6,
-      "edge": -0.26
-    },
-    "tech_rsi_oversold": {
-      "n": 4,
-      "hitRate": 0,
-      "avgAlpha": 11.8,
-      "edge": -0.2
-    },
-    "price_pullback_50ma": {
+    "rotation_new_high_after_consolidation": {
       "n": 1,
       "hitRate": 0,
-      "avgAlpha": -0.9,
-      "edge": -0.64
+      "avgAlpha": -5.2,
+      "edge": -0.81
+    },
+    "price_mean_reversion": {
+      "n": 8,
+      "hitRate": 13,
+      "avgAlpha": -7.9,
+      "edge": -0.77
+    },
+    "price_support_bounce": {
+      "n": 3,
+      "hitRate": 33,
+      "avgAlpha": -3.1,
+      "edge": -0.32
     }
   }
 }
