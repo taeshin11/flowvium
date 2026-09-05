@@ -39,9 +39,12 @@ export function splitHook(text, maxPerLine = 11) {
   if (!t) return ['', ''];
   const words = t.split(' ');
   if (words.length === 1) {
-    // 한 덩어리면 글자 수로 자른다. 뒤가 강조이므로 앞을 짧게 남긴다.
-    const cut = Math.max(1, t.length - maxPerLine);
-    return [t.slice(0, cut), t.slice(cut)];
+    // 2026-09-05: 여기서 **낱말 한가운데를 갈랐다.** `Math.max(1, …)` 때문에 짧은 낱말도
+    //   반드시 한 글자를 앞줄로 떼어냈다 — 발행된 영상에 "반 / 등," "6 / 680대," 로 떴다(내렸다).
+    //   한 줄에 들어가면 통째로 강조줄에 둔다. 앞줄이 비는 편이 낱말이 갈리는 것보다 낫다.
+    if (t.length <= maxPerLine) return ['', t];
+    // 정말 길면 어쩔 수 없이 자르되, 뒷줄이 한 줄에 들어가게 앞줄로 넘긴다.
+    return [t.slice(0, t.length - maxPerLine), t.slice(t.length - maxPerLine)];
   }
   // 뒷줄이 한 줄에 들어가도록 뒤에서부터 채운다.
   let tail = [];

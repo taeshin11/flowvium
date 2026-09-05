@@ -159,6 +159,11 @@ if (!fresh.length) {
 const PROBE_N = Number(process.env.SHORTS_FOOTAGE_PROBE || 12);
 /** 국뽕 대체 후보를 몇 개까지 뒤질지. 탐색마다 검색이 돌므로 무한정 뒤지지 않는다. */
 const PROUD_PROBE_N = Number(process.env.SHORTS_PROUD_PROBE || 6);
+/**
+ * 숫자가 매일 바뀌는 주제. 사진에 그날 수치가 찍혀 있어 날짜가 다르면 화면이 거짓말을 한다.
+ * (2026-09-05 코스피 편에서 실제로 그랬다 — 화면 2,702·5,438 vs 자막 6,687.)
+ */
+const TIME_SENSITIVE = /(코스피|코스닥|환율|원\/달러|원달러|유가|국제유가|금값|다우|나스닥|S&P|비트코인|가상자산|국고채\s*금리)/;
 /** 편성 때 구글을 몇 번까지 부를지. 한 번에 5초쯤 걸리므로 무한정 부르지 않는다. */
 let GOOGLE_PROBES_LEFT = Number(process.env.SHORTS_GOOGLE_PROBE || 5);
 /** 이 이슈가 한국 기사인가. 장면 쪽 KO_ISSUE 와 같은 판정을 편성 시점에도 쓴다. */
@@ -229,6 +234,10 @@ async function footageScore(it) {
   //   같은 낱말을 구글에 넣으면 8건이 나온다(실측: 한화에어로·김승원·코스피 모두 0건 → 8건).
   //   앞서 필터는 맞췄는데 소스를 안 맞춘 것이 남아 있었다.
   //   비용 때문에 **아카이브가 0건일 때만**, 그리고 회차당 몇 번만 부른다(한 번에 약 5초).
+  // 시세 주제는 그날 사진이 필요한데 여기(개수만 세는 탐색)로는 날짜를 알 수 없다.
+  //   구글 지름길을 주면 "소재 있음" 으로 편성됐다가 장면에서 전부 버려져 카드만 남는다.
+  //   그런 주제는 아카이브 점수 그대로 두고 다른 주제에 자리를 내준다.
+  if (TIME_SENSITIVE.test(String((it.headlines ?? [])[0] ?? ''))) return best;
   if (best.n === 0 && process.env.GOOGLE_CSE_CX && GOOGLE_PROBES_LEFT > 0) {
     GOOGLE_PROBES_LEFT -= 1;
     const kw = String(it.keyword ?? '').trim();
@@ -685,7 +694,18 @@ for (let i = 0; i < scenes.length; i++) {
         };
         // 구글 경로만 isRealFootage 검사를 안 받고 있었다 — 아카이브 경로에는 걸려 있다.
         //   같은 기준을 적용한다. 도표·로고·문서는 어느 소스에서 왔든 현장이 아니다.
-        const fresh2 = g.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && shares(c.title));
+        // 2026-09-05: 코스피 마감 편에서 화면엔 2,702 와 5,438 이, 자막엔 6,687 이 떴다.
+        //   시세 기사 사진은 **그날 지수판**을 찍은 것이라 날짜가 다르면 숫자가 다르다.
+        //   실측: "코스피" 검색 결과 6건이 전부 8월 기사였다(오늘 9/5).
+        //   시청자는 화면의 숫자를 지수로 읽는다 — 틀린 지수는 관광 사진보다 나쁘다.
+        //   시세·환율처럼 숫자가 매일 바뀌는 주제는 **그날 기사**만 쓴다. 없으면 안 쓴다.
+        const todayKst = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+        const sameDayOnly = TIME_SENSITIVE.test(headlines[0] ?? '');
+        const fresh2 = g.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && shares(c.title)
+          && (!sameDayOnly || String(c.publishedAt ?? '').slice(0, 10) === todayKst));
+        if (sameDayOnly && g.length && !fresh2.length) {
+          log(`[화면] ${i + 1} 시세 주제 — 오늘 기사 사진이 없다(옛 지수가 화면에 뜬다). 안 쓴다`);
+        }
         if (g.length && !fresh2.length) log(`[화면] ${i + 1} 구글 ${g.length}건 모두 이 회차 이야기가 아니다 — 버린다`);
         // 2026-09-04: 첫 후보만 잡고 끝냈다가, 그게 PDF 면(korea.kr download.do 는 보도자료 문서다)
         //   그 장면이 그대로 카드로 떨어졌다 — 실측 4장면 100% 카드.

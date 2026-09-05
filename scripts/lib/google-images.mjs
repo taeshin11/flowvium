@@ -161,12 +161,21 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
           if (!/^https?:/i.test(img) || isDoc(img)) return null;
           const t = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
             ?? html.match(/<title[^>]*>([^<]{3,120})</i);
+          // 2026-09-05: **기사 날짜를 몰라서** 코스피 마감 기사에 다른 날 지수판 사진이 붙었다.
+          //   화면엔 2,702 와 5,438 이, 자막엔 6,687 이 떴다 — 시청자가 지수를 오독한다(내렸다).
+          //   제목만으로는 언제 기사인지 알 수 없다. 페이지가 알려 주는 날짜를 같이 가져온다.
+          const dm = html.match(/<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i)
+            ?? html.match(/<meta[^>]+(?:name|itemprop)=["'](?:date|pubdate|datePublished)["'][^>]+content=["']([^"']+)["']/i)
+            ?? html.match(/"datePublished"\s*:\s*"([^"]+)"/i);
+          // 메타가 없으면 주소에 박힌 날짜라도 본다(/2026/09/05/ · /20260905/).
+          const um = u.match(/\/(20\d{2})[/-]?(\d{2})[/-]?(\d{2})(?:[/_-]|$)/);
+          const publishedAt = dm?.[1] ?? (um ? `${um[1]}-${um[2]}-${um[3]}` : null);
           // og:title 은 HTML 이라 엔티티가 그대로 들어 있다 — 로그와 크레딧에 &quot; 가 찍혔다.
           const dec = (x) => String(x ?? '')
             .replace(/&quot;/g, '"').replace(/&apos;|&#39;/g, "'")
             .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
             .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
-          return { href: img, alt: dec(t?.[1]), pageUrl: u };
+          return { href: img, alt: dec(t?.[1]), pageUrl: u, publishedAt };
         } catch { return null; }
       }));
       ordered = got.filter(Boolean);
@@ -182,6 +191,7 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
         title: r.alt || host,
         source: host.replace(/^www\./, '') || 'Google',
         pageUrl: r.pageUrl ?? r.href,
+        publishedAt: r.publishedAt ?? null,
         riskyDomain: RISKY.test(host),
       };
     });
