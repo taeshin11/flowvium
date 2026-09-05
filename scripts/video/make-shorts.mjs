@@ -23,6 +23,7 @@ import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
@@ -33,7 +34,7 @@ import { bestQuote } from '../lib/quote-card.mjs';
 import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
-import { SHORTS as G, shortsOverlayHtml, mediaFilter } from '../lib/shorts-layout.mjs';
+import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
@@ -279,10 +280,14 @@ ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.spea
   · 나쁨(대화체 군더더기): "그런데", "사실은", "아무튼", "여러분", "자,"
 - 어미는 '-습니다/-입니다' 로 맺는다. 반말·해체 금지.
 - **한 문장을 짧게.** 한 문장에 사실 하나. 접속사로 길게 잇지 마라.
-- 숫자는 한글로 풀어 쓴다(TTS 오독 방지). 예: 17 billion → 백칠십억
+- 숫자와 단위는 **붙여 쓴다**: "6800억원", "천무 18문", "15일", "3척".
+  자릿수 사이를 띄우지 마라 — "6 억 8 천만 원", "18 문" 처럼 쓰면 소리내어 읽을 때 끊긴다.
+- 영어 단위는 한글로 바꾼다(TTS 오독 방지). 예: 17 billion → 백칠십억
 - 한국이 잘한 이야기면 대놓고 자랑하라. "이게 대한민국입니다", "또 해냈습니다" 같은 말을 써도 좋다.
   단 **헤드라인에 있는 사실로만** — 없는 순위·기록·반응을 지어내면 거짓말이다.
 - hook: 화면 위에 크게 박을 문구. **12자 이내**, 명사로 끝내라. 예: "삼성 세계 1위 탈환"
+  · **훅마다 다른 말로 시작하라.** 실측: 다섯 훅이 전부 "중기부" 로 시작해 화면이 단조로웠고
+    같은 훅("중기부 역할")이 두 번 나왔다. 같은 낱말로 시작하는 훅을 두 개 이상 쓰지 마라.
   · **1번 장면의 hook 은 썸네일이 된다**(쇼츠는 첫 화면이 썸네일이다).
     답을 다 말하지 말고 **궁금하게** 만들어라 — 숫자나 결과 한 조각만 보여주고 이유는 감춘다.
     좋음: "1.5조 수주, 어디서" / "코스피 6650, 왜" / "장관 후보 법안 0건"
@@ -311,7 +316,13 @@ async function askLLM() {
   const txt = (await r.json())?.choices?.[0]?.message?.content ?? '';
   const m = String(txt).match(/\[[\s\S]*\]/);
   if (!m) throw new Error(`JSON 없음 (${txt.length}자, 끝: …${txt.slice(-80)})`);
-  return JSON.parse(m[0]).filter((x) => x?.say && x?.hook).slice(0, SCENES);
+  // 2026-09-05 사용자 "대본도 좀 잘 띄워서 읽게해보고".
+  //   프롬프트의 "숫자는 한글로 풀어 쓴다(TTS 오독 방지)" 를 4B 가 **자릿수를 띄우는 것**으로
+  //   받아들여 "6 억 8 천만 원", "천무 18 문", "4 억 3520 만 유로" 를 내놓는다.
+  //   앞서 화면 글자만 고쳤는데 **TTS 는 이 원문을 그대로 읽는다** — 대본 자체를 정리한다.
+  //   프롬프트도 같이 고쳤지만 4B 가 지킬 거라고 믿지 않는다. 코드가 보장한다.
+  return JSON.parse(m[0]).filter((x) => x?.say && x?.hook).slice(0, SCENES)
+    .map((x) => ({ ...x, say: tightenNumbers(x.say), hook: tightenNumbers(x.hook) }));
 }
 
 let scenes = [];
@@ -338,9 +349,16 @@ if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만�
 //   종전엔 마지막 장면 말끝에 문장만 붙였다 — 화면은 그 장면 소재 그대로라 광고인지 모른다.
 //   **전용 장면**으로 뺀다. 소재 검색도 하지 않고(아래 isOutro) 채널 그래픽을 쓴다.
 const SITE_URL = process.env.SITE_URL || 'flowvium.net';
+// 2026-09-05: 대본에 라틴 문자를 그대로 두면 한국어 TTS 가 제멋대로 읽는다.
+//   whisper(small)로 되들은 실측 — "flowvium.net" → **"플로우 비오모 소삼드톤 네트"**.
+//   더 나쁜 건 회차마다 다르게 깨진다는 점이다("플러비움 닷대" 로 읽은 회차도 있다).
+//   이 문장은 **모든 영상 끝에 나간다** — 매번 다른 소리가 나는 걸 두고 볼 수 없다.
+//   한글로 적으면 "플로비옴 단넷" 으로 안정적이다(같은 방식으로 확인).
+//   화면 그래픽에는 flowvium.net 이 그대로 크게 뜨므로 주소는 눈으로 전달된다.
+const SITE_SPOKEN = process.env.SITE_SPOKEN || '플로비움 닷넷';
 scenes.push({
   hook: '더 깊은 분석은',
-  say: `오늘 다룬 이슈의 전체 분석과 실시간 시장 데이터는 ${SITE_URL} 에서 보실 수 있습니다.`,
+  say: `오늘 다룬 이슈의 전체 분석과 실시간 시장 데이터는 ${SITE_SPOKEN}에서 보실 수 있습니다.`,
   visual: '',
   isOutro: true,
 });
@@ -380,6 +398,8 @@ log(`[음성] 합계 ${totalSec.toFixed(1)}초`);
 // 상한 200MB. 60MB 로 뒀더니 Pexels 4K 클립(115MB)이 걸려 카드로 떨어졌다(실측).
 //   쇼츠는 컷이 5개뿐이라 한 장면을 카드로 잃는 손해가 크다. 내려받기는 몇 초면 끝난다.
 const MAX_DL = 200 * 1024 * 1024;
+/** 이미 쓴 사진의 내용 해시. 같은 사진이 두 장면에 깔리는 것을 막는다. */
+const usedHashes = new Set();
 async function download(url, dest) {
   const r = await fetch(url, { headers: { 'User-Agent': 'FlowVium-shorts/1.0 (https://flowvium.net)' }, signal: AbortSignal.timeout(60_000) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -403,6 +423,12 @@ async function download(url, dest) {
     const head = buf.slice(0, 8).toString('ascii').replace(/[^\x20-\x7e]/g, '.');
     throw new Error(`그림이 아니다 (앞부분 "${head}")`);
   }
+  // 2026-09-05: 서로 다른 URL 이 **같은 사진**을 준다. 언론사들이 같은 통신사 사진을 쓰기 때문이다.
+  //   발행분의 1번·4번 장면 파일이 md5 까지 똑같았다(연합·매경 주소는 달랐다).
+  //   usedMedia 는 URL 만 보므로 이걸 못 막는다. 내용으로 막는다.
+  const sum = createHash('md5').update(buf).digest('hex');
+  if (usedHashes.has(sum)) throw new Error('앞 장면과 같은 사진');
+  usedHashes.add(sum);
   writeFileSync(dest, buf);
   // 2026-09-04: **받은 것이 실제로 쓸 수 있는 그림인지 확인한다.**
   //   09:00 정기 발행이 통째로 죽었다 —
@@ -588,7 +614,9 @@ for (let i = 0; i < scenes.length; i++) {
           const w = String(title ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((x) => x.length >= 2);
           return w.some((x) => ownWords.has(x.toLowerCase()));
         };
-        const fresh2 = g.filter((c) => !usedMedia.has(c.url) && shares(c.title));
+        // 구글 경로만 isRealFootage 검사를 안 받고 있었다 — 아카이브 경로에는 걸려 있다.
+        //   같은 기준을 적용한다. 도표·로고·문서는 어느 소스에서 왔든 현장이 아니다.
+        const fresh2 = g.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && shares(c.title));
         if (g.length && !fresh2.length) log(`[화면] ${i + 1} 구글 ${g.length}건 모두 이 회차 이야기가 아니다 — 버린다`);
         // 2026-09-04: 첫 후보만 잡고 끝냈다가, 그게 PDF 면(korea.kr download.do 는 보도자료 문서다)
         //   그 장면이 그대로 카드로 떨어졌다 — 실측 4장면 100% 카드.
@@ -661,7 +689,10 @@ for (let i = 0; i < scenes.length; i++) {
       }
     }
   }
-  if (scenes[i].pick) {
+  // 2026-09-05: 구글 경로는 **이미 내려받아** media 까지 채운다. 그런데 여기서 같은 주소를
+  //   한 번 더 받고 있었다 — 내용 해시로 중복을 막자마자 "앞 장면과 같은 사진" 으로 드러났다.
+  //   두 번 받을 이유가 없다. 아직 파일이 없을 때만 받는다.
+  if (scenes[i].pick && !scenes[i].media) {
     usedMedia.add(scenes[i].pick.url);
     const ext = /\.mp4(\?|$)/i.test(scenes[i].pick.url) ? 'mp4' : 'jpg';
     try {

@@ -681,6 +681,11 @@ export function isRealFootage(c) {
   //   로고·아이콘류는 낱말 안에 붙어 오는 경우가 많아 경계를 풀어 본다.
   if (/\b(emblems?|coats? of arms|seals?|flags?|charts?|graphs?|diagrams?|maps?|symbols?|posters?|infographics?)\b/.test(t)) return false;
   if (/(logo|icon|wordmark|lettermark|brandmark)/.test(t)) return false;
+  // 2026-09-05: 위 규칙은 영어만 본다. 구글로 한국 기사를 찾기 시작하면서 한국어 제목이 들어오는데
+  //   "제32차 APEC 중소기업 장관회의 인포그래픽" 이 그대로 통과해 **작은 글씨로 빼곡한 정책 도표**가
+  //   세 장면에 깔렸다(눈으로 확인). 쇼츠는 한 장이 화면을 통째로 차지해 읽히지도 않는다.
+  //   같은 규칙("도표·로고·포스터는 현장이 아니다")을 한국어에도 건다.
+  if (/(인포그래픽|그래픽|도표|도해|차트|그래프|지도|로고|엠블럼|휘장|상징|포스터|안내문|배너|썸네일|일러스트|삽화)/.test(t)) return false;
   // 전직 인물 사진은 지금 뉴스가 아니다. 실측: "총리" 검색에 '이완구 전 총리'가 걸렸다.
   //   '전/前/former' 는 그 자체로 "지금 그 자리에 없다"는 뜻이라 현재 기사에 붙이면 틀린 그림이 된다.
   //   '전' 은 흔한 글자라 **직책 앞에 붙었을 때만** 본다("전 총리", "전 대통령").
