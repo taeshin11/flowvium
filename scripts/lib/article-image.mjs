@@ -71,7 +71,16 @@ export async function issueImages(items, { max = 8, concurrency = 4 } = {}) {
     const batch = await Promise.all(links.slice(i, i + concurrency).map((u) => articleImage(u)));
     for (const r of batch) if (r) out.push(r);
   }
-  // 같은 사진(주소가 같은 것)은 한 번만
+  // 여러 기사가 **같은 사진**을 가리키면 그건 그 기사의 사진이 아니라 매체 기본 배너일 수 있다.
+  //   실측(2026-09-05): 연합 23건 중 20종, 한경 11건 중 9종으로 대개는 기사마다 다르다.
+  //   그래도 셋 이상이 같은 주소면 기사 사진으로 보지 않는다 — 로고가 화면을 채우면 안 된다.
+  const count = new Map();
+  for (const r of out) count.set(r.url, (count.get(r.url) ?? 0) + 1);
   const seen = new Set();
-  return out.filter((r) => (seen.has(r.url) ? false : (seen.add(r.url), true)));
+  return out.filter((r) => {
+    if (count.get(r.url) >= 3) return false;
+    if (seen.has(r.url)) return false;
+    seen.add(r.url);
+    return true;
+  });
 }
