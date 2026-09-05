@@ -20,11 +20,45 @@ const COMMON = new Set([
   '오늘', '어제', '내일', '올해', '지난해', '이번', '관련', '위해', '대한', '경우',
   '기록', '발표', '예정', '계획', '추진', '검토', '논의', '강조', '지적', '설명',
   '한국', '우리나라', '국내', '세계', '기업', '시장', '사업', '경제', '정치', '사회',
+  // 2026-09-06: 'AI' 한 낱말로 **산속 조난**과 **메모리 가격** 기사가 한 묶음이 됐다.
+  //   요즘 기사 절반에 나오는 말은 같은 사건이라는 뜻이 못 된다. 직함과 같은 이치다.
+  'ai', '인공지능', '반도체', '메모리', '디지털', '플랫폼', '데이터', '기술', '산업',
+  '미국', '중국', '일본', '유럽', '글로벌',
 ]);
 
 const tokens = (t) => String(t ?? '')
   .split(/[^가-힣A-Za-z0-9]+/)
   .filter((w) => w.length >= 2 && !/^\d+$/.test(w));
+
+/**
+ * 키워드에 조사가 붙어 있는가.
+ *
+ * 2026-09-06: 이슈 키워드가 **"ai가"** 로 잡혔다. 낱말 자르기가 조사를 떼지 못한 것이다.
+ *   그런 키워드는 검색에도 안 걸리고("ai가" 로 사진을 찾을 수 없다) 자막에도 이상하게 나온다.
+ *   조사가 붙은 키워드는 그 자체로 편성 기준이 될 수 없다.
+ */
+// 조사 목록을 좁게 잡는다. '로·에·와·과·도·만' 까지 넣었더니 **한화에어로**가 걸렸다.
+//   넓은 목록은 멀쩡한 이름을 자른다 — 좁게 잡고, 헤드라인으로 한 번 더 확인한다.
+const PARTICLES = ['이', '가', '은', '는', '을', '를', '의', '에서'];
+export function hasParticle(keyword, headlines) {
+  const k = String(keyword ?? '').trim();
+  if (k.length < 3) return false;                // 두 글자짜리는 대개 이름이다
+  if (!/[가-힣]$/.test(k)) return false;          // 'AI'·'ETF' 는 대상이 아니다
+  for (const p of PARTICLES) {
+    if (!k.endsWith(p)) continue;
+    const stem = k.slice(0, -p.length);
+    if (stem.length < 2) continue;               // "국가"의 '가' 같은 것
+    // 헤드라인이 있으면 **어간이 홀로 나오는지** 본다. "AI가" 는 다른 기사에 "AI" 로 나오지만,
+    //   "소비자물가" 의 '소비자물' 은 어디에도 홀로 나오지 않는다 — 그건 조사가 아니다.
+    // 헤드라인이 없으면 **판단하지 않는다.** 목록만으로 짐작하면 "소비자물가" 같은 멀쩡한 말을
+    //   자른다(실측). 확인할 수 없으면 통과시키는 편이 낫다 — 편성에서는 늘 헤드라인이 있다.
+    if (!headlines?.length) continue;
+    const text = headlines.join(' ');
+    const alone = new RegExp(`(^|[^가-힣A-Za-z0-9])${stem}([^가-힣A-Za-z0-9]|$)`, 'i');
+    if (alone.test(text)) return true;
+  }
+  return false;
+}
 
 /**
  * @param {string} keyword 이 묶음의 이슈 키워드
@@ -53,6 +87,13 @@ export function isCoherentIssue(keyword, headlines) {
 
   // 절반 이상이 대표 헤드라인과 이어져야 한 사건이다.
   //   전부를 요구하면 같은 사건의 곁가지 기사까지 버리게 된다.
+  // 2026-09-06: 두 건짜리는 하나만 겹쳐도 '절반' 이 되어 통과했다. 그렇게 산속 조난과
+  //   메모리 가격이 한 묶음이 됐다. 두 건일 때는 **겹치는 낱말이 둘 이상**이어야 한다.
+  if (heads.length === 2) {
+    const a = sig(heads[0]); const b = sig(heads[1]);
+    let hit = 0; for (const w of a) if (b.has(w)) hit += 1;
+    return hit >= 2;
+  }
   const need = Math.max(1, Math.ceil((heads.length - 1) / 2));
   return overlapped >= need;
 }

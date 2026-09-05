@@ -36,7 +36,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
-import { isCoherentIssue, isSameStory } from '../lib/issue-coherence.mjs';
+import { isCoherentIssue, isSameStory, hasParticle } from '../lib/issue-coherence.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
@@ -284,6 +284,12 @@ if (FORCE_ISSUE) {
   if (fresh.length !== dupBefore) log(`[편성] 이미 낸 기사와 같은 사건 ${dupBefore - fresh.length}건 제외`);
 
   const before = fresh.length;
+  // 조사가 붙어 깨진 키워드는 편성 기준이 될 수 없다(2026-09-06 실측: "ai가").
+  //   그런 키워드로는 사진도 못 찾고 자막에도 이상하게 나온다.
+  const pBefore = fresh.length;
+  fresh = fresh.filter((c) => !hasParticle(c.keyword, c.headlines ?? []));
+  if (fresh.length !== pBefore) log(`[편성] 조사가 붙어 깨진 키워드 ${pBefore - fresh.length}건 제외`);
+
   fresh = fresh.filter((c) => isCoherentIssue(c.keyword, c.headlines ?? []));
   if (fresh.length !== before) log(`[편성] 한 사건으로 안 보이는 묶음 ${before - fresh.length}건 제외 — 남은 후보 ${fresh.length}`);
   // ⚠ `issue` 는 이 블록 **앞에서** fresh[0] 로 이미 정해졌다. 여기서 후보를 걸러 놓고
