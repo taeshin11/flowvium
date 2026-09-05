@@ -826,6 +826,22 @@ export function isBarePlace(terms) {
   return t.length === 1 && PLACE_ALONE.has(t[0]);
 }
 
+/**
+ * 지명 말고는 죄다 일반어인 질의인가.
+ *
+ * 2026-09-05 실측: "Korea government office" 가 통과해 **임시정부 청사** 사진이
+ *   영끌 아파트 기사에 붙었다(내렸다). government·office 는 이미 일반어 목록에 있었지만
+ *   'Korea' 가 고유명사로 통과시켰다.
+ *   지명 + 일반어는 그 나라의 아무 건물이나 부른다 — 사건을 가리키지 못한다.
+ *   (같은 이유로 "National Assembly" 가 탄자니아 국회를 물어온 기록이 이미 있다.)
+ */
+export function isVaguePlaceQuery(terms) {
+  const t = (terms ?? []).map((x) => String(x).toLowerCase().trim()).filter(Boolean);
+  if (!t.length) return true;
+  const meaningful = t.filter((w) => !GENERIC_TERM.has(w) && !PLACE_ALONE.has(w));
+  return meaningful.length === 0;
+}
+
 
 /**
  * 이 낱말 하나만으로 찾아도 되는가.

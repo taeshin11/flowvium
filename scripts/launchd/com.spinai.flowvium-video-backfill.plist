@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.spinai.flowvium-video-backfill</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/spinai-mini/.local/node/bin/node</string>
+    <string>/Users/spinai-mini/flowvium_restore/app/scripts/video-backfill.mjs</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/spinai-mini/flowvium_restore/app</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>45</integer></dict>
+    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>45</integer></dict>
+    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>45</integer></dict>
+    <dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>45</integer></dict>
+  </array>
+  <key>StandardOutPath</key><string>/Users/spinai-mini/flowvium_runtime/video.log</string>
+  <key>StandardErrorPath</key><string>/Users/spinai-mini/flowvium_runtime/video.log</string>
+  <key>RunAtLoad</key><false/>
+</dict></plist>

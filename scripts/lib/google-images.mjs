@@ -19,6 +19,7 @@
 import { chromium } from 'playwright';
 import { createServer } from 'http';
 import { resolve } from 'path';
+import { readFileSync, writeFileSync } from 'fs';
 import { ROOT } from './project-root.mjs';
 
 /** 저작권 위험이 특히 높은 곳 — 통신사·주요 언론. 결과에 riskyDomain 으로 표시한다. */
@@ -26,8 +27,21 @@ const RISKY = /(^|\.)(yna\.co\.kr|yonhapnews\.co\.kr|newsis\.com|news1\.kr|ap\.o
 
 let _srv = null;
 let _port = 0;
-/** 봇 확인 화면을 만나면 이 시각까지 호출하지 않는다. 계속 두드리면 차단이 길어진다. */
-let _blockedUntil = 0;
+/**
+ * 봇 확인 화면을 만나면 이 시각까지 호출하지 않는다. 계속 두드리면 차단이 길어진다.
+ *
+ * ⚠ 2026-09-05: 이걸 프로세스 변수로만 뒀다. 슬롯마다 **새 프로세스**라 앞 회차가 차단당한 걸
+ *   다음 회차가 모른다. 백필이 쿨다운 중에 돌아 회색 카드 3장짜리를 냈다(내렸다).
+ *   파일로 남겨 프로세스 사이에 넘긴다.
+ */
+const COOLDOWN_FILE = resolve(ROOT, 'logs/cse-cooldown.json');
+let _blockedUntil = (() => {
+  try { return Number(JSON.parse(readFileSync(COOLDOWN_FILE, 'utf8'))?.until) || 0; } catch { return 0; }
+})();
+function setBlocked(until) {
+  _blockedUntil = until;
+  try { writeFileSync(COOLDOWN_FILE, JSON.stringify({ until, at: new Date().toISOString() })); } catch { /* 기록 실패가 동작을 막을 이유는 없다 */ }
+}
 /** 마지막 호출 시각 — 연속 호출을 벌린다. 내가 테스트로 6번 연달아 불러 차단을 자초했다. */
 let _lastCall = 0;
 const BLOCK_COOLDOWN_MS = Number(process.env.CSE_COOLDOWN_MS || 30 * 60_000);
@@ -65,6 +79,9 @@ async function ensureBrowser() {
   });
   return _ctx;
 }
+/** 지금 봇 확인 쿨다운 중인가. "국뽕이 없다" 와 "검색이 막혔다" 를 로그에서 갈라 쓰기 위해. */
+export function googleCoolingDown() { return Date.now() < _blockedUntil; }
+
 export function closeGoogleImages() {
   try { _srv?.close(); } catch { /* noop */ }
   _srv = null;
@@ -106,7 +123,7 @@ export async function searchGoogleImages(terms, { limit = 6, cx = process.env.GO
     const blocked = await p.evaluate(() =>
       /로봇이 아님|not a robot|unusual traffic/i.test(document.body.innerText || '')).catch(() => false);
     if (blocked) {
-      _blockedUntil = Date.now() + BLOCK_COOLDOWN_MS;
+      setBlocked(Date.now() + BLOCK_COOLDOWN_MS);
       console.error(`[구글] 봇 확인 화면 — ${Math.round(BLOCK_COOLDOWN_MS / 60000)}분간 이 소스를 쉰다 (질의: ${q})`);
       return [];
     }

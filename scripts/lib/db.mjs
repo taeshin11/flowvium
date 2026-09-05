@@ -1870,6 +1870,38 @@ export function normalizeIssueKey(k) {
  * 최근에 낸 **기사 제목**들. 키워드만으로는 같은 사건이 다른 키워드로 다시 나간다
  * (2026-09-05: 12:00 "아파트" 로 낸 기사가 16:00 "홍지선" 으로 다시 1순위가 됐다).
  */
+/**
+ * 잘못 나가서 **내린** 편을 표시한다.
+ *
+ * 2026-09-05: 오늘 세 편을 비공개로 돌렸는데 원장에는 발행으로 남아 있었다.
+ *   그래서 백필이 "7편 냈다" 고 세어 메울 필요가 없다고 판단했다 — 실제 공개는 4편이었다.
+ *   낸 것과 남아 있는 것은 다르다.
+ */
+export function markShortsRetracted(videoId, reason = null) {
+  const db = openDb();
+  ensureRetractedColumn(db);
+  return db.prepare(
+    'UPDATE shorts_published SET retracted_at = ?, retract_reason = ? WHERE video_id = ?',
+  ).run(new Date().toISOString(), reason ? String(reason).slice(0, 300) : null, videoId).changes;
+}
+
+/** 옛 DB 에도 열을 붙인다. 마이그레이션을 따로 돌리게 하면 잊는다. */
+function ensureRetractedColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
+  if (!cols.includes('retracted_at')) db.exec('ALTER TABLE shorts_published ADD COLUMN retracted_at TEXT');
+  if (!cols.includes('retract_reason')) db.exec('ALTER TABLE shorts_published ADD COLUMN retract_reason TEXT');
+}
+
+/** 오늘(KST) **살아 있는** 발행 편수. 내린 것은 세지 않는다. */
+export function shortsLiveCountSince(sinceIso) {
+  const db = openDb();
+  ensureRetractedColumn(db);
+  return db.prepare(
+    `SELECT COUNT(*) n FROM shorts_published
+      WHERE datetime(published_at) >= datetime(?) AND retracted_at IS NULL`,
+  ).get(sinceIso).n;
+}
+
 export function recentShortsHeadlines(hours = 24) {
   const db = openDb();
   const rows = db.prepare(

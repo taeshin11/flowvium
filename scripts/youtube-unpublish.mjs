@@ -43,3 +43,13 @@ await yt.videos.update({
 console.log(`✅ 비공개로 전환: https://youtu.be/${id}`);
 const why = arg('--reason');
 if (why) console.log(`   사유: ${why}`);
+
+// 편성 원장에도 남긴다. 안 남기면 "냈다" 로 세어 백필이 메울 필요가 없다고 판단한다
+//   (2026-09-05 실측: 세 편을 내렸는데 백필은 7편 냈다고 봤다).
+try {
+  const { markShortsRetracted } = await import('./lib/db.mjs');
+  const n = markShortsRetracted(id, why);
+  console.log(n ? '   편성 원장에 내림 표시' : '   ⚠ 원장에 이 영상이 없다(수동 발행분일 수 있다)');
+} catch (e) {
+  console.log(`   ⚠ 원장 표시 실패: ${e.message.slice(0, 80)}`);
+}

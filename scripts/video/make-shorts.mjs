@@ -31,14 +31,14 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
 import { isCoherentIssue, isSameStory } from '../lib/issue-coherence.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
-import { searchGoogleImages, closeGoogleImages } from '../lib/google-images.mjs';
+import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
 
 loadEnvLocal();
@@ -293,6 +293,17 @@ if (FORCE_ISSUE) {
     process.exit(3);
   }
 
+  // 백필(거른 회차 메우기)은 국뽕 주제를 **먼저** 본다 — 사용자 지시.
+  //   평소에는 뉴스 가치 순서를 그대로 두고, 메우는 자리에서만 순서를 바꾼다.
+  if (process.env.SHORTS_PREFER_PROUD === '1') {
+    const proudFirst = fresh.filter((c) => (c.headlines ?? []).some(isProudHeadline));
+    if (proudFirst.length) {
+      fresh = [...proudFirst, ...fresh.filter((c) => !proudFirst.includes(c))];
+      issue = fresh[0];
+      log(`[편성] 백필 — 국뽕 주제 ${proudFirst.length}건을 앞으로 당긴다`);
+    } else log('[편성] 백필 — 국뽕 주제가 없다. 평소 순서로 간다');
+  }
+
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
     const sc = await footageScore(cand);
@@ -311,8 +322,10 @@ if (FORCE_ISSUE) {
     //   앞 후보들에 소재가 없다고 회차를 거르지 않는다 — **소재가 있는 국뽕 주제로 바꿔** 낸다.
     //   국뽕 판정은 제목 앞머리에 쓰던 것과 같은 기준이다(video-meta.isProudHeadline).
     //   빈 영상을 내는 것과는 다르다. 여기서도 소재를 찾지 못하면 아래 관문이 회차를 거른다.
-    const proud = fresh.filter((c) => !scored.some((x) => x.cand === c)
-      && (c.headlines ?? []).some(isProudHeadline));
+    // 2026-09-05: 처음엔 `!scored.some(...)` 로 **아직 안 뒤진 후보만** 봤다.
+    //   19:00 회차는 후보가 2건뿐이었고 둘 다 이미 뒤져서 국뽕 대체가 실행조차 안 됐다.
+    //   범위를 좁힐 이유가 없었다 — 전체에서 국뽕을 찾는다.
+    const proud = fresh.filter((c) => (c.headlines ?? []).some(isProudHeadline));
     if (proud.length) {
       log(`[편성] 앞 후보에 소재가 없다 — 국뽕 후보 ${proud.length}건을 뒤진다`);
       for (const cand of proud.slice(0, PROUD_PROBE_N)) {
@@ -327,7 +340,12 @@ if (FORCE_ISSUE) {
       }
     }
     if (issue === fresh[0] && !(scored[0]?.n > 0)) {
-      log('⚠ 국뽕 후보에도 소재가 없다 — 1순위로 간다(카드면 아래 관문이 거른다)');
+      // 왜 못 찾았는지 갈라서 남긴다 — "국뽕이 없다" 와 "검색 자체가 막혔다" 는 다르다.
+      //   19:00 회차는 구글 봇 확인 쿨다운이라 **어떤 주제도** 소재가 없었는데,
+      //   로그만 보면 국뽕이 없어서인 줄 알게 된다.
+      log(googleCoolingDown()
+        ? '⚠ 구글 쿨다운 중 — 어떤 주제도 소재를 못 찾는다. 이 회차는 거르고 백필에 맡긴다'
+        : '⚠ 국뽕 후보에도 소재가 없다 — 1순위로 간다(카드면 아래 관문이 거른다)');
     }
   }
 }
@@ -653,7 +671,8 @@ for (let i = 0; i < scenes.length; i++) {
     //   isRealFootage: 문장·도표·국기·로고는 현장이 아니다(실측으로 기재부 '문장 svg'가 뽑혔다).
     // 기관을 가리키는 질의면 결과가 한국 것이어야 한다 — 안 그러면 온타리오 농무부·탄자니아 국회가 붙는다.
     // 한 낱말짜리 질의는 뜻이 너무 넓다 — 지명이면 관광 사진, 보통명사면 동음이의어가 온다.
-    if ((terms.length < 2 && !canSearchAlone(terms[0])) || isBarePlace(terms)) {
+    // 지명 말고는 죄다 일반어인 질의는 그 나라 아무 건물이나 부른다(임시정부 청사가 그렇게 붙었다).
+    if ((terms.length < 2 && !canSearchAlone(terms[0])) || isBarePlace(terms) || isVaguePlaceQuery(terms)) {
       log(`[화면] ${i + 1} "${terms.join(' ')}" 는 낱말이 하나 — 검색 생략(뜻이 너무 넓다)`);
       break;
     }
@@ -778,7 +797,7 @@ for (let i = 0; i < scenes.length; i++) {
     const alt = termCandidates[k];
     if (!alt?.length) continue;
     if (alt.length < 2 && !canSearchAlone(alt[0])) continue;
-    if (isBarePlace(alt)) continue;
+    if (isBarePlace(alt) || isVaguePlaceQuery(alt)) continue;
     let cands2 = [];
     for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
       try { cands2 = cands2.concat(await fn(alt, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
@@ -867,9 +886,13 @@ closeGoogleImages();
 {
   const real = scenes.filter((x) => !x.isOutro && x.media).length;
   const total = scenes.filter((x) => !x.isOutro).length;
-  if (!real) {
-    console.error(`❌ ${total}장면 모두 소재 없음 — 회색 카드만 남는다. 이번 회차를 거른다.`);
-    console.error('   다음 슬롯에 다른 주제가 잡히면 정상 발행된다.');
+  // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
+  //   백필이 회색 카드 3장 + 임시정부 청사 사진 하나로 한 편을 냈다(내렸다).
+  //   카드가 절반을 넘으면 그건 영상이 아니라 빈 화면이다. 절반은 채워야 낸다.
+  const MIN_REAL = Math.max(1, Math.ceil(total / 2));
+  if (real < MIN_REAL) {
+    console.error(`❌ ${total}장면 중 소재는 ${real}장뿐 — 회색 카드가 절반을 넘는다. 이번 회차를 거른다.`);
+    console.error('   다음 슬롯이나 백필에서 소재가 잡히면 정상 발행된다.');
     process.exit(3);   // 3 = 낼 것이 없음
   }
   if (real < total) log(`[화면] 소재 ${real}/${total} — 나머지는 재사용·카드`);
