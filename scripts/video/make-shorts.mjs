@@ -404,12 +404,15 @@ if (FORCE_ISSUE) {
   //   · 시장종목 0.52% · **지역·기관 0.35%**(전남대 산학연 3편).
   //   약한 갈래는 **버리지 않고 뒤로 민다** — 표본이 얇고 그날 그 주제뿐일 수도 있다.
   //   짐작이 아니라 DB 에 쌓인 성적에서 온다. 성적이 없으면 아무것도 하지 않는다.
+  /** 반응 약한 갈래인가. 성적을 못 읽으면 아무도 약하지 않다(판단하지 않는다). */
+  let IS_WEAK = () => false;
   try {
     const { shortsPerformance } = await import('../lib/db.mjs');
     const { weakCategories, categoryOf } = await import('../lib/topic-score.mjs');
     const weak = weakCategories(shortsPerformance({ minAgeHours: 8 }));
     if (weak.size) {
       const isWeak = (c) => weak.has(categoryOf((c.headlines ?? [])[0] ?? ''));
+      IS_WEAK = isWeak;   // 아래 소재 기준 재선택에서도 같은 판단을 쓴다
       const back = fresh.filter(isWeak);
       if (back.length && back.length < fresh.length) {
         fresh = [...fresh.filter((c) => !isWeak(c)), ...back];
@@ -427,12 +430,24 @@ if (FORCE_ISSUE) {
     log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건${sc.viaArticle ? ' (기사 사진)' : sc.viaGoogle ? ' (구글)' : ''}`);
     if (n >= 2) break;   // 두 장면 이상 채울 수 있으면 충분하다. 더 찾느라 시간 쓰지 않는다.
   }
+  // 2026-09-06: 여기서 **사진 개수만 보고** 다시 정렬했더니, 바로 위에서 뒤로 민
+  //   약한 갈래가 1순위로 되돌아왔다. 1순위 "종부세" 에 사진이 없자 "소진공" 이 올라와
+  //   기업 홍보성 기사가 나갔다(675jm0NfDpo, 내렸다).
+  //   사진은 필요조건이지 선택 기준이 아니다 — **약한 갈래는 사진이 많아도 뒤**다.
+  // 2026-09-06: 여기서 **사진 개수만 보고** 다시 정렬했더니, 바로 위에서 뒤로 민
+  //   약한 갈래가 1순위로 되돌아왔다. 1순위 "종부세" 에 사진이 없자 "소진공" 이 올라와
+  //   기업 홍보성 기사가 나갔다(675jm0NfDpo, 내렸다).
+  //   사진은 **필요조건이지 선택 기준이 아니다.** 약한 갈래는 사진이 많아도 쓰지 않는다 —
+  //   사용자가 "조회수 안나오는 주제들은 하지마" 라고 했다. 그럴 땐 아래 국뽕 경로로 간다.
   scored.sort((a, b) => b.n - a.n);
-  if (scored[0]?.n > 0) {
-    issue = scored[0].cand;
-    PROBED = scored[0].probed ?? [];
+  const usable = scored.find((x) => x.n > 0 && !IS_WEAK(x.cand));
+  if (usable) {
+    issue = usable.cand;
+    PROBED = usable.probed ?? [];
     if (issue !== fresh[0]) log(`[편성] 1순위 "${fresh[0].keyword}" 는 소재가 없어 "${issue.keyword}" 로 바꾼다`);
   } else {
+    const weakButUsable = scored.find((x) => x.n > 0);
+    if (weakButUsable) log(`[편성] 소재가 있는 건 반응 약한 갈래뿐("${weakButUsable.cand.keyword}") — 쓰지 않고 다른 길로 간다`);
     // 2026-09-05 사용자 "소재없으면 최신 국뽕소재로라도 내".
     //   앞 후보들에 소재가 없다고 회차를 거르지 않는다 — **소재가 있는 국뽕 주제로 바꿔** 낸다.
     //   국뽕 판정은 제목 앞머리에 쓰던 것과 같은 기준이다(video-meta.isProudHeadline).
