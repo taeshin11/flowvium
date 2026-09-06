@@ -57,9 +57,26 @@ for (const rel of files) {
   const live = new Set();
   for (const n of ast.body) if (DECL.has(n.type)) live.add(n.loc.start.line);
 
+  // 문자열·템플릿 리터럴 안의 줄. 2026-09-06: 파이썬 코드를 담은 템플릿 문자열의
+  //   `import sys, json` 을 죽은 JS 선언이라고 잡았다(tts-number-probe.mjs). 그건 내용이지 선언이 아니다.
+  //   주석 안의 선언은 AST 노드가 아니므로 여전히 잡힌다 — 원래 잡으려던 결함은 그대로 잡는다.
+  const inString = new Set();
+  (function walk(n) {
+    if (!n || typeof n.type !== 'string') return;
+    if (n.type === 'TemplateLiteral' || (n.type === 'Literal' && typeof n.value === 'string')) {
+      for (let ln = n.loc.start.line; ln <= n.loc.end.line; ln += 1) inString.add(ln);
+    }
+    for (const k of Object.keys(n)) {
+      const v = n[k];
+      if (Array.isArray(v)) v.forEach(walk);
+      else if (v && typeof v === 'object' && typeof v.type === 'string') walk(v);
+    }
+  }(ast));
+
   lines.forEach((l, i) => {
     if (!/^\s*(import|export)\s/.test(l)) return;   // 원문에서 선언처럼 보이는데
     if (live.has(i + 1)) return;                     // AST 에 있으면 살아 있다
+    if (inString.has(i + 1)) return;                 // 문자열 안이면 내용이다
     bad(`${rel}:${i + 1} — 주석/문자열 안이라 실행되지 않는 ${l.trim().split(/\s/)[0]} 문: ${l.trim().slice(0, 58)}`);
     dead++;
   });

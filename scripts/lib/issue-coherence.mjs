@@ -81,6 +81,11 @@ export function isTopicKeyword(keyword) {
   if (NOT_A_TOPIC.has(k)) return false;
   // 연결어미로 끝나는 말은 대개 주제가 아니다("앞두고"·"맞이하고"·"대비하며").
   if (/[가-힣]{2,}(하고|하며|되며|되고|면서|으로써|에서도|에게도)$/.test(k)) return false;
+  // '의' 로 끝나는 말은 **뒤에 오는 말을 꾸미는 관형어**다 — 주제는 그 뒤에 있다.
+  //   2026-09-06 실측: 키워드가 "뜻밖의" 로 잡혀 이란 제재와 케냐 AI 대필이 한 묶음이 됐다.
+  //   "뜻밖의 구멍"·"뜻밖의 사람들" — 주제는 '뜻밖의' 가 아니라 구멍이고 사람들이다.
+  //   한국어에서 '의' 로 끝나는 고유명사는 사실상 없다('국민의힘' 은 '힘' 으로 끝난다).
+  if (/의$/.test(k)) return false;
   return true;
 }
 
@@ -110,7 +115,11 @@ export function hasParticle(keyword, headlines) {
  * @returns {boolean} 한 사건으로 볼 수 있는가
  */
 export function isCoherentIssue(keyword, headlines) {
-  const heads = (headlines ?? []).filter(Boolean);
+  // 2026-09-06: 같은 헤드라인이 두 번 들어와 **묶음 크기가 부풀었다.**
+  //   3건이 되면서 "절반만 겹치면 통과" 경로를 탔고, 겹친 그 한 건은 자기 자신이었다.
+  //   그렇게 이란 제재와 케냐 AI 대필이 '뜻밖의' 로 한 묶음이 돼 나갔다(내렸다).
+  //   서로 다른 기사끼리 견주는 판정이므로 **같은 줄은 하나로 센다.**
+  const heads = [...new Set((headlines ?? []).filter(Boolean).map((h) => String(h).trim()))];
   if (!heads.length) return false;
   // 견줄 대상이 없으면 판단하지 않는다 — 한 건짜리 묶음은 그 자체로 한 사건이다.
   if (heads.length < 2) return true;
