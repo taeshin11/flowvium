@@ -27,6 +27,7 @@ import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
+import { stripByline } from '../lib/wire-text.mjs';
 import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
@@ -104,9 +105,12 @@ const wideRows = db.prepare(
 db.close();
 if (!rows.length) { console.error('❌ 최근 24시간 기사가 없다'); process.exit(1); }
 
-const stripHtml = (t) => String(t ?? '').replace(/<[^>]*>/g, ' ')
+// 2026-09-06: 태그·주소만 걷어냈지 **기자 서명은 그대로 두고 있었다.**
+//   요약이 `(서울=연합뉴스) 노선웅 기자 = …` 로 시작하는데 대본 모델이 그걸 기사 내용으로 읽어
+//   "서울 연합뉴스 노선웅 기자는 천하람 대표…" 라는 장면이 나갔다(rn6_MMr4BEg, 내렸다).
+const stripHtml = (t) => stripByline(String(t ?? '').replace(/<[^>]*>/g, ' ')
   .replace(/&(nbsp|#160);/g, ' ').replace(/&(quot|#34);/g, '"').replace(/&(amp|#38);/g, '&')
-  .replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim();
+  .replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim());
 
 // 후보를 넉넉히 뽑는다. 8개만 보면 이미 다룬 것을 걸렀을 때 금방 바닥난다(하루 5편).
 // 2026-09-06 사용자 "뉴스 쏘스는 넓히지말고 ... 좀 더 세밀하게 찾아서 올려".
