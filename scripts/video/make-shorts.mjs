@@ -1397,6 +1397,29 @@ closeGoogleImages();
     if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
   }
 
+  // ── 썸네일 자리 고르기 (2026-09-07 사용자 "썸네일이 너무 저자극 부분이 나온듯") ──────
+  //   쇼츠는 **첫 프레임이 썸네일**이다. 거기에 막대그래프가 올라가면 아무도 멈추지 않는다.
+  //   실측: 같은 회차에서 그래프 사진은 도표일 확률 96.9%, 현장 사진들은 0.2% — 확실히 갈린다.
+  //   도표를 버리지는 않는다(수출 추이엔 맞는 그림이다). **앞자리에서만 물린다.**
+  try {
+    const { clipCharts } = await import('../lib/clip-gate.mjs');
+    const withMedia = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media);
+    if (withMedia.length >= 2) {
+      const chart = clipCharts(withMedia.map((r) => r.x.media));
+      const first = chart[0] ?? 0;
+      if (first >= 0.5) {
+        const alt = chart.findIndex((c, i) => i > 0 && c < 0.3);
+        if (alt > 0) {
+          const a = withMedia[0].x; const b = withMedia[alt].x;
+          for (const f of ['media', 'pick', 'credit']) { const t = a[f]; a[f] = b[f]; b[f] = t; }
+          log(`[화면] 첫 장면이 도표였다(${(first * 100).toFixed(0)}%) — ${alt + 1}번 사진과 자리를 바꾼다`);
+        } else {
+          log(`[화면] 첫 장면이 도표인데(${(first * 100).toFixed(0)}%) 바꿀 사진이 없다 — 그대로 간다`);
+        }
+      }
+    }
+  } catch (e) { log(`[화면] 썸네일 자리 점검 건너뜀: ${String(e.message).slice(0, 40)}`); }
+
   const total = scenes.filter((x) => !x.isOutro).length;
   // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
   //   백필이 회색 카드 3장 + 임시정부 청사 사진 하나로 한 편을 냈다(내렸다).

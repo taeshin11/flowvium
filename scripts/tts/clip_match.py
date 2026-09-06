@@ -51,6 +51,14 @@ CONTENT_DECOYS = [
     "통계 도표와 막대그래프",
     "지도와 위성 사진",
 ]
+
+# 2026-09-07 사용자 "썸네일이 너무 저자극 부분이 나온듯".
+#   쇼츠는 **첫 프레임이 썸네일**이다. 그 자리에 막대그래프가 올라가면 아무도 멈추지 않는다.
+#   도표를 버리지는 않는다 — 수출 추이 같은 뉴스엔 맞는 그림이다. 다만 **앞에 두지 않는다.**
+#   주제와 섞어 재면 안 된다 — softmax 라 주제가 이기면 미끼가 전부 0 이 된다.
+#   실측: 막대그래프 사진이 "수출 1조달러" 를 주제로 주자 도표 점수 0.0047 이 나왔다.
+#   그래서 **주제 없이 2지선다**로 잰다. 이 값은 주제가 무엇이든 같다.
+CHART_PAIR = ["뉴스 현장을 찍은 사진", "통계 도표와 막대그래프"]
 DECOYS = FORM_DECOYS + CONTENT_DECOYS
 
 # 형식 미끼가 이만큼을 가져가면 그건 사진이 아니라 배너다.
@@ -121,12 +129,20 @@ def main():
         decoy_score = float(row[worst_j])
         # 형식 미끼(배너·글자판)가 가져간 몫. 주제를 못 이겨도 이게 크면 사진이 아니다.
         form_score = max(float(row[1 + DECOYS.index(d)]) for d in FORM_DECOYS)
+        # 도표처럼 보이는 정도. 거르는 데 쓰지 않고 **순서를 정하는 데**만 쓴다.
+        with torch.no_grad():
+            ci = proc(text=CHART_PAIR, images=[images[i]], return_tensors="pt",
+                      padding=True, truncation=True)
+            ci = {k: v.to(dev) for k, v in ci.items()}
+            crow = model(**ci).logits_per_image.softmax(dim=1).cpu()[0]
+        chart_score = float(crow[1])
         res.append({
             "index": i,
             "topic": round(topic_score, 4),
             "decoy": round(decoy_score, 4),
             "worstDecoy": DECOYS[worst_j - 1],
             "formDecoy": round(form_score, 4),
+            "chartDecoy": round(chart_score, 4),
             # 두 가지로 거른다.
             #   ① 미끼가 주제를 이기면 이 회차 사진이 아니다.
             #   ② 주제를 이기지 못해도 **배너로 보이면** 화면에 깔 수 없다.

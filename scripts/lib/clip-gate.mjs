@@ -94,3 +94,34 @@ export function clipCheck(items, topic, { timeoutMs = 5 * 60_000 } = {}) {
     for (const f of [pf, of]) { try { unlinkSync(f); } catch { /* noop */ } }
   }
 }
+
+/**
+ * 각 사진이 **도표일 확률**. 0~1.
+ *
+ * 2026-09-07: 쇼츠는 첫 프레임이 썸네일이라 거기에 막대그래프가 오면 안 된다.
+ *   주제와 섞어 재면 안 된다 — softmax 라 주제가 이기면 미끼가 전부 0 이 된다
+ *   (실측: 그래프 사진이 "수출 1조달러" 주제에서 0.0047 로 나왔다).
+ *   주제 없이 "현장 사진 vs 도표" 2지선다로 잰다 — 실측 96.9% vs 0.2% 로 확실히 갈린다.
+ *
+ * 판정 못 하면 전부 0 을 돌려준다 — 순서만 정하는 값이라 막지 않는다.
+ */
+export function clipCharts(images, { timeoutMs = 5 * 60_000 } = {}) {
+  const r = clipReady();
+  if (!r.ok || !images?.length) return images?.map(() => 0) ?? [];
+  const dir = join(tmpdir(), 'flowvium-clip');
+  mkdirSync(dir, { recursive: true });
+  const pf = join(dir, `charts-${process.pid}.json`);
+  const of = join(dir, `charts-out-${process.pid}.json`);
+  try {
+    writeFileSync(pf, JSON.stringify(images.map((image) => ({ image, topic: '뉴스' }))), 'utf8');
+    execFileSync(r.py, [r.script, '--pairs', pf, '--json-out', of],
+      { timeout: timeoutMs, stdio: ['ignore', 'ignore', 'pipe'] });
+    const out = JSON.parse(readFileSync(of, 'utf8'));
+    const by = new Map(out.map((v) => [v.index, v.chartDecoy ?? 0]));
+    return images.map((_, i) => by.get(i) ?? 0);
+  } catch {
+    return images.map(() => 0);
+  } finally {
+    for (const f of [pf, of]) { try { unlinkSync(f); } catch { /* noop */ } }
+  }
+}
