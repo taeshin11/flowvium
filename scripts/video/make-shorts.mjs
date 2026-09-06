@@ -1477,7 +1477,7 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
     ], { stdio: ['ignore', 'ignore', 'pipe'] });
     if (r.status === 0 && existsSync(withBgm)) {
       copyFileSync(withBgm, OUT);
-      log(`[음악] ${beds[shortsPublishedCount() % beds.length]} 를 깔았다(목소리 대역 -9dB · 말할 때 더킹)`);
+      log(`[음악] ${beds[shortsPublishedCount() % beds.length]} 를 깔았다(-20 LUFS 로 맞춘 뒤 말할 때 더킹)`);
     } else {
       log(`[음악] 배경음 입히기 실패 — 음악 없이 간다: ${String(r.stderr).slice(0, 80)}`);
     }
