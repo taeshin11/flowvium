@@ -99,7 +99,13 @@ const run = (args, label) => {
       return (get('Pages free') + get('Pages inactive') + get('Pages speculative')) * pg / 1073741824;
     } catch { return 0; }
   })();
-  const canShare = busy && load1 < SIDE_LOAD && freeGb >= Number(process.env.VIDEO_SIDE_FREE_GB || 8);
+  // 2026-09-06: 이 기준이 **8GB** 였다. 보고서가 도는 동안 이 기계의 여유 메모리는 4~5GB 라
+  //   조건이 영원히 성립하지 않았다 — 20·21·22·23시 회차가 연달아 건너뛰어졌다.
+  //   숫자를 감으로 낮추지 않고 **보고서가 도는 중에 실제로 렌더를 돌려 쟀다**:
+  //     시작 시 여유 12.5GB → 렌더 중 최저 **1.08GB** → 종료 후 회복. 3분 소요, 서버 무사.
+  //   영상 레인은 모델을 새로 적재하지 않는다(:8001 에 이미 떠 있는 4B 를 부른다).
+  //   실제로 필요한 건 ffmpeg 여유분이다. 측정 최저 1.08GB 에 여유를 두어 3GB 로 잡는다.
+  const canShare = busy && load1 < SIDE_LOAD && freeGb >= Number(process.env.VIDEO_SIDE_FREE_GB || 3);
   if (!skipGuard && busy && canShare) {
     log(`보고서와 나란히 진행한다 — 부하 ${load1.toFixed(1)} < ${SIDE_LOAD.toFixed(1)} · 여유 메모리 ${freeGb.toFixed(1)}GB`);
   } else if (!skipGuard && busy) {
