@@ -152,4 +152,20 @@ if [ "$rc" -eq 0 ]; then
 else
   log "[ERROR] 실패 rc=$rc"
 fi
+
+# ── 5. 보고서 모델 내려놓기 (2026-09-07 사용자 "GPU 꼭 써야 되는거만 남기고 나머진 비워") ──
+#   :8000 이 들고 있는 모델은 28GB 다. 하루 다섯 번 쓰는데 24시간 떠 있었다.
+#   그 상태에서 메모리가 눌리면 모델 페이지가 쫓겨나 토큰마다 디스크를 읽는다 —
+#   2026-09-06 에 실제로 그렇게 됐고(45초에 2,175MB) 보고서 두 편과 쇼츠 네 회차를 잃었다.
+#   보고서가 끝나면 내려놓는다. 다음 회차는 위의 사전점검(llm-health-check --repair)이
+#   내려간 plist 를 다시 올린다 — 그 경로는 이미 있다.
+#
+#   REPORT_LLM_KEEP=1 이면 내려놓지 않는다(디버깅용).
+if [ "${REPORT_LLM_KEEP:-0}" != "1" ]; then
+  if launchctl unload "$HOME/Library/LaunchAgents/com.spinai.flowvium-llm.plist" 2>/dev/null; then
+    log "[INFO] 보고서 모델(:8000) 내려놓음 — 다음 회차 사전점검이 다시 올린다"
+  else
+    log "[WARN] 보고서 모델 내려놓기 실패 — 떠 있는 채로 둔다"
+  fi
+fi
 exit "$rc"

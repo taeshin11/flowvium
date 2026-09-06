@@ -313,6 +313,8 @@ let BRIEF_POOL = [];
 let RECENT_HEADS = [];
 /** 반응 약한 갈래인가. 성적을 못 읽으면 아무도 약하지 않다(판단하지 않는다). */
 let IS_WEAK = () => false;
+/** 헤드라인 자극도. 브리핑 순서(=썸네일)를 정하는 데도 쓴다. */
+let AROUSAL = () => 0;
 if (FORCE_ISSUE) {
   const want = normalizeIssueKey(FORCE_ISSUE);
   const hit = issues.find((it) => normalizeIssueKey(it.keyword) === want);
@@ -385,6 +387,28 @@ if (FORCE_ISSUE) {
       }
     }
   } catch (e) { log(`[편성] 성적 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
+  // 2026-09-07 사용자 "기사도 고 자극 기사만 써" · "썸네일이 너무 저자극 부분이 나온듯".
+  //   실측은 밝혀 둔다 — 자극도와 **조회수**는 같이 가지 않았다(정치갈등이 오히려 조회수 꼴찌).
+  //   움직이는 건 반응이고, 밋밋한 쪽(단체 소식·기업 실적)은 반응률 바닥이 확실하다.
+  //   그래서 순위가 아니라 **바닥만 잘라 낸다.** 전부 잘리면 자르지 않는다 — 회차를 잃지 않는다.
+  try {
+    const { arousal, AROUSAL_FLOOR } = await import('../lib/topic-score.mjs');
+    const { shortsPerformance } = await import('../lib/db.mjs');
+    const perf = shortsPerformance({ minAgeHours: 8 });
+    const score = (c) => arousal((c.headlines ?? [])[0] ?? '', perf);
+    const hot = fresh.filter((c) => score(c) >= AROUSAL_FLOOR);
+    if (hot.length >= 2 && hot.length < fresh.length) {
+      const cut = fresh.filter((c) => score(c) < AROUSAL_FLOOR)
+        .map((c) => `${c.keyword}(${score(c).toFixed(1)})`).slice(0, 4);
+      log(`[편성] 자극도 바닥 ${fresh.length - hot.length}건 제외 — ${cut.join(' · ')}`);
+      fresh = hot;
+    }
+    // 센 것부터 본다. 브리핑이면 **1번이 썸네일**이 되므로 이 순서가 곧 첫 화면이다.
+    fresh.sort((a, b) => score(b) - score(a));
+    issue = fresh[0];
+    AROUSAL = score;
+  } catch (e) { log(`[편성] 자극도 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
+
   BRIEF_POOL = fresh.slice();
   // 2026-09-06: 브리핑에 **중기중앙회 강소기업 선정**이 섞여 나왔다.
   //   약한 갈래를 거르는 건 1순위 이슈에만 걸려 있었고 브리핑 풀에는 안 걸려 있었다.
@@ -544,7 +568,11 @@ if (!FORCE_ISSUE) {
               let hit = 0; for (const w of t) if (recentWords.has(w)) hit += 1;
               return hit >= 2;   // 두 낱말 이상 겹치면 방금 낸 이야기로 읽힌다
             };
-            BRIEF.sort((a, b) => (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0) || rate(b) - rate(a));
+            // 2026-09-07: 1번 장면이 **쇼츠 썸네일**이 된다. 사용자가 "저자극 부분이 나온듯" 이라 했다.
+            //   갈래 평균 반응률(rate)보다 **그 헤드라인 자체의 자극도**가 앞이다 —
+            //   같은 갈래여도 "폭발음 여러번" 과 "협약 체결" 은 첫 화면에서 하늘과 땅이다.
+            BRIEF.sort((a, b) => (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0)
+              || AROUSAL(b.it) - AROUSAL(a.it) || rate(b) - rate(a));
             log(`[편성] 브리핑 순서를 성적으로 정한다 — 1번 "${((BRIEF[0].it.headlines ?? [])[0] ?? '').slice(0, 34)}" (${(rate(BRIEF[0]) * 100).toFixed(2)}%)`);
           }
         } catch (e) { log(`[편성] 브리핑 순서 조정 건너뜀: ${String(e.message).slice(0, 40)}`); }

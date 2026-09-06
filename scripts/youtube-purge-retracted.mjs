@@ -23,7 +23,7 @@ const db = openDb();
 const rows = db.prepare(
   `SELECT video_id, headline FROM shorts_published
     WHERE retracted_at IS NOT NULL AND video_id IS NOT NULL
-      AND published_at >= datetime('now', ?)`,
+      AND datetime(published_at) >= datetime('now', ?)`,
 ).all(`-${HOURS} hours`);
 db.close();
 if (!rows.length) { console.log('내린 회차가 없다'); process.exit(0); }
