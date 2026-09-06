@@ -15,7 +15,9 @@
 
 /** 갈래. 위에서부터 먼저 맞는 것을 쓴다 — 겹치면 앞이 이긴다. */
 const CATEGORIES = [
-  ['정치갈등', /고발|의혹|논란|특혜|사퇴|파면|탄핵|규탄|공방|맞불|반박|폭로|압박|청문회|위증|해명/],
+  // 2026-09-06: "김승원, 브로커에 '보고 싶어 눈물'" 이 기타로 빠졌다 — 청탁·수사 관련 말이 없었다.
+  //   "극우당 이주민 협약에 정치권 발칵" 도 마찬가지. 정치 공방의 어휘를 넓힌다.
+  ['정치갈등', /고발|의혹|논란|특혜|사퇴|파면|탄핵|규탄|공방|맞불|반박|폭로|압박|청문회|위증|해명|브로커|청탁|수사|기소|구속|압수|로비|커넥션|발칵|파문|시끌|반발|충돌|갈등|공세|반격|해임|경질/],
   ['정책·인사', /장관|후보자|개각|임명|지명|국무|내각|법안|입법|시행령|규제|정부\s*발표/],
   ['수출·수주', /수출|수주|계약\s*체결|납품|진출|세계\s*1위|사상\s*최[대고]|신기록/],
   ['외교·안보', /파병|외교|정상회담|한미|한중|한일|북한|미사일|국방|안보|관세/],
@@ -54,6 +56,33 @@ export function categoryRates(rows, { minSamples = 1 } = {}) {
     out.set(c, { n: a.n, rate: a.likes / a.views, views: Math.round(a.views / a.n) });
   }
   return out;
+}
+
+/**
+ * 이 헤드라인의 **기대 반응률**. 측정된 갈래면 그 값, 아니면 전체 평균.
+ *
+ * 2026-09-06 사용자 "제목은 뉴스 중 제일 조회수 높을 만한거로 하지?".
+ *   브리핑은 여러 뉴스를 묶으므로 **어느 것을 앞에 둘지**가 제목과 썸네일을 함께 정한다
+ *   (쇼츠는 첫 화면이 썸네일이다). 편성 순위가 아니라 성적으로 정한다.
+ *
+ * @param {string} headline
+ * @param {Array<{headline:string, views:number, likes:number}>} rows shortsPerformance() 결과
+ */
+export function expectedRate(headline, rows) {
+  const rates = categoryRates(rows, { minSamples: 1 });
+  const c = categoryOf(headline);
+  let base;
+  if (rates.has(c)) base = rates.get(c).rate;
+  else {
+    let likes = 0; let views = 0;
+    for (const r of rows ?? []) { likes += Number(r.likes ?? 0); views += Number(r.views ?? 0); }
+    base = views > 0 ? likes / views : 0;   // 아직 안 재본 갈래는 평균으로 본다
+  }
+  // 같은 갈래면 **국내 이슈**를 앞에 둔다. 한국어 채널이고 시청자도 한국 사람이다.
+  //   (실측 근거는 아직 없다 — 갈래별로 국내/해외를 나눌 만큼 표본이 쌓이지 않았다.
+  //    표본이 쌓이면 이 보정을 빼고 측정값으로 대체한다.)
+  const foreign = /^(美|中|日|英|獨|佛|露|印|臺|北|EU)|^(미국|중국|일본|영국|프랑스|독일|러시아|인도|대만|유럽)|극우당|이주민\s*협약|백악관|의회\s*난입/;
+  return foreign.test(String(headline ?? '').trim()) ? base * 0.85 : base;
 }
 
 /**

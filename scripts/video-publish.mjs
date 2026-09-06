@@ -11,7 +11,7 @@
  *
  * 사용: node scripts/video-publish.mjs [--locale en] [--dry-run] [--privacy public]
  */
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execSync } from 'node:child_process';
 import { buildTitle, buildDescription, buildTags, orderForTitle } from './lib/video-meta.mjs';
 // 2026-09-03: .env.local 을 읽지 않고 있었다. 후원 계좌(DONATION_ACCOUNT)가 거기 있는데
 //   안 읽으면 설명란에서 그 줄이 **조용히 빠진 채** 발행된다. 조용한 누락이 제일 나쁘다.
@@ -80,7 +80,29 @@ const run = (args, label) => {
   //   렌더는 1.5분인데 다음 슬롯은 몇 시간 뒤다 — 포기할 게 아니라 **기다리는 게 맞다**.
   //   보고서는 30~60분이면 끝난다. 그 안에 비면 그 회차를 살린다.
   const WAIT_MAX_MS = Number(process.env.VIDEO_GPU_WAIT_MIN || 75) * 60_000;
-  if (!skipGuard && busy) {
+
+  // 2026-09-06 사용자 "같이는 못해?" — 재보니 **같이 돌 수 있다.**
+  //   실측(오후 보고서 생성 중): 부하 1.52 / 한계 10.8 — 14%뿐이다.
+  //   27B 는 MPS 를 기다리느라 CPU 는 놀고 있고, 가중치가 메모리 맵이라 RSS 도 3.1GB 다.
+  //   48GB 중 쓸 수 있는 게 ~16GB 남아 있어 4B + TTS 를 얹을 자리가 있다.
+  //   무조건 기다리던 규칙은 과했다 — 60분 주기에서는 그 대기가 슬롯을 통째로 먹는다.
+  //   다만 조건 없이 끼어들진 않는다. 보고서가 도는 동안에는 **더 엄한 잣대**를 쓴다:
+  //     · 부하가 코어의 절반 미만이고
+  //     · 쓸 수 있는 메모리가 8GB 이상일 때만 같이 돈다.
+  //   (2026-08-29 립싱크가 부하 56 을 만들어 사이트가 502 를 낸 적이 있다. 그 선은 지킨다.)
+  const SIDE_LOAD = Number(process.env.VIDEO_SIDE_LOAD || cores * 0.5);
+  const freeGb = (() => {
+    try {
+      const vm = execSync('vm_stat', { encoding: 'utf8' });
+      const pg = Number((vm.match(/page size of (\d+)/) ?? [])[1] ?? 16384);
+      const get = (k) => Number((vm.match(new RegExp(`${k}:\\s+(\\d+)`)) ?? [])[1] ?? 0);
+      return (get('Pages free') + get('Pages inactive') + get('Pages speculative')) * pg / 1073741824;
+    } catch { return 0; }
+  })();
+  const canShare = busy && load1 < SIDE_LOAD && freeGb >= Number(process.env.VIDEO_SIDE_FREE_GB || 8);
+  if (!skipGuard && busy && canShare) {
+    log(`보고서와 나란히 진행한다 — 부하 ${load1.toFixed(1)} < ${SIDE_LOAD.toFixed(1)} · 여유 메모리 ${freeGb.toFixed(1)}GB`);
+  } else if (!skipGuard && busy) {
     log(`보고서 파이프라인이 도는 중 — 최대 ${Math.round(WAIT_MAX_MS / 60000)}분 기다린다(단일 GPU 경합).`);
     const until = Date.now() + WAIT_MAX_MS;
     let free = false;

@@ -444,6 +444,10 @@ if (FORCE_ISSUE) {
     }
   }
 }
+// 장면 수. 브리핑 판단이 이 값을 쓰므로 **그보다 앞에서** 정한다
+//   (2026-09-06: 뒤에 두었다가 "Cannot access 'SCENES' before initialization" 으로 브리핑이 통째로 건너뛰어졌다).
+const SCENES = 4;
+
 // ── 여러 이슈를 묶는 "브리핑" 편 (2026-09-06 신설) ─────────────────────────────
 //   사용자 "소재가 모자라면 여러 개에 좀 붙여서 올려도 되잖아".
 //   한 이슈에 사진이 한두 장뿐이면 그 편은 회색 카드가 절반을 넘어 걸러진다(오늘 세 번 그랬다).
@@ -473,6 +477,19 @@ if (!FORCE_ISSUE) {
       if (!picks[0].imgs.length) picks.shift();
       if (picks.length >= 3 && picks.every((p) => p.imgs.length)) {
         BRIEF = picks.slice(0, SCENES);
+        // 2026-09-06 사용자 "제목은 뉴스 중 제일 조회수 높을 만한거로 하지?".
+        //   브리핑의 첫 뉴스가 제목이 되고 첫 화면이 썸네일이 된다 — 둘 다 여기서 정해진다.
+        //   편성 순위가 아니라 **재어 둔 반응률**로 앞뒤를 정한다.
+        try {
+          const { shortsPerformance } = await import('../lib/db.mjs');
+          const { expectedRate } = await import('../lib/topic-score.mjs');
+          const perf = shortsPerformance({ minAgeHours: 8 });
+          if (perf.length) {
+            const rate = (p) => expectedRate((p.it.headlines ?? [])[0] ?? '', perf);
+            BRIEF.sort((a, b) => rate(b) - rate(a));
+            log(`[편성] 브리핑 순서를 성적으로 정한다 — 1번 "${((BRIEF[0].it.headlines ?? [])[0] ?? '').slice(0, 34)}" (${(rate(BRIEF[0]) * 100).toFixed(2)}%)`);
+          }
+        } catch (e) { log(`[편성] 브리핑 순서 조정 건너뜀: ${String(e.message).slice(0, 40)}`); }
         log(`[편성] 1순위 사진이 ${lead.length}장뿐 — **${BRIEF.length}개 이슈를 묶어 브리핑으로** 낸다`);
         for (const p of BRIEF) log(`   · ${((p.it.headlines ?? [])[0] ?? '').slice(0, 46)} (사진 ${p.imgs.length})`);
       }
@@ -495,7 +512,6 @@ const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: pr
 // 한국어는 초당 약 6.7자로 읽힌다(Piper 실측: 47자 / 7.0초).
 const CPS = 6.7;
 const budget = Math.round(TARGET_SEC * CPS);
-const SCENES = 4;
 
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
 ${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
