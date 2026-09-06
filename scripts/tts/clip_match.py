@@ -38,9 +38,27 @@ DECOYS = [
 ]
 
 
+def image_similarity(model, proc, dev, images):
+    """사진끼리 얼마나 비슷한가 (0~1). 같은 행사를 다른 매체가 찍은 사진은 URL·픽셀이 달라
+    해시로는 못 잡지만, 보는 사람에게는 같은 화면이다.
+
+    2026-09-06 실측: 이재명 대통령 편에서 1·2·3·5번이 전부 같은 자리·같은 옷이었다.
+    31초 내내 거의 정지 화면이 됐다.
+    """
+    import torch
+    with torch.no_grad():
+        inputs = proc(images=images, return_tensors="pt")
+        inputs = {k: v.to(dev) for k, v in inputs.items()}
+        feats = model.get_image_features(**inputs)
+        feats = feats / feats.norm(dim=-1, keepdim=True)
+        return (feats @ feats.T).cpu().tolist()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pairs", required=True)
+    ap.add_argument("--image-sim", action="store_true",
+                    help="자막 대신 **사진끼리** 비슷한 정도를 낸다")
     ap.add_argument("--model", default="Bingsu/clip-vit-large-patch14-ko")
     ap.add_argument("--json-out", required=True)
     a = ap.parse_args()
@@ -60,6 +78,14 @@ def main():
     model = AutoModel.from_pretrained(a.model).to(dev).eval()
 
     images = [Image.open(p["image"]).convert("RGB") for p in pairs]
+
+    if a.image_sim:
+        sim = image_similarity(model, proc, dev, images)
+        json.dump(sim, open(a.json_out, "w"))
+        for i, row in enumerate(sim):
+            near = [f"{j + 1}:{row[j]:.2f}" for j in range(len(row)) if j != i and row[j] >= 0.9]
+            print(f"  사진{i + 1}: {'매우 비슷 ' + ', '.join(near) if near else '고유'}", file=sys.stderr)
+        return
 
     res = []
     for i, p in enumerate(pairs):

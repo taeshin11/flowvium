@@ -206,6 +206,19 @@ let GOOGLE_PROBES_LEFT = Number(process.env.SHORTS_GOOGLE_PROBE || 5);
 let KO_TEXT = false;
 async function footageScore(it) {
   KO_TEXT = /[가-힣]/.test(String((it.headlines ?? []).slice(0, 3).join(' ')));
+  // 2026-09-06: **재는 잣대와 쓰는 잣대가 또 어긋났다.** 소재의 1순위를 기사 사진으로 바꿨는데
+  //   여기(편성 점수)는 여전히 아카이브·구글만 셌다. 그래서 기사 사진이 1장뿐인 주제를
+  //   1순위로 골라 세 번 연속 회차를 걸렀다(한일 미래路 편).
+  //   실측: 같은 시각 후보들의 기사 사진 수 — 미래路 1장 · 여의나루역 5장.
+  //   기사 사진은 한 이슈에 0.3초면 세어진다. 여기서 먼저 센다.
+  try {
+    const { issueImages } = await import('../lib/article-image.mjs');
+    const { itemsOnTopic } = await import('../lib/issue-coherence.mjs');
+    const lead = (it.headlines ?? [])[0] ?? '';
+    const imgs = await issueImages(itemsOnTopic(lead, it.items ?? []), { max: 6 });
+    const usable = imgs.filter((c) => isRealFootage(c));
+    if (usable.length) return { n: usable.length, terms: [it.keyword], probed: [], viaArticle: true };
+  } catch { /* 못 세면 아래 아카이브 점수로 간다 */ }
   // 헤드라인의 영문 고유명사 = 아카이브에서 찾을 수 있는 이름. 한글만 있는 이슈는 애초에 자료가 없다.
   // 2026-09-03: 클러스터의 **모든** 헤드라인에서 개체명을 뽑고 있었다.
   //   실측: "etf" 이슈에서 "국힘"(정당)으로 6건이 잡혀 "소재 있음"이 됐는데,
@@ -385,7 +398,7 @@ if (FORCE_ISSUE) {
     const sc = await footageScore(cand);
     const { n, terms, probed } = sc;
     scored.push({ cand, n, terms, probed });
-    log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건${sc.viaGoogle ? ' (구글)' : ''}`);
+    log(`[소재탐색] "${cand.keyword}" (${terms.join(' ') || '영문 고유명사 없음'}) → ${n}건${sc.viaArticle ? ' (기사 사진)' : sc.viaGoogle ? ' (구글)' : ''}`);
     if (n >= 2) break;   // 두 장면 이상 채울 수 있으면 충분하다. 더 찾느라 시간 쓰지 않는다.
   }
   scored.sort((a, b) => b.n - a.n);
@@ -528,7 +541,11 @@ for (let a = 1; a <= 3; a++) {
     const plain = scenes.filter((x) => {
       const t = String(x.say ?? '').trim();
       if (!t) return true;
-      return !/(습니다|입니다|습니까|십시오|하십시오)[.!?]?$/.test(t);
+      // 2026-09-06: `습니다` 만 봤더니 **`합니다`·`됩니다`·`옵니다`가 전부 불합격**이었다
+      //   (한일 미래路 편이 세 번 다시 쓰다 실패했다). 우리말 합쇼체는 '-ㅂ니다' 로 끝난다.
+      //   그리고 헤드라인이 인용인 회차는 대사가 따옴표로 끝날 수 있다 — 그것도 맺은 것이다.
+      if (/["'"'"'”’」』]$/.test(t)) return false;
+      return !/([가-힣]니다|습니까|십시오)[.!?]?$/.test(t);
     }).length;
     // 2026-09-05: 훅이 "다우 0.5% 하락" 과 "다우 0.5% 내리" 로 거의 같게 나왔다.
     //   프롬프트에 "훅마다 다른 말로 시작하라" 를 넣었지만 4B 가 지키지 않는다 — 코드가 본다.
@@ -547,9 +564,29 @@ for (let a = 1; a <= 3; a++) {
     //   화면만 보면 **채널이 그렇게 규정한 것**으로 읽힌다 — 그 아래는 상대 인물 사진이었다.
     //   어제 성적을 재보니 정치갈등이 반응률 1위였다(1.61%). 반응률만 좇으면 이런 편이 늘어난다.
     //   남의 주장은 누가 했는지 밝혀야 한다.
+    // 2026-09-06: 훅 중복만 봤는데 **대사가 겹치는** 편이 나갔다 —
+    //   3번과 4번이 "한 번의 어려움에 주저앉지 않고" 로 같은 말을 했다. 새 정보가 없다.
+    const sayWords = (t) => new Set(String(t ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((w) => w.length >= 2));
+    let dupSays = 0;
+    for (let x = 0; x < scenes.length; x++) {
+      for (let y = x + 1; y < scenes.length; y++) {
+        if (scenes[x].isOutro || scenes[y].isOutro) continue;
+        const a = sayWords(scenes[x].say); const b = sayWords(scenes[y].say);
+        if (a.size < 3 || b.size < 3) continue;
+        let hit = 0; for (const w of a) if (b.has(w)) hit += 1;
+        if (hit / Math.min(a.size, b.size) > 0.6) dupSays += 1;
+      }
+    }
+    // 어미가 다 같으면 단조롭다 — "…고 밝혔습니다 / …고 했습니다 / …고 말했습니다" 가 이어졌다.
+    const endings = scenes.filter((x) => !x.isOutro)
+      .map((x) => (String(x.say ?? '').trim().match(/([가-힣]{2,6})[.!?]?$/) ?? [])[1] ?? '');
+    const sameEnding = endings.length >= 3
+      && new Set(endings.filter(Boolean)).size <= Math.max(1, Math.floor(endings.length / 2));
+
     const unattributed = attributionIssues(scenes);
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !unattributed.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''} — 다시 쓴다`);
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks
+        && !dupSays && !sameEnding && !unattributed.length) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }
@@ -727,9 +764,13 @@ for (let i = 0; i < scenes.length; i++) {
     };
     const pool = ISSUE_IMAGES.filter((x) => !usedMedia.has(x.url));
     // 겹치는 낱말이 많은 기사부터. 하나도 안 겹치면 그 장면 이야기가 아니다 — 쓰지 않는다.
-    const c = pool.map((x) => ({ x, n: overlap(x) })).filter((r) => r.n > 0)
-      .sort((a, b) => b.n - a.n)[0]?.x;
-    if (!c && pool.length) log(`[화면] ${i + 1} 기사 사진 ${pool.length}장 있지만 이 장면 이야기가 아니다`);
+    // 겹치는 낱말이 많은 것부터. 다만 **하나도 안 겹쳐도 버리지 않는다** —
+    //   이 사진들은 이미 itemsOnTopic 으로 이 회차 기사만 남긴 것이다.
+    //   2026-09-06: 안 겹치면 버리게 했더니 같은 이슈 사진을 두고 회색 카드가 나갔다.
+    //   장면과 딱 맞는 게 없으면 그냥 이 회차 사진 중 하나를 쓴다 — 빈 화면보다 낫다.
+    const ranked = pool.map((x) => ({ x, n: overlap(x) })).sort((a, b) => b.n - a.n);
+    const c = ranked[0]?.x;
+    if (c && ranked[0].n === 0) log(`[화면] ${i + 1} 장면과 딱 맞는 기사 사진은 없다 — 이 회차 사진으로 채운다`);
     if (c) {
       usedMedia.add(c.url);
       try {
@@ -1060,6 +1101,19 @@ closeGoogleImages();
   // ── 발행 전 마지막 관문: 사진이 이 회차 이야기인가 (2026-09-06 신설) ──────────────
   //   규칙(제목 겹침·날짜·도표 패턴)으로는 끝이 없었다 — 여덟 번을 눈으로 잡아 내렸다.
   //   한국어 CLIP 에게 묻는다. 판정 못 하면(모델 없음·느림) 막지 않는다.
+  // 같은 장면을 다른 매체가 찍은 사진은 URL·픽셀이 달라 해시로 못 잡는다.
+  //   실측: 이재명 편 네 장면 중 셋이 같은 자리·같은 옷이었다(31초 내내 정지 화면).
+  try {
+    const { clipDuplicates } = await import('../lib/clip-gate.mjs');
+    const withMedia = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media);
+    const dup = clipDuplicates(withMedia.map((r) => r.x.media));
+    for (const i of dup) {
+      const r = withMedia[i];
+      log(`[화면] ${r.k + 1} 앞 장면과 거의 같은 사진 — 뺀다`);
+      r.x.media = null; r.x.pick = null; r.x.credit = null;
+    }
+  } catch (e) { log(`[화면] 사진 중복 검사 건너뜀: ${String(e.message).slice(0, 40)}`); }
+
   try {
     const { clipCheck } = await import('../lib/clip-gate.mjs');
     const cand = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media);

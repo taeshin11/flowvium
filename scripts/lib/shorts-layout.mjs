@@ -54,7 +54,13 @@ export function splitHook(text, maxPerLine = 11) {
     tail = next;
   }
   if (!tail.length) tail = [words[words.length - 1]];
-  const head = words.slice(0, words.length - tail.length);
+  let head = words.slice(0, words.length - tail.length);
+  // 2026-09-06: 뒷줄을 꽉 채우다 앞줄이 한 글자만 남았다 — "한 / 번 연체 평생", "재기 / 길 넓히겠다".
+  //   앞줄이 조각나면 뜻이 끊긴다. 뒷줄에서 한 낱말을 앞으로 올린다(뒷줄이 비지 않는 한).
+  while (head.join(' ').length < 2 && tail.length > 1) {
+    head = [...head, tail[0]];
+    tail = tail.slice(1);
+  }
   return [head.join(' '), tail.join(' ')];
 }
 

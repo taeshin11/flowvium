@@ -30,6 +30,47 @@ export function clipReady() {
 }
 
 /**
+ * 사진끼리 너무 비슷한 것을 골라낸다.
+ *
+ * 2026-09-06 실측: 이재명 대통령 편에서 1·2·3·5번이 전부 같은 자리·같은 옷이었다.
+ *   서로 다른 매체가 같은 행사를 찍은 것이라 URL 도 픽셀도 달라 md5 로는 못 잡는다.
+ *   보는 사람에게는 31초 내내 정지 화면이다.
+ *
+ * 임계값은 재서 정했다 — 같은 장면 변형끼리 0.91~0.97, 서로 다른 사진끼리 0.36~0.69.
+ *   0.85 면 둘이 깨끗이 갈린다.
+ *
+ * @param {string[]} images 사진 경로들(쓰는 순서대로)
+ * @returns {number[]} 버려야 할 인덱스 — 앞에 이미 비슷한 게 있는 것들
+ */
+export function clipDuplicates(images, { threshold = Number(process.env.CLIP_DUP_THRESHOLD || 0.85), timeoutMs = 5 * 60_000 } = {}) {
+  const r = clipReady();
+  if (!r.ok || (images?.length ?? 0) < 2) return [];
+  const dir = join(tmpdir(), 'flowvium-clip');
+  mkdirSync(dir, { recursive: true });
+  const pf = join(dir, `imgs-${process.pid}.json`);
+  const of = join(dir, `sim-${process.pid}.json`);
+  try {
+    writeFileSync(pf, JSON.stringify(images.map((image) => ({ image }))), 'utf8');
+    execFileSync(r.py, [r.script, '--pairs', pf, '--json-out', of, '--image-sim'],
+      { timeout: timeoutMs, stdio: ['ignore', 'ignore', 'pipe'] });
+    const sim = JSON.parse(readFileSync(of, 'utf8'));
+    const drop = [];
+    for (let i = 1; i < images.length; i++) {
+      // 앞에서 **남긴 것**과만 견준다 — 이미 버린 것과 비슷하다고 또 버리면 안 된다.
+      for (let j = 0; j < i; j++) {
+        if (drop.includes(j)) continue;
+        if ((sim?.[i]?.[j] ?? 0) >= threshold) { drop.push(i); break; }
+      }
+    }
+    return drop;
+  } catch {
+    return [];   // 판정 못 하면 막지 않는다
+  } finally {
+    for (const f of [pf, of]) { try { unlinkSync(f); } catch { /* noop */ } }
+  }
+}
+
+/**
  * @param {Array<{image:string}>} items 검사할 사진들
  * @param {string} topic 이 회차 주제(헤드라인)
  * @returns {Array<{index:number, ok:boolean, topic:number, decoy:number, worstDecoy:string}>}
