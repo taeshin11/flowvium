@@ -30,14 +30,32 @@ import sys
 #   2026-09-06: "한국 전통 놀이와 민속 도구" 를 넣었더니 **태극기·한복이 보이는 대통령 출국 사진**을
 #   끌어당겨 멀쩡한 사진 둘을 버렸다(0.96·0.88). 한국 뉴스 사진에는 태극기가 늘 나온다.
 #   사람이 찍힌 뉴스 현장과 겹치지 않는 것만 남긴다.
-DECOYS = [
+# 미끼는 두 종류다. 섞어 쓰면 판정이 흐려진다.
+#
+#   ① **형식 미끼** — 애초에 사진이 아닌 것. 방송사 배너·글자판.
+#      이건 무슨 뉴스든 화면에 깔면 안 된다.
+#   ② **내용 미끼** — 사진이긴 한데 이 뉴스가 아닌 것.
+#
+# 2026-09-06 실측으로 나눠야 할 이유가 분명해졌다. YTN 채널 배너가
+#   "주제 0.5064 > 미끼 0.3344" 라서 통과해 그대로 나갔다(0MAkdWup3Xs, 내렸다).
+#   그런데 진짜 기사 사진 7장을 재 보니 형식 미끼는 0.0000~0.0120 이었다.
+#   배너만 0.3344 — 두 자릿수 차이다. 반면 내용 미끼는 진짜 사진도 0.4264 까지 올라간다
+#   (자폐 아들 사진이 "민속 도구" 에 0.43). 그래서 **형식 미끼에만 낮은 문턱**을 둔다.
+FORM_DECOYS = [
     "방송사 로고와 채널 이름이 크게 박힌 화면",
     "글자만 있는 안내 배너",
+]
+CONTENT_DECOYS = [
     "편의점 진열대의 상품들",
     "투호 윷놀이 장독대 같은 민속 도구만 있는 사진",
     "통계 도표와 막대그래프",
     "지도와 위성 사진",
 ]
+DECOYS = FORM_DECOYS + CONTENT_DECOYS
+
+# 형식 미끼가 이만큼을 가져가면 그건 사진이 아니라 배너다.
+#   진짜 사진 최대 0.0120 · 배너 0.3344 사이에서 잡았다.
+FORM_LIMIT = 0.20
 
 
 def image_similarity(model, proc, dev, images):
@@ -101,18 +119,28 @@ def main():
         topic_score = float(row[0])
         worst_j = int(row[1:].argmax()) + 1
         decoy_score = float(row[worst_j])
+        # 형식 미끼(배너·글자판)가 가져간 몫. 주제를 못 이겨도 이게 크면 사진이 아니다.
+        form_score = max(float(row[1 + DECOYS.index(d)]) for d in FORM_DECOYS)
         res.append({
             "index": i,
             "topic": round(topic_score, 4),
             "decoy": round(decoy_score, 4),
             "worstDecoy": DECOYS[worst_j - 1],
-            # 미끼가 주제를 이기면 이 회차 사진이 아니다.
-            "ok": bool(topic_score >= decoy_score),
+            "formDecoy": round(form_score, 4),
+            # 두 가지로 거른다.
+            #   ① 미끼가 주제를 이기면 이 회차 사진이 아니다.
+            #   ② 주제를 이기지 못해도 **배너로 보이면** 화면에 깔 수 없다.
+            "ok": bool(topic_score >= decoy_score and form_score < FORM_LIMIT),
         })
 
     json.dump(res, open(a.json_out, "w", encoding="utf-8"))
     for r in res:
-        mark = "✓" if r["ok"] else f"✗ '{r['worstDecoy']}' 에 더 가깝다"
+        if r["ok"]:
+            mark = "✓"
+        elif r["formDecoy"] >= FORM_LIMIT:
+            mark = f"✗ 배너로 보인다({r['formDecoy']:.2f})"
+        else:
+            mark = f"✗ '{r['worstDecoy']}' 에 더 가깝다"
         print(f"  장면{r['index'] + 1}: 주제 {r['topic']:.3f} / 미끼 {r['decoy']:.3f}  {mark}",
               file=sys.stderr)
 

@@ -1250,14 +1250,19 @@ closeGoogleImages();
       // 2026-09-06: 미끼가 넓어 멀쩡한 사진 둘을 버리고 빈 화면이 나갔다(태극기·한복 → "민속 도구").
       //   미끼는 좁혔지만, **절반 넘게 걸리면 판정 자체를 의심**한다 —
       //   그럴 땐 모델이 주제를 못 잡은 것이지 사진이 다 틀린 게 아니다. 그때는 막지 않는다.
-      const bad = verdict.filter((v) => !v.ok).length;
-      if (verdict.length >= 2 && bad > verdict.length / 2) {
-        log(`[화면] CLIP 이 ${verdict.length}장 중 ${bad}장을 걸렀다 — 판정이 미덥지 않아 적용하지 않는다`);
-        throw new Error('skip-clip');
+      // 2026-09-06: "절반 넘게 걸리면 판정을 무시한다" 는 예외가 **배너까지 되살렸다.**
+      //   그 예외는 모델이 주제를 못 잡았을 때를 위한 것이다. 배너·글자판은 주제와 무관하게
+      //   화면에 깔면 안 되는 것이므로 이 예외에서 빼고 **언제나** 거른다.
+      const isBanner = (v) => (v.formDecoy ?? 0) >= 0.2;
+      const bad = verdict.filter((v) => !v.ok && !isBanner(v)).length;
+      const softBail = verdict.length >= 2 && bad > verdict.length / 2;
+      if (softBail) {
+        log(`[화면] CLIP 이 주제 불일치로 ${verdict.length}장 중 ${bad}장을 걸렀다 — 판정이 미덥지 않아 배너만 뺀다`);
       }
       let dropped = 0;
       for (const v of verdict) {
         if (v.ok) continue;
+        if (softBail && !isBanner(v)) continue;   // 주제 판정은 못 믿겠고, 배너는 그래도 뺀다
         const r = cand[v.index];
         log(`[화면] ${r.k + 1} CLIP 이 걸렀다 — 주제 ${v.topic} vs "${v.worstDecoy}" ${v.decoy}`);
         r.x.media = null; r.x.pick = null; r.x.credit = null;
