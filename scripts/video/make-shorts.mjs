@@ -27,7 +27,7 @@ import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
-import { stripByline, cleanHeadline, textLeftovers } from '../lib/wire-text.mjs';
+import { stripByline, cleanHeadline, textLeftovers, unsourcedAffiliation } from '../lib/wire-text.mjs';
 import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
@@ -803,9 +803,18 @@ for (let a = 1; a <= 3; a++) {
     const leftovers = scenes.flatMap((x) => [
       ...textLeftovers(x.hook), ...textLeftovers(x.say),
     ]);
+    // 2026-09-07: 대본이 "더불어민주당은 **무소속** 한동훈에…" 라고 했다.
+    //   원문 어디에도 '무소속' 이 없다 — 정당 소속을 지어낸 것이다.
+    //   실존 정치인의 소속을 틀리는 건 뉴스 채널에서 신뢰의 문제다.
+    //   이름 전체를 원문과 대조하는 방식은 오탐이 많아 못 썼지만(정상 5건 중 3건이 걸렸다),
+    //   **정당 표기는 닫힌 집합**이라 좁고 정확하게 잡을 수 있다.
+    const srcText = [...headlines, ...onTopicItems.map((i) => stripHtml(i.summary))].join(' ');
+    const madeUp = scenes.flatMap((x) => [
+      ...unsourcedAffiliation(x.hook, srcText), ...unsourcedAffiliation(x.say, srcText),
+    ]);
     if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks
-        && !dupSays && !sameEnding && !unattributed.length && !leftovers.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''} — 다시 쓴다`);
+        && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }

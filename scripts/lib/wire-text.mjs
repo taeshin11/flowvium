@@ -87,3 +87,41 @@ export function textLeftovers(text) {
   if (/^\(\s*[^()]{0,24}=\s*[^()]{0,24}\)/.test(t)) out.push('통신사 앞머리');
   return out;
 }
+
+/**
+ * 대본이 **원문에 없는 소속**을 붙였는가.
+ *
+ * 2026-09-07: 대본이 "더불어민주당은 **무소속** 한동훈에…" 라고 했다.
+ *   원문 세 건 어디에도 '무소속' 이 없다 — 모델이 정당 소속을 지어낸 것이다.
+ *   실존 정치인의 소속을 틀리는 건 뉴스 채널에서 한 글자가 아니라 신뢰의 문제다.
+ *   같은 부류를 앞서도 봤다: "국민의힘"→"국민힘", "정부"→"청와대".
+ *
+ * 앞서 **모든 이름**을 원문과 대조해 봤는데 못 썼다 —
+ *   정상 대본 5건 중 3건이 걸렸다("만에"·"생존자가"·"분석이" 같은 평범한 말).
+ *   그래서 **닫힌 집합**만 본다. 정당·소속 표기는 목록이 정해져 있고,
+ *   그건 언제나 기사에서 와야 하는 말이다. 좁게 잡는 대신 걸리면 거의 확실하다.
+ */
+const AFFILIATION = [
+  '무소속', '국민의힘', '더불어민주당', '민주당', '개혁신당', '조국혁신당',
+  '진보당', '기본소득당', '사회민주당', '정의당', '새누리당', '자유한국당',
+];
+
+/**
+ * @param {string} text 대본
+ * @param {string} source 원문(헤드라인+요약)
+ * @returns {string[]} 원문에 없는 소속 표기
+ */
+export function unsourcedAffiliation(text, source) {
+  const t = String(text ?? '');
+  const src = String(source ?? '');
+  if (src.length < 40) return [];   // 원문이 너무 짧으면 판단하지 않는다
+  const out = [];
+  for (const a of AFFILIATION) {
+    if (!t.includes(a)) continue;
+    if (src.includes(a)) continue;
+    // '민주당' 은 '더불어민주당' 의 일부다 — 원문에 긴 쪽이 있으면 맞는 말이다.
+    if (AFFILIATION.some((b) => b !== a && b.includes(a) && src.includes(b))) continue;
+    out.push(a);
+  }
+  return [...new Set(out)];
+}
