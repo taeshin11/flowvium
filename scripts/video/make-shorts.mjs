@@ -595,11 +595,21 @@ const budget = Math.round(TARGET_SEC * CPS);
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
 ${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
 
-${headlines.map((h, i) => `${i + 1}. ${h.slice(0, 160)}`).join('\n')}
+${(BRIEF ?? []).map((p2, i) => {
+  const h = headlines[i] ?? '';
+  // 2026-09-06: 브리핑 프롬프트가 **헤드라인만** 줬다. 두 문장을 채우려면 모델이 없는 내용을
+  //   지어낼 수밖에 없다 — "한국인 근무 발전소서 발견" 이 "한국인 근무자 2명도 구출되었습니다"
+  //   가 돼서 나갔다(Xfa26lCv6cM, 내렸다). 실종 수색 중인 사람을 구출됐다고 한 것이다.
+  //   기사 본문을 함께 준다. 쓸 내용이 있으면 지어낼 이유가 줄어든다.
+  const body = stripHtml((p2.it.items ?? []).map((x) => x.summary).find(Boolean) ?? '').slice(0, 220);
+  return `${i + 1}. ${h.slice(0, 160)}${body ? `\n   (기사: ${body})` : ''}`;
+}).join('\n') || headlines.map((h, i) => `${i + 1}. ${h.slice(0, 160)}`).join('\n')}
 
 규칙:
 - **장면 ${headlines.length}개. i번째 장면은 i번째 뉴스만 다룬다.** 뉴스를 섞지 마라.
-- 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
+- 오직 위에 적힌 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
+- **일어나지 않은 일을 일어난 것처럼 쓰지 마라.** 수색 중이면 수색 중이고, 실종이면 실종이다.
+  실측으로 나간 오류: 실종 수색 중인 한국인을 "구출되었습니다" 라고 했다.
 - 앵커 어투. 어미는 '-습니다/-입니다'. 반말·해체 금지. 한 문장을 짧게.
 - **남의 주장은 누가 했는지 밝혀라.** 사람을 규정하는 말(카르텔·농단·3인방 …)은 발화자와 함께.
 - 정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.
@@ -663,7 +673,9 @@ async function askLLM() {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: llm.model, messages: [{ role: 'user', content: activePrompt }],
-      max_tokens: 2000, temperature: 0.5, chat_template_kwargs: { enable_thinking: false },
+      // 2026-09-06: 온도 0.5 는 뉴스 대본에 높다. 사실 오류가 이어져 0.3 으로 내린다 —
+      //   문장이 조금 밋밋해지는 대신 없는 말을 덜 만든다.
+      max_tokens: 2000, temperature: Number(process.env.SHORTS_TEMP || 0.3), chat_template_kwargs: { enable_thinking: false },
     }),
     signal: AbortSignal.timeout(5 * 60_000),
   });
