@@ -656,6 +656,31 @@ try {
 }
 for (let i = 0; i < scenes.length; i++) {
   if (scenes[i].isOutro) { log(`[화면] ${i + 1} 마무리 — 채널 그래픽`); continue; }
+
+  // ⚠ 2026-09-06: 이 블록을 "1순위" 라고 적어 놓고 **구글 바로 앞**에 뒀다. 그런데 아카이브
+  //   검색이 그보다 먼저 돈다 — 실제로는 3순위였다. 그래서 09:00 회차가 기사 사진 2장을
+  //   확보하고도 안 쓰고 "전통" 검색으로 **투호·지게·장독대**를 붙였다(차례상 물가 기사에).
+  //   순서를 말로 적을 게 아니라 **자리로** 정해야 한다. 루프 맨 앞이다.
+  if (!scenes[i].pick && ISSUE_IMAGES.length) {
+    const c = ISSUE_IMAGES.find((x) => !usedMedia.has(x.url));
+    if (c) {
+      usedMedia.add(c.url);
+      try {
+        const ext = /\.mp4(\?|$)/i.test(c.url) ? 'mp4' : 'jpg';
+        scenes[i].media = await download(c.url, `${WORK}/m${i}.${ext}`);
+        scenes[i].pick = c;
+        scenes[i].credit = c.source ? `출처- ${c.source}` : null;
+        log(`[화면] ${i + 1} 기사 사진 → ${c.source} · ${String(c.title ?? '').slice(0, 40)}`);
+      } catch (e) { log(`[화면] ${i + 1} 기사 사진 건너뜀: ${e.message.slice(0, 40)}`); }
+    }
+  }
+
+  // 2026-09-05: 시세 주제인데 구글을 불러 **새 봇 차단을 자초했다**(22:00 회차, 질의 "뉴욕증시 금리인상").
+  //   시세는 그날 사진만 쓸 수 있는데 구글 결과는 대개 지난 기사다 — 불러도 거의 버린다.
+  //   기사 경로가 이미 오늘 사진을 줬으니 여기서 더 부를 이유가 없다.
+  //   편성 단계에서는 이미 빼 뒀는데 장면 단계에 그대로 남아 있었다.
+  const skipGoogle = TIME_SENSITIVE.test(headlines[0] ?? '');
+
   // LLM 이 visual 을 자주 비운다(실측: 4장면 중 3장면이 빈 회차가 반복됐다).
   //   프롬프트로 지시했지만 4B 는 지키지 않을 때가 있다 — **코드가 대비한다.**
   //   비면 그 장면의 훅과 이 편의 헤드라인에서 고유명사를 뽑아 쓴다(영문·숫자 토큰).
@@ -765,26 +790,6 @@ for (let i = 0; i < scenes.length; i++) {
   //   구글은 "중기부" 를 넣으면 중기부 사진을 준다.
   //   ⚠ 저작권: 여기 나오는 사진은 대개 언론사 것이다. 사용자 지시("출처만 적어")에 따르되
   //     통신사 도메인은 riskyDomain 으로 표시해 크레딧 파일에 남긴다.
-  // 이 회차 기사의 사진을 **먼저** 쓴다. 구글은 이걸로 못 채운 장면에만.
-  if (!scenes[i].pick && ISSUE_IMAGES.length) {
-    const c = ISSUE_IMAGES.find((x) => !usedMedia.has(x.url));
-    if (c) {
-      usedMedia.add(c.url);
-      try {
-        const ext = /\.mp4(\?|$)/i.test(c.url) ? 'mp4' : 'jpg';
-        scenes[i].media = await download(c.url, `${WORK}/m${i}.${ext}`);
-        scenes[i].pick = c;
-        scenes[i].credit = c.source ? `출처- ${c.source}` : null;
-        log(`[화면] ${i + 1} 기사 사진 → ${c.source} · ${String(c.title ?? '').slice(0, 40)}`);
-      } catch (e) { log(`[화면] ${i + 1} 기사 사진 건너뜀: ${e.message.slice(0, 40)}`); }
-    }
-  }
-
-  // 2026-09-05: 시세 주제인데 구글을 불러 **새 봇 차단을 자초했다**(22:00 회차, 질의 "뉴욕증시 금리인상").
-  //   시세는 그날 사진만 쓸 수 있는데 구글 결과는 대개 지난 기사다 — 불러도 거의 버린다.
-  //   기사 경로가 이미 오늘 사진을 줬으니 여기서 더 부를 이유가 없다.
-  //   편성 단계에서는 이미 빼 뒀는데 장면 단계에 그대로 남아 있었다.
-  const skipGoogle = TIME_SENSITIVE.test(headlines[0] ?? '');
   if (!scenes[i].pick && skipGoogle) {
     log(`[화면] ${i + 1} 시세 주제 — 구글은 부르지 않는다(그날 사진이 아니면 못 쓴다)`);
   }

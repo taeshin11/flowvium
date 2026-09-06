@@ -629,6 +629,23 @@ export async function searchPexelsVideo(terms, { limit = 8, apiKey = envValue('P
 //   "Seoul National Assembly" 는 Seoul 이 구별해 주므로 통과한다.
 
 /** 어느 나라·어느 조직에나 있는 말. 이것만으로는 대상을 특정하지 못한다. */
+/**
+ * 한국어 일반어 — 사건을 가리키지 못하는 말.
+ *
+ * 2026-09-06 실측: 차례상 물가 기사에서 검색어가 **"전통"** 하나로 잡혀
+ *   투호·지게·장독대 사진이 붙었다. 영어 일반어 목록(GENERIC_TERM)은 있는데
+ *   한국어는 없어서 두 글자만 넘으면 다 고유명사로 통과했다.
+ *   "차례상"·"추석"·"호르무즈" 처럼 대상을 가리키는 말은 남겨야 하므로,
+ *   **무엇에나 붙는 말**만 담는다.
+ */
+const KO_GENERIC = new Set([
+  '전통', '문화', '사회', '경제', '산업', '시장', '기술', '정책', '지역', '국내', '국제', '세계',
+  '행사', '축제', '시민', '국민', '가격', '비용', '물가', '상승', '하락', '증가', '감소', '확대',
+  '발표', '계획', '추진', '검토', '논의', '지원', '강화', '개선', '문제', '상황', '결과', '방안',
+  '대책', '현장', '관계자', '업계', '당국', '정부', '기업', '회사', '사업', '서비스', '제품',
+  '생산', '소비', '투자', '이번', '올해', '작년', '내년', '오늘', '어제', '내일', '최근', '전망',
+]);
+
 const GENERIC_TERM = new Set([
   'national', 'assembly', 'parliament', 'congress', 'senate', 'ministry', 'minister', 'ministers',
   'government', 'president', 'presidential', 'prime', 'court', 'supreme', 'central', 'bank',
@@ -662,7 +679,7 @@ export function hasDistinctiveTerm(terms) {
     if (/^[A-Z]{2,}$/.test(raw) && !GENERIC_TERM.has(w)) return true;
     // 한글은 두 글자가 흔한 고유명사다 — 부산·서울·대구·인천·삼성.
     //   영어 기준(3자)을 그대로 쓰면 지명이 통째로 막힌다(실측: "부산"이 막혀 예인선 편이 카드로 갔다).
-    if (/[가-힣]/.test(raw)) return raw.length >= 2 && !GENERIC_TERM.has(w);
+    if (/[가-힣]/.test(raw)) return raw.length >= 2 && !GENERIC_TERM.has(w) && !KO_GENERIC.has(raw);
     if (w.length < 3) return false;
     if (GENERIC_TERM.has(w)) return false;
     return true;
