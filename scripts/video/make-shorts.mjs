@@ -109,7 +109,13 @@ const stripHtml = (t) => String(t ?? '').replace(/<[^>]*>/g, ' ')
   .replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim();
 
 // 후보를 넉넉히 뽑는다. 8개만 보면 이미 다룬 것을 걸렀을 때 금방 바닥난다(하루 5편).
-const issues = topDistinctIssues(rows, Number(process.env.SHORTS_ISSUE_POOL || 24));
+// 2026-09-06 사용자 "뉴스 쏘스는 넓히지말고 ... 좀 더 세밀하게 찾아서 올려".
+//   소스를 넓히지 않고 **더 잘게 나누기만** 해도 공급이 크게 는다. 같은 기사로 실측:
+//     묶음 24개 → 쓸 만한 이슈 8개 · 60개 → 23개 · **120개 → 52개** (250개는 더 안 는다)
+//   덩어리가 크면 서로 다른 사건이 한 묶음이 되어 응집도 검사에서 통째로 탈락한다.
+//   잘게 나누면 각 묶음이 실제로 한 사건이 되어 살아남는다.
+//   하루 17슬롯에 52개면 국뽕·전쟁으로 억지로 채우지 않아도 된다.
+const issues = topDistinctIssues(rows, Number(process.env.SHORTS_ISSUE_POOL || 120));
 if (!issues.length) { console.error('❌ 이슈를 못 묶었다'); process.exit(1); }
 // 매체가 많이 다룬 것 = 그날 실제로 큰 뉴스다. 다만 **이미 내보낸 이슈는 건너뛴다**.
 //   2026-09-03 실측: 07:38 / 09:42 / 10:02 세 편이 전부 같은 헤드라인이었다. 24시간 기사 풀은
