@@ -36,7 +36,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
-import { isCoherentIssue, isSameStory, hasParticle } from '../lib/issue-coherence.mjs';
+import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
 import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
@@ -287,6 +287,20 @@ if (FORCE_ISSUE) {
   const before = fresh.length;
   // 조사가 붙어 깨진 키워드는 편성 기준이 될 수 없다(2026-09-06 실측: "ai가").
   //   그런 키워드로는 사진도 못 찾고 자막에도 이상하게 나온다.
+  // 주제가 될 수 없는 말(연결어미·부사)은 키워드가 아니다 — "앞두고" 로 편성돼
+  //   추석 한우와 러시아·우크라이나 기사가 한 묶음이 됐다(2026-09-06 실측).
+  // 상품 출시·할인 행사는 뉴스가 아니라 홍보다(2026-09-06: 우리은행 적금 + CU 할인 편을 내렸다).
+  const promoBefore = fresh.length;
+  const kept = fresh.filter((c) => !isPromotional((c.headlines ?? [])[0] ?? ''));
+  if (kept.length) {   // 전부 홍보성이면 어쩔 수 없다 — 거르는 건 아래 관문에 맡긴다
+    fresh = kept;
+    if (fresh.length !== promoBefore) log(`[편성] 홍보성 기사 ${promoBefore - fresh.length}건 제외`);
+  }
+
+  const tBefore = fresh.length;
+  fresh = fresh.filter((c) => isTopicKeyword(c.keyword));
+  if (fresh.length !== tBefore) log(`[편성] 주제가 아닌 키워드 ${tBefore - fresh.length}건 제외`);
+
   const pBefore = fresh.length;
   fresh = fresh.filter((c) => !hasParticle(c.keyword, c.headlines ?? []));
   if (fresh.length !== pBefore) log(`[편성] 조사가 붙어 깨진 키워드 ${pBefore - fresh.length}건 제외`);
@@ -643,7 +657,14 @@ const usedMedia = new Set();
 let ISSUE_IMAGES = [];
 try {
   const { issueImages } = await import('../lib/article-image.mjs');
-  const raw = await issueImages(issue.items ?? [], { max: 10 });
+  // 묶음이 대체로 맞아도 그 안에 혼자 다른 이야기를 하는 기사가 있다 —
+  //   추석 한우 묶음의 러시아·우크라이나 기사가 4번 장면 사진이 됐다(내렸다).
+  //   기사 단위로 걸러 낸 뒤 사진을 모은다.
+  const onTopic = itemsOnTopic(headlines[0] ?? '', issue.items ?? []);
+  if (onTopic.length !== (issue.items ?? []).length) {
+    log(`[화면] 이 회차와 다른 이야기인 기사 ${(issue.items ?? []).length - onTopic.length}건 제외`);
+  }
+  const raw = await issueImages(onTopic, { max: 10 });
   const todayKst0 = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
   const sameDay = TIME_SENSITIVE.test(headlines[0] ?? '');
   ISSUE_IMAGES = raw
@@ -662,7 +683,22 @@ for (let i = 0; i < scenes.length; i++) {
   //   확보하고도 안 쓰고 "전통" 검색으로 **투호·지게·장독대**를 붙였다(차례상 물가 기사에).
   //   순서를 말로 적을 게 아니라 **자리로** 정해야 한다. 루프 맨 앞이다.
   if (!scenes[i].pick && ISSUE_IMAGES.length) {
-    const c = ISSUE_IMAGES.find((x) => !usedMedia.has(x.url));
+    // 2026-09-06: 순서대로 아무거나 집었다. 그래서 훅이 "우리은행 7.5% 적금" 인 장면에
+    //   **CU 편의점** 사진이 붙었다(내렸다). 이 회차 기사가 여럿이면 그중 어느 것이
+    //   **이 장면의 이야기**인지 골라야 한다 — 장면의 훅·대사와 기사 제목을 맞춘다.
+    const sceneWords = new Set(
+      `${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`
+        .split(/[^가-힣A-Za-z0-9]+/).filter((w) => w.length >= 2).map((w) => w.toLowerCase()));
+    const overlap = (x) => {
+      const t = String(x.title ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((w) => w.length >= 2);
+      let hit = 0; for (const w of t) if (sceneWords.has(w.toLowerCase())) hit += 1;
+      return hit;
+    };
+    const pool = ISSUE_IMAGES.filter((x) => !usedMedia.has(x.url));
+    // 겹치는 낱말이 많은 기사부터. 하나도 안 겹치면 그 장면 이야기가 아니다 — 쓰지 않는다.
+    const c = pool.map((x) => ({ x, n: overlap(x) })).filter((r) => r.n > 0)
+      .sort((a, b) => b.n - a.n)[0]?.x;
+    if (!c && pool.length) log(`[화면] ${i + 1} 기사 사진 ${pool.length}장 있지만 이 장면 이야기가 아니다`);
     if (c) {
       usedMedia.add(c.url);
       try {
@@ -986,7 +1022,10 @@ closeGoogleImages();
 //   소재를 하나도 못 찾았다는 건 그 주제를 보여줄 수 없다는 뜻이다 — 그런 편은 영상이 아니다.
 //   한 장이라도 있으면 낸다(나머지는 재사용·카드로 메운다).
 {
-  const real = scenes.filter((x) => !x.isOutro && x.media).length;
+  // 2026-09-06: `x.media` 가 있는 장면을 셌는데 **재사용도 media 가 있다.**
+  //   그래서 사진 1장 + 재사용 1 + 카드 2 인 편이 "2장 있음" 으로 통과했다.
+  //   서로 다른 사진이 몇 장인지를 센다 — 같은 사진 두 번은 한 장이다.
+  const real = new Set(scenes.filter((x) => !x.isOutro && x.media).map((x) => x.media)).size;
   const total = scenes.filter((x) => !x.isOutro).length;
   // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
   //   백필이 회색 카드 3장 + 임시정부 청사 사진 하나로 한 편을 냈다(내렸다).

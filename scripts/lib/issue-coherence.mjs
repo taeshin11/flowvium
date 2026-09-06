@@ -31,6 +31,17 @@ const tokens = (t) => String(t ?? '')
   .filter((w) => w.length >= 2 && !/^\d+$/.test(w));
 
 /**
+ * 아무 문장에나 붙는 말. 이게 겹치는 건 같은 사건이라는 뜻이 못 된다.
+ * 2026-09-06: "앞두고" 가 공유 낱말로 세어져 추석 한우 묶음에 러시아·우크라이나 기사가 남았다.
+ */
+const NOT_A_TOPIC = new Set([
+  '앞두고', '이어', '위해', '통해', '대해', '따라', '두고', '맞아', '앞서', '나서', '들어',
+  '관련', '가운데', '동안', '이후', '이전', '지난', '올해', '내년', '작년', '오늘', '내일',
+  '하지만', '그러나', '또한', '특히', '다시', '계속', '여전히', '아직', '이미', '함께',
+  '밝혀', '전했다', '말했다', '나타났다', '보인다', '예상', '전망', '분석', '평가',
+]);
+
+/**
  * 키워드에 조사가 붙어 있는가.
  *
  * 2026-09-06: 이슈 키워드가 **"ai가"** 로 잡혔다. 낱말 자르기가 조사를 떼지 못한 것이다.
@@ -40,6 +51,39 @@ const tokens = (t) => String(t ?? '')
 // 조사 목록을 좁게 잡는다. '로·에·와·과·도·만' 까지 넣었더니 **한화에어로**가 걸렸다.
 //   넓은 목록은 멀쩡한 이름을 자른다 — 좁게 잡고, 헤드라인으로 한 번 더 확인한다.
 const PARTICLES = ['이', '가', '은', '는', '을', '를', '의', '에서'];
+/**
+ * 키워드가 될 수 없는 말 — 연결어미·부사처럼 **아무 문장에나 붙는** 것.
+ *
+ * 2026-09-06 실측: 이슈 키워드가 **"앞두고"** 로 잡혀 추석 한우 가격 기사와
+ *   러시아 외무장관 우크라이나 기사가 한 묶음이 됐다. "ai가" 와 같은 종류지만
+ *   조사가 아니라 어미라서 hasParticle 로는 못 잡는다.
+ *   이런 말은 주제를 가리키지 못한다.
+ */
+/**
+ * 홍보성 기사인가 — 상품 출시·할인 행사·이벤트.
+ *
+ * 2026-09-06 실측: 12:00 회차가 **우리은행 7.5% 적금 출시 + CU 70여종 할인** 으로 나갔다.
+ *   뉴스가 아니라 마케팅이고, 특정 상품의 금리를 훅으로 띄우면 금융 홍보로 보인다.
+ *   사용자가 정치·경제로 좁혔는데 이건 그 경제가 아니다.
+ */
+const PROMO = /(출시|할인|증정|이벤트|프로모션|사은품|경품|오픈\s*기념|런칭|리뉴얼|공모전|응모|특가|세일)/;
+export function isPromotional(headline) {
+  const t = String(headline ?? '');
+  if (!PROMO.test(t)) return false;
+  // 정책·제도 발표는 홍보가 아니다("정부, 지원금 출시" 같은 것은 남긴다).
+  if (/(정부|부처|청|위원회|국회|법안|정책|제도|지원금|보조금)/.test(t)) return false;
+  return true;
+}
+
+export function isTopicKeyword(keyword) {
+  const k = String(keyword ?? '').trim();
+  if (k.length < 2) return false;
+  if (NOT_A_TOPIC.has(k)) return false;
+  // 연결어미로 끝나는 말은 대개 주제가 아니다("앞두고"·"맞이하고"·"대비하며").
+  if (/[가-힣]{2,}(하고|하며|되며|되고|면서|으로써|에서도|에게도)$/.test(k)) return false;
+  return true;
+}
+
 export function hasParticle(keyword, headlines) {
   const k = String(keyword ?? '').trim();
   if (k.length < 3) return false;                // 두 글자짜리는 대개 이름이다
@@ -73,7 +117,7 @@ export function isCoherentIssue(keyword, headlines) {
 
   const kw = String(keyword ?? '');
   const sig = (h) => new Set(tokens(h)
-    .filter((w) => !COMMON.has(w))
+    .filter((w) => !COMMON.has(w) && !NOT_A_TOPIC.has(w))
     .filter((w) => !(kw && (kw.includes(w) || w.includes(kw))))
     .map((w) => w.toLowerCase()));
 
@@ -112,8 +156,34 @@ export function isCoherentIssue(keyword, headlines) {
  * @param {string[]} publishedHeadlines 최근 발행한 기사들
  * @param {number} [threshold] 겹침 비율 기준(기본 0.5)
  */
+/**
+ * 묶음 안에서 **혼자 다른 이야기를 하는 기사**를 골라낸다.
+ *
+ * 2026-09-06: 묶음 전체를 통과/차단으로만 다뤘더니, 대체로 맞는 묶음 안의 한 건이
+ *   엉뚱한 사진을 내놨다(추석 한우 묶음에 러시아·우크라이나 기사). 묶음을 버릴 정도는 아니지만
+ *   그 기사의 사진을 쓰면 안 된다. **기사 단위로** 걸러 낸다.
+ *
+ * @param {string} lead 대표 헤드라인
+ * @param {Array<{headline?:string, link?:string}>} items
+ */
+export function itemsOnTopic(lead, items) {
+  const sig = (t) => new Set(tokens(t)
+    .filter((w) => !COMMON.has(w) && !NOT_A_TOPIC.has(w)).map((w) => w.toLowerCase()));
+  const base = sig(lead);
+  if (!base.size) return items ?? [];
+  return (items ?? []).filter((it) => {
+    const h = it?.headline ?? it?.title ?? '';
+    if (!h) return true;                    // 제목을 모르면 판단하지 않는다
+    const a = sig(h);
+    if (!a.size) return true;
+    for (const w of a) if (base.has(w)) return true;
+    return false;
+  });
+}
+
 export function isSameStory(headline, publishedHeadlines, threshold = 0.5) {
-  const sig = (t) => new Set(tokens(t).filter((w) => !COMMON.has(w)).map((w) => w.toLowerCase()));
+  const sig = (t) => new Set(tokens(t)
+    .filter((w) => !COMMON.has(w) && !NOT_A_TOPIC.has(w)).map((w) => w.toLowerCase()));
   const a = sig(headline);
   if (!a.size) return false;
   for (const p of publishedHeadlines ?? []) {
