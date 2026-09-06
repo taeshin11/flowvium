@@ -175,9 +175,25 @@ export function isCoherentIssue(keyword, headlines) {
  * @param {string} lead 대표 헤드라인
  * @param {Array<{headline?:string, link?:string}>} items
  */
-export function itemsOnTopic(lead, items) {
+/**
+ * 대표 헤드라인과 **같은 이야기인 기사만** 남긴다.
+ *
+ * 2026-09-06: 키워드가 겹치는 것을 "같은 이야기" 로 셌다. 그래서 "한국인" 묶음에
+ *   네팔 구조 기사와 **사조대림 참치액·비에날씬 유산균**이 함께 남았고,
+ *   대본이 네팔 구조 사진 위에 "사조대림이 한국인 절반이 먹은 참치액에 대해" 를 읽었다.
+ *   묶은 낱말이 겹치는 건 당연하다 — 그건 같은 사건이라는 증거가 못 된다.
+ *   isCoherentIssue 는 이미 키워드를 빼고 세는데 여기만 안 빼고 있었다.
+ *
+ * @param {string} lead 대표 헤드라인
+ * @param {Array<{headline?:string,title?:string}>} items
+ * @param {string} [keyword] 이 묶음을 만든 낱말 — 공유 낱말에서 뺀다
+ */
+export function itemsOnTopic(lead, items, keyword = '') {
+  const kw = String(keyword ?? '').toLowerCase();
   const sig = (t) => new Set(tokens(t)
-    .filter((w) => !COMMON.has(w) && !NOT_A_TOPIC.has(w)).map((w) => w.toLowerCase()));
+    .filter((w) => !COMMON.has(w) && !NOT_A_TOPIC.has(w))
+    .map((w) => w.toLowerCase())
+    .filter((w) => !(kw && (kw.includes(w) || w.includes(kw)))));
   const base = sig(lead);
   if (!base.size) return items ?? [];
   return (items ?? []).filter((it) => {

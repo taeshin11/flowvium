@@ -219,7 +219,7 @@ async function footageScore(it) {
     const { issueImages } = await import('../lib/article-image.mjs');
     const { itemsOnTopic } = await import('../lib/issue-coherence.mjs');
     const lead = (it.headlines ?? [])[0] ?? '';
-    const imgs = await issueImages(itemsOnTopic(lead, it.items ?? []), { max: 6 });
+    const imgs = await issueImages(itemsOnTopic(lead, it.items ?? [], it.keyword), { max: 6 });
     const usable = imgs.filter((c) => isRealFootage(c));
     if (usable.length) return { n: usable.length, terms: [it.keyword], probed: [], viaArticle: true };
   } catch { /* 못 세면 아래 아카이브 점수로 간다 */ }
@@ -481,7 +481,7 @@ if (!FORCE_ISSUE) {
     const { itemsOnTopic } = await import('../lib/issue-coherence.mjs');
     const shots = async (it) => {
       const lead = (it.headlines ?? [])[0] ?? '';
-      const imgs = await issueImages(itemsOnTopic(lead, it.items ?? []), { max: 4 });
+      const imgs = await issueImages(itemsOnTopic(lead, it.items ?? [], it.keyword), { max: 4 });
       return imgs.filter((c) => isRealFootage(c));
     };
     const lead = await shots(issue);
@@ -523,7 +523,21 @@ if (!FORCE_ISSUE) {
 const headlines = (BRIEF
   ? BRIEF.map((p) => (p.it.headlines ?? [])[0] ?? '')
   : issue.headlines ?? []).map(cleanHeadline).filter(Boolean);
-const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
+// 2026-09-06: 묶음이 "한 사건" 판정을 통과해도 **묶음 안에 다른 기사가 남는다.**
+//   "한국인" 묶음이 네팔 구조 3건으로 응집도를 통과했는데, 같은 묶음에 사조대림 참치액과
+//   비에날씬 유산균이 함께 있었다. 대본이 "사조대림이 한국인 절반이 먹은 참치액에 대해" 를
+//   네팔 구조 사진 위에 읽었다.
+//   사진 쪽에는 itemsOnTopic 이 걸려 있었는데 **대본 쪽에는 걸려 있지 않았다.**
+//   대표 헤드라인과 이어지지 않는 기사는 대본에도 넣지 않는다.
+const onTopicHeads = BRIEF ? headlines
+  : itemsOnTopic(headlines[0] ?? '', (issue.headlines ?? []).map((h) => ({ headline: h })), issue.keyword)
+    .map((x) => x.headline);
+if (!BRIEF && onTopicHeads.length && onTopicHeads.length < headlines.length) {
+  log(`[대본] 이 회차와 다른 이야기인 헤드라인 ${headlines.length - onTopicHeads.length}건을 뺀다`);
+  headlines.length = 0; headlines.push(...onTopicHeads);
+}
+const onTopicItems = BRIEF ? (issue.items ?? []) : itemsOnTopic(headlines[0] ?? '', issue.items ?? [], issue.keyword);
+const texts = [...headlines, ...onTopicItems.map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);
 // 2026-09-06 사용자 "올릴수없는게 말이되니? 고쳐서라도 올려야지".
 //   회차를 버리는 대신 **다른 이슈로 다시 시도**할 수 있어야 한다. 호출부가 재시도하려면
@@ -839,7 +853,7 @@ try {
   // 묶음이 대체로 맞아도 그 안에 혼자 다른 이야기를 하는 기사가 있다 —
   //   추석 한우 묶음의 러시아·우크라이나 기사가 4번 장면 사진이 됐다(내렸다).
   //   기사 단위로 걸러 낸 뒤 사진을 모은다.
-  const onTopic = itemsOnTopic(headlines[0] ?? '', issue.items ?? []);
+  const onTopic = itemsOnTopic(headlines[0] ?? '', issue.items ?? [], issue.keyword);
   if (onTopic.length !== (issue.items ?? []).length) {
     log(`[화면] 이 회차와 다른 이야기인 기사 ${(issue.items ?? []).length - onTopic.length}건 제외`);
   }

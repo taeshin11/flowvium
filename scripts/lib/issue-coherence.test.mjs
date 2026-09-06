@@ -7,7 +7,7 @@
  *   대본은 네 장면이 서로 다른 이야기를 했고 사진도 따로 놀았다(내렸다).
  *   "대통령·장관·의원" 같은 **직함은 어느 기사에나 있다** — 그것만 겹치는 건 한 사건이 아니다.
  */
-import { isCoherentIssue, hasParticle, isTopicKeyword } from './issue-coherence.mjs';
+import { isCoherentIssue, hasParticle, isTopicKeyword, itemsOnTopic } from './issue-coherence.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  ✓ ${m}`);
@@ -119,6 +119,30 @@ const bad = (m) => { console.log(`  ✗ ${m}`); fail++; };
   ['국민의힘', '호르무즈', '한화에어로', '소비자물가'].forEach((k) => {
     isTopicKeyword(k) ? ok(`'${k}' 는 그대로 주제로 쓴다`) : bad(`'${k}' 를 잘못 잘랐다`);
   });
+}
+
+
+// ── 2026-09-06 18:00: "한국인" 묶음에 네팔 구조와 참치액 광고가 함께 남았다 ──────────
+//   응집도는 네팔 기사 셋으로 통과했는데, 같은 묶음의 사조대림·비에날씬이 대본에 들어가
+//   네팔 구조 사진 위에 "사조대림이 한국인 절반이 먹은 참치액에 대해" 를 읽었다(o_yaH_4l7b0 계열).
+//   **묶은 낱말이 겹치는 건 같은 사건이라는 증거가 못 된다.**
+{
+  const heads = [
+    '대홍수 열흘 만 생환…실종 한국인 근무 발전소서 중국인 구조',
+    '[영상] 네팔·韓구호대, 중국인 1명 구조…한국인 근무 발전소서 발견',
+    '사조대림, 한국인 절반이 먹은 참치액',
+    '비에날씬, 한국인 모유 성분으로 만든 다이어트 유산균',
+  ];
+  const kept = itemsOnTopic(heads[0], heads.map((h) => ({ headline: h })), '한국인')
+    .map((x) => x.headline);
+  kept.length === 2 ? ok('키워드만 겹치는 기사는 대본에서 뺀다')
+    : bad(`${kept.length}건이 남았다 — 2건이어야 한다`);
+  kept.includes(heads[2]) ? bad('참치액 광고가 남았다') : ok('참치액 광고를 뺐다');
+  kept.includes(heads[1]) ? ok('같은 사건의 기사는 남긴다') : bad('네팔 기사를 잘못 뺐다');
+
+  // 키워드를 안 주면 예전처럼 동작한다 — 호출부를 한 번에 못 고쳐도 깨지지 않아야 한다.
+  itemsOnTopic(heads[0], heads.map((h) => ({ headline: h }))).length === 4
+    ? ok('키워드를 안 주면 예전대로 동작한다') : bad('키워드 없이 부르면 결과가 달라진다');
 }
 
 console.log(fail === 0 ? '\n✅ issue-coherence 통과' : `\n❌ ${fail}건 실패`);
