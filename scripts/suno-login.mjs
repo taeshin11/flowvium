@@ -43,12 +43,13 @@ async function loggedIn(pg) {
 }
 
 // 로그인될 때까지 기다린다. 사람이 하는 일이라 넉넉히 둔다.
-const until = Date.now() + 20 * 60_000;
+// 사람이 로그인할 때까지 기다린다. 20분은 짧았다 — 자리를 비우면 창이 닫혀 버린다.
+const until = Date.now() + Number(process.env.SUNO_WAIT_MIN || 180) * 60_000;
 let ok = false;
 while (Date.now() < until) {
   if (await loggedIn(page)) { ok = true; break; }
   await page.waitForTimeout(10000);
 }
 console.log(ok ? '✅ 로그인 확인 — /create 가 열렸고 세션이 프로필에 저장됐습니다.'
-  : '⏳ 20분 동안 로그인이 확인되지 않았습니다. 다시 실행해 주세요.');
+  : `⏳ ${process.env.SUNO_WAIT_MIN || 180}분 동안 로그인이 확인되지 않았습니다. 다시 실행해 주세요.`);
 // 창은 닫지 않는다 — 사용자가 보고 있을 수 있다. 세션은 이미 프로필에 저장돼 있다.
