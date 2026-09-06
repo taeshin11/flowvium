@@ -1,0 +1,161 @@
+#!/usr/bin/env node
+/**
+ * make-issue-video.mjs — 종합 이슈 영상 1편. 뉴스 수집분에서 소재를 결정론으로 골라 만든다.
+ *
+ * 파이프라인: 이슈 선정(issue-cluster) → 대본(로컬 LLM) → 앵커 음성(TTS) → 화면(Playwright) → ffmpeg
+ *
+ * 설계 원칙(2026-08-27, 이번 세션에서 값비싸게 배운 것들):
+ *   · 소재는 **매체 수**로 고른다 — 사람도 LLM 도 아닌 데이터가 정한다(issue-cluster).
+ *   · 장면 길이는 **나레이션 실측 길이**로 맞춘다 — 고정 초는 음성과 화면을 어긋나게 한다.
+ *   · 앵커 음성 ID 는 .env.local — 코드에 박으면 교체 때마다 코드를 고쳐야 한다.
+ *   · TTS 무음은 실패로 잡는다(lib/tts.mjs) — 소리 없는 영상이 발행되면 안 된다.
+ *
+ * 사용: node scripts/video/make-issue-video.mjs --locale en [--minutes 90] [--out <mp4>]
+ */
+import Database from 'better-sqlite3';
+import ffmpegPath from 'ffmpeg-static';
+import { chromium } from 'playwright';
+import { spawnSync } from 'child_process';
+import { mkdirSync, writeFileSync, existsSync, statSync } from 'fs';
+import { resolve } from 'path';
+import { ROOT } from '../lib/project-root.mjs';
+import { synthesize } from '../lib/tts.mjs';
+import { topDistinctIssues } from '../lib/issue-cluster.mjs';
+
+const argv = process.argv.slice(2);
+const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
+const locale = arg('--locale', 'en');
+const isKo = locale === 'ko';
+const OUT = resolve(ROOT, arg('--out', `reports/video/issue-${locale}.mp4`));
+const WORK = resolve(ROOT, `reports/video/.work-${locale}`);
+const W = 1920, H = 1080;
+
+// ── 1. 소재: 최근 12시간 뉴스에서 매체 수 기준 상위 이슈 ─────────────────────
+const REGION_SOURCES = isKo
+  ? ['연합뉴스 정치', '연합뉴스 사회', '연합뉴스 연예', '연합뉴스 국제', '연합뉴스 경제', '한국경제 정치', '한국경제 사회', '한국경제']
+  : ['NPR 톱뉴스', 'NPR 정치', 'NBC 톱뉴스', 'CBS 톱뉴스', 'Politico 정치', 'Variety 연예', 'Hollywood Reporter 연예', 'The Verge 테크'];
+
+const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+const rows = db.prepare(
+  `SELECT source, headline, link FROM news_archive
+   WHERE source IN (${REGION_SOURCES.map(() => '?').join(',')})
+     AND datetime(captured_at) >= datetime('now','-12 hours')`,
+).all(...REGION_SOURCES);
+db.close();
+
+const issues = topDistinctIssues(rows, 3);
+if (issues.length === 0) { console.error('❌ 이슈 클러스터 없음 — 수집이 얇다'); process.exit(1); }
+console.log(`  [소재] ${rows.length}건 중 이슈 ${issues.length}개`);
+for (const c of issues) console.log(`    "${c.keyword}" 매체 ${c.sourceCount} · 기사 ${c.items.length}`);
+
+// ── 2. 대본: 로컬 LLM. 헤드라인만 근거로 쓰고 없는 사실을 만들지 못하게 못박는다 ──
+const brief = issues.map((c, i) =>
+  `[${i + 1}] ${c.headlines.slice(0, 4).map((h) => `- ${h}`).join('\n')}`).join('\n\n');
+
+const prompt = isKo ? `너는 한국 이슈 뉴스 채널의 대본 작가다. 아래 헤드라인만 근거로 90초 대본을 쓴다.
+
+${brief}
+
+규칙:
+- 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
+- 한국 시청자 관점에서 쓴다. 한국과 관련되면 그 연결을 앞세운다.
+- 아나운서가 읽는 문장. 문어체 금지, 구어체 뉴스 톤.
+- 숫자는 한글로 풀어 쓴다(TTS 오독 방지). 예: 17 billion → 백칠십억
+- JSON 배열만 출력: [{"title":"화면 제목(12자 이내)","say":"읽을 문장(60~90자)"}]
+- 4~6개 장면. 마지막 장면은 채널 마무리.`
+  : `You write scripts for a US news-issue channel. Use ONLY the headlines below.
+
+${brief}
+
+Rules:
+- Use only facts present in the headlines. Do not invent numbers, quotes, or background.
+- Write for a US audience. Lead with why it matters to Americans.
+- Anchor-read sentences. Conversational broadcast tone, not written prose.
+- Spell out figures for text-to-speech (e.g. "seventeen billion dollars", not "$17B").
+- Output ONLY a JSON array: [{"title":"on-screen title (<=18 chars)","say":"line to read (70-110 chars)"}]
+- 4 to 6 scenes. Last scene closes the channel.`;
+
+console.log('  [대본] 로컬 LLM 호출…');
+// 로컬 LLM. 보고서용 27B(:8000)와 경합하지 않도록 보조 모델(:8001)을 쓴다 —
+//   대본 쓰기는 헤드라인만 근거로 하는 제한된 과제라 소형 모델로 충분하고, 27B 는 디코딩이
+//   3 tok/s 라 정기 발간을 굶길 수 있다(이번 세션에 락 경합으로 발간 3회 누락을 겪었다).
+// enable_thinking:false 가 핵심 — 없으면 추론 토큰이 예산을 다 먹고 content 가 **빈 문자열**로 온다
+//   (실측: 27B/4B 모두 finish_reason=length, content="" → 대본 파싱 실패).
+const llm = { url: process.env.VIDEO_LLM_URL ?? 'http://127.0.0.1:8001/v1',
+              model: process.env.VIDEO_LLM_MODEL ?? 'mlx-community/Qwen3.5-4B-4bit' };
+const llmRes = await fetch(`${llm.url}/chat/completions`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ model: llm.model, messages: [{ role: 'user', content: prompt }],
+                         max_tokens: 1400, temperature: 0.4, stream: false,
+                         chat_template_kwargs: { enable_thinking: false } }),
+  signal: AbortSignal.timeout(10 * 60 * 1000),
+});
+if (!llmRes.ok) { console.error(`❌ LLM HTTP ${llmRes.status}`); process.exit(1); }
+const raw = (await llmRes.json())?.choices?.[0]?.message?.content ?? '';
+let scenes;
+try {
+  const m = String(raw).match(/\[[\s\S]*\]/);
+  scenes = JSON.parse(m ? m[0] : raw);
+} catch { console.error(`❌ 대본 파싱 실패: ${String(raw).slice(0, 200)}`); process.exit(1); }
+scenes = (scenes ?? []).filter((s) => s?.say && s?.title).slice(0, 6);
+if (scenes.length < 3) { console.error(`❌ 장면 부족: ${scenes.length}`); process.exit(1); }
+console.log(`  [대본] 장면 ${scenes.length}개 · ${scenes.reduce((n, s) => n + s.say.length, 0)}자`);
+
+// ── 3. 화면 ─────────────────────────────────────────────────────────────────
+const card = (s, i) => `<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:${W}px;height:${H}px;background:linear-gradient(140deg,#0a0e1a,#131a2e 55%,#0a0e1a);
+     font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#eef3ff;
+     display:flex;flex-direction:column;justify-content:center;padding:0 150px;position:relative}
+.bar{position:absolute;left:0;top:0;width:12px;height:100%;background:linear-gradient(#ff4d5e,#c81e3a)}
+.kick{font-size:30px;letter-spacing:.3em;color:#ff6b7a;font-weight:800;margin-bottom:30px}
+.title{font-size:${String(s.title).length > 14 ? 96 : 136}px;font-weight:900;letter-spacing:-.025em;line-height:1.05}
+.sub{margin-top:42px;font-size:44px;color:#9fb2d4;line-height:1.45;max-width:1400px}
+.foot{position:absolute;bottom:62px;left:150px;font-size:26px;color:#5a6b8f;letter-spacing:.14em}
+.no{position:absolute;bottom:62px;right:150px;font-size:26px;color:#5a6b8f}
+</style><div class="bar"></div>
+<div class="kick">${isKo ? '오늘의 이슈' : 'TODAY’S ISSUE'}</div>
+<div class="title">${String(s.title).replace(/[<>]/g, '')}</div>
+<div class="sub">${String(s.say).replace(/[<>]/g, '').slice(0, 120)}</div>
+<div class="foot">FLOWVIUM</div><div class="no">${i + 1} / ${scenes.length}</div>`;
+
+mkdirSync(WORK, { recursive: true });
+mkdirSync(resolve(ROOT, 'reports/video'), { recursive: true });
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: W, height: H } });
+for (let i = 0; i < scenes.length; i++) {
+  await page.setContent(card(scenes[i], i));
+  await page.screenshot({ path: `${WORK}/s${i}.png` });
+}
+await browser.close();
+console.log(`  [화면] ${scenes.length}장 렌더`);
+
+// ── 4. 음성 ─────────────────────────────────────────────────────────────────
+const durOf = (f) => Number(((spawnSync('afinfo', [f], { encoding: 'utf8' }).stdout ?? '')
+  .match(/estimated duration:\s*([\d.]+)/i) ?? [])[1] ?? 0);
+let total = 0;
+for (let i = 0; i < scenes.length; i++) {
+  const a = `${WORK}/s${i}.mp3`;
+  await synthesize(scenes[i].say, { provider: 'elevenlabs', locale, outPath: a, model: 'eleven_multilingual_v2' });
+  scenes[i].audio = a;
+  scenes[i].dur = durOf(a) + 0.4;
+  total += scenes[i].dur;
+  console.log(`  [음성] ${i + 1} ${scenes[i].dur.toFixed(1)}초`);
+}
+
+// ── 5. 합성 ─────────────────────────────────────────────────────────────────
+writeFileSync(`${WORK}/a.txt`, scenes.map((s) => `file '${s.audio}'`).join('\n'));
+writeFileSync(`${WORK}/v.txt`,
+  scenes.map((s, i) => `file '${WORK}/s${i}.png'\nduration ${s.dur.toFixed(2)}`).join('\n')
+  + `\nfile '${WORK}/s${scenes.length - 1}.png'\n`);
+const run = (args, label) => {
+  const r = spawnSync(ffmpegPath, args, { encoding: 'utf8' });
+  if (r.status !== 0) { console.error(`❌ ffmpeg ${label}: ${String(r.stderr).slice(-350)}`); process.exit(1); }
+};
+run(['-y', '-f', 'concat', '-safe', '0', '-i', `${WORK}/a.txt`, '-c', 'copy', `${WORK}/voice.mp3`], 'audio');
+run(['-y', '-f', 'concat', '-safe', '0', '-i', `${WORK}/v.txt`, '-i', `${WORK}/voice.mp3`,
+     '-vf', `scale=${W}:${H},format=yuv420p`, '-r', '30', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
+     '-c:a', 'aac', '-b:a', '192k', '-shortest', OUT], 'mux');
+
+console.log(`\n✅ ${OUT}`);
+console.log(`   ${total.toFixed(1)}초 · ${(statSync(OUT).size / 1048576).toFixed(1)}MB · 소재: ${issues.map((c) => c.keyword).join(', ')}`);
