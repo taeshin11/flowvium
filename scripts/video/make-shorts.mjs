@@ -315,6 +315,8 @@ let RECENT_HEADS = [];
 let IS_WEAK = () => false;
 /** 헤드라인 자극도. 브리핑 순서(=썸네일)를 정하는 데도 쓴다. */
 let AROUSAL = () => 0;
+/** 썸네일로 세우면 안 되는 헤드라인인가(남을 규정하는 인용). */
+let UNSAFE_THUMB = () => false;
 if (FORCE_ISSUE) {
   const want = normalizeIssueKey(FORCE_ISSUE);
   const hit = issues.find((it) => normalizeIssueKey(it.keyword) === want);
@@ -404,9 +406,17 @@ if (FORCE_ISSUE) {
       fresh = hot;
     }
     // 센 것부터 본다. 브리핑이면 **1번이 썸네일**이 되므로 이 순서가 곧 첫 화면이다.
-    fresh.sort((a, b) => score(b) - score(a));
+    //   다만 **남을 규정하는 인용**이 든 헤드라인은 앞자리에서 뺀다 —
+    //   2026-09-07 실측: "이진숙, '여자 히틀러' 김민석 발언 모욕죄 고소" 가 1번이 됐는데
+    //   훅은 발화자를 밝혔지만 사진은 그 말을 **들은** 사람이었다. 글로는 맞고 그림으로는 틀렸다.
+    //   버리지는 않는다 — 뒷 장면에서는 내레이션이 맥락을 붙여 준다.
+    const { unsafeAsThumbnail } = await import('../lib/attribution.mjs');
+    const unsafe = (c) => unsafeAsThumbnail((c.headlines ?? [])[0] ?? '');
+    fresh.sort((a, b) => (unsafe(a) ? 1 : 0) - (unsafe(b) ? 1 : 0) || score(b) - score(a));
+    if (fresh.length && unsafe(fresh[0])) log('[편성] 남는 후보가 전부 인용 낙인이다 — 그대로 간다');
     issue = fresh[0];
     AROUSAL = score;
+    UNSAFE_THUMB = unsafe;
   } catch (e) { log(`[편성] 자극도 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
 
   BRIEF_POOL = fresh.slice();
@@ -571,7 +581,8 @@ if (!FORCE_ISSUE) {
             // 2026-09-07: 1번 장면이 **쇼츠 썸네일**이 된다. 사용자가 "저자극 부분이 나온듯" 이라 했다.
             //   갈래 평균 반응률(rate)보다 **그 헤드라인 자체의 자극도**가 앞이다 —
             //   같은 갈래여도 "폭발음 여러번" 과 "협약 체결" 은 첫 화면에서 하늘과 땅이다.
-            BRIEF.sort((a, b) => (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0)
+            BRIEF.sort((a, b) => (UNSAFE_THUMB(a.it) ? 1 : 0) - (UNSAFE_THUMB(b.it) ? 1 : 0)
+              || (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0)
               || AROUSAL(b.it) - AROUSAL(a.it) || rate(b) - rate(a));
             log(`[편성] 브리핑 순서를 성적으로 정한다 — 1번 "${((BRIEF[0].it.headlines ?? [])[0] ?? '').slice(0, 34)}" (${(rate(BRIEF[0]) * 100).toFixed(2)}%)`);
           }
