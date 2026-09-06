@@ -101,9 +101,20 @@ export function textLeftovers(text) {
  *   그래서 **닫힌 집합**만 본다. 정당·소속 표기는 목록이 정해져 있고,
  *   그건 언제나 기사에서 와야 하는 말이다. 좁게 잡는 대신 걸리면 거의 확실하다.
  */
+// 정당 이름과, **원문에 그것을 뜻하는 말**. 한국 기사는 정당을 줄여 쓴다 —
+//   `與 "한동훈…"` 을 모델이 '더불어민주당' 으로 푸는 건 지어낸 게 아니라 옳게 푼 것이다.
+//   2026-09-07 실측: 그걸 못 알아봐서 정상 대본을 세 번 다시 쓰게 했다.
 const AFFILIATION = [
-  '무소속', '국민의힘', '더불어민주당', '민주당', '개혁신당', '조국혁신당',
-  '진보당', '기본소득당', '사회민주당', '정의당', '새누리당', '자유한국당',
+  { name: '국민의힘', hints: ['국민의힘', '국힘', '與', '野', '여당', '야당'] },
+  { name: '더불어민주당', hints: ['더불어민주당', '민주당', '민주', '與', '野', '여당', '야당'] },
+  { name: '민주당', hints: ['민주당', '민주', '與', '野', '여당', '야당'] },
+  { name: '개혁신당', hints: ['개혁신당', '개혁'] },
+  { name: '조국혁신당', hints: ['조국혁신당', '혁신당'] },
+  { name: '진보당', hints: ['진보당'] },
+  { name: '정의당', hints: ['정의당'] },
+  // '무소속' 은 **소속이 없다는 적극적인 주장**이다. 줄임말로 유추될 수 없다 —
+  //   원문에 그대로 있어야 쓴다.
+  { name: '무소속', hints: ['무소속'] },
 ];
 
 /**
@@ -116,12 +127,10 @@ export function unsourcedAffiliation(text, source) {
   const src = String(source ?? '');
   if (src.length < 40) return [];   // 원문이 너무 짧으면 판단하지 않는다
   const out = [];
-  for (const a of AFFILIATION) {
-    if (!t.includes(a)) continue;
-    if (src.includes(a)) continue;
-    // '민주당' 은 '더불어민주당' 의 일부다 — 원문에 긴 쪽이 있으면 맞는 말이다.
-    if (AFFILIATION.some((b) => b !== a && b.includes(a) && src.includes(b))) continue;
-    out.push(a);
+  for (const { name, hints } of AFFILIATION) {
+    if (!t.includes(name)) continue;
+    if (hints.some((h) => src.includes(h))) continue;
+    out.push(name);
   }
   return [...new Set(out)];
 }
