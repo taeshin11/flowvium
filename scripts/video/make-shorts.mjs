@@ -309,6 +309,10 @@ let issue = fresh[0];
 let PROBED = [];
 /** 브리핑(여러 이슈 묶음)용 예비 후보 — 응집도 필터 이전의 목록. */
 let BRIEF_POOL = [];
+/** 최근 24시간에 낸 헤드라인. 중복 편성과 브리핑 제목 순서에 쓴다. */
+let RECENT_HEADS = [];
+/** 반응 약한 갈래인가. 성적을 못 읽으면 아무도 약하지 않다(판단하지 않는다). */
+let IS_WEAK = () => false;
 if (FORCE_ISSUE) {
   const want = normalizeIssueKey(FORCE_ISSUE);
   const hit = issues.find((it) => normalizeIssueKey(it.keyword) === want);
@@ -325,13 +329,12 @@ if (FORCE_ISSUE) {
   //   직함은 어느 기사에나 있어 그것만으로 묶으면 이슈가 아니다.
   // 같은 기사가 **다른 키워드로** 다시 나가는 것도 막는다. 원장은 키워드로만 보는데,
   //   12:00 에 "아파트" 로 낸 기사가 여기서 "홍지선" 으로 다시 1순위가 됐다(실측).
-  let publishedHeads = [];
   try {
     const { recentShortsHeadlines } = await import('../lib/db.mjs');
-    publishedHeads = recentShortsHeadlines(24);
+    RECENT_HEADS = recentShortsHeadlines(24);
   } catch { /* 못 읽어도 편성은 계속한다 — 키워드 원장이 1차 방어다 */ }
   const dupBefore = fresh.length;
-  fresh = fresh.filter((c) => !isSameStory((c.headlines ?? [])[0] ?? '', publishedHeads));
+  fresh = fresh.filter((c) => !isSameStory((c.headlines ?? [])[0] ?? '', RECENT_HEADS));
   if (fresh.length !== dupBefore) log(`[편성] 이미 낸 기사와 같은 사건 ${dupBefore - fresh.length}건 제외`);
 
   const before = fresh.length;
@@ -367,7 +370,32 @@ if (FORCE_ISSUE) {
   // 브리핑용 예비 후보는 **응집도를 걸러내기 전**에 남긴다.
   //   브리핑은 이슈마다 헤드라인 하나·사진 하나만 쓰므로 묶음 내부가 섞여 있어도 상관없다.
   //   실측(2026-09-06): 응집도까지 걸면 후보 3개, 안 걸면 15개 — 브리핑 성사 여부가 갈렸다.
+  try {
+    const { shortsPerformance } = await import('../lib/db.mjs');
+    const { weakCategories, categoryOf } = await import('../lib/topic-score.mjs');
+    const weak = weakCategories(shortsPerformance({ minAgeHours: 8 }));
+    if (weak.size) {
+      const isWeak = (c) => weak.has(categoryOf((c.headlines ?? [])[0] ?? ''));
+      IS_WEAK = isWeak;   // 아래 소재 기준 재선택에서도 같은 판단을 쓴다
+      const back = fresh.filter(isWeak);
+      if (back.length && back.length < fresh.length) {
+        fresh = [...fresh.filter((c) => !isWeak(c)), ...back];
+        issue = fresh[0];
+        log(`[편성] 반응 약한 갈래 ${[...weak].join('·')} ${back.length}건을 뒤로 민다(성적 기반)`);
+      }
+    }
+  } catch (e) { log(`[편성] 성적 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
   BRIEF_POOL = fresh.slice();
+  // 2026-09-06: 브리핑에 **중기중앙회 강소기업 선정**이 섞여 나왔다.
+  //   약한 갈래를 거르는 건 1순위 이슈에만 걸려 있었고 브리핑 풀에는 안 걸려 있었다.
+  //   브리핑은 장면마다 다른 뉴스이므로 **장면 하나하나가 각각 그 관문을 지나야** 한다.
+  {
+    const kept = BRIEF_POOL.filter((c) => !IS_WEAK(c));
+    if (kept.length >= 3 && kept.length < BRIEF_POOL.length) {
+      log(`[편성] 브리핑 후보에서 반응 약한 갈래 ${BRIEF_POOL.length - kept.length}건을 뺀다`);
+      BRIEF_POOL = kept;
+    }
+  }
   fresh = fresh.filter((c) => isCoherentIssue(c.keyword, c.headlines ?? []));
   if (fresh.length !== before) log(`[편성] 한 사건으로 안 보이는 묶음 ${before - fresh.length}건 제외 — 남은 후보 ${fresh.length}`);
   // ⚠ `issue` 는 이 블록 **앞에서** fresh[0] 로 이미 정해졌다. 여기서 후보를 걸러 놓고
@@ -404,23 +432,6 @@ if (FORCE_ISSUE) {
   //   · 시장종목 0.52% · **지역·기관 0.35%**(전남대 산학연 3편).
   //   약한 갈래는 **버리지 않고 뒤로 민다** — 표본이 얇고 그날 그 주제뿐일 수도 있다.
   //   짐작이 아니라 DB 에 쌓인 성적에서 온다. 성적이 없으면 아무것도 하지 않는다.
-  /** 반응 약한 갈래인가. 성적을 못 읽으면 아무도 약하지 않다(판단하지 않는다). */
-  let IS_WEAK = () => false;
-  try {
-    const { shortsPerformance } = await import('../lib/db.mjs');
-    const { weakCategories, categoryOf } = await import('../lib/topic-score.mjs');
-    const weak = weakCategories(shortsPerformance({ minAgeHours: 8 }));
-    if (weak.size) {
-      const isWeak = (c) => weak.has(categoryOf((c.headlines ?? [])[0] ?? ''));
-      IS_WEAK = isWeak;   // 아래 소재 기준 재선택에서도 같은 판단을 쓴다
-      const back = fresh.filter(isWeak);
-      if (back.length && back.length < fresh.length) {
-        fresh = [...fresh.filter((c) => !isWeak(c)), ...back];
-        issue = fresh[0];
-        log(`[편성] 반응 약한 갈래 ${[...weak].join('·')} ${back.length}건을 뒤로 민다(성적 기반)`);
-      }
-    }
-  } catch (e) { log(`[편성] 성적 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
 
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
@@ -521,7 +532,19 @@ if (!FORCE_ISSUE) {
           const perf = shortsPerformance({ minAgeHours: 8 });
           if (perf.length) {
             const rate = (p) => expectedRate((p.it.headlines ?? [])[0] ?? '', perf);
-            BRIEF.sort((a, b) => rate(b) - rate(a));
+            // 2026-09-06: 17:59 에 네팔 대홍수를 냈는데 19:00 브리핑의 **제목도 네팔**이 됐다.
+            //   같은 사건은 아니고 그 재난의 다른 전개라 편성에서 막을 근거는 약하다.
+            //   다만 **제목이 연달아 같은 소재**로 보이는 건 피한다 — 순서만 뒤로 민다.
+            //   빼는 게 아니라 미는 것이므로 소재가 줄지 않는다.
+            const recentWords = new Set(RECENT_HEADS.flatMap((h) => String(h)
+              .split(/[^가-힣A-Za-z0-9]+/).filter((w) => w.length >= 2).map((w) => w.toLowerCase())));
+            const echoes = (p) => {
+              const t = String((p.it.headlines ?? [])[0] ?? '').split(/[^가-힣A-Za-z0-9]+/)
+                .filter((w) => w.length >= 2).map((w) => w.toLowerCase());
+              let hit = 0; for (const w of t) if (recentWords.has(w)) hit += 1;
+              return hit >= 2;   // 두 낱말 이상 겹치면 방금 낸 이야기로 읽힌다
+            };
+            BRIEF.sort((a, b) => (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0) || rate(b) - rate(a));
             log(`[편성] 브리핑 순서를 성적으로 정한다 — 1번 "${((BRIEF[0].it.headlines ?? [])[0] ?? '').slice(0, 34)}" (${(rate(BRIEF[0]) * 100).toFixed(2)}%)`);
           }
         } catch (e) { log(`[편성] 브리핑 순서 조정 건너뜀: ${String(e.message).slice(0, 40)}`); }
