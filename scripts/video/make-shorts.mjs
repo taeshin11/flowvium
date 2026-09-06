@@ -89,6 +89,18 @@ const rows = db.prepare(
    WHERE source IN (${SRC.map(() => '?').join(',')})
      AND datetime(captured_at) >= datetime('now','-24 hours')`,
 ).all(...SRC);
+// 2026-09-06 사용자 "60분간격으로 하고 소재없으면 국뽕 주제로 해".
+//   60분 주기면 하루 17회인데 최근 24시간에서 나오는 쓸 만한 이슈는 **11개**다(실측).
+//   모자란 자리를 국뽕으로 채우려면 국뽕도 24시간 밖에서 가져와야 한다 —
+//   수출·수주·세계 1위 같은 이야기는 하루 이틀 지나도 볼 만하다(사고·시세와 다르다).
+//   평소 편성에는 안 쓰고, **다른 후보가 다 떨어졌을 때만** 여기서 꺼낸다.
+const WIDE_HOURS = Number(process.env.SHORTS_PROUD_LOOKBACK_HOURS || 96);
+const wideRows = db.prepare(
+  `SELECT source, headline, summary, link FROM news_archive
+   WHERE source IN (${SRC.map(() => '?').join(',')})
+     AND datetime(captured_at) >= datetime('now', ?)
+     AND datetime(captured_at) < datetime('now','-24 hours')`,
+).all(...SRC, `-${WIDE_HOURS} hours`);
 db.close();
 if (!rows.length) { console.error('❌ 최근 24시간 기사가 없다'); process.exit(1); }
 
@@ -145,6 +157,19 @@ if (already.size) {
 //   처음엔 새 이슈가 없으면 1위로 돌아가게 뒀는데, 그게 바로 중복이 나는 길이다.
 //   **거르는 편이 낫다** — 한 회차 건너뛰면 그날 4편이지만, 중복은 채널에 영구히 남고
 //   유튜브가 노출까지 누른다. 되돌릴 수 없는 쪽을 피한다.
+// 오늘 것이 다 떨어졌으면 **지난 며칠의 국뽕**에서 꺼낸다(사용자 지시).
+//   국뽕만 꺼낸다 — 사고·시세·정치 공방은 하루 지나면 낡지만 수출·수주·1위는 덜 낡는다.
+if (!fresh.length && wideRows.length) {
+  // 넓은 풀은 기사가 많아(실측 3,684건) 24개로 뭉치면 덩어리가 커져 응집도에서 다 떨어진다.
+  //   잘게 나눌수록 쓸 만한 게 늘어난다 — 실측: 40개→4건, 120개→26건, 250개→66건.
+  const wideIssues = topDistinctIssues(wideRows, Number(process.env.SHORTS_WIDE_POOL || 250))
+    .filter((it) => !already.has(normalizeIssueKey(it.keyword)))
+    .filter((it) => (it.headlines ?? []).some(isProudHeadline));
+  if (wideIssues.length) {
+    fresh = wideIssues;
+    log(`[편성] 오늘 새 이슈가 없다 — 최근 ${WIDE_HOURS}시간의 국뽕 ${fresh.length}건에서 고른다`);
+  }
+}
 if (!fresh.length) {
   console.error(`❌ 새 이슈가 없다 — 후보 ${issues.length}개가 모두 최근 ${process.env.SHORTS_DEDUP_HOURS || 24}시간 안에 나갔다.`);
   console.error('   중복 발행 대신 이번 회차를 거른다. 다음 슬롯에 새 기사가 쌓이면 정상 발행된다.');
