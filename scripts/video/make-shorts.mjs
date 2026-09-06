@@ -22,7 +22,7 @@ import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync, readdirSync, copyFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
@@ -40,7 +40,7 @@ import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic
 import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
-import { recentShortsIssues, normalizeIssueKey } from '../lib/db.mjs';
+import { recentShortsIssues, normalizeIssueKey, shortsPublishedCount } from '../lib/db.mjs';
 
 loadEnvLocal();
 const argv = process.argv.slice(2);
@@ -1436,6 +1436,47 @@ writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));
 const cat = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`,
   '-c', 'copy', '-y', OUT], { stdio: ['ignore', 'ignore', 'pipe'] });
 if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat.stderr).slice(0, 400)}`); process.exit(1); }
+
+// ── 배경음악 (2026-09-06 사용자 "좀 뉴스 스러운 배경음악 돌려쓸수있는거 없니?") ──────
+//   CC0 음원을 받아 쓰는 길도 있지만(Pixabay·Creazilla) 이 채널은 이미 사진으로 저작권이
+//   아슬아슬하다. **직접 만들어 쓰면 그 위험이 없다** — assets/bgm 에 두고 회차마다 돌려 쓴다.
+//
+//   섞는 방법이 중요하다. 만든 음악은 목소리 대역(300~3kHz)에 43%가 몰려 있어(실측)
+//   그냥 얹으면 내레이션을 덮는다. 그래서:
+//     ① 목소리 대역을 깎고(equalizer)  ② 말할 때 음악이 내려가게 한다(sidechaincompress)
+//   음악이 없으면 그냥 넘어간다 — 배경음 때문에 회차를 잃지 않는다.
+{
+  const bgmDir = resolve(ROOT, 'assets/bgm');
+  let beds = [];
+  try { beds = readdirSync(bgmDir).filter((f) => /\.(wav|mp3|m4a)$/i.test(f)).sort(); } catch { /* 없으면 넘어간다 */ }
+  if (beds.length) {
+    // 편마다 다른 곡을 쓴다 — 발행 편수로 돌린다(무작위 아닌 결정론).
+    const bed = join(bgmDir, beds[shortsPublishedCount() % beds.length]);
+    const withBgm = `${WORK}/with-bgm.mp4`;
+    const r = spawnSync(ffmpegPath, [
+      '-v', 'error',
+      '-i', OUT,
+      '-stream_loop', '-1', '-i', bed,     // 영상 길이만큼 음악을 반복한다
+      '-filter_complex',
+      // 음악: 목소리 대역을 깎고 볼륨을 낮춘 뒤, 말소리를 기준으로 더킹한다.
+      `[1:a]volume=${process.env.SHORTS_BGM_VOL || 0.16},`
+      + 'equalizer=f=900:t=q:w=1.6:g=-9,equalizer=f=2200:t=q:w=1.6:g=-7,'
+      + 'highpass=f=70,lowpass=f=9000[bed];'
+      + '[0:a]asplit=2[v1][v2];'
+      + '[bed][v2]sidechaincompress=threshold=0.05:ratio=8:attack=15:release=350[ducked];'
+      + '[v1][ducked]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.95[a]',
+      '-map', '0:v', '-map', '[a]',
+      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
+      '-shortest', '-y', withBgm,
+    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    if (r.status === 0 && existsSync(withBgm)) {
+      copyFileSync(withBgm, OUT);
+      log(`[음악] ${beds[shortsPublishedCount() % beds.length]} 를 깔았다(목소리 대역 -9dB · 말할 때 더킹)`);
+    } else {
+      log(`[음악] 배경음 입히기 실패 — 음악 없이 간다: ${String(r.stderr).slice(0, 80)}`);
+    }
+  }
+}
 
 const size = (readFileSync(OUT).length / 1048576).toFixed(1);
 console.log(`\n✅ ${OUT}`);
