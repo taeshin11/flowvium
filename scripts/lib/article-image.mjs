@@ -58,6 +58,26 @@ export async function articleImage(url, { timeoutMs = 9000 } = {}) {
 }
 
 /**
+ * 이 주소가 **매체 기본 배너·로고**인가.
+ *
+ * 2026-09-06: 17:00 재제작의 한 장면이 "성공을 부르는 습관 / 한국경제" 배너로 채워져 나갔다.
+ *   주소가 `static.hankyung.com/img/logo/logo-news-sns.png` 였다 — 로고라고 주소에 적혀 있었다.
+ *   로고 걸러내기는 구글 검색 경로(footage.mjs)에만 있었고 여기엔 없었다.
+ *   "같은 주소가 셋 이상이면 배너" 라는 규칙만으로는 한 번만 나온 배너를 못 잡는다.
+ *
+ * 판단은 **경로**로 한다. 기사 사진은 날짜·일련번호가 붙은 경로에 있고(`/photo/2026/09/…`),
+ *   배너는 `logo`·`default`·`share`·`noimage` 같은 말이 경로에 그대로 들어간다.
+ *   파일 이름만이 아니라 디렉터리까지 본다 — `/img/logo/` 처럼 폴더에만 있는 경우가 있다.
+ */
+const BRAND_PATH = /(^|[/_-])(logo|logos|wordmark|lettermark|brandmark|watermark|default|defaults|placeholder|noimage|no-image|blank|dummy|share|sns|og-?image|og-?default|common)([/_.-]|$)/i;
+
+export function isBrandImage(url) {
+  let path = String(url ?? '');
+  try { path = new URL(path).pathname; } catch { /* 상대 주소면 그대로 본다 */ }
+  return BRAND_PATH.test(path);
+}
+
+/**
  * 이슈에 딸린 기사들에서 사진을 모은다. 서로 다른 기사에서 하나씩 —
  * 같은 기사를 여러 장면에 쓰면 같은 사진이 반복된다.
  *
@@ -78,6 +98,8 @@ export async function issueImages(items, { max = 8, concurrency = 4 } = {}) {
   for (const r of out) count.set(r.url, (count.get(r.url) ?? 0) + 1);
   const seen = new Set();
   return out.filter((r) => {
+    // 한 번만 나와도 주소가 로고라고 말하면 거른다 — 셋 이상 세는 규칙만으로는 늦다.
+    if (isBrandImage(r.url)) return false;
     if (count.get(r.url) >= 3) return false;
     if (seen.has(r.url)) return false;
     seen.add(r.url);
