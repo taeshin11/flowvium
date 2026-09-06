@@ -303,6 +303,8 @@ async function footageScore(it) {
 let issue = fresh[0];
 /** 편성 단계가 **실제로 결과를 확인한** 질의들. 장면마다 돌려 쓴다(전 장면 같은 그림 방지). */
 let PROBED = [];
+/** 브리핑(여러 이슈 묶음)용 예비 후보 — 응집도 필터 이전의 목록. */
+let BRIEF_POOL = [];
 if (FORCE_ISSUE) {
   const want = normalizeIssueKey(FORCE_ISSUE);
   const hit = issues.find((it) => normalizeIssueKey(it.keyword) === want);
@@ -349,6 +351,10 @@ if (FORCE_ISSUE) {
   fresh = fresh.filter((c) => !hasParticle(c.keyword, c.headlines ?? []));
   if (fresh.length !== pBefore) log(`[편성] 조사가 붙어 깨진 키워드 ${pBefore - fresh.length}건 제외`);
 
+  // 브리핑용 예비 후보는 **응집도를 걸러내기 전**에 남긴다.
+  //   브리핑은 이슈마다 헤드라인 하나·사진 하나만 쓰므로 묶음 내부가 섞여 있어도 상관없다.
+  //   실측(2026-09-06): 응집도까지 걸면 후보 3개, 안 걸면 15개 — 브리핑 성사 여부가 갈렸다.
+  BRIEF_POOL = fresh.slice();
   fresh = fresh.filter((c) => isCoherentIssue(c.keyword, c.headlines ?? []));
   if (fresh.length !== before) log(`[편성] 한 사건으로 안 보이는 묶음 ${before - fresh.length}건 제외 — 남은 후보 ${fresh.length}`);
   // ⚠ `issue` 는 이 블록 **앞에서** fresh[0] 로 이미 정해졌다. 여기서 후보를 걸러 놓고
@@ -438,7 +444,45 @@ if (FORCE_ISSUE) {
     }
   }
 }
-const headlines = issue.headlines ?? [];
+// ── 여러 이슈를 묶는 "브리핑" 편 (2026-09-06 신설) ─────────────────────────────
+//   사용자 "소재가 모자라면 여러 개에 좀 붙여서 올려도 되잖아".
+//   한 이슈에 사진이 한두 장뿐이면 그 편은 회색 카드가 절반을 넘어 걸러진다(오늘 세 번 그랬다).
+//   그럴 때는 **장면마다 다른 이슈**를 넣는다. 각 장면의 사진은 그 이슈 기사에서 오므로
+//   장면-사진 대응이 애초에 맞는다 — 한 이슈를 억지로 늘리는 것보다 오히려 정확하다.
+//   기준: 1순위 이슈의 사진이 2장 미만이면 브리핑으로 간다.
+let BRIEF = null;
+if (!FORCE_ISSUE) {
+  try {
+    const { issueImages } = await import('../lib/article-image.mjs');
+    const { itemsOnTopic } = await import('../lib/issue-coherence.mjs');
+    const shots = async (it) => {
+      const lead = (it.headlines ?? [])[0] ?? '';
+      const imgs = await issueImages(itemsOnTopic(lead, it.items ?? []), { max: 4 });
+      return imgs.filter((c) => isRealFootage(c));
+    };
+    const lead = await shots(issue);
+    if (lead.length < 2) {
+      const picks = [{ it: issue, imgs: lead }];
+      for (const cand of (BRIEF_POOL.length ? BRIEF_POOL : fresh)) {
+        if (picks.length >= SCENES) break;
+        if (cand === issue) continue;
+        const im = await shots(cand);
+        if (im.length) picks.push({ it: cand, imgs: im });
+      }
+      // 1순위에 사진이 없으면 그 자리도 다른 이슈로 채운다 — 브리핑은 순서에 매이지 않는다.
+      if (!picks[0].imgs.length) picks.shift();
+      if (picks.length >= 3 && picks.every((p) => p.imgs.length)) {
+        BRIEF = picks.slice(0, SCENES);
+        log(`[편성] 1순위 사진이 ${lead.length}장뿐 — **${BRIEF.length}개 이슈를 묶어 브리핑으로** 낸다`);
+        for (const p of BRIEF) log(`   · ${((p.it.headlines ?? [])[0] ?? '').slice(0, 46)} (사진 ${p.imgs.length})`);
+      }
+    }
+  } catch (e) { log(`[편성] 브리핑 판단 건너뜀: ${String(e.message).slice(0, 50)}`); }
+}
+
+const headlines = BRIEF
+  ? BRIEF.map((p) => (p.it.headlines ?? [])[0] ?? '').filter(Boolean)
+  : issue.headlines ?? [];
 const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);
 log(`[이슈] "${issue.keyword}" · 매체 ${issue.sourceCount} · 기사 ${headlines.length}`);
@@ -452,6 +496,22 @@ const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: pr
 const CPS = 6.7;
 const budget = Math.round(TARGET_SEC * CPS);
 const SCENES = 4;
+
+const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
+${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
+
+${headlines.map((h, i) => `${i + 1}. ${h.slice(0, 160)}`).join('\n')}
+
+규칙:
+- **장면 ${headlines.length}개. i번째 장면은 i번째 뉴스만 다룬다.** 뉴스를 섞지 마라.
+- 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
+- 앵커 어투. 어미는 '-습니다/-입니다'. 반말·해체 금지. 한 문장을 짧게.
+- **남의 주장은 누가 했는지 밝혀라.** 사람을 규정하는 말(카르텔·농단·3인방 …)은 발화자와 함께.
+- 정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.
+- 숫자와 단위는 붙여 쓴다("6800억원", "18문"). 자릿수 사이를 띄우지 마라.
+- hook: 화면에 크게 박을 문구, **12자 이내**, 명사로 끝내라. 장면마다 다른 말로 시작하라.
+- JSON 배열만 출력: [{"hook":"문구","say":"읽을 문장(${Math.round(budget / headlines.length * 0.8)}~${Math.round(budget / headlines.length * 1.2)}자)","visual":""}]
+- 장면 ${headlines.length}개. 총 ${budget}자 안팎.`;
 
 const prompt = `너는 한국 뉴스 쇼츠 대본 작가다. 아래 헤드라인만 근거로 ${TARGET_SEC}초 세로 쇼츠 대본을 쓴다.
 
@@ -501,10 +561,11 @@ ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.spea
   각 장면의 say 를 한 문장으로 끝내지 말고, 사실이 더 있으면 두 문장까지 쓴다.`;
 
 async function askLLM() {
+  const activePrompt = BRIEF ? briefPrompt() : prompt;
   const r = await fetch(`${llm.url}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: llm.model, messages: [{ role: 'user', content: prompt }],
+      model: llm.model, messages: [{ role: 'user', content: activePrompt }],
       max_tokens: 2000, temperature: 0.5, chat_template_kwargs: { enable_thinking: false },
     }),
     signal: AbortSignal.timeout(5 * 60_000),
@@ -518,7 +579,7 @@ async function askLLM() {
   //   받아들여 "6 억 8 천만 원", "천무 18 문", "4 억 3520 만 유로" 를 내놓는다.
   //   앞서 화면 글자만 고쳤는데 **TTS 는 이 원문을 그대로 읽는다** — 대본 자체를 정리한다.
   //   프롬프트도 같이 고쳤지만 4B 가 지킬 거라고 믿지 않는다. 코드가 보장한다.
-  return JSON.parse(m[0]).filter((x) => x?.say && x?.hook).slice(0, SCENES)
+  return JSON.parse(m[0]).filter((x) => x?.say && x?.hook).slice(0, BRIEF ? BRIEF.length : SCENES)
     .map((x) => ({ ...x, say: tightenNumbers(x.say), hook: tightenNumbers(x.hook) }));
 }
 
@@ -750,6 +811,23 @@ for (let i = 0; i < scenes.length; i++) {
   //   검색이 그보다 먼저 돈다 — 실제로는 3순위였다. 그래서 09:00 회차가 기사 사진 2장을
   //   확보하고도 안 쓰고 "전통" 검색으로 **투호·지게·장독대**를 붙였다(차례상 물가 기사에).
   //   순서를 말로 적을 게 아니라 **자리로** 정해야 한다. 루프 맨 앞이다.
+  // 브리핑이면 이 장면의 뉴스가 정해져 있다 — 그 뉴스 기사의 사진을 바로 쓴다.
+  //   장면-사진 대응을 낱말 겹침으로 추측할 필요가 없다. 애초에 맞는 짝이다.
+  if (!scenes[i].pick && BRIEF && BRIEF[i]) {
+    for (const c of BRIEF[i].imgs) {
+      if (usedMedia.has(c.url)) continue;
+      usedMedia.add(c.url);
+      try {
+        const ext = /\.mp4(\?|$)/i.test(c.url) ? 'mp4' : 'jpg';
+        scenes[i].media = await download(c.url, `${WORK}/m${i}.${ext}`);
+        scenes[i].pick = c;
+        scenes[i].credit = c.source ? `출처- ${c.source}` : null;
+        log(`[화면] ${i + 1} 브리핑 ${i + 1}번 뉴스 사진 → ${c.source} · ${String(c.title ?? '').slice(0, 38)}`);
+        break;
+      } catch (e) { log(`[화면] ${i + 1} 건너뜀: ${e.message.slice(0, 36)}`); }
+    }
+  }
+
   if (!scenes[i].pick && ISSUE_IMAGES.length) {
     // 2026-09-06: 순서대로 아무거나 집었다. 그래서 훅이 "우리은행 7.5% 적금" 인 장면에
     //   **CU 편의점** 사진이 붙었다(내렸다). 이 회차 기사가 여럿이면 그중 어느 것이
@@ -1118,7 +1196,15 @@ closeGoogleImages();
     const { clipCheck } = await import('../lib/clip-gate.mjs');
     const cand = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media);
     if (cand.length) {
-      const verdict = clipCheck(cand.map((r) => ({ image: r.x.media })), headlines[0] ?? issue.keyword);
+      // 브리핑은 장면마다 다른 뉴스다 — 회차 대표 헤드라인 하나로 재면 전부 어긋난 것으로 나온다.
+      //   장면별로 그 뉴스의 헤드라인과 견준다.
+      const verdict = BRIEF
+        ? cand.flatMap((r) => {
+          const topic = (BRIEF[r.k]?.it?.headlines ?? [])[0] ?? headlines[0] ?? issue.keyword;
+          const one = clipCheck([{ image: r.x.media }], topic);
+          return one.length ? [{ ...one[0], index: cand.indexOf(r) }] : [];
+        })
+        : clipCheck(cand.map((r) => ({ image: r.x.media })), headlines[0] ?? issue.keyword);
       let dropped = 0;
       for (const v of verdict) {
         if (v.ok) continue;
