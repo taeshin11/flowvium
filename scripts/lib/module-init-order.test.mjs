@@ -109,6 +109,11 @@ const RESERVED = new Set([
 /** decl.rhs 안에서 참조하는 식별자. 프로퍼티 접근(.x)과 객체 키(x:)는 뺀다. */
 function referenced(rhs) {
   const cleaned = rhs
+    // 2026-09-06: **정규식 리터럴 안의 영어 단어를 식별자로 읽었다.**
+    //   `/애플리케이션 홈페이지|Application home page/i` 의 'page' 가
+    //   아래에서 선언된 `const page` 를 참조한다고 나왔다(gcp-branding.mjs 오탐).
+    //   문자열은 앞 단계에서 지워지는데 정규식은 남아 있었다. 같이 지운다.
+    .replace(/\/(?![*/])(?:\\.|\[[^\]]*\]|[^/\n\\])+\/[gimsuy]*/g, ' ')
     .replace(/\.\s*[A-Za-z_$][\w$]*/g, ' ')       // .prop
     .replace(/(?:^|[{,])\s*[A-Za-z_$][\w$]*\s*:/g, ' '); // { key: ... }
   return new Set([...cleaned.matchAll(/[A-Za-z_$][\w$]*/g)]

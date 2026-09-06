@@ -39,10 +39,10 @@ const SITE = process.env.BRAND_SITE || 'https://flowvium.net';
  */
 const APP_NAME = process.env.BRAND_APP_NAME || 'Flowvium';
 const WANT = [
-  { name: '앱 이름', ctx: /앱 이름|App name/i, url: APP_NAME, isUrl: false },
-  { name: '홈페이지', ctx: /애플리케이션 홈페이지|Application home page/i, url: SITE, isUrl: true },
-  { name: '개인정보처리방침', ctx: /개인정보처리방침|Privacy policy/i, url: `${SITE}/privacy`, isUrl: true },
-  { name: '서비스 약관', ctx: /서비스 약관|Terms of service/i, url: `${SITE}/terms`, isUrl: true },
+  { name: '앱 이름', near: /앱 이름|App name/i, url: APP_NAME, isUrl: false },
+  { name: '홈페이지', near: /애플리케이션 홈페이지|Application home page/i, url: SITE, isUrl: true },
+  { name: '개인정보처리방침', near: /개인정보처리방침|Privacy policy/i, url: SITE + '/privacy', isUrl: true },
+  { name: '서비스 약관', near: /서비스 약관|Terms of service/i, url: SITE + '/terms', isUrl: true },
 ];
 
 const OUT = resolve(ROOT, 'logs/gcp-branding.log');
@@ -76,7 +76,7 @@ async function readValues(page) {
   for (const w of WANT) {
     for (let i = 0; i < n; i += 1) {
       const el = inputs.nth(i);
-      if (!w.ctx.test(await around(el))) continue;
+      if (!w.near.test(await around(el))) continue;
       got[w.name] = (await el.inputValue().catch(() => '')) || '';
       break;
     }
@@ -84,11 +84,11 @@ async function readValues(page) {
   return got;
 }
 
-const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/gcp-profile'), {
+const browser = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/gcp-profile'), {
   channel: 'chrome', headless: false, viewport: { width: 1440, height: 1000 },
   args: ['--disable-blink-features=AutomationControlled'],
 });
-const page = ctx.pages()[0] ?? await ctx.newPage();
+const page = browser.pages()[0] ?? await browser.newPage();
 
 try {
   if (!CHECK_ONLY) {
@@ -134,7 +134,7 @@ try {
     log(`게시 상태: ${pub ? pub[0].slice(0, 60) : '(페이지에서 못 찾음)'}`);
     await page.screenshot({ path: resolve(ROOT, 'logs/gcp-branding.png'), fullPage: true }).catch(() => {});
     log('--check — 바꾸지 않는다');
-    await ctx.close(); process.exit(0);
+    await browser.close(); process.exit(0);
   }
 
   const inputs = page.locator('input:not([type=hidden]):not([type=file])');
@@ -145,7 +145,7 @@ try {
     let filled = false;
     for (let i = 0; i < n; i += 1) {
       const el = inputs.nth(i);
-      if (!w.ctx.test(await around(el))) continue;
+      if (!w.near.test(await around(el))) continue;
       await el.scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
       await el.fill(w.url, { timeout: 10000 });
       filled = (await el.inputValue().catch(() => '')) === w.url;
@@ -155,7 +155,7 @@ try {
     }
     if (!filled) log(`❌ ${w.name} 칸을 못 찾았다`);
   }
-  if (!changed) { log('바꿀 것이 없다'); await ctx.close(); process.exit(0); }
+  if (!changed) { log('바꿀 것이 없다'); await browser.close(); process.exit(0); }
 
   // 저장. 2026-09-06: 여기서 8초 타임아웃이 났었다 — 버튼이 페이지 아래라 보이지 않았고,
   //   Material 버튼은 값이 바뀌기 전까지 disabled 다. **보이게 만들고, 눌릴 때까지 기다린다.**
@@ -179,11 +179,11 @@ try {
   }
   await page.screenshot({ path: resolve(ROOT, 'logs/gcp-branding.png'), fullPage: false }).catch(() => {});
   log(ok === WANT.length ? '세 링크 모두 저장됐다' : `${ok}/${WANT.length} 만 저장됐다 — 남은 것은 사람이 확인해야 한다`);
-  await ctx.close();
+  await browser.close();
   process.exit(ok === WANT.length ? 0 : 1);
 } catch (e) {
   log(`오류: ${String(e?.message).slice(0, 160)}`);
   await page.screenshot({ path: resolve(ROOT, 'logs/gcp-branding.png') }).catch(() => {});
-  await ctx.close().catch(() => {});
+  await browser.close().catch(() => {});
   process.exit(1);
 }
