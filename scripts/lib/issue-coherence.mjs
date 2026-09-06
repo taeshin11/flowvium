@@ -71,7 +71,10 @@ export function isPromotional(headline) {
   const t = String(headline ?? '');
   if (!PROMO.test(t)) return false;
   // 정책·제도 발표는 홍보가 아니다("정부, 지원금 출시" 같은 것은 남긴다).
-  if (/(정부|부처|청|위원회|국회|법안|정책|제도|지원금|보조금)/.test(t)) return false;
+  // 2026-09-07: 이 예외가 **"…숏폼·정책제안 접수" 공모전**을 통과시켰다.
+  //   '정책'·'제도' 는 홍보 문구에도 흔히 섞이는 말이라 예외 조건이 되기엔 너무 넓다.
+  //   주체가 분명한 말만 남긴다.
+  if (/(정부|부처|위원회|국회|법안|지원금|보조금)/.test(t)) return false;
   return true;
 }
 
