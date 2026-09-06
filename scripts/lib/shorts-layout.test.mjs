@@ -174,5 +174,25 @@ const g = M.SHORTS;
     ? ok('단위 아닌 낱말은 그대로') : bad(t('6 개월 만에 이룬 성과입니다'));
 }
 
+
+// ── 2026-09-06: 훅이 두 줄 예산을 넘어 낱말 한가운데서 줄이 바뀌었다 ──────────────
+//   화면에 "2030년 서울 전역 종부 / 세," 로 떴다. splitHook 은 뒷줄만 맞추고
+//   **앞줄 길이는 아무도 안 봤다.**
+{
+  const long = '2030년 서울 전역 종부세, 집값 안 꺾이면';
+  const fitted = M.fitHook(long);
+  fitted.length <= 22 ? ok(`두 줄 예산 안으로 줄인다 (${fitted.length}자: ${fitted})`)
+    : bad(`아직 ${fitted.length}자다: ${fitted}`);
+  const [h, t] = M.splitHook(fitted);
+  (h.length <= 11 && t.length <= 11)
+    ? ok(`두 줄 모두 한 줄에 들어간다 ("${h}" / "${t}")`)
+    : bad(`줄이 넘친다 — 앞 ${h.length}자 "${h}", 뒤 ${t.length}자 "${t}"`);
+  fitted.endsWith('집값 안 꺾이면') ? ok('강조줄(뒤쪽)은 지키고 앞에서 덜어낸다')
+    : bad(`뒤쪽이 잘렸다: ${fitted}`);
+  // 짧은 훅은 손대지 않는다
+  M.fitHook('반등, 코스피 3000') === '반등, 코스피 3000'
+    ? ok('짧은 훅은 그대로 둔다') : bad('짧은 훅을 건드렸다');
+}
+
 console.log(fail === 0 ? '\n✅ shorts-layout 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

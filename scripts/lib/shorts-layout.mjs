@@ -34,6 +34,22 @@ export const SHORTS = {
 };
 
 /** 훅 문구를 두 줄로 나눈다. 뒷줄이 강조(노랑)라 **뒤쪽이 결정적인 말**이어야 한다. */
+/**
+ * 훅이 **두 줄에 들어가는가.** 안 들어가면 앞에서부터 낱말 단위로 덜어낸다.
+ *
+ * 2026-09-06: 훅이 "2030년 서울 전역 종부세, 집값 안 꺾이면" 로 나와 화면에
+ *   "2030년 서울 전역 종부 / 세," 로 **낱말 한가운데서 줄이 바뀌었다.**
+ *   splitHook 은 뒷줄만 한 줄에 맞췄고 **앞줄 길이는 아무도 안 봤다.**
+ *   앞에서 덜어내는 이유: 뒤쪽이 강조줄이고 뜻의 중심이다.
+ */
+export function fitHook(text, maxPerLine = 11) {
+  const budget = maxPerLine * 2;
+  let words = String(text ?? '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  while (words.length > 1 && words.join(' ').length > budget) words = words.slice(1);
+  // 한 낱말인데도 넘치면 그건 자를 수 없다 — splitHook 이 알아서 다룬다.
+  return words.join(' ');
+}
+
 export function splitHook(text, maxPerLine = 11) {
   const t = String(text ?? '').replace(/\s+/g, ' ').trim();
   if (!t) return ['', ''];
@@ -121,7 +137,7 @@ export function tightenNumbers(text) {
 }
 
 export function shortsOverlayHtml(o = {}) {
-  const [l1, l2] = splitHook(tightenNumbers(o.hook));
+  const [l1, l2] = splitHook(fitHook(tightenNumbers(o.hook)));
   const g = SHORTS;
   return `<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
