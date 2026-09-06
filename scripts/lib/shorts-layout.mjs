@@ -158,12 +158,40 @@ ${o.brand ? `<div class="brand">${esc(o.brand)}</div>` : ''}`;
  *   소재 영역의 절반이 검게 비었다. 쇼츠에서 흔히 쓰는 방식으로 채운다 — 원본을 잃지 않으면서
  *   화면이 비지 않는다.
  */
+/**
+ * 소재 가장자리를 얼마나 잘라낼지 (0 이면 안 자름).
+ *
+ * 2026-09-06 사용자 "로고 있으면 좀 로고 안보이는 수준까지 줌인하거나 크롭하면 안되니?".
+ *   실측: 연합뉴스 워터마크는 사진 **아래 18% 안**, 오른쪽 구석에 박혀 있다.
+ *   아래를 조금 더 잘라 내면 사라진다.
+ *
+ * ⚠ 이건 "출처 적고 쓴다" 와 성격이 다르다 — 언론사가 박아 둔 표시를 지우는 것이다.
+ *   화면에는 우리가 "출처- yna.co.kr" 을 따로 찍으므로 출처 자체는 남는다.
+ *   사용자 판단으로 켠 기능이고, 끄려면 SHORTS_TRIM_BOTTOM=0 을 주면 된다.
+ *
+ * 위쪽·좌우는 조금만 자른다. 뉴스 사진은 인물이 가운데 위쪽에 오는 일이 많아
+ * 위를 많이 자르면 얼굴이 날아간다(이 저장소의 "소재를 잘라내지 않는다" 규칙의 취지다).
+ */
+export const TRIM = {
+  bottom: Number(process.env.SHORTS_TRIM_BOTTOM ?? 0.14),
+  top: Number(process.env.SHORTS_TRIM_TOP ?? 0.02),
+  side: Number(process.env.SHORTS_TRIM_SIDE ?? 0.03),
+};
+
 export function mediaFilter(inLabel, outLabel) {
   const g = SHORTS;
   const { W } = g;
   const MH = g.media.height;
+  // 가장자리를 먼저 덜어 낸다. 워터마크는 대개 구석에 있다.
+  //   비율로 자르므로 소재 크기에 상관없이 같은 만큼 덜린다.
+  const t = TRIM;
+  const keepW = Math.max(0.5, 1 - t.side * 2);
+  const keepH = Math.max(0.5, 1 - t.top - t.bottom);
+  const trim = (t.bottom || t.top || t.side)
+    ? `crop=iw*${keepW.toFixed(4)}:ih*${keepH.toFixed(4)}:iw*${t.side.toFixed(4)}:ih*${t.top.toFixed(4)},`
+    : '';
   return [
-    `[${inLabel}]split=2[mc][mf]`,
+    `[${inLabel}]${trim}split=2[mc][mf]`,
     // 뒤: 영역을 덮도록 키우고 잘라낸 뒤 흐리게. 여기서 잘리는 것은 배경이므로 정보 손실이 아니다.
     `[mc]scale=${W}:${MH}:force_original_aspect_ratio=increase,crop=${W}:${MH},boxblur=28:2,eq=brightness=-0.10[mbg]`,
     // 앞: 원본 그대로 영역 안에 들어가게.

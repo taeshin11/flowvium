@@ -1026,6 +1026,39 @@ closeGoogleImages();
   //   그래서 사진 1장 + 재사용 1 + 카드 2 인 편이 "2장 있음" 으로 통과했다.
   //   서로 다른 사진이 몇 장인지를 센다 — 같은 사진 두 번은 한 장이다.
   const real = new Set(scenes.filter((x) => !x.isOutro && x.media).map((x) => x.media)).size;
+  // ── 발행 전 마지막 관문: 사진이 이 회차 이야기인가 (2026-09-06 신설) ──────────────
+  //   규칙(제목 겹침·날짜·도표 패턴)으로는 끝이 없었다 — 여덟 번을 눈으로 잡아 내렸다.
+  //   한국어 CLIP 에게 묻는다. 판정 못 하면(모델 없음·느림) 막지 않는다.
+  try {
+    const { clipCheck } = await import('../lib/clip-gate.mjs');
+    const cand = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media);
+    if (cand.length) {
+      const verdict = clipCheck(cand.map((r) => ({ image: r.x.media })), headlines[0] ?? issue.keyword);
+      let dropped = 0;
+      for (const v of verdict) {
+        if (v.ok) continue;
+        const r = cand[v.index];
+        log(`[화면] ${r.k + 1} CLIP 이 걸렀다 — 주제 ${v.topic} vs "${v.worstDecoy}" ${v.decoy}`);
+        r.x.media = null; r.x.pick = null; r.x.credit = null;
+        dropped += 1;
+      }
+      if (verdict.length) log(`[화면] CLIP 검사 ${verdict.length}장 중 ${dropped}장 제외`);
+      // 2026-09-06: 걸러 낸 자리를 비워 뒀더니 **회색 카드**가 됐다(실측 4번 장면).
+      //   통과한 사진 중에서 채운다 — 같은 사진이 두 번 나오는 편이 빈 화면보다 낫다.
+      if (dropped) {
+        const good = scenes.filter((x) => !x.isOutro && x.media);
+        const useCount = (m) => scenes.filter((x) => x.media === m).length;
+        for (const x of scenes) {
+          if (x.isOutro || x.media) continue;
+          const donor = good.find((g) => useCount(g.media) < 2);
+          if (!donor) break;
+          x.media = donor.media; x.credit = donor.credit;
+          log(`[화면] CLIP 이 거른 자리를 통과한 사진으로 채운다`);
+        }
+      }
+    }
+  } catch (e) { log(`[화면] CLIP 검사 건너뜀: ${String(e.message).slice(0, 50)}`); }
+
   const total = scenes.filter((x) => !x.isOutro).length;
   // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
   //   백필이 회색 카드 3장 + 임시정부 청사 사진 하나로 한 편을 냈다(내렸다).

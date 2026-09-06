@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""clip_match.py — 사진이 자막과 맞는가를 **기계가** 판정한다.
+
+왜 (2026-09-06 사용자 "실패하면 웹이든 허깅페이스든 깃허브든 좀 물어보고 어떻게든 성공시켜"):
+  이틀 동안 잘못된 사진을 여덟 번 눈으로 잡아 내렸다 — 검찰총장 사진, 임시정부 청사,
+  투호·지게, CU 편의점, 옛 코스피 지수. 매번 새로운 종류라 규칙을 하나씩 더해도 끝이 없었다.
+  **사람이 보고 판단하던 것을 모델에게 시킨다.**
+
+  한국어 CLIP(Bingsu/clip-vit-large-patch14-ko)은 사진과 한국어 문장을 같은 공간에 넣어
+  얼마나 맞는지 점수를 낸다. 그게 정확히 우리가 눈으로 하던 일이다.
+
+  판정은 **미끼와 견주어** 한다. 절대 점수는 사진마다 들쭉날쭉해 임계값을 못 정하고,
+  장면 자막끼리 견주는 것도 안 된다 — 한 회차의 장면들은 대개 같은 사건이라 사진이
+  서로 바꿔 써도 맞는다(실측: 이란 미사일 편에서 넷 다 "어긋남" 으로 나왔다. 헛경보다).
+
+  그래서 이 회차의 주제 문장과, **무관한 미끼 문장들**을 함께 넣는다.
+  미끼가 주제를 이기면 그 사진은 이 회차 것이 아니다. 실제로 내보냈다가 내린 것들 —
+  방송사 로고, 기관 엠블럼, 도시 야경, 편의점 진열, 전통 놀이, 역사 건축물, 도표 — 을 미끼로 둔다.
+
+사용: clip_match.py --pairs pairs.json  (JSON: [{"image": "경로", "topic": "이 회차 주제"}, ...])
+출력: [{"index":0, "topic":0.62, "decoy":0.11, "worstDecoy":"방송사 로고", "ok":true}, ...]
+"""
+import argparse
+import json
+import sys
+
+
+# 실제로 내보냈다가 내린 것들에서 뽑았다. 사진이 이쪽에 더 가까우면 그 회차 것이 아니다.
+DECOYS = [
+    "방송사 로고와 채널 이름",
+    "기관 엠블럼과 문장",
+    "도시 야경과 타워",
+    "편의점 상품 진열대",
+    "한국 전통 놀이와 민속 도구",
+    "오래된 역사 건축물",
+    "통계 도표와 그래프",
+    "관광지 풍경 사진",
+]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--pairs", required=True)
+    ap.add_argument("--model", default="Bingsu/clip-vit-large-patch14-ko")
+    ap.add_argument("--json-out", required=True)
+    a = ap.parse_args()
+
+    with open(a.pairs, encoding="utf-8") as f:
+        pairs = json.load(f)
+    if not pairs:
+        json.dump([], open(a.json_out, "w"))
+        return
+
+    from PIL import Image
+    import torch
+    from transformers import AutoModel, AutoProcessor
+
+    dev = "mps" if torch.backends.mps.is_available() else "cpu"
+    proc = AutoProcessor.from_pretrained(a.model)
+    model = AutoModel.from_pretrained(a.model).to(dev).eval()
+
+    images = [Image.open(p["image"]).convert("RGB") for p in pairs]
+
+    res = []
+    for i, p in enumerate(pairs):
+        topic = str(p.get("topic") or p.get("text") or "")[:160]
+        texts = [topic] + DECOYS
+        with torch.no_grad():
+            inputs = proc(text=texts, images=[images[i]], return_tensors="pt",
+                          padding=True, truncation=True)
+            inputs = {k: v.to(dev) for k, v in inputs.items()}
+            row = model(**inputs).logits_per_image.softmax(dim=1).cpu()[0]
+        topic_score = float(row[0])
+        worst_j = int(row[1:].argmax()) + 1
+        decoy_score = float(row[worst_j])
+        res.append({
+            "index": i,
+            "topic": round(topic_score, 4),
+            "decoy": round(decoy_score, 4),
+            "worstDecoy": DECOYS[worst_j - 1],
+            # 미끼가 주제를 이기면 이 회차 사진이 아니다.
+            "ok": bool(topic_score >= decoy_score),
+        })
+
+    json.dump(res, open(a.json_out, "w", encoding="utf-8"))
+    for r in res:
+        mark = "✓" if r["ok"] else f"✗ '{r['worstDecoy']}' 에 더 가깝다"
+        print(f"  장면{r['index'] + 1}: 주제 {r['topic']:.3f} / 미끼 {r['decoy']:.3f}  {mark}",
+              file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
