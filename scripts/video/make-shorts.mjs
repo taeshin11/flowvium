@@ -360,6 +360,13 @@ if (FORCE_ISSUE) {
   // ⚠ `issue` 는 이 블록 **앞에서** fresh[0] 로 이미 정해졌다. 여기서 후보를 걸러 놓고
   //   issue 를 다시 가리키지 않으면, 아래 점수 매기기에서 아무도 점수를 못 받았을 때
   //   **걸러낸 후보가 그대로 나간다** — 실측으로 중복 기사가 그 경로로 통과했다.
+  // 2026-09-06: 응집도로 후보가 0이 되면 **브리핑 기회 없이** 바로 걸렀다.
+  //   브리핑은 이슈마다 헤드라인 하나·사진 하나만 쓰므로 응집도가 필요 없다 —
+  //   여기서 끊지 말고 예비 풀로 넘긴다. 사용자 "소재가 모자라면 여러 개에 좀 붙여서 올려도 되잖아".
+  if (!fresh.length && BRIEF_POOL.length >= 3) {
+    fresh = BRIEF_POOL.slice();
+    log(`[편성] 한 사건으로 묶이는 이슈가 없다 — 브리핑 후보 ${fresh.length}건으로 간다`);
+  }
   issue = fresh[0];
   if (!fresh.length) {
     console.error('❌ 한 사건으로 묶이는 이슈가 없다 — 이번 회차를 거른다.');
@@ -1221,6 +1228,14 @@ closeGoogleImages();
           return one.length ? [{ ...one[0], index: cand.indexOf(r) }] : [];
         })
         : clipCheck(cand.map((r) => ({ image: r.x.media })), headlines[0] ?? issue.keyword);
+      // 2026-09-06: 미끼가 넓어 멀쩡한 사진 둘을 버리고 빈 화면이 나갔다(태극기·한복 → "민속 도구").
+      //   미끼는 좁혔지만, **절반 넘게 걸리면 판정 자체를 의심**한다 —
+      //   그럴 땐 모델이 주제를 못 잡은 것이지 사진이 다 틀린 게 아니다. 그때는 막지 않는다.
+      const bad = verdict.filter((v) => !v.ok).length;
+      if (verdict.length >= 2 && bad > verdict.length / 2) {
+        log(`[화면] CLIP 이 ${verdict.length}장 중 ${bad}장을 걸렀다 — 판정이 미덥지 않아 적용하지 않는다`);
+        throw new Error('skip-clip');
+      }
       let dropped = 0;
       for (const v of verdict) {
         if (v.ok) continue;
@@ -1244,7 +1259,9 @@ closeGoogleImages();
         }
       }
     }
-  } catch (e) { log(`[화면] CLIP 검사 건너뜀: ${String(e.message).slice(0, 50)}`); }
+  } catch (e) {
+    if (e.message !== 'skip-clip') log(`[화면] CLIP 검사 건너뜀: ${String(e.message).slice(0, 50)}`);
+  }
 
   const total = scenes.filter((x) => !x.isOutro).length;
   // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
