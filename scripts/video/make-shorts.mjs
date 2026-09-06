@@ -809,6 +809,40 @@ for (let a = 1; a <= 3; a++) {
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }
+
+// 2026-09-07: 검사는 세 번 다 잡았는데("겹치는 대사 6쌍") 3회 뒤 그냥 내보냈다.
+//   그래서 **같은 문장을 네 번 반복하는 편**이 나갔다(i-IqSqXH7LA, 내렸다).
+//   근본은 그 이슈에 사실이 하나뿐이라 네 장면을 채울 수 없다는 것이다 —
+//   모델은 채우라니까 같은 말을 되풀이한다.
+//   길이가 모자란 것과 **내용이 없는 것**은 다르다. 짧은 편은 내도 되지만,
+//   같은 말을 네 번 하는 편은 안 된다. 겹치는 장면을 걷어내고, 남는 게 없으면 다른 이슈로 간다.
+{
+  const words = (t) => new Set(String(t ?? '').split(/[^가-힣A-Za-z0-9]+/).filter((w) => w.length >= 2));
+  const kept = [];
+  for (const sc of scenes) {
+    if (sc.isOutro) { kept.push(sc); continue; }
+    const a = words(sc.say);
+    const dup = kept.some((k) => {
+      if (k.isOutro) return false;
+      const b = words(k.say);
+      if (a.size < 3 || b.size < 3) return false;
+      let hit = 0; for (const w of a) if (b.has(w)) hit += 1;
+      return hit / Math.min(a.size, b.size) > 0.6;
+    });
+    if (dup) continue;
+    kept.push(sc);
+  }
+  const before = scenes.filter((x) => !x.isOutro).length;
+  const after = kept.filter((x) => !x.isOutro).length;
+  if (after < before) {
+    log(`[대본] 같은 말을 되풀이한 장면 ${before - after}개를 걷어낸다 (${before} → ${after})`);
+    scenes = kept;
+  }
+  if (after < 2) {
+    console.error(`❌ 서로 다른 이야기가 ${after}개뿐 — 이 이슈로는 쇼츠가 안 된다. 다른 이슈로 간다.`);
+    process.exit(3);   // 3 = 낼 것이 없음 → 호출부가 다른 이슈로 재시도한다
+  }
+}
 // 마지막 장면에 사이트 안내를 **말로** 붙인다. 화면에만 띄우면 보고 지나간다.
 //   가로 편에는 있었는데 쇼츠에는 빠져 있었다(사용자 지적) — 40초짜리는 마무리가 없으면
 //   그냥 뚝 끊긴다. 대본 길이 계산이 끝난 뒤에 붙여 예산 절삭에 잘리지 않게 한다.
