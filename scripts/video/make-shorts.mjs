@@ -485,7 +485,12 @@ if (FORCE_ISSUE) {
   //   사진은 **필요조건이지 선택 기준이 아니다.** 약한 갈래는 사진이 많아도 쓰지 않는다 —
   //   사용자가 "조회수 안나오는 주제들은 하지마" 라고 했다. 그럴 땐 아래 국뽕 경로로 간다.
   scored.sort((a, b) => b.n - a.n);
-  const usable = scored.find((x) => x.n > 0 && !IS_WEAK(x.cand));
+  // 2026-09-07: 여기서 또 **앞 단계 판단을 덮어썼다.** 썸네일로 세우면 안 될 헤드라인을
+  //   앞에서 뒤로 밀어 놨는데, 사진이 있다는 이유로 이 줄이 다시 1순위로 끌어올렸다.
+  //   어제 약한 갈래로 같은 일을 겪고 IS_WEAK 를 넣었는데 UNSAFE_THUMB 는 빠져 있었다.
+  //   조건이 늘 때마다 이 줄에도 같이 걸어야 한다.
+  const usable = scored.find((x) => x.n > 0 && !IS_WEAK(x.cand) && !UNSAFE_THUMB(x.cand))
+    ?? scored.find((x) => x.n > 0 && !IS_WEAK(x.cand));
   if (usable) {
     issue = usable.cand;
     PROBED = usable.probed ?? [];
