@@ -27,7 +27,7 @@ import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
-import { stripByline } from '../lib/wire-text.mjs';
+import { stripByline, cleanHeadline, textLeftovers } from '../lib/wire-text.mjs';
 import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
@@ -517,9 +517,12 @@ if (!FORCE_ISSUE) {
   } catch (e) { log(`[편성] 브리핑 판단 건너뜀: ${String(e.message).slice(0, 50)}`); }
 }
 
-const headlines = BRIEF
-  ? BRIEF.map((p) => (p.it.headlines ?? [])[0] ?? '').filter(Boolean)
-  : issue.headlines ?? [];
+// 2026-09-06: 헤드라인을 **손대지 않고** 대본 프롬프트에 넣었다. 그래서 브리핑 자막이
+//   "[영상] 네팔과 한국 구호대가 중국인 1명을" 로 나갔다(o_yaH_4l7b0, 내렸다).
+//   `[영상]`·`[단독]` 같은 편집 표시와 `&#039;` 같은 엔티티는 기사 내용이 아니다.
+const headlines = (BRIEF
+  ? BRIEF.map((p) => (p.it.headlines ?? [])[0] ?? '')
+  : issue.headlines ?? []).map(cleanHeadline).filter(Boolean);
 const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);
 // 2026-09-06 사용자 "올릴수없는게 말이되니? 고쳐서라도 올려야지".
@@ -687,9 +690,14 @@ for (let a = 1; a <= 3; a++) {
       && new Set(endings.filter(Boolean)).size <= Math.max(1, Math.floor(endings.length / 2));
 
     const unattributed = attributionIssues(scenes);
+    // 2026-09-06: 편집 표시·엔티티·기자 서명이 자막에 그대로 뜬 편을 세 번 내렸다.
+    //   화면에 뜨면 바로 보이는 것들이다. 원문에서 걷어내되, 그래도 새어 나오면 다시 쓴다.
+    const leftovers = scenes.flatMap((x) => [
+      ...textLeftovers(x.hook), ...textLeftovers(x.say),
+    ]);
     if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks
-        && !dupSays && !sameEnding && !unattributed.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''} — 다시 쓴다`);
+        && !dupSays && !sameEnding && !unattributed.length && !leftovers.length) break;
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
 if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }

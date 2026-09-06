@@ -44,3 +44,46 @@ export function stripByline(text) {
   for (const re of INLINE) t = t.replace(re, ' ');
   return t.replace(/\s+/g, ' ').trim();
 }
+
+/**
+ * 헤드라인 앞뒤의 **편집 표시**. 기사 내용이 아니라 편집부가 붙인 꼬리표다.
+ *
+ * 2026-09-06: 18:00 브리핑의 두 번째 장면 자막이
+ *   "**[영상]** 네팔과 한국 구호대가 중국인 1명을" 로 나갔다(o_yaH_4l7b0, 내렸다).
+ *   헤드라인이 `[영상] 네팔·韓구호대, 중국인 1명 구조…` 였는데 그대로 읽혔다.
+ *   바이라인과 같은 부류다 — 시청자에게 아무 뜻이 없고 모델은 문장의 일부로 읽는다.
+ */
+const EDIT_TAG = /^\s*(\[[^[\]]{1,20}\]\s*)+/;
+
+/** 매체가 남긴 HTML 엔티티. 자막에 `&#039;` 가 그대로 뜨면 안 된다. */
+const ENTITY = [
+  [/&(#0?39|apos|#x27);/gi, "'"], [/&(quot|#0?34);/gi, '"'],
+  [/&(amp|#0?38);/gi, '&'], [/&(lt|#0?60);/gi, '<'], [/&(gt|#0?62);/gi, '>'],
+  [/&(nbsp|#160);/gi, ' '], [/&(hellip|#8230);/gi, '…'],
+  [/&(middot|#183);/gi, '·'], [/&(ldquo|rdquo|#8220|#8221);/gi, '"'],
+  [/&(lsquo|rsquo|#8216|#8217);/gi, "'"],
+];
+
+/** 편집 표시와 엔티티를 걷어낸 헤드라인. 자막·대본에 쓰는 형태다. */
+export function cleanHeadline(text) {
+  let t = String(text ?? '');
+  for (const [re, to] of ENTITY) t = t.replace(re, to);
+  t = t.replace(EDIT_TAG, '');
+  // 매체 꼬리표 — "… | 연합뉴스"
+  t = t.replace(/\s*[|｜]\s*[가-힣A-Za-z0-9\s]{2,12}$/, '');
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * 자막·대본에 **남아 있으면 안 되는 것**이 있는가. 발행 전 마지막 확인용.
+ * 고칠 수 없으면 다시 쓰게 한다 — 이런 건 화면에 뜨면 바로 보인다.
+ */
+export function textLeftovers(text) {
+  const t = String(text ?? '');
+  const out = [];
+  if (EDIT_TAG.test(t)) out.push(`편집 표시 ${t.match(EDIT_TAG)[0].trim()}`);
+  if (/&[a-z]{2,8};|&#\d{2,5};/i.test(t)) out.push('HTML 엔티티');
+  if (/[가-힣]{2,4}\s*기자/.test(t) && !/기자회견|기자단|기자실/.test(t)) out.push('기자 서명');
+  if (/^\(\s*[^()]{0,24}=\s*[^()]{0,24}\)/.test(t)) out.push('통신사 앞머리');
+  return out;
+}
