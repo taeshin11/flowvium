@@ -17,13 +17,14 @@
  * cron/모니터 등록 권장: 30분 주기. exit code 1 = 즉시 알림 대상.
  */
 import Database from 'better-sqlite3';
-import { readdirSync, statSync, readFileSync } from 'fs';
+import { readdirSync, statSync, readFileSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 import { findProcesses } from './lib/platform-ops.mjs';
 import { sessionBudgetMin, maxSessionBudgetMin, getPublishTarget } from './lib/report-sessions.mjs';
 import { launcherWipesWorktree } from './lib/report-launcher.mjs';
 import { checkResourcePressure } from './lib/resource-pressure.mjs';
+import { thrashing, lanes, THRASH_MB_PER_SEC } from './lib/memory-health.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
 import { DEFAULT_COLD_TIMEOUT_MS as COLD_PROBE_MS, probeWithColdRetry } from './lib/llm-health.mjs';
 import { resolveLlm } from './lib/llm-config.mjs';
@@ -504,6 +505,44 @@ async function checkOnce() {
     } catch { /* 이 검사가 실패해도 위 검사는 남는다 */ }
   } catch (e) {
     issues.push(`쇼츠 발행 감시 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
+  }
+
+  // ── 메모리 스래싱 (2026-09-06 신설) ────────────────────────────────────────
+  //   영상 레인에 27B 를 한 번 요청한 것이 28GB 모델을 한 벌 더 적재시켰고,
+  //   그때부터 45초에 2,175MB 를 디스크에서 다시 읽었다(정상 4MB).
+  //   보고서 두 편과 쇼츠 네 회차가 거기서 죽었는데, **탐지가 없어 세 시간을 헤맸다.**
+  //   증상(느린 보고서·건너뛴 슬롯·죽은 LLM)만 보면 원인이 안 보인다 — 이 수치가 묶어 준다.
+  try {
+    const t = await thrashing({ sampleMs: 10_000 });
+    const lane = lanes().map((l) => `:${l.port} ${l.rssGb.toFixed(1)}GB`).join(' · ');
+    if (t.thrashing) {
+      // **알리는 데 그치지 않고 고친다.** 오늘 이 상태가 세 시간 넘게 이어졌고
+      //   그동안 보고서 두 편과 쇼츠 네 회차를 잃었다. 사람이 볼 때까지 기다릴 일이 아니다.
+      //   다만 한 시간에 한 번만 — 재기동이 원인이 아닌데 반복하면 그게 더 나쁘다.
+      let healed = '';
+      const HEAL = `${ROOT}/logs/thrash-heal.json`;
+      let last = 0;
+      try { last = JSON.parse(readFileSync(HEAL, 'utf8')).at ?? 0; } catch { /* 처음 */ }
+      if (Date.now() - last > 60 * 60_000) {
+        try {
+          // 오염되는 쪽은 늘 **웹/영상 레인**이다 — 다른 모델을 요청받는 곳이 거기다.
+          //   보고서 레인은 건드리지 않는다. 거기를 끊으면 진행 중인 보고서가 죽는다.
+          execSync(`launchctl kickstart -k gui/$(id -u)/com.spinai.flowvium-llm-web`,
+            { stdio: 'ignore', timeout: 60_000 });
+          writeFileSync(HEAL, JSON.stringify({ at: Date.now(), mbPerSec: t.mbPerSec }));
+          healed = ' → 웹 레인을 재기동했다(1시간에 한 번).';
+        } catch (e) { healed = ` → 재기동 실패: ${String(e?.message).slice(0, 40)}`; }
+      } else {
+        healed = ' → 1시간 안에 이미 재기동했다. 반복되면 사람이 봐야 한다.';
+      }
+      issues.push(`메모리 스래싱 ${t.mbPerSec.toFixed(0)}MB/s (기준 ${THRASH_MB_PER_SEC}) — `
+        + `모델이 메모리에 못 머물고 디스크에서 계속 다시 읽힌다. ${lane}.`
+        + healed);
+    } else {
+      info.push(`디스크 재읽기 ${t.mbPerSec.toFixed(2)}MB/s · ${lane}`);
+    }
+  } catch (e) {
+    info.push(`메모리 점검 건너뜀: ${String(e?.message).slice(0, 50)}`);
   }
 
   return { issues, info };
