@@ -1459,12 +1459,18 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
       '-stream_loop', '-1', '-i', bed,     // 영상 길이만큼 음악을 반복한다
       '-filter_complex',
       // 음악: 목소리 대역을 깎고 볼륨을 낮춘 뒤, 말소리를 기준으로 더킹한다.
-      `[1:a]volume=${process.env.SHORTS_BGM_VOL || 0.16},`
-      + 'equalizer=f=900:t=q:w=1.6:g=-9,equalizer=f=2200:t=q:w=1.6:g=-7,'
+      // 2026-09-06: 처음엔 볼륨만 0.16 을 곱했다. **안 들렸다** — 실측으로 배경 구간이 -49dB 였다.
+      //   원인이 셋 겹쳤다: 원곡이 이미 -11dB, 거기에 -16dB, 다시 더킹.
+      //   곡마다 음량도 제각각이라 곱셈으로는 맞출 수 없다 —
+      //   **loudnorm 으로 일정 음량(-20 LUFS)에 맞춘 뒤** 섞고, 더킹도 덜 깊게 잡는다.
+      `[1:a]loudnorm=I=${process.env.SHORTS_BGM_LUFS || -20}:TP=-2:LRA=7,`
+      + 'equalizer=f=900:t=q:w=1.6:g=-6,equalizer=f=2200:t=q:w=1.6:g=-5,'
       + 'highpass=f=70,lowpass=f=9000[bed];'
       + '[0:a]asplit=2[v1][v2];'
-      + '[bed][v2]sidechaincompress=threshold=0.05:ratio=8:attack=15:release=350[ducked];'
-      + '[v1][ducked]amix=inputs=2:duration=first:dropout_transition=0,alimiter=limit=0.95[a]',
+      // ratio 8 → 4, threshold 0.05 → 0.10: 말할 때 음악이 사라지지 않고 낮아지기만 한다.
+      + '[bed][v2]sidechaincompress=threshold=0.10:ratio=4:attack=20:release=400[ducked];'
+      + '[v1][ducked]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1,'
+      + 'alimiter=limit=0.95[a]',
       '-map', '0:v', '-map', '[a]',
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
       '-shortest', '-y', withBgm,
