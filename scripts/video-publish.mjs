@@ -139,9 +139,38 @@ if (USE_EXISTING) {
   log('--use-existing — 이미 만들어 둔 파일을 그대로 올린다(렌더 생략)');
 } else {
   log(`렌더 시작 (locale=${LOCALE} · 포맷 ${FORMAT})`);
-  run(isShorts
-    ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
-    : [resolve(ROOT, 'scripts/video/make-issue-video.mjs'), '--locale', LOCALE], '렌더');
+  // 2026-09-06 사용자 "올릴수없는게 말이되니? 고쳐서라도 올려야지".
+  //   한 이슈가 안 되면(사진 부족·대본 실패) 회차를 버리지 않고 **다른 이슈로 다시 시도**한다.
+  //   렌더는 중앙값 3분이라 두세 번 더 해볼 여유가 있다 — 슬롯을 통째로 버리는 것보다 낫다.
+  const TRIES = Number(process.env.VIDEO_RENDER_TRIES || 3);
+  const tried = [];
+  let rendered = false;
+  for (let a = 1; a <= TRIES && !rendered; a++) {
+    const args = isShorts
+      ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
+      : [resolve(ROOT, 'scripts/video/make-issue-video.mjs'), '--locale', LOCALE];
+    const r = spawnSync(node, args, {
+      cwd: ROOT,
+      stdio: 'inherit',
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}) },
+    });
+    if (r.error) throw new Error(`렌더 실행 실패: ${r.error.message}`);
+    if (r.status === 0) { rendered = true; break; }
+    if (r.status !== NOTHING_TO_PUBLISH) {
+      throw new Error(`렌더 실패 (exit ${r.status}) — 위 출력을 볼 것`);
+    }
+    // 이번에 시도한 이슈를 빼고 다시 — 무엇을 시도했는지는 렌더가 파일로 남긴다.
+    let last = '';
+    try { last = readFileSync(resolve(ROOT, 'logs/last-issue.txt'), 'utf8').trim(); } catch { /* noop */ }
+    if (last && !tried.includes(last)) tried.push(last);
+    if (a < TRIES) {
+      log(`렌더 ${a}회차가 "${last || '?'}" 로 낼 것을 못 만들었다 — 다른 이슈로 다시 시도한다 (${a + 1}/${TRIES})`);
+    }
+  }
+  if (!rendered) {
+    log(`건너뜀 — ${TRIES}번 시도했지만 낼 것이 없다(고장 아님). 시도한 이슈: ${tried.join(', ') || '없음'}`);
+    process.exit(NOTHING_TO_PUBLISH);
+  }
 }
 const MEDIA = resolveMediaRoot({
   configured: envValue('MEDIA_ROOT'),

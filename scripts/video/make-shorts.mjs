@@ -343,6 +343,15 @@ if (FORCE_ISSUE) {
     if (fresh.length !== promoBefore) log(`[편성] 홍보성 기사 ${promoBefore - fresh.length}건 제외`);
   }
 
+  // 앞선 시도에서 실패한 이슈는 뺀다(호출부가 SHORTS_EXCLUDE 로 넘긴다).
+  const excluded = String(process.env.SHORTS_EXCLUDE || '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (excluded.length) {
+    const eBefore = fresh.length;
+    fresh = fresh.filter((c) => !excluded.includes(c.keyword));
+    BRIEF_POOL = BRIEF_POOL.filter((c) => !excluded.includes(c.keyword));
+    if (fresh.length !== eBefore) log(`[편성] 앞서 실패한 이슈 ${eBefore - fresh.length}건 제외 (${excluded.join(', ')})`);
+  }
+
   const tBefore = fresh.length;
   fresh = fresh.filter((c) => isTopicKeyword(c.keyword));
   if (fresh.length !== tBefore) log(`[편성] 주제가 아닌 키워드 ${tBefore - fresh.length}건 제외`);
@@ -509,6 +518,10 @@ const headlines = BRIEF
   : issue.headlines ?? [];
 const texts = [...headlines, ...(issue.items ?? []).map((i) => stripHtml(i.summary)).filter(Boolean)];
 const quote = bestQuote(texts);
+// 2026-09-06 사용자 "올릴수없는게 말이되니? 고쳐서라도 올려야지".
+//   회차를 버리는 대신 **다른 이슈로 다시 시도**할 수 있어야 한다. 호출부가 재시도하려면
+//   이번에 무엇을 시도했는지 알아야 한다 — 출력을 흘려보내(inherit) 읽을 수 없으므로 파일로 남긴다.
+try { writeFileSync(resolve(ROOT, 'logs/last-issue.txt'), String(issue.keyword ?? ''), 'utf8'); } catch { /* noop */ }
 log(`[이슈] "${issue.keyword}" · 매체 ${issue.sourceCount} · 기사 ${headlines.length}`);
 log(`[헤드라인] ${headlines[0]?.slice(0, 60) ?? ''}`);
 if (quote) log(`[인용] "${quote.text.slice(0, 40)}…" — ${quote.speaker ?? '?'}`);
@@ -532,7 +545,9 @@ ${headlines.map((h, i) => `${i + 1}. ${h.slice(0, 160)}`).join('\n')}
 - **남의 주장은 누가 했는지 밝혀라.** 사람을 규정하는 말(카르텔·농단·3인방 …)은 발화자와 함께.
 - 정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.
 - 숫자와 단위는 붙여 쓴다("6800억원", "18문"). 자릿수 사이를 띄우지 마라.
-- hook: 화면에 크게 박을 문구, **12자 이내**, 명사로 끝내라. 장면마다 다른 말로 시작하라.
+- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라.
+  · **낱말을 쉼표로 나열하지 마라.** 실측으로 나간 나쁜 예: "영문, 프랑스, 국빈방문" / "이민, 소형선박, 영국해협"
+  · 좋음: "프랑스 국빈방문" · "영국해협 이민 협약" · "첨단분야 협력" — 뜻이 통하는 한 덩어리로.
 - JSON 배열만 출력: [{"hook":"문구","say":"읽을 문장(${Math.round(budget / headlines.length * 0.8)}~${Math.round(budget / headlines.length * 1.2)}자)","visual":""}]
 - 장면 ${headlines.length}개. 총 ${budget}자 안팎.`;
 
@@ -1247,20 +1262,26 @@ closeGoogleImages();
       if (verdict.length) log(`[화면] CLIP 검사 ${verdict.length}장 중 ${dropped}장 제외`);
       // 2026-09-06: 걸러 낸 자리를 비워 뒀더니 **회색 카드**가 됐다(실측 4번 장면).
       //   통과한 사진 중에서 채운다 — 같은 사진이 두 번 나오는 편이 빈 화면보다 낫다.
-      if (dropped) {
-        const good = scenes.filter((x) => !x.isOutro && x.media);
-        const useCount = (m) => scenes.filter((x) => x.media === m).length;
-        for (const x of scenes) {
-          if (x.isOutro || x.media) continue;
-          const donor = good.find((g) => useCount(g.media) < 2);
-          if (!donor) break;
-          x.media = donor.media; x.credit = donor.credit;
-          log(`[화면] CLIP 이 거른 자리를 통과한 사진으로 채운다`);
-        }
-      }
+
     }
   } catch (e) {
     if (e.message !== 'skip-clip') log(`[화면] CLIP 검사 건너뜀: ${String(e.message).slice(0, 50)}`);
+  }
+
+  // 2026-09-06: 빈 자리 채우기를 CLIP 블록 **안에** 뒀더니 중복 제거로 뺀 자리는 안 채워져
+  //   또 회색 카드가 나갔다(실측 4번 장면). 어느 검사가 뺐든 마지막에 한 번 채운다.
+  {
+    const good = scenes.filter((x) => !x.isOutro && x.media);
+    const useCount = (m) => scenes.filter((x) => x.media === m).length;
+    let filled = 0;
+    for (const x of scenes) {
+      if (x.isOutro || x.media) continue;
+      const donor = good.find((g) => useCount(g.media) < 2);
+      if (!donor) break;
+      x.media = donor.media; x.credit = donor.credit;
+      filled += 1;
+    }
+    if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
   }
 
   const total = scenes.filter((x) => !x.isOutro).length;
