@@ -489,8 +489,13 @@ if (FORCE_ISSUE) {
   //   앞에서 뒤로 밀어 놨는데, 사진이 있다는 이유로 이 줄이 다시 1순위로 끌어올렸다.
   //   어제 약한 갈래로 같은 일을 겪고 IS_WEAK 를 넣었는데 UNSAFE_THUMB 는 빠져 있었다.
   //   조건이 늘 때마다 이 줄에도 같이 걸어야 한다.
+  // 2026-09-07: 예비 경로가 **위험한 편을 그대로 내보냈다.**
+  //   08:15 백필이 "이진숙, '여자 히틀러' 김민석 발언 모욕죄 고소" 를 냈다(fqSk1I5o9ag, 내렸다).
+  //   안전한 후보에 사진이 없자 `?? scored.find(...)` 가 낙인 인용을 1순위로 되살린 것이다.
+  //   약한 갈래는 되살려도 되지만(밋밋할 뿐이다) **낙인 인용은 다르다** —
+  //   그 자리에 세우면 남의 얼굴 위에 그 표현이 얹힌다. 회차를 거르는 편이 낫다.
   const usable = scored.find((x) => x.n > 0 && !IS_WEAK(x.cand) && !UNSAFE_THUMB(x.cand))
-    ?? scored.find((x) => x.n > 0 && !IS_WEAK(x.cand));
+    ?? scored.find((x) => x.n > 0 && !UNSAFE_THUMB(x.cand));
   if (usable) {
     issue = usable.cand;
     PROBED = usable.probed ?? [];
