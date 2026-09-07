@@ -673,13 +673,31 @@ function detectCurrency(...sources) {
   }
   return null;
 }
+/**
+ * 보고서 id = 발간일:세션:언어.
+ *
+ * 2026-09-08: **자정 회차가 매일 전날 행을 덮어쓰고 있었다.**
+ *   midnight 세션은 전날 22:30 에 시작해 자정을 넘겨 끝난다.
+ *   생성 시각이 23:33(KST)이면 여기서 날짜를 그날로 잡아 `2026-09-07:midnight` 이 되는데,
+ *   그건 **전날 밤에 만든 회차의 id** 다. ON CONFLICT 로 조용히 덮였다.
+ *   실측: `2026-09-07:midnight` 행의 created 는 09-06, generated 는 09-07 밤 —
+ *   서로 다른 두 회차가 한 행에 겹쳐 있었다. 하루에 한 편씩 기록이 사라진 셈이다.
+ *
+ *   파일 이름은 getReportKstDate() 를 써서 `report-2026-09-08-midnight-ko.json` 으로 맞았다.
+ *   **파일과 DB 가 다른 규칙을 쓰고 있었다.** 같은 규칙을 여기에도 적용한다.
+ *   (report-sessions.mjs 를 import 하지 않는다 — db.mjs 는 그쪽이 import 하는 하위 모듈이다.)
+ */
 function inferReportId(report) {
   const gen = report.generatedAt ?? new Date().toISOString();
-  const kst = new Date(new Date(gen).getTime() + 9*3600000).toISOString().slice(0, 10);
+  const kstMs = new Date(gen).getTime() + 9 * 3600000;
   const session = report.session ?? (() => {
-    const h = (new Date(gen).getUTCHours() + 9) % 24;
+    const h = new Date(kstMs).getUTCHours();
     return h < 16 ? 'morning' : h < 22 ? 'afternoon' : 'evening';
   })();
+  // 발간 시각이 00:00 인 세션(midnight)은 22시 이후에 만들어지면 **다음 날** 것이다.
+  const rolled = session === 'midnight' && new Date(kstMs).getUTCHours() >= 22
+    ? kstMs + 24 * 3600000 : kstMs;
+  const kst = new Date(rolled).toISOString().slice(0, 10);
   const locale = report.locale ?? 'ko';
   return `${kst}:${session}:${locale}`;
 }
