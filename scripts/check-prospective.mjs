@@ -22,6 +22,33 @@ const status = db.prepare(`SELECT CASE WHEN id IN (SELECT recommendation_id FROM
 console.log('\n4) buy 평가 상태:');
 for (const r of status) console.log(`   ${r.s}: ${r.c}`);
 
+// 2026-09-07: 여기서 보던 것은 **목표 도달 비율**뿐이었다. 그게 9.6% 라 성과가 나빠 보였다.
+//   실제로는 매도엔진이 목표 전에 이익 상태로 파는 경우가 많다 —
+//   실측: 손익이 기록된 1,231건 중 **786건(63.9%)이 수익**, 평균 +1.79%.
+//   목표 도달만 세면 실제 성과를 여섯 배 낮게 본다.
+//   지표 하나가 틀리면 그 위의 판단이 전부 틀어진다. 둘 다 보여 준다.
+const win = db.prepare(`SELECT COUNT(*) n,
+    SUM(CASE WHEN o.pnl_pct > 0 THEN 1 ELSE 0 END) w,
+    SUM(CASE WHEN o.outcome = 'hit_target' THEN 1 ELSE 0 END) hit,
+    ROUND(AVG(o.pnl_pct), 2) pnl
+  FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
+  WHERE r.action = 'buy' AND o.pnl_pct IS NOT NULL`).get();
+if (win?.n) {
+  console.log(`\n5a) 실제 성과 (손익이 기록된 ${win.n}건):`);
+  console.log(`   수익 낸 비율   ${(100 * win.w / win.n).toFixed(1)}%   ← 이 시스템의 성과`);
+  console.log(`   목표 도달 비율 ${(100 * win.hit / win.n).toFixed(1)}%   ← 목표가에 닿은 것만. 매도엔진이 먼저 파는 편이 많다`);
+  console.log(`   평균 손익      ${win.pnl}%`);
+  const worst = db.prepare(`SELECT r.ticker, COUNT(*) n,
+      SUM(CASE WHEN o.pnl_pct > 0 THEN 1 ELSE 0 END) w, ROUND(AVG(o.pnl_pct), 2) pnl
+    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
+    WHERE r.action = 'buy' AND o.pnl_pct IS NOT NULL
+    GROUP BY r.ticker HAVING n >= 8 ORDER BY w * 1.0 / n ASC LIMIT 6`).all();
+  console.log('   — 수익 낸 비율 하위 (n>=8) —');
+  for (const x of worst) {
+    console.log(`   ${x.ticker.padEnd(11)} n=${String(x.n).padStart(3)}  수익 ${(100 * x.w / x.n).toFixed(0).padStart(3)}%  평균 ${String(x.pnl).padStart(7)}%`);
+  }
+}
+
 const quality = db.prepare(`SELECT outcome, COUNT(*) c, ROUND(AVG(pnl_pct),1) avg_ret FROM recommendation_outcomes GROUP BY outcome ORDER BY c DESC`).all();
 console.log('\n5) 누적 quality:');
 console.log('   outcome         n      avg_ret%');

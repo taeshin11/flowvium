@@ -89,7 +89,13 @@ const ruleOutcomeRows = db.prepare(`
   FROM recommendations r
   JOIN recommendation_outcomes o ON o.recommendation_id = r.id
   JOIN buy_candidates bc ON bc.ticker = r.ticker AND bc.report_id = r.report_id AND bc.selected = 1
-  WHERE o.outcome IN ('hit_target', 'stop_loss')
+  -- 2026-09-07: 여기서 **'sold' 를 통째로 빼고** 있었다. 종결 1,527건 중 776건이 sold 인데,
+  --   매도엔진이 목표 전에 **이익 상태로 파는** 경우가 대부분이다(전체 수익률 63.9%).
+  --   그걸 빼면 "목표에 닿았나" 만 남고, 이익으로 팔아 준 룰은 점수를 한 푼도 못 받는다.
+  --   실제로 오늘 제안 4건이 전부 감점이었고 사유가 모두 hit=0% 였다.
+  --   손익이 채워진 것만 넣는다 — --verify 가 매일 채운다(2026-09-07 신설).
+  WHERE o.outcome IN ('hit_target', 'stop_loss', 'sold')
+    AND o.pnl_pct IS NOT NULL
 `).all();
 const ruleEdge = {}; // id → { n, hits, stops, pnlSum, alphaSum, alphaN, hitRate, avgPnl, avgAlpha, edge }
 for (const row of ruleOutcomeRows) {
@@ -97,20 +103,24 @@ for (const row of ruleOutcomeRows) {
   try { for (const x of JSON.parse(row.rules || '[]')) { const id = typeof x === 'string' ? x : (x.ruleId || x.id); if (id) ids.add(id); } } catch { /* skip */ }
   const alpha = (row.pnl != null && row.spy != null) ? row.pnl - row.spy : null;
   for (const id of ids) {
-    const e = ruleEdge[id] ?? (ruleEdge[id] = { n: 0, hits: 0, stops: 0, pnlSum: 0, alphaSum: 0, alphaN: 0 });
+    const e = ruleEdge[id] ?? (ruleEdge[id] = { n: 0, hits: 0, stops: 0, wins: 0, losses: 0, pnlSum: 0, alphaSum: 0, alphaN: 0 });
     e.n++;
     if (row.outcome === 'hit_target') e.hits++; else if (row.outcome === 'stop_loss') e.stops++;
+    // 성공의 정의를 **손익 부호**로 바꾼다. 목표에 닿지 않아도 이익으로 팔았으면 성공이다.
+    if (row.pnl > 0) e.wins++; else e.losses++;
     if (row.pnl != null) e.pnlSum += row.pnl;
     if (alpha != null) { e.alphaSum += alpha; e.alphaN++; }
   }
 }
 for (const e of Object.values(ruleEdge)) {
   const term = e.hits + e.stops;
-  e.hitRate = term > 0 ? e.hits / term : 0;
+  e.hitRate = term > 0 ? e.hits / term : 0;           // 목표 도달률(참고용으로 남긴다)
+  const wl = e.wins + e.losses;
+  e.winRate = wl > 0 ? e.wins / wl : 0;               // **수익 낸 비율 — 이게 성공이다**
   e.avgPnl = e.n > 0 ? e.pnlSum / e.n : 0;
   e.avgAlpha = e.alphaN > 0 ? e.alphaSum / e.alphaN : 0;
-  // edge = 적중률(−1..+1)*0.6 + 알파(±10%p→±1)*0.4 — 양수=좋은 룰, 음수=역효과
-  const hitComp = (e.hitRate - 0.5) * 2;
+  // edge = 수익률(−1..+1)*0.6 + 알파(±10%p→±1)*0.4 — 양수=좋은 룰, 음수=역효과
+  const hitComp = (e.winRate - 0.5) * 2;
   const alphaComp = Math.max(-1, Math.min(1, e.avgAlpha / 10));
   e.edge = Math.round((hitComp * 0.6 + alphaComp * 0.4) * 100) / 100;
 }
@@ -129,15 +139,15 @@ for (const r of spec.rules) {
   }
   const mult = 1 + Math.max(-MAX_CHANGE_PCT, Math.min(MAX_CHANGE_PCT, e.edge * MAX_CHANGE_PCT));
   const proposed = Math.max(SCORE_MIN, Math.min(SCORE_MAX, Math.round(r.score * mult)));
-  ruleProposals.push({ id: r.id, category: r.category, n: e.n, hitRate: Math.round(e.hitRate * 100), avgAlpha: Math.round(e.avgAlpha * 10) / 10, edge: e.edge, current: r.score, proposed, changed: proposed !== r.score, reason: proposed !== r.score ? `edge=${e.edge} → ×${mult.toFixed(2)}` : `edge=${e.edge}(반올림 변화없음)` });
+  ruleProposals.push({ id: r.id, category: r.category, n: e.n, hitRate: Math.round(e.hitRate * 100), winRate: Math.round(e.winRate * 100), avgAlpha: Math.round(e.avgAlpha * 10) / 10, edge: e.edge, current: r.score, proposed, changed: proposed !== r.score, reason: proposed !== r.score ? `edge=${e.edge} → ×${mult.toFixed(2)}` : `edge=${e.edge}(반올림 변화없음)` });
 }
 const tunable = ruleProposals.filter((p) => p.n >= MIN_SAMPLE);
 const changes = ruleProposals.filter((p) => p.changed);
 console.log(`\n▶ [3.5] 룰별 outcome 백튜닝 ("좋은 것만 학습")`);
 console.log(`  종결 outcome 귀속 ${ruleOutcomeRows.length}건 → 표본충족 룰 ${tunable.length}/${spec.rules.length}, 조정 제안 ${changes.length}`);
-for (const p of changes) console.log(`    ${p.id.padEnd(24)} score ${p.current}→${p.proposed} (${p.reason}; n=${p.n}, hit=${p.hitRate}%, α=${p.avgAlpha}%)`);
+for (const p of changes) console.log(`    ${p.id.padEnd(24)} score ${p.current}→${p.proposed} (${p.reason}; n=${p.n}, 수익=${p.winRate ?? p.hitRate}%, α=${p.avgAlpha}%)`);
 if (!tunable.length) console.log(`  (아직 룰당 종결 outcome ${MIN_SAMPLE}건 미만 — 데이터 축적 시 자동 활성. 매 발간 outcome 평가로 채워짐.)`);
-spec.ruleEdge = Object.fromEntries(Object.entries(ruleEdge).map(([k, v]) => [k, { n: v.n, hitRate: Math.round(v.hitRate * 100), avgAlpha: Math.round(v.avgAlpha * 10) / 10, edge: v.edge }]));
+spec.ruleEdge = Object.fromEntries(Object.entries(ruleEdge).map(([k, v]) => [k, { n: v.n, hitRate: Math.round(v.hitRate * 100), winRate: Math.round(v.winRate * 100), avgAlpha: Math.round(v.avgAlpha * 10) / 10, edge: v.edge }]));
 
 // ── [4] buy-rules-tuned.json 업데이트 ──────────────────────────────────────────
 spec.tunedAt = new Date().toISOString();
