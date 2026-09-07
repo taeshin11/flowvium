@@ -186,6 +186,20 @@ async function checkOnce() {
         issues.push(`MODEL-ID 거부: '${m}' 로 추론 요청이 실패 — ${r.error} → .env.local 의 VLLM_MODEL/LOCAL_LLM_MODEL 을 서버가 받는 값으로 맞추세요`);
         continue;
       }
+      // 2026-09-07: 보고서가 끝나면 :8000 을 **일부러 내려놓는다**(28GB 를 하루 다섯 번만 쓴다).
+      //   그런데 모니터가 그걸 죽은 것으로 보고 20분 만에 다시 올렸다 —
+      //   실측: 16:00 내려놓음 → 16:20 재기동. 내려놓는 의미가 없었다.
+      //   **launchd 에 잡이 올라 있지 않으면 사람이/스크립트가 의도적으로 내린 것**이다.
+      //   그때는 결함이 아니다. 다음 보고서의 사전점검이 다시 올린다.
+      try {
+        const loaded = execSync('launchctl list 2>/dev/null | grep -c com.spinai.flowvium-llm$ || true',
+          { encoding: 'utf8', shell: '/bin/bash' }).trim();
+        if (loaded === '0') {
+          info.push('보고서 레인(:8000) 내려가 있음 — 보고서 사이에는 일부러 내려놓는다(28GB). 다음 회차 사전점검이 올린다');
+          continue;
+        }
+      } catch { /* 확인 못 하면 예전대로 본다 */ }
+
       // 무응답이다. 여기서 바로 DEAD 를 찍지 않고 한 번 더 길게 묻는다.
       const retry = await probeCompletion('http://127.0.0.1:8000/v1/chat/completions', m, COLD_PROBE_MS);
       if (retry.ok) {
