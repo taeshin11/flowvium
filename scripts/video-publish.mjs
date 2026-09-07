@@ -287,7 +287,8 @@ if (isShorts && last.keyword) {
       // 방금 것인지 확인한다 — 지난 회차의 id 를 이번 회차에 붙이면 추적이 더 나빠진다.
       if (up?.id && Date.now() - Date.parse(up.at) < 30 * 60_000) videoId = up.id;
     } catch { /* 없으면 id 없이 남긴다 */ }
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId });
+    // 브리핑은 한 편에 뉴스가 넷이다 — 제목만 남기면 나머지가 다음 회차에 또 나온다.
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.

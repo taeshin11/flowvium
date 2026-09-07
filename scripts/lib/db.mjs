@@ -1955,13 +1955,33 @@ export function shortsLiveCountSince(sinceIso) {
   ).get(sinceIso).n;
 }
 
+/**
+ * 브리핑은 한 편에 뉴스가 넷인데 **제목 한 줄만** 남겼다.
+ *   그래서 어제 16:00 편의 두 번째 장면이던 "李대통령 프랑스 국빈방문" 이
+ *   오늘 09:00 에 제목으로 다시 나갔다(0Sx7P7FhWtY, 내렸다).
+ *   중복 검사가 못 보는 것은 없는 것과 같다 — 그 편이 다룬 **모든** 헤드라인을 남긴다.
+ */
+function ensureHeadlinesColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
+  if (!cols.includes('headlines_json')) {
+    db.exec('ALTER TABLE shorts_published ADD COLUMN headlines_json TEXT');
+  }
+}
+
 export function recentShortsHeadlines(hours = 24) {
   const db = openDb();
+  ensureHeadlinesColumn(db);
   const rows = db.prepare(
-    `SELECT headline FROM shorts_published
-      WHERE datetime(published_at) >= datetime('now', ?) AND headline IS NOT NULL`,
+    `SELECT headline, headlines_json FROM shorts_published
+      WHERE datetime(published_at) >= datetime('now', ?)`,
   ).all(`-${Number(hours)} hours`);
-  return rows.map((r) => r.headline).filter(Boolean);
+  const out = [];
+  for (const r of rows) {
+    if (r.headline) out.push(r.headline);
+    if (!r.headlines_json) continue;
+    try { for (const h of JSON.parse(r.headlines_json)) if (h) out.push(h); } catch { /* 깨졌으면 넘어간다 */ }
+  }
+  return [...new Set(out)];
 }
 
 export function recentShortsIssues(hours = 24) {
@@ -1974,12 +1994,16 @@ export function recentShortsIssues(hours = 24) {
 }
 
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [] }) {
   const db = openDb();
+  ensureHeadlinesColumn(db);
+  // 브리핑은 한 편에 뉴스가 넷이다. **전부 남긴다** — 제목만 남기면 나머지 셋이 다음에 또 나온다.
+  const all = [...new Set([headline, ...(headlines ?? [])].filter(Boolean).map((h) => String(h).slice(0, 300)))];
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at)
-     VALUES (?, ?, ?, ?)`,
-  ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId, new Date().toISOString());
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
+    new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null);
 }
 
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */
