@@ -555,6 +555,13 @@ const MAINT_JOBS = [
   //   'sold' 는 보고서 파이프라인(saveSellRecommendations)이 따로 써서 겉보기엔 쌓이는 듯 보였다.
   //   이 루프가 tune-buy-rules/tune-sell-rules 학습과 수익률 통계의 입력이라 멈추면 판단 근거가 썩는다.
   { label: 'buy-outcomes',         script: 'scripts/evaluate-recommendations.mjs',   timeoutMs: 900000,  commitPaths: [],                                     schedules: ['50 18 * * *'],                maxAgeH: 30 },
+  // 2026-09-07: buy-outcomes 는 매일 도는데 **--verify 는 아무 데서도 안 돌았다.**
+  //   그래서 매도추천이 닫은 건들이 손익 없이 쌓였다(실측 41건, 최근 7일 sold 의 30%).
+  //   더 나쁜 건 손절이 'sold' 로 묻히는 것이다 — 앞선 실측에서 109건이 그렇게 묻혀
+  //   손절률이 9.8% 로 보였다(실제 23.4%). 위험도가 절반 이하로 보인다.
+  //   한 번 돌려 보니 41건 → 12건으로 줄었다. 밀린 것이지 고장이 아니었다.
+  //   평가(18:50) 직후에 검증을 돌린다. 건수를 제한해 Yahoo 를 몰아치지 않는다.
+  { label: 'buy-outcomes-verify',  script: 'scripts/evaluate-recommendations.mjs --verify --limit=80', timeoutMs: 900000, commitPaths: [],           schedules: ['10 19 * * *'],                maxAgeH: 30 },
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
