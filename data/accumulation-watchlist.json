@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-08T03:23:36.658Z",
+  "generatedAt": "2026-09-08T07:20:24.595Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 7,
+  "count": 4,
   "strongCount": 1,
-  "watchCount": 6,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,51 +14,15 @@
       "score": 42,
       "coFire": 3,
       "lead": [
-        "거래량 추세 4.4× 상승(지속 매집)",
-        "거래량 8.0× 급증(가격 평탄)",
+        "거래량 추세 4.6× 상승(지속 매집)",
+        "거래량 8.3× 급증(가격 평탄)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 10.9,
-      "runup5dPct": 11.1,
+      "runup20dPct": 10.1,
+      "runup5dPct": 10.3,
       "medDollarVolUsd": 495507,
       "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "038460.KQ",
-      "name": "바이오스마트",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -7.7,
-      "runup5dPct": -0.7,
-      "medDollarVolUsd": 254184,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "038500.KQ",
-      "name": "삼표시멘트",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -11,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 3432715,
-      "smartAccum": true,
       "official": null
     },
     {
@@ -73,9 +37,9 @@
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 8.5,
-      "runup5dPct": -0.8,
-      "medDollarVolUsd": 1547507,
+      "runup20dPct": 6.5,
+      "runup5dPct": -2.6,
+      "medDollarVolUsd": 1566089,
       "smartAccum": true,
       "official": null
     },
@@ -91,27 +55,9 @@
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -6.1,
-      "runup5dPct": 10,
+      "runup20dPct": -8.9,
+      "runup5dPct": 6.7,
       "medDollarVolUsd": 2741106,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "171090.KQ",
-      "name": "선익시스템",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -3.4,
-      "runup5dPct": -6.9,
-      "medDollarVolUsd": 2631639,
       "smartAccum": true,
       "official": null
     },
@@ -122,12 +68,12 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 추세 1.8× 상승",
+        "거래량 3.0× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 8.5,
-      "runup5dPct": -2,
+      "runup20dPct": 8.8,
+      "runup5dPct": -1.7,
       "medDollarVolUsd": 224051,
       "smartAccum": true,
       "official": null
