@@ -138,8 +138,18 @@ for (const r of spec.rules) {
     continue;
   }
   const mult = 1 + Math.max(-MAX_CHANGE_PCT, Math.min(MAX_CHANGE_PCT, e.edge * MAX_CHANGE_PCT));
-  const proposed = Math.max(SCORE_MIN, Math.min(SCORE_MAX, Math.round(r.score * mult)));
-  ruleProposals.push({ id: r.id, category: r.category, n: e.n, hitRate: Math.round(e.hitRate * 100), winRate: Math.round(e.winRate * 100), avgAlpha: Math.round(e.avgAlpha * 10) / 10, edge: e.edge, current: r.score, proposed, changed: proposed !== r.score, reason: proposed !== r.score ? `edge=${e.edge} → ×${mult.toFixed(2)}` : `edge=${e.edge}(반올림 변화없음)` });
+  // 2026-09-09: 조정 폭이 `edge × 20%` 라 **낮은 점수는 영원히 못 움직인다.**
+  //   실측: price_pullback_50ma 는 표본 107건에 **수익 69%·평균 +2.31%** 인데 점수가 3이다.
+  //   3 × (1 + 0.31×0.20) = 3.19 → 반올림 3. 아무리 좋아도 그대로다.
+  //   이 룰들이 3으로 내려간 이유가 **틀린 기준**(목표 도달만 세던 시절)이었는데,
+  //   기준을 고쳐도 스스로 못 돌아온다. 갇힌 것을 풀어 준다.
+  //   표본이 충분하고(30건+) 방향이 뚜렷하면(|edge| >= 0.2) **최소 한 칸**은 움직인다.
+  //   한 칸씩이라 급격하지 않다 — 주 1회니까 잘못돼도 다음 주에 되돌아온다.
+  let proposed = Math.max(SCORE_MIN, Math.min(SCORE_MAX, Math.round(r.score * mult)));
+  if (proposed === r.score && e.n >= 30 && Math.abs(e.edge) >= 0.2) {
+    proposed = Math.max(SCORE_MIN, Math.min(SCORE_MAX, r.score + (e.edge > 0 ? 1 : -1)));
+  }
+  ruleProposals.push({ id: r.id, category: r.category, n: e.n, hitRate: Math.round(e.hitRate * 100), winRate: Math.round(e.winRate * 100), avgAlpha: Math.round(e.avgAlpha * 10) / 10, edge: e.edge, current: r.score, proposed, changed: proposed !== r.score, reason: proposed !== r.score ? `edge=${e.edge} → ×${mult.toFixed(2)}` : `edge=${e.edge}(변화없음)` });
 }
 const tunable = ruleProposals.filter((p) => p.n >= MIN_SAMPLE);
 const changes = ruleProposals.filter((p) => p.changed);
