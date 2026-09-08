@@ -162,8 +162,13 @@ if (USE_EXISTING) {
     });
     if (r.error) throw new Error(`렌더 실행 실패: ${r.error.message}`);
     if (r.status === 0) { rendered = true; break; }
+    // 2026-09-08: 대본을 못 만들면 렌더가 exit 1 로 죽었고, 여기서 **회차를 통째로 버렸다**.
+    //   실측: 21:45 회차가 "무소속" 한 낱말 때문에 세 번 실패하고 끝났다.
+    //   한 이슈가 안 된다고 그 시각을 잃을 이유가 없다 — 다른 이슈로 다시 해 본다.
+    //   마지막 시도까지 실패하면 그때 진짜 실패로 올린다.
     if (r.status !== NOTHING_TO_PUBLISH) {
-      throw new Error(`렌더 실패 (exit ${r.status}) — 위 출력을 볼 것`);
+      if (a >= TRIES) throw new Error(`렌더 실패 (exit ${r.status}) — 위 출력을 볼 것`);
+      log(`렌더 ${a}회차가 exit ${r.status} 로 실패했다 — 다른 이슈로 다시 시도한다 (${a + 1}/${TRIES})`);
     }
     // 이번에 시도한 이슈를 빼고 다시 — 무엇을 시도했는지는 렌더가 파일로 남긴다.
     let last = '';

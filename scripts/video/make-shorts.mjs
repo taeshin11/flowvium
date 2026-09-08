@@ -836,7 +836,26 @@ for (let a = 1; a <= 3; a++) {
     log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
 }
-if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(1); }
+// 2026-09-08: 21:45 회차가 여기서 죽었다. 세 번 다 걸린 이유가 **"무소속" 한 낱말**이었다.
+//   모델이 "무소속 한동훈" 을 고집했고, 원문에 그 말이 없어 매번 다시 쓰게 했다.
+//   지우면 될 것을 세 번 다시 쓰다 회차를 잃었다 — **막는 것과 버리는 것은 다르다.**
+//   근거 없는 소속은 문장에서 걷어내고 간다. "무소속 한동훈" → "한동훈" 은 안전하다.
+{
+  const srcAll = [...headlines, ...onTopicItems.map((i) => stripHtml(i.summary))].join(' ');
+  let cleaned = 0;
+  for (const sc of scenes) {
+    for (const f of ['hook', 'say']) {
+      const bad = unsourcedAffiliation(sc[f], srcAll);
+      if (!bad.length) continue;
+      let t = String(sc[f] ?? '');
+      for (const w of bad) t = t.replace(new RegExp(`${w}\\s*`, 'g'), '');
+      sc[f] = t.replace(/\s+/g, ' ').trim();
+      cleaned += 1;
+    }
+  }
+  if (cleaned) log(`[대본] 원문에 없는 소속을 ${cleaned}곳에서 걷어냈다(다시 쓰지 않고 지운다)`);
+}
+if (scenes.length < 2) { console.error('❌ 3회 시도해도 대본을 못 만들었다'); process.exit(3); }
 
 // 2026-09-07: 검사는 세 번 다 잡았는데("겹치는 대사 6쌍") 3회 뒤 그냥 내보냈다.
 //   그래서 **같은 문장을 네 번 반복하는 편**이 나갔다(i-IqSqXH7LA, 내렸다).
