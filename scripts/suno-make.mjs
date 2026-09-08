@@ -63,8 +63,12 @@ try {
   await page.waitForTimeout(20000);
   await page.screenshot({ path: resolve(ROOT, 'logs/suno-make.png') }).catch(() => {});
   console.log('  화면: logs/suno-make.png');
+  // 2026-09-08: 여기서 닫지 않아 **프로세스가 안 끝났다**(CDP 연결이 살아 있으면 node 가 대기한다).
+  //   작업은 다 됐는데 25분을 기다렸다 — 붙었으면 반드시 놓아야 한다.
+  await browser.close().catch(() => {});
 } catch (e) {
   console.error(`오류: ${String(e?.message).slice(0, 160)}`);
   await page.screenshot({ path: resolve(ROOT, 'logs/suno-make.png') }).catch(() => {});
+  await browser.close().catch(() => {});
   process.exit(1);
 }
