@@ -167,7 +167,14 @@ async function runMonitor() {
   }
   for (const [key, script] of (deployWindow ? [] : [['stall', 'scripts/check-stall.mjs'], ['dataQuality', 'scripts/check-data-quality.mjs']])) {
     try {
-      await execFileAsync('node', [script], { timeout: 170000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });   // timeout = hang 방지
+      // 2026-09-08: 이 제한이 **검사가 필요한 순간에 검사를 죽이고 있었다.**
+      //   check-stall 은 :8000 · :8001 을 각각 첫 프로브 + 콜드 재시도(기본 180s)로 잰다.
+      //   한 레인만 아파도 20+180+15+180 = 395s 라 170s 제한을 넘는다.
+      //   그래서 로그에 `stall=TIMEOUT(hang)` 만 남고 **무엇이 아픈지는 영영 안 나온다.**
+      //   실측: 09-08 오후 :8001 이 죽어 쇼츠 세 회차(12:30·12:45·13:45)가 조용히 멈췄는데
+      //   모니터는 20분마다 돌면서 아무 말도 하지 않았다 — 매번 타임아웃났기 때문이다.
+      //   검사에 필요한 시간을 준다. 진짜로 걸리면 그때 hang 으로 잡히면 된다.
+      await execFileAsync('node', [script], { timeout: 420000, windowsHide: true, maxBuffer: 10 * 1024 * 1024 });
       result.checks[key] = 'OK';
     } catch (e) {
       const out = (e.stdout?.toString() || '') + (e.stderr?.toString() || '');
