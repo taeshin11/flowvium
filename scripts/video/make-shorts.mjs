@@ -1462,17 +1462,30 @@ closeGoogleImages();
   // 2026-09-06: 빈 자리 채우기를 CLIP 블록 **안에** 뒀더니 중복 제거로 뺀 자리는 안 채워져
   //   또 회색 카드가 나갔다(실측 4번 장면). 어느 검사가 뺐든 마지막에 한 번 채운다.
   {
-    const good = scenes.filter((x) => !x.isOutro && x.media);
-    const useCount = (m) => scenes.filter((x) => x.media === m).length;
-    let filled = 0;
-    for (const x of scenes) {
-      if (x.isOutro || x.media) continue;
-      const donor = good.find((g) => useCount(g.media) < 2);
-      if (!donor) break;
-      x.media = donor.media; x.credit = donor.credit;
-      filled += 1;
+    // 2026-09-08 사용자 "대본이랑 사진이 안맞는 부분도 있네".
+    //   브리핑은 **장면마다 다른 뉴스**다. 빈 자리를 다른 장면 사진으로 채우면
+    //   3번 장면이 3번 뉴스를 읽으면서 1번 뉴스 사진을 보여 준다 — 반드시 어긋난다.
+    //   실측: 브리핑 59편 중 **26편(44%)** 에 재사용·카드가 섞여 있었다.
+    //   한 이슈짜리 편은 모든 장면이 같은 사건이라 빌려와도 된다. 브리핑만 다르게 다룬다.
+    if (BRIEF) {
+      const lost = scenes.filter((x) => !x.isOutro && !x.media);
+      if (lost.length) {
+        log(`[화면] 브리핑에서 사진을 잃은 장면 ${lost.length}개를 뺀다(다른 뉴스 사진을 빌리지 않는다)`);
+        scenes = scenes.filter((x) => x.isOutro || x.media);
+      }
+    } else {
+      const good = scenes.filter((x) => !x.isOutro && x.media);
+      const useCount = (m) => scenes.filter((x) => x.media === m).length;
+      let filled = 0;
+      for (const x of scenes) {
+        if (x.isOutro || x.media) continue;
+        const donor = good.find((g) => useCount(g.media) < 2);
+        if (!donor) break;
+        x.media = donor.media; x.credit = donor.credit;
+        filled += 1;
+      }
+      if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
     }
-    if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
   }
 
   // ── 썸네일 자리 고르기 (2026-09-07 사용자 "썸네일이 너무 저자극 부분이 나온듯") ──────
@@ -1489,7 +1502,10 @@ closeGoogleImages();
         const alt = chart.findIndex((c, i) => i > 0 && c < 0.3);
         if (alt > 0) {
           const a = withMedia[0].x; const b = withMedia[alt].x;
-          for (const f of ['media', 'pick', 'credit']) { const t = a[f]; a[f] = b[f]; b[f] = t; }
+          // 브리핑은 장면마다 다른 뉴스다 — **대본까지 함께 옮겨야** 짝이 유지된다.
+          //   사진만 바꾸면 1번이 1번 뉴스를 읽으면서 2번 사진을 보여 준다.
+          const fields = BRIEF ? ['media', 'pick', 'credit', 'hook', 'say'] : ['media', 'pick', 'credit'];
+          for (const f of fields) { const t = a[f]; a[f] = b[f]; b[f] = t; }
           log(`[화면] 첫 장면이 도표였다(${(first * 100).toFixed(0)}%) — ${alt + 1}번 사진과 자리를 바꾼다`);
         } else {
           log(`[화면] 첫 장면이 도표인데(${(first * 100).toFixed(0)}%) 바꿀 사진이 없다 — 그대로 간다`);
