@@ -1,33 +1,33 @@
 {
-  "generatedAt": "2026-09-07T07:20:24.222Z",
+  "generatedAt": "2026-09-08T03:23:36.658Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 6,
-  "strongCount": 0,
+  "count": 7,
+  "strongCount": 1,
   "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "358570.KQ",
-      "name": "지아이이노베이션",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
+      "ticker": "190510.KQ",
+      "name": "나무가",
+      "tier": "strong",
+      "score": 42,
+      "coFire": 3,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
+        "거래량 추세 4.4× 상승(지속 매집)",
+        "거래량 8.0× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 2.6,
-      "runup5dPct": 7.2,
-      "medDollarVolUsd": 2762327,
-      "smartAccum": true,
+      "runup20dPct": 10.9,
+      "runup5dPct": 11.1,
+      "medDollarVolUsd": 495507,
+      "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "352480.KQ",
-      "name": "씨앤씨인터내셔널",
+      "ticker": "038460.KQ",
+      "name": "바이오스마트",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
@@ -37,33 +37,15 @@
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 5.3,
-      "runup5dPct": -4.2,
-      "medDollarVolUsd": 340240,
+      "runup20dPct": -7.7,
+      "runup5dPct": -0.7,
+      "medDollarVolUsd": 254184,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "189300.KQ",
-      "name": "인텔리안테크",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -10.1,
-      "runup5dPct": 0.8,
-      "medDollarVolUsd": 4424205,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "490470.KQ",
-      "name": "세미파이브",
+      "ticker": "038500.KQ",
+      "name": "삼표시멘트",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
@@ -73,43 +55,80 @@
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -13.5,
-      "runup5dPct": -6.6,
-      "medDollarVolUsd": 3356873,
+      "runup20dPct": -11,
+      "runup5dPct": -2.4,
+      "medDollarVolUsd": 3432715,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "054620.KQ",
-      "name": "APS",
+      "ticker": "056190.KQ",
+      "name": "에스에프에이",
       "tier": "watch",
-      "score": 30,
+      "score": 34,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -7,
-      "runup5dPct": 0.8,
-      "medDollarVolUsd": 112943,
+      "runup20dPct": 8.5,
+      "runup5dPct": -0.8,
+      "medDollarVolUsd": 1547507,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "099320.KQ",
-      "name": "쎄트렉아이",
+      "ticker": "358570.KQ",
+      "name": "지아이이노베이션",
       "tier": "watch",
-      "score": 30,
+      "score": 34,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -6.7,
-      "runup5dPct": -4.5,
-      "medDollarVolUsd": 2973162,
+      "runup20dPct": -6.1,
+      "runup5dPct": 10,
+      "medDollarVolUsd": 2741106,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "171090.KQ",
+      "name": "선익시스템",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -3.4,
+      "runup5dPct": -6.9,
+      "medDollarVolUsd": 2631639,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "095700.KQ",
+      "name": "제넥신",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "거래량 2.9× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 8.5,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 224051,
       "smartAccum": true,
       "official": null
     }
