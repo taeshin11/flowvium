@@ -14,7 +14,7 @@ import { ROOT } from './lib/project-root.mjs';
 // 2026-09-08: 프로필을 **다시 열면** 쿠키를 못 읽는다 —
 //   크롬이 키체인 키로 암호화해 두기 때문이다(로그인은 됐는데 로그아웃으로 보였다).
 //   그래서 로그인한 그 창에 **CDP 로 붙는다.** scripts/suno-open.sh 로 먼저 띄운다.
-const PORT = process.env.SUNO_CDP_PORT || '9222';
+const PORT = process.env.SUNO_CDP_PORT || '9333';
 let browser; let page;
 try {
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`);

@@ -7,9 +7,14 @@
 #   ② 평범한 크롬으로 로그인하면 되지만, 그 프로필을 나중에 Playwright 가 다시 열면
 #      쿠키를 못 읽는다 — 크롬이 키체인 키로 암호화해 두기 때문이다.
 #   그래서 **같은 브라우저 프로세스에 붙는다.** 로그인한 그 창을 그대로 쓴다.
+# 2026-09-08: 포트를 9222 에서 9333 으로 옮겼다.
+#   **9222 는 Flow 자동화(~/.pni-chrome-flow)가 쓰는 포트**다.
+#   내가 먼저 잡는 바람에, 그쪽이 자기 프로필인 줄 알고 붙었다가
+#   내 창(다른 구글 계정으로 로그인된)을 잡아 작업이 막혔다.
+#   같은 기계에서 여러 자동화가 도는 이상, 포트는 겹치지 않게 잡아야 한다.
 PROFILE="$(cd "$(dirname "$0")/.." && pwd)/secrets/suno-profile"
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-PORT="${SUNO_CDP_PORT:-9222}"
+PORT="${SUNO_CDP_PORT:-9333}"
 [ -x "$CHROME" ] || { echo "크롬을 못 찾았다: $CHROME"; exit 1; }
 if lsof -nP -iTCP:$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
   echo "이미 :$PORT 에 크롬이 떠 있습니다 — 그 창을 씁니다."; exit 0

@@ -18,7 +18,7 @@ import { ROOT } from './lib/project-root.mjs';
 const PROMPT = process.argv.slice(2).join(' ')
   || 'Instrumental news broadcast background bed. Steady mid-tempo pulse, subtle strings and soft synth, '
    + 'no vocals, no melody in the 300-3000Hz voice range, calm and neutral, loops cleanly, 40 seconds.';
-const PORT = process.env.SUNO_CDP_PORT || '9222';
+const PORT = process.env.SUNO_CDP_PORT || '9333';
 
 let browser;
 try {
