@@ -52,6 +52,36 @@ if (last) {
   if (mins < GAP_MIN) { log(`마지막 발행이 ${Math.round(mins)}분 전 — ${GAP_MIN}분은 띄운다`); process.exit(0); }
 }
 
+// 2026-09-08: 위 검사는 **뒤만 본다** — "마지막 발행이 40분 안이면 쉰다".
+//   그래서 18:15 백필은 마지막 발행이 52분 전이라 통과했고, **5분 뒤 정규 회차가 왔다.**
+//   실측: 18:17 · 18:24 로 7분 간격에 두 편이 나갔다(사용자가 Studio 화면으로 잡았다).
+//   백필은 **빠진 자리를 메우는** 일이다. 곧 정규 회차가 온다면 그 자리는 빠진 게 아니다.
+//   앞도 본다. 편성표는 plist 한 곳에만 있으므로 거기서 읽는다 — 시각을 코드에 또 적으면 어긋난다.
+{
+  const { execSync } = await import('child_process');
+  const nextSlotMin = (() => {
+    try {
+      const raw = execSync(
+        `plutil -convert json -o - "${process.env.HOME}/Library/LaunchAgents/com.spinai.flowvium-video.plist"`,
+        { encoding: 'utf8' },
+      );
+      const slots = JSON.parse(raw).StartCalendarInterval ?? [];
+      const now = kst();
+      const cur = now.getUTCHours() * 60 + now.getUTCMinutes();
+      const ahead = slots
+        .map((x) => (x.Hour ?? 0) * 60 + (x.Minute ?? 0))
+        .map((m) => (m >= cur ? m - cur : m + 24 * 60 - cur))
+        .sort((a, b) => a - b);
+      return ahead[0] ?? null;
+    } catch { return null; }
+  })();
+  if (nextSlotMin !== null && nextSlotMin <= GAP_MIN) {
+    log(`정규 회차가 ${nextSlotMin}분 뒤다 — 그 자리는 빠진 게 아니다. 쉰다`);
+    process.exit(0);
+  }
+  if (nextSlotMin !== null) log(`다음 정규 회차까지 ${nextSlotMin}분 — 메워도 겹치지 않는다`);
+}
+
 // 2026-09-05: 이 검사를 **주석에만 쓰고 구현하지 않았다.** 그래서 구글 쿨다운 중에 백필이 돌아
 //   회색 카드 3장 + 임시정부 청사 사진으로 한 편이 나갔다(내렸다). 문서와 코드가 어긋나면
 //   문서 쪽을 믿게 되어 더 나쁘다.
