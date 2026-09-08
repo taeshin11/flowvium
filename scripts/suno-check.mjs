@@ -11,14 +11,28 @@ import { chromium } from 'playwright';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 
-const browser = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/suno-profile'), {
-  channel: 'chrome', headless: process.env.SUNO_HEADLESS === '1', viewport: { width: 1280, height: 900 },
-  args: ['--disable-blink-features=AutomationControlled'],
-});
-const page = browser.pages()[0] ?? await browser.newPage();
+// 2026-09-08: 프로필을 **다시 열면** 쿠키를 못 읽는다 —
+//   크롬이 키체인 키로 암호화해 두기 때문이다(로그인은 됐는데 로그아웃으로 보였다).
+//   그래서 로그인한 그 창에 **CDP 로 붙는다.** scripts/suno-open.sh 로 먼저 띄운다.
+const PORT = process.env.SUNO_CDP_PORT || '9222';
+let browser; let page;
 try {
+  browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`);
+  const ctx = browser.contexts()[0];
+  page = ctx.pages()[0] ?? await ctx.newPage();
+} catch {
+  console.log(`  ❌ :${PORT} 에 크롬이 없다 — 먼저 \`bash scripts/suno-open.sh\` 로 창을 띄우세요`);
+  process.exit(1);
+}
+try {
+  // 2026-09-08: 바로 /create 로 가면 인증이 붙기 전에 첫 화면으로 되돌려 보낸다.
+  //   Suno 는 Clerk 를 쓰고 세션 쿠키가 auth.suno.com 에 있다 —
+  //   앱이 그 도메인과 핸드셰이크를 마쳐야 로그인 상태가 된다.
+  //   첫 화면에서 기다렸다가 옮겨 간다.
+  await page.goto('https://suno.com/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForTimeout(10000);
   await page.goto('https://suno.com/create', { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForTimeout(12000);   // 로그인 확인이 클라이언트에서 도므로 넉넉히
+  await page.waitForTimeout(12000);
   const url = page.url();
   const t = (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ');
   const loggedOut = /Log in|Sign in|Sign up|Join Suno|로그인/i.test(t.slice(0, 400));
