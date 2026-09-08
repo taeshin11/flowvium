@@ -491,9 +491,18 @@ async function checkOnce() {
       if (lastStart) {
         const after = starts.filter((x) => x.at > lastStart.at && (x.kind === '끝 ·' || x.kind === '건너뜀'));
         const ageMin = (Date.now() - new Date(lastStart.at.replace(' ', 'T') + '+09:00').getTime()) / 60000;
-        if (!after.length && ageMin > 30) {
+        // 2026-09-09: 이 경보가 **632분째 계속 울렸다.** 어제 21:45 회차가 실패한 뒤
+        //   다음 회차가 아직 안 왔을 뿐인데, 마지막 '렌더 시작' 이 영원히 미마감으로 남는다.
+        //   이대로 두면 다음 진짜 결함이 이 경보에 묻힌다.
+        //   **끝난 일은 한 번만 알린다** — 오래된 것은 정보로 남기고 경보에서 뺀다.
+        //   (6시간이면 다음 회차가 최소 두 번은 지났다. 그때까지 못 봤으면 경보가 문제가 아니다.)
+        const STALE_MIN = 6 * 60;
+        if (!after.length && ageMin > 30 && ageMin <= STALE_MIN) {
           issues.push(`쇼츠 발행 실패 의심 — ${lastStart.at} 렌더 시작 뒤 ${Math.round(ageMin)}분째 마무리 기록이 없다. `
             + `조치: tail -30 ~/flowvium_runtime/video.log`);
+        } else if (!after.length && ageMin > STALE_MIN) {
+          info.push(`쇼츠 — 마지막 렌더(${lastStart.at})가 마무리 없이 끝났다(${Math.round(ageMin / 60)}시간 전). `
+            + '지난 일이라 경보에서 뺀다 — 그 뒤 회차가 정상이면 문제없다');
         } else if (after.length) {
           info.push(`쇼츠 발행 ✓ 마지막 회차 ${lastStart.at} → ${after[after.length - 1].kind.trim()}`);
         }
