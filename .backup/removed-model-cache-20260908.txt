@@ -1,0 +1,7 @@
+# 2026-09-08 정리한 모델 캐시 (HF 캐시라 다음 사용 시 자동 재다운로드)
+models--baidu--Unlimited-OCR  6.2G
+models--stabilityai--sd-vae-ft-mse  319M
+models--Systran--faster-whisper-base.en  141M
+models--myshell-ai--MeloTTS-Korean  198M
+models--facebook--musicgen-small  2.2G
+models--hexgrad--Kokoro-82M  315M
