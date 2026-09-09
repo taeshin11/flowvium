@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-09-08T13:00:21.775Z",
+  "generatedAt": "2026-09-09T09:01:35.447Z",
   "universe": "US",
-  "scanned": 284,
-  "count": 14,
-  "strongCount": 0,
-  "watchCount": 14,
+  "scanned": 298,
+  "count": 11,
+  "strongCount": 1,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "GOLD",
+      "name": "Gold.com, Inc.",
+      "tier": "strong",
+      "score": 37,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 9.2,
+      "runup5dPct": 5.6,
+      "medDollarVolUsd": 18107025,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "SPWH",
       "name": "Sportsman's Warehouse Holdings,",
@@ -14,13 +32,30 @@
       "score": 36,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 4.6× 급증(가격 평탄)",
+        "거래량 추세 3.0× 상승(지속 매집)",
+        "거래량 4.7× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 10.2,
-      "runup5dPct": 12.1,
-      "medDollarVolUsd": 410144,
+      "runup20dPct": 7.1,
+      "runup5dPct": 7.1,
+      "medDollarVolUsd": 395766,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "DAKT",
+      "name": "Daktronics, Inc.",
+      "tier": "watch",
+      "score": 31,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -7.6,
+      "runup5dPct": 0.7,
+      "medDollarVolUsd": 9217179,
       "smartAccum": false,
       "official": null
     },
@@ -35,127 +70,25 @@
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -4.2,
-      "runup5dPct": 6.7,
+      "runup20dPct": 0.1,
+      "runup5dPct": 6.6,
       "medDollarVolUsd": 4770718,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "GLP",
-      "name": "Global Partners LP",
+      "ticker": "WDH",
+      "name": "Waterdrop Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 7개(저가 매수받침)"
+        "거래량 추세 7.4× 상승(지속 매집)",
+        "거래량 12.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": 5,
-      "runup5dPct": 4.4,
-      "medDollarVolUsd": 3587760,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EHI",
-      "name": "Western Asset Global High Incom",
-      "tier": "watch",
-      "score": 25,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -2.7,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 561330,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EVH",
-      "name": "Evolent Health, Inc",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.4,
-      "runup5dPct": -6.1,
-      "medDollarVolUsd": 12194490,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ANGX",
-      "name": "Angel Studios, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.8,
-      "runup5dPct": 5.3,
-      "medDollarVolUsd": 4645013,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "INVA",
-      "name": "Innoviva, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 4,
-      "runup5dPct": 1.7,
-      "medDollarVolUsd": 14375429,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GOLD",
-      "name": "Gold.com, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 6,
-      "runup5dPct": 1.3,
-      "medDollarVolUsd": 17801958,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KELYA",
-      "name": "Kelly Services, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 11,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 4841856,
+      "runup20dPct": 7,
+      "runup5dPct": 8.6,
+      "medDollarVolUsd": 177300,
       "smartAccum": false,
       "official": null
     },
@@ -170,26 +103,26 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -8.3,
-      "runup5dPct": -1.2,
+      "runup20dPct": -8.7,
+      "runup5dPct": 1.2,
       "medDollarVolUsd": 2201262,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "IMOS",
-      "name": "ChipMOS TECHNOLOGIES INC.",
+      "ticker": "RYZ",
+      "name": "Ryerson Holding Corporation",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 9.6,
-      "runup5dPct": 3.9,
-      "medDollarVolUsd": 6254165,
+      "runup20dPct": -7.2,
+      "runup5dPct": 3.7,
+      "medDollarVolUsd": 11518302,
       "smartAccum": false,
       "official": null
     },
@@ -200,12 +133,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.6× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)"
+        "거래량 추세 3.9× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": -3.3,
-      "runup5dPct": 3.7,
-      "medDollarVolUsd": 1865280,
+      "runup20dPct": -5.5,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 1876524,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GNK",
+      "name": "Genco Shipping & Trading Limite",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 7,
+      "runup5dPct": 2.2,
+      "medDollarVolUsd": 8687748,
       "smartAccum": false,
       "official": null
     },
@@ -216,29 +165,29 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 1.9,
-      "runup5dPct": 12.2,
-      "medDollarVolUsd": 4939932,
+      "runup20dPct": -0.4,
+      "runup5dPct": 4.6,
+      "medDollarVolUsd": 4995381,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "GLAS",
-      "name": "Glass House Brands Inc. Subordi",
+      "ticker": "CEVA",
+      "name": "CEVA, Inc.",
       "tier": "watch",
-      "score": 18,
+      "score": 20,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)"
       ],
-      "runup20dPct": -12.3,
-      "runup5dPct": -10.1,
-      "medDollarVolUsd": 3450609,
+      "runup20dPct": -11.5,
+      "runup5dPct": 4.4,
+      "medDollarVolUsd": 28439969,
       "smartAccum": false,
       "official": null
     }
