@@ -147,6 +147,17 @@ const checks = [
     dimensions: ['FEATURES/METRICS 수치 주장 ↔ 코드 상수(UNIVERSE_COUNT/ETF/언어)'],
   },
   {
+    // 2026-09-08: 보고서를 올린 뒤 실제 페이지를 아무도 안 봤다. 로컬 생성이 성공해도
+    //   배포본이 옛날 것이거나 값이 깨져 나갈 수 있다 — 사용자가 먼저 보는 일이 반복됐다.
+    //   라이브/로컬 generatedAt 대조 + 포트폴리오 티커가 글자로 그려졌는지 + 페이지 에러를 본다.
+    //   critical 이 아닌 이유: 배포 직후엔 전파 지연으로 잠깐 어긋날 수 있어 push 를 막을 근거는 못 된다.
+    name: 'check-report-page',
+    script: 'scripts/check-report-page.mjs',
+    desc: '발행된 보고서 페이지 눈검증 (stale 배포·깨진 값)',
+    critical: false,
+    dimensions: ['발행 보고서 페이지 실물 (generatedAt 일치·값 렌더링)'],
+  },
+  {
     name: 'check-cron-cost',
     script: 'scripts/check-cron-cost.mjs',
     desc: 'Vercel cron 비용 폭증',

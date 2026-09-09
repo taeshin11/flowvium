@@ -37,6 +37,11 @@ const EXEMPT = {
   'src/lib/llm-local.ts': '한자 bleed 가드 라이브러리 자체(hasChineseBleed 단일출처)',
   'scripts/check-stall.mjs': 'model-id health probe(/v1/models) — 산문 생성 아님',
   'scripts/pm2-watchdog.mjs': 'health probe — 산문 생성 아님',
+  // 2026-09-02 신설, 2026-09-09 등록. /v1/models 200 만 보고 "정상" 이라 찍던 게이트가
+  //   3일 정지를 놓쳐서, 생성 경로까지 실제로 찔러 보도록 만든 프로브다.
+  //   max_tokens: 1 로 'ping' 을 보내 choices 가 오는지만 본다 — 그 응답은 버린다.
+  //   사용자에게 산문이 나가는 표면이 아니라 가드를 태울 대상이 아니다.
+  'scripts/lib/llm-health.mjs': '생성 경로 health probe(ping, max_tokens 1) — 응답 폐기, 산문 아님',
   // 2026-08-21 신설. LLM 을 호출하지도 산문을 만들지도 않는다 — 요청 동시성만 제한한다.
   //   주석에 서버 URL(:8000)과 mlx 플래그를 적어 둔 탓에 LLM_RE 에 매칭됐을 뿐이다.
   'scripts/lib/llm-gate.mjs': '요청 동시성 세마포어 — LLM 호출 0건, 산문 생성 아님',

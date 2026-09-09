@@ -37,6 +37,20 @@ const STRUCTURAL_NULLS = {
   //   원시 뉴스 피드 행은 분석 전이라 비는 게 정상이고, 한 테이블에 원시+분석이 섞여 85% 가 된다.
   'news_archive.signal_type': '분석 필드 — company-change 행만 채움(0%null), 원시 피드 행은 분석 전이라 NULL 이 정상',
   'news_archive.direction': '분석 필드 — company-change 행만 채움(0%null), 원시 피드 행은 분석 전이라 NULL 이 정상',
+  // 2026-09-09 실측(소스별 NULL 비율). signal_type/direction 과 **같은 구조**임을 확인했다 —
+  //   분석 행(news-cascade n=2274 · company-change n=2061 · supply-chain n=163)은 0%null,
+  //   원시 RSS 피드 27개 소스(Yahoo Japan 11353 · 연합뉴스 사회 5674 · Seeking Alpha 4975 …)는 100%null.
+  //   한 테이블에 원시+분석이 섞여 테이블 전체로는 91% 가 된다. 피드 행은 분석 전이라 비는 게 정상이다.
+  'news_archive.sentiment': '분석 필드 — 분석 행(cascade/company-change/supply-chain) 0%null, 원시 피드 100%null(실측 2026-09-09)',
+  'news_archive.importance': '분석 필드 — 분석 행 0%null, 원시 피드 100%null(실측 2026-09-09)',
+  'news_archive.report_id': '보고서에 실린 행만 채움 — 분석 행 0%null, 원시 피드 100%null(실측 2026-09-09)',
+  'news_archive.cascades_json': '캐스케이드 분석 산출물 — news-cascade/company-change 0%null, 그 외 100%null(실측 2026-09-09)',
+  // ⚠ ticker 는 표 전체 92%null 이 구조적(원시 피드는 종목 매핑 대상이 아님)이라 여기 둔다.
+  //   다만 **분석 행 안에 별개의 실결함이 있다**: news-cascade 2274 행 중 443 행(19%)이
+  //   ticker NULL 이면서 tickers_json 이 [] 다 — "Broadcom sees bullish views…",
+  //   "Yum! Brands in exclusive talks…" 처럼 회사명이 헤드라인에 있는데 추출이 0개를 냈다.
+  //   원시 피드의 구조적 NULL 에 가려 안 보이던 갭이다. 별건으로 추적한다(추출기 fix 대상).
+  'news_archive.ticker': '원시 피드는 종목 매핑 대상 아님(100%null) · company-change/supply-chain 0%null. ⚠ news-cascade 443행 추출 실패는 별건 추적',
   'news_archive.pub_date': 'company-change 행은 기사 아님→날짜 N/A (news-cascade 행은 pub_date 100%)',
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',
   'asset_flow_archive.return_1d': 'capital-flows 가 1w/4w/13w 제공, 1d 미제공(소스 부재)',
@@ -661,6 +675,10 @@ try {
       FROM hallucination_history
       WHERE datetime(detected_at) >= datetime('now','-7 days') AND ticker IS NOT NULL
         AND defect_type NOT LIKE 'harness_%' AND defect_type NOT LIKE '%_sanitized'
+        -- 2026-09-09: 코드로 고친 뒤 발생분만 센다. 고쳐도 지난 7일 기록 때문에 계속 막히면
+        --   게이트를 우회하게 되고, 한 번 우회하면 그 게이트는 없는 것과 같아진다.
+        --   과거 기록은 지우지 않는다 — 추세는 위 byType 목록에 그대로 남는다.
+        AND detected_at > COALESCE((SELECT fixed_at FROM defect_fixes f WHERE f.defect_type = hallucination_history.defect_type), '')
       GROUP BY ticker, defect_type HAVING repeat_count >= 3 ORDER BY repeat_count DESC LIMIT 10
     `).all();
     const critical = repeat.filter(r => r.repeat_count >= 5);

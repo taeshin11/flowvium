@@ -122,9 +122,28 @@ const HAN_TO_KR = {
   '美': '미국', '中': '중국', '日': '일본', '韓': '한국', '北': '북한', '獨': '독일', '佛': '프랑스', '英': '영국',
   '露': '러시아', '歐': '유럽', '亞': '아시아', '臺': '대만', '台': '대만', '對': '대', '元': '원', '圓': '엔', '兌': '/', '兑': '/',
 };
+/**
+ * 변동폭 과장 교정 — "2.3% 급등" 처럼 작은 변동에 급등/급락/폭등/폭락을 쓰면 사실오류다.
+ *
+ * 2026-09-09: verify-report(c2)가 이걸 **결함으로 잡고 있었는데** 생성 쪽에 같은 규칙이 없어
+ *   보고서마다 다시 났다. 검출만 있고 예방이 없으면 게이트는 push 를 막을 뿐 고쳐지지 않는다.
+ *   임계값을 여기서만 정의하고 verify-report 가 이 값을 읽어 간다 — 두 곳에 적으면 갈라진다.
+ *
+ * 숫자가 안 붙은 "급등했다" 는 손대지 않는다. 몇 %인지 모르면 과장인지 판단할 근거가 없고,
+ *   근거 없이 표현을 낮추는 것은 교정이 아니라 또 다른 왜곡이다.
+ */
+export const MAGNITUDE_MIN_PCT = 3;
+const SOFTER = { '급등': '상승', '폭등': '상승', '급락': '하락', '폭락': '하락' };
+export function softenMagnitude(s) {
+  if (typeof s !== 'string' || !s) return s;
+  return s.replace(/([\d.]+)\s*%\s*(급등|급락|폭등|폭락)/g,
+    (m, num, word) => (Math.abs(parseFloat(num)) < MAGNITUDE_MIN_PCT ? m.replace(word, SOFTER[word]) : m));
+}
+
 export function sanitizeText(s, locale) {
   if (typeof s !== 'string' || !s) return s;
   let t = s;
+  t = softenMagnitude(t);                                             // 변동폭 과장(2.3% 급등) — 생성 단계에서 막는다
   t = t.replace(/-{2,}(\d)/g, '-$1');                                  // "매출 --4.9%" → "-4.9%" (이중부호)
   t = t.replace(/\+{2,}(\d)/g, '+$1');                                 // "++3.1%" → "+3.1%"
   t = t.replace(/(^|[,;·|]\s*)(원|달러)\s+(?=[+\-]?\d+\.?\d*\s*%\s*YoY)/g, '$1매출 '); // orphan 통화단위 → 매출(YoY 문맥)

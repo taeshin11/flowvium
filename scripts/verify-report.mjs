@@ -4,6 +4,7 @@
 // 2026-05-30 Karpathy closed loop: 결함을 defects 배열로 모아 caller 가 DB 적재 가능.
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
 import fs from 'node:fs';
+import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
 import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex } from './lib/flow-contradiction.mjs';
 import { isMovementClaim } from './lib/flow-move-claim.mjs';
 import { detectIndexLevelMismatch } from './lib/index-level-check.mjs';
@@ -417,9 +418,9 @@ export async function verifyReport(file, { silent = false } = {}) {
   const MAG = /([\d.]+)\s*%\s*(급락|급등|폭락|폭등)/g;
   const full = JSON.stringify(r);
   for (const m of full.matchAll(MAG)) {
-    if (Math.abs(Number(m[1])) < 3) {
+    if (Math.abs(Number(m[1])) < MAGNITUDE_MIN_PCT) {
       magMis++;
-      log(`  ❌ 변동폭 과장 "${m[0]}" (${m[1]}%는 급락/급등 아님 — 3%↑만)`);
+      log(`  ❌ 변동폭 과장 "${m[0]}" (${m[1]}%는 급락/급등 아님 — ${MAGNITUDE_MIN_PCT}%↑만)`);
       defects.push({ ticker: 'MACRO', defect_type: 'magnitude_overstate', llm_value: m[0], correct_value: `${m[1]}%는 소폭/하락-상승 (급락·급등은 3%↑)`, severity: 'medium' });
     }
   }
