@@ -27,6 +27,20 @@ const SLOWDOWN = /(순매수|순매도|유입|유출)[^.]{0,6}(둔화|감소|축
 // 대조·전환 어미만 본다.
 const PAST_SHIFT = /(있었|이었|였)(으나|지만|는데)|했(지만|으나|는데)|(반면|그러나|하지만)[,\s]/;
 
+/**
+ * 실측 KR 수급 문구를 보고서에서 꺼낸다 — 검출기와 교정기가 **같은 입력**을 보게 한다.
+ *
+ * 2026-09-10: 검출기는 regionStances.korea.thesis 를, 교정기는 flowEvidence 의
+ *   kr_smart_flow claim 을 봤다. 자정 회차엔 그 claim 이 없어 교정기가 아예 돌지 않았고
+ *   ("_krFlowDirFix": null) 모순 문장이 그대로 발간됐다. 판단만 통일해선 부족하다 —
+ *   **입력도 같아야** 갈라지지 않는다. claim 이 있으면 그걸, 없으면 thesis 를 쓴다.
+ */
+export function measuredClaimText(report, claimText = null) {
+  const c = String(claimText ?? '');
+  if (measuredDirection(c)) return c;
+  return String(report?.regionStances?.korea?.thesis ?? '');
+}
+
 /** 실측 문구에서 방향 추출. 'buy' | 'sell' | null. */
 export function measuredDirection(claimText) {
   const s = String(claimText ?? '');
@@ -35,13 +49,37 @@ export function measuredDirection(claimText) {
   return null;
 }
 
-/** 문장 하나가 실측 방향과 반대되는 주장인가. */
-function sentenceContradicts(sentence, measuredDir) {
+// 실측 주체(외국인)의 방향을 문장이 명시적으로 인정하는가 — "외국인 자금 이탈에도 불구하고".
+const ACK_SELL = /외국인[^.]{0,16}(순매도|매도세|이탈|유출)/;
+const ACK_BUY = /외국인[^.]{0,16}(순매수|매수세|유입)/;
+// 매수/매도 주장의 주체가 외국인이 아닌가 — 기관·개인·연기금은 별개 주체다.
+const OTHER_SUBJECT = /(기관|개인|연기금|국내)[^.]{0,10}(순유입|자금\s*유입|유입세|매수세|순매수|매도세|순매도|유출)/;
+
+/**
+ * 문장 하나가 실측 방향과 반대되는 주장인가.
+ *
+ * 검출기(verify-report)와 교정기(narrative-fix)가 **이 함수 하나만** 봐야 한다.
+ *   2026-09-10: 주체 인식을 여기 넣었는데 교정기는 여전히 원시 정규식을 쓰고 있어,
+ *   교정기가 검출기보다 공격적이 됐다 — 참인 문장("외국인 이탈에도 기관·개인 매수")까지 지웠다.
+ *   판단이 두 곳에 있으면 반드시 갈라진다.
+ */
+export function sentenceContradicts(sentence, measuredDir) {
   const s = String(sentence ?? '');
   if (!s) return false;
   if (SLOWDOWN.test(s)) return false;      // "순매수 둔화" — 매수 주장이 아니다
   if (PAST_SHIFT.test(s)) return false;    // "유입이 있었으나 지금은 이탈" — 전환 서술
-  return new RegExp(measuredDir === 'sell' ? BUY_CLAIM : SELL_CLAIM).test(s);
+  const claimRe = new RegExp(measuredDir === 'sell' ? BUY_CLAIM : SELL_CLAIM);
+  if (!claimRe.test(s)) return false;
+  // 2026-09-10: 외국인이 팔고 기관·개인이 사는 것은 **동시에 성립한다**. 문장이 실측 방향을
+  //   명시적으로 인정하면서 다른 주체의 반대 매매를 말하는 것은 모순이 아니다.
+  //   느슨해지는 쪽 실수가 더 나쁘므로 **인정이 있고 + 주체가 외국인이 아닐 때**만 뺀다.
+  //   "외국인 순매도에도 불구하고 외국인 순매수" 는 주체가 같으므로 그대로 잡힌다.
+  const ack = measuredDir === 'sell' ? ACK_SELL.test(s) : ACK_BUY.test(s);
+  const claimSubjectIsForeign = new RegExp(`외국인[^.]{0,16}(${(measuredDir === 'sell'
+    ? '순유입|자금\\s*유입|유입\\s*확대|유입세|유입[을를]?\\s*(가속|확대|견인)|매수세|순매수'
+    : '순유출|자금\\s*유출|유출\\s*확대|유출세|매도세|순매도')})`).test(s);
+  if (ack && !claimSubjectIsForeign && OTHER_SUBJECT.test(s)) return false;
+  return true;
 }
 
 /**
@@ -52,9 +90,22 @@ function sentenceContradicts(sentence, measuredDir) {
  * 게이트가 약해지는 방향의 버그라 반드시 문장별로 갈라 본다.
  */
 export function isContradiction(text, measuredDir) {
+  return contradictingSentence(text, measuredDir) != null;
+}
+
+/**
+ * 모순되는 **문장 자체**를 돌려준다. 없으면 null.
+ *
+ * 2026-09-10: 종전 검출기는 결함을 잡은 뒤 메시지에 `text.match(regex)[0]` 를 썼다.
+ *   그건 텍스트 **전체의 첫 매치**라 실제로 걸린 문장이 아니었다. 자정 회차에서
+ *   진짜 결함은 "…외국인 자금 유입을 견인했다" 였는데 메시지는 앞 문장의
+ *   "기관과 개인 매수세" 를 인용했고, 그걸 보고 오탐이라 판단할 뻔했다.
+ *   틀린 문장을 가리키는 오류 메시지는 없는 것보다 나쁘다.
+ */
+export function contradictingSentence(text, measuredDir) {
   const s = String(text ?? '');
-  if (!s || (measuredDir !== 'buy' && measuredDir !== 'sell')) return false;
-  return splitSentences(s).some((sent) => sentenceContradicts(sent, measuredDir));
+  if (!s || (measuredDir !== 'buy' && measuredDir !== 'sell')) return null;
+  return splitSentences(s).find((sent) => sentenceContradicts(sent, measuredDir)) ?? null;
 }
 
 /** 문장 분리. 한국어 마침표/줄바꿈/파이프 구분자 기준. */

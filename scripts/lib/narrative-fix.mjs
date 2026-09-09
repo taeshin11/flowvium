@@ -1,4 +1,4 @@
-import { contradictionRegex as flowContradictionRegex } from './flow-contradiction.mjs';
+import { contradictionRegex as flowContradictionRegex, sentenceContradicts, isContradiction as flowIsContradiction, measuredClaimText } from './flow-contradiction.mjs';
 // scripts/lib/narrative-fix.mjs
 // 내러티브 결정적 corrector (단일 source of truth — 생성기 + patch-narrative 공용).
 //   "제일 정확한 방법"(2026-06-16 사용자): 지수/종목 등락%를 *실제 일간등락과 대조*해 환각만 제거하고
@@ -303,7 +303,10 @@ export function correctNarrative(report, opts = {}) {
 // "순매수로 하방 압력" 류 비문 생성). 제거로 필드가 공동화(<40자)되면 절 치환(실측 방향어)으로 폴백.
 // 소비처: generate-report-local(enforceFlowNarrativeContract) + patch-narrative(발간본 소급).
 export function fixKrFlowContradiction(report, krClaimText) {
-  const claim = String(krClaimText ?? '');
+  // 2026-09-10: claim 이 없으면 검출기가 쓰는 regionStances.korea.thesis 로 떨어진다.
+  //   자정 회차엔 kr_smart_flow claim 이 없어 교정기가 통째로 건너뛰었고, 검출기만 잡아
+  //   모순 문장이 그대로 나갔다. 검출과 교정은 판단뿐 아니라 **입력도 같아야** 한다.
+  const claim = measuredClaimText(report, krClaimText);
   if (!claim) return { nFix: 0, log: [] };
   const measuredBuy = /순매수/.test(claim);
   const measuredSell = !measuredBuy && /순매도/.test(claim);
@@ -320,19 +323,24 @@ export function fixKrFlowContradiction(report, krClaimText) {
   // 문장 제거 후 문두 고아 접속사 정리 — 07-05 실증: 선행문 제거로 "반면, ..." 시작 비문.
   const stripLead = (s) => s.replace(/^(반면|하지만|그러나|한편|다만|또한|이에 따라)[,\s]+/, '');
   let nFix = 0; const log = [];
+  const dir = measuredBuy ? 'buy' : 'sell';
+  // 2026-09-10: 종전엔 원시 정규식(contraRe)으로 문장을 판정해 **검출기보다 공격적**이었다.
+  //   주체 인식이 검출기에만 들어가자 교정기가 참인 문장("외국인 이탈에도 기관·개인 매수")까지 지웠다.
+  //   판단은 sentenceContradicts 하나만 쓴다 — 두 곳에 두면 반드시 갈라진다.
+  const bad = (sent) => sentenceContradicts(sent, dir);
   const fixField = (text) => {
-    if (typeof text !== 'string' || !contraRe.test(text)) return text;
+    if (typeof text !== 'string' || !flowIsContradiction(text, dir)) return text;
     // ⓪ 초단문 필드(watch 류, ≤40자) — 통째로 실측 방향의 관찰 문구로 교체(절 치환은 비문 생성).
     if (text.trim().length <= 40) return `외국인·기관 ${toDir} 지속 여부`;
     // ① 모순 문장 제거 (마침표 경계). " | 꼬리" 구조(macroAnalysis) 보존.
     const [body, ...tail] = text.split(' | ');
     const sents = body.split(/(?<=[.!?])\s+/);
-    const kept = sents.filter((s) => !contraRe.test(s));
+    const kept = sents.filter((s) => !bad(s));
     const removedOk = kept.length < sents.length && stripLead(kept.join(' ').trim()).length >= 40;
     if (removedOk) return [stripLead(kept.join(' ').trim()), ...tail].join(' | ');
     // ② 폴백: 모순 *문장*을 실측 합성문장으로 교체 — 07-05 실증: 절 치환("외국인 순매수되며 …하락세가
     //   공포 심화")은 잔여 논리꼬리가 오염된 비문을 만들어 라이브 슬라이드에 3시간 노출됐음.
-    const replaced = sents.map((s) => contraRe.test(s) ? groundedSent : s);
+    const replaced = sents.map((s) => bad(s) ? groundedSent : s);
     return [stripLead(replaced.join(' ').trim()), ...tail].join(' | ');
   };
   for (const k of ['thesis', 'macroAnalysis']) {

@@ -5,7 +5,7 @@
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
 import fs from 'node:fs';
 import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
-import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex } from './lib/flow-contradiction.mjs';
+import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex, contradictingSentence } from './lib/flow-contradiction.mjs';
 import { isMovementClaim } from './lib/flow-move-claim.mjs';
 import { detectIndexLevelMismatch } from './lib/index-level-check.mjs';
 
@@ -968,10 +968,14 @@ export async function verifyReport(file, { silent = false } = {}) {
     const buyClaim = krSell && isFlowContradiction(narrText, 'sell');
     if (krSell && buyClaim) {
       const inDir = krThesis.match(/(둔화|순매도|감소|이탈|약화|유출)/)?.[0];
-      const claim = narrText.match(flowContradictionRegex('sell'))?.[0];
+      // 2026-09-10: 종전엔 텍스트 전체의 첫 매치를 인용해 **엉뚱한 문장**을 가리켰다.
+      //   실제로 걸린 문장을 그대로 보여준다 — 안 그러면 진짜 결함을 오탐으로 오판한다.
+      const sentence = contradictingSentence(narrText, 'sell') ?? '';
+      const claim = sentence.match(flowContradictionRegex('sell'))?.[0] ?? sentence.slice(0, 40);
       defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_direction_inversion',
         llm_value: `내러티브 "${claim}" vs 입력 "외국인 ${inDir}"`, correct_value: 'regionStances.korea 수급 방향과 일치', severity: 'high' });
-      log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "${claim}"`); nFound++;
+      log(`  ❌ 수급방향역전: 입력 "${inDir}" → 내러티브 "${claim}"`);
+      log(`     문장: ${sentence.slice(0, 100)}`); nFound++;
     }
 
     // (e) 라틴 bleed — 한글 토큰 안에 낀 소문자 라틴 (예: "스que이즈"=스퀴즈). 대문자(AI/NVDA)·약어 제외.

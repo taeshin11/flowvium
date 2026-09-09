@@ -75,5 +75,60 @@ for (const f of ['scripts/verify-report.mjs', 'scripts/lib/narrative-fix.mjs']) 
     : bad(`${f}: 패턴을 자체 보유 — 다시 갈라진다`);
 }
 
+// ── 2026-09-10: 주체가 다르면 모순이 아니다 ──────────────────────────────────
+//   자정 회차가 이렇게 썼다: "외국인 자금 이탈(-5,441.1억 원)에도 불구하고
+//   국내 기관과 개인 매수세가 주가를 떠받쳤다". 실측은 "외국인 5441억 순매도" 였고
+//   검출기가 수급방향역전으로 찍어 발간 게이트를 세웠다. 그런데 외국인이 팔고
+//   기관·개인이 사는 것은 동시에 성립하는 사실이고, 문장은 외국인 매도를 명시적으로
+//   인정하고 있다. 오탐이다. 오탐이 쌓이면 게이트를 끄게 된다.
+//   다만 느슨해지는 쪽 실수가 더 나쁘므로 "외국인 매도를 인정 + 다른 주체의 매수" 만 뺀다.
+F.isContradiction('외국인 자금 이탈(-5,441.1억 원)에도 불구하고 국내 기관과 개인 매수세가 주가를 떠받쳤다.', 'sell') === false
+  ? ok('외국인 매도 인정 + 기관·개인 매수 = 모순 아님') : bad('오탐: 주체가 다른 매수를 역전으로 본다');
+F.isContradiction('원화 강세가 외국인 자금 유입을 가속했다.', 'sell') === true
+  ? ok('외국인 자신의 방향 역전은 그대로 잡는다') : bad('게이트가 느슨해졌다 — 진짜 역전을 놓친다');
+F.isContradiction('외국인 순매도에도 불구하고 외국인 순매수가 이어졌다.', 'sell') === true
+  ? ok('인정 문구가 있어도 주체가 외국인이면 잡는다') : bad('게이트가 느슨해졌다 — 같은 주체 역전을 놓친다');
+F.isContradiction('국내 기관 매수세가 지수를 끌어올렸다.', 'sell') === true
+  ? ok('외국인 매도 인정이 없으면 기관 매수도 잡는다') : bad('게이트가 느슨해졌다 — 인정 없는 주장을 흘린다');
+
+// ── 불변식: 검출기와 교정기가 **같은 문장**을 문제 삼는다 ──────────────────────
+//   2026-09-10: 주체 인식을 검출기에만 넣었더니 교정기가 더 공격적이 되어
+//   참인 문장("외국인 이탈에도 기관·개인 매수")까지 지웠다. 판단이 두 곳에 있으면 갈라진다.
+{
+  const N = await import('./narrative-fix.mjs');
+  const KR = '외국인 5441억 순매도 지속';
+  const cases = [
+    ['외국인 자금 이탈에도 불구하고 국내 기관과 개인 매수세가 주가를 떠받쳤다.', false],
+    ['원화 강세가 외국인 자금 유입을 가속했다.', true],
+    ['국내 기관 매수세가 지수를 끌어올렸다.', true],
+  ];
+  for (const [sent, shouldFix] of cases) {
+    const rep = { thesis: `${sent} ${'문장을 채운다.'.repeat(4)}`, marketNarrative: {} };
+    const before = rep.thesis;
+    N.fixKrFlowContradiction(rep, KR);
+    const changed = rep.thesis !== before;
+    changed === shouldFix
+      ? ok(`검출·교정 일치: ${sent.slice(0, 22)}… → ${shouldFix ? '고침' : '보존'}`)
+      : bad(`검출·교정 갈라짐: "${sent.slice(0, 30)}" 검출=${shouldFix} 교정=${changed}`);
+  }
+}
+
+// ── 불변식: 검출기와 교정기가 **같은 입력**을 본다 ────────────────────────────
+//   2026-09-10 자정 회차: flowEvidence 에 kr_smart_flow claim 이 없어 교정기가 통째로
+//   건너뛰었고("_krFlowDirFix": null), 검출기만 잡아 모순 문장이 그대로 발간됐다.
+//   claim 이 없으면 검출기가 쓰는 regionStances.korea.thesis 로 떨어져야 한다.
+{
+  const N = await import('./narrative-fix.mjs');
+  const rep = {
+    regionStances: { korea: { thesis: '외국인 5441억 순매도에도 EWY 4주 강세 지속.' } },
+    marketNarrative: { story: `원화 강세가 외국인 자금 유입을 가속했다. ${'뒤 문장을 채운다.'.repeat(4)}` },
+  };
+  const r = N.fixKrFlowContradiction(rep, null);
+  r.nFix > 0
+    ? ok('claim 이 없어도 thesis 로 떨어져 교정한다')
+    : bad('claim 이 없으면 교정기가 통째로 건너뛴다 — 자정 회차 재발');
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);
+

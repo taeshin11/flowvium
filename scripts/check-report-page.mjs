@@ -29,17 +29,25 @@ const bad = (m) => { console.log(`  ✗ ${m}`); fail += 1; };
 // 1) 라이브가 최신 보고서인가
 const { openDb } = await import('./lib/db.mjs');
 const db = openDb();
-const local = db.prepare('SELECT id, generated_at, full_json FROM reports ORDER BY generated_at DESC LIMIT 1').get();
+// 2026-09-09 정정: 종전에는 "로컬 최신 = 라이브" 로 비교해 **매일 밤 거짓 경보**를 냈다.
+//   자정 회차는 22:30 에 시작해 23:41 에 끝나지만 API 의 cacheKey 는 현재 시각으로 세션을 정한다.
+//   21:30 이후는 evening 이므로 23:41~24:00 사이엔 자정 회차가 아직 안 나가는 것이 정상이다.
+//   지금 떠 있어야 할 회차와 비교해야 진짜 배포 실패만 걸린다.
+const { expectedReportId } = await import('./lib/kst-session.mjs');
+const wantId = expectedReportId(new Date(), 'ko');
+const local = db.prepare('SELECT id, generated_at, full_json FROM reports WHERE id = ?').get(wantId)
+  ?? db.prepare('SELECT id, generated_at, full_json FROM reports ORDER BY generated_at DESC LIMIT 1').get();
 db.close();
 if (!local) { console.error('로컬에 보고서가 없다'); process.exit(1); }
+if (local.id !== wantId) bad(`지금 떠야 할 회차(${wantId})가 로컬에 없다 — ${local.id} 로 대신 본다`);
 
 let live = {};
 try {
   live = await (await fetch(`${SITE}/api/investment-strategy?locale=ko`, { signal: AbortSignal.timeout(25000) })).json();
 } catch (e) { bad(`라이브 API 못 읽음 — ${String(e.message).slice(0, 60)}`); }
 const sameReport = String(live.generatedAt ?? '').slice(0, 19) === String(local.generated_at).slice(0, 19);
-sameReport ? ok(`라이브가 최신 보고서다 (${local.id})`)
-  : bad(`라이브가 옛 보고서다 — 로컬 ${String(local.generated_at).slice(0, 19)} vs 라이브 ${String(live.generatedAt).slice(0, 19)}`);
+sameReport ? ok(`라이브가 지금 회차를 서빙한다 (${local.id})`)
+  : bad(`라이브가 다른 회차다 — ${wantId} 는 ${String(local.generated_at).slice(0, 19)} 인데 라이브는 ${String(live.generatedAt).slice(0, 19)}`);
 
 // 2) 화면에 실제로 그려지는가
 const wanted = (live.portfolio ?? []).map((x) => x.ticker).filter(Boolean).slice(0, 4);
@@ -53,10 +61,19 @@ try {
   await page.waitForTimeout(4000);
   const txt = (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ');
   txt.length > 3000 ? ok(`본문 ${txt.length}자`) : bad(`본문이 ${txt.length}자뿐 — 안 그려졌다`);
-  const missing = wanted.filter((t) => !txt.includes(t));
-  missing.length === 0
-    ? ok(`포트폴리오 ${wanted.length}종목이 화면에 있다 (${wanted.join(' ')})`)
-    : bad(`화면에 없는 종목: ${missing.join(' ')} — 데이터는 있는데 안 그린다`);
+  // 2026-09-09 정정: 장중(noon/afternoon/evening) 회차는 **회원 전용**이라 비회원 브라우저에는
+  //   포트폴리오가 아예 안 그려진다. 그걸 "데이터는 있는데 안 그린다" 로 찍어 매일 거짓 경보를 냈다.
+  //   유료벽을 결함으로 세지 않되, **조용히 건너뛰지도 않는다** — 못 본 구간은 못 봤다고 말한다.
+  const PAYWALL = ['회원 전용', '무료로 보기', '이메일만 등록하면'];
+  const gated = PAYWALL.some((x) => txt.includes(x));
+  if (gated) {
+    ok(`유료벽 정상 노출 — 포트폴리오는 회원 전용이라 이 회차(${wantId.split(':')[1]})에선 확인 못 함`);
+  } else {
+    const missing = wanted.filter((t) => !txt.includes(t));
+    missing.length === 0
+      ? ok(`포트폴리오 ${wanted.length}종목이 화면에 있다 (${wanted.join(' ')})`)
+      : bad(`화면에 없는 종목: ${missing.join(' ')} — 데이터는 있는데 안 그린다`);
+  }
   const broken = ['undefined', 'NaN', '[object Object]', 'null원', 'Error:'].filter((x) => txt.includes(x));
   broken.length === 0 ? ok('깨진 값 없음') : bad(`깨진 값: ${broken.join(', ')}`);
   errs.length === 0 ? ok('페이지 오류 없음') : bad(`페이지 오류: ${errs.slice(0, 2).join(' | ')}`);

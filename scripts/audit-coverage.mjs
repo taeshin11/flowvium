@@ -443,8 +443,8 @@ try {
            COUNT(DISTINCT s.generated_at) sells
     FROM recommendations r
     JOIN sell_recommendations s ON r.ticker = s.ticker
-    WHERE r.datetime(generated_at) >= datetime('now','-7 days')
-      AND s.datetime(generated_at) >= datetime('now','-7 days')
+    WHERE datetime(r.generated_at) >= datetime('now','-7 days')
+      AND datetime(s.generated_at) >= datetime('now','-7 days')
       AND (s.sell_type LIKE '%margin%' OR s.sell_type LIKE '%fund%' OR s.rationale LIKE '%악화%')
     GROUP BY r.ticker
     HAVING buys >= 1 AND sells >= 1

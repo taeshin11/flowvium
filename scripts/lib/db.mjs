@@ -1512,7 +1512,7 @@ export function getModelDefectRates(days = 30) {
     const defects = db.prepare(`
       SELECT COALESCE(r.model, 'unknown') model, COUNT(*) defects
       FROM hallucination_history h JOIN reports r ON h.report_id = r.id
-      WHERE h.datetime(detected_at) >= datetime('now', '-' || ? || ' days') AND h.defect_type NOT LIKE 'harness_%'
+      WHERE datetime(h.detected_at) >= datetime('now', '-' || ? || ' days') AND h.defect_type NOT LIKE 'harness_%'
       GROUP BY r.model
     `).all(days);
     const dMap = new Map(defects.map((d) => [d.model, d.defects]));
@@ -1823,7 +1823,7 @@ export function getEntryFeedbackStats() {
     FROM recommendations r
     JOIN recommendation_outcomes o ON o.recommendation_id = r.id
     WHERE r.action = 'buy'
-      AND o.datetime(evaluated_at) >= datetime('now', '-30 days')
+      AND datetime(o.evaluated_at) >= datetime('now', '-30 days')
     GROUP BY r.ticker
     HAVING total >= 3
     ORDER BY ne DESC
