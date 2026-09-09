@@ -20,12 +20,22 @@ const YES = process.argv.includes('--yes');
 const HOURS = Number((process.argv.find((a) => a.startsWith('--hours=')) ?? '--hours=48').split('=')[1]);
 
 const db = openDb();
-const rows = db.prepare(
+let rows = db.prepare(
   `SELECT video_id, headline FROM shorts_published
     WHERE retracted_at IS NOT NULL AND video_id IS NOT NULL
       AND datetime(published_at) >= datetime('now', ?)`,
 ).all(`-${HOURS} hours`);
+// 하루에 지울 수 있는 수를 넘기지 않는다. 2026-09-07 에 11편을 한 번에 지웠고
+//   다음 날부터 그날 발행분 전부가 이전의 1/3 로 떨어졌다(09-09 실측).
+//   되돌릴 수 없는 작업이므로 초과분은 자르고 남긴다 — 내일 다시 돌리면 된다.
+const { checkAgainstDb } = await import('./lib/channel-budget.mjs');
+const budget = checkAgainstDb(db, 'purge');
 db.close();
+if (!budget.ok) { console.log(`오늘은 더 못 지운다 — ${budget.reason}`); process.exit(0); }
+if (rows.length > budget.allowance) {
+  console.log(`대상 ${rows.length}건 중 ${budget.allowance}건만 지운다 (하루 ${budget.limit}건 상한)`);
+  rows = rows.slice(0, budget.allowance);
+}
 if (!rows.length) { console.log('내린 회차가 없다'); process.exit(0); }
 
 const yt = google.youtube({ version: 'v3', auth: await authorizedClient() });

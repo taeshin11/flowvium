@@ -6,7 +6,7 @@
  *   삭제는 되돌릴 수 없고, 무엇이 왜 나갔는지 확인할 길도 없어진다. 비공개면 남는다.
  *   지우는 판단은 사람이 나중에 해도 된다 — 급한 것은 **시청자에게서 치우는 것**이다.
  *
- * 사용: node scripts/youtube-unpublish.mjs --id VIDEO_ID [--reason "왜"]
+ * 사용: node scripts/youtube-unpublish.mjs --id VIDEO_ID [--reason "왜"] [--force]
  */
 import { google } from 'googleapis';
 import { authorizedClient } from './lib/youtube.mjs';
@@ -35,6 +35,23 @@ if (want && v.snippet.channelId !== want) {
 console.log(`대상: ${v.snippet.title}`);
 console.log(`현재: ${v.status.privacyStatus} · 업로드 ${v.snippet.publishedAt}`);
 if (v.status.privacyStatus === 'private') { console.log('이미 비공개다 — 할 일 없음'); process.exit(0); }
+
+// 하루에 내리는 편수에도 상한이 있다. 2026-09-06~07 에 14편을 내리고 11편을 지웠고
+//   이틀 뒤 채널 조회수가 1/3 로 떨어졌다(09-09 실측). 올렸다 내린 이력이 쌓이는 것 자체가 값이다.
+//   ⚠ 다만 **해로운 편은 상한과 무관하게 즉시 내린다** — 사실이 틀렸거나 정책에 걸리는 영상을
+//     "오늘 몫을 다 썼다" 는 이유로 남겨두는 것은 어떤 조회수보다 나쁘다. 그때는 --force 를 준다.
+if (!process.argv.includes('--force')) {
+  const { openDb } = await import('./lib/db.mjs');
+  const { checkAgainstDb } = await import('./lib/channel-budget.mjs');
+  const db = openDb();
+  const budget = checkAgainstDb(db, 'retract');
+  db.close();
+  if (!budget.ok) {
+    console.error(`❌ ${budget.reason}`);
+    console.error('   해로운 영상이라 지금 꼭 내려야 하면 --force 를 준다.');
+    process.exit(4);   // 4 = 상한에 걸림(고장 아님)
+  }
+}
 
 await yt.videos.update({
   part: ['status'],

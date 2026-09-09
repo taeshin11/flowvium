@@ -129,6 +129,21 @@ const run = (args, label) => {
   log(`시작 가능 — 부하 ${load1.toFixed(1)} / 한계 ${limit.toFixed(1)} · 보고서 ${busy ? '실행중' : '유휴'}`);
 }
 
+// 하루 총량을 먼저 본다. 진입점이 슬롯·백필 둘이라 각자 정상 동작하면서 합계가 넘칠 수 있다
+//   — 2026-09-06 에 그렇게 21편이 나갔고 이틀 뒤 채널 조회수가 1/3 로 떨어졌다.
+{
+  const { openDb } = await import('./lib/db.mjs');
+  const { checkAgainstDb } = await import('./lib/channel-budget.mjs');
+  const db = openDb();
+  const budget = checkAgainstDb(db, 'publish');
+  db.close();
+  if (!budget.ok) {
+    log(`오늘 몫을 다 썼다 — ${budget.reason}. 올리지 않고 끝낸다`);
+    process.exit(3);   // 3 = 올릴 게 없음(재시도 가능). 실패가 아니다.
+  }
+  log(`오늘 ${budget.used}/${budget.limit}편 — ${budget.allowance}편 남음`);
+}
+
 // ── 1. 렌더 ────────────────────────────────────────────────────────────────
 // 2026-09-03 (사용자 "그냥 쇼츠만 하자"): 기본 포맷이 세로 쇼츠다.
 //   가로 6분짜리는 --format=long 으로 남겨 둔다 — 지운 게 아니라 부르지 않을 뿐이다.

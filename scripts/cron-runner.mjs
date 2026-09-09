@@ -569,6 +569,10 @@ const MAINT_JOBS = [
   //   한 번 돌려 보니 41건 → 12건으로 줄었다. 밀린 것이지 고장이 아니었다.
   //   평가(18:50) 직후에 검증을 돌린다. 건수를 제한해 Yahoo 를 몰아치지 않는다.
   { label: 'buy-outcomes-verify',  script: 'scripts/evaluate-recommendations.mjs --verify --limit=80', timeoutMs: 900000, commitPaths: [],           schedules: ['10 19 * * *'],                maxAgeH: 30 },
+  // 2026-09-09: 조회수가 09-08 부터 1/3 로 떨어졌는데 사흘 뒤 사용자가 물어서야 알았다.
+  //   shorts_stats 수집은 자동이었지만 판정이 없었다. 나이 맞춘 중앙값을 매일 재고,
+  //   하락이면 종료코드 1 로 경보를 올린다. 마지막 편이 8시간을 넘긴 뒤에 돈다.
+  { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 8 * * *'],                 maxAgeH: 30 },
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
