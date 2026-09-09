@@ -1,11 +1,29 @@
 {
-  "generatedAt": "2026-09-08T22:30:11.510Z",
+  "generatedAt": "2026-09-09T07:30:01.820Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
   "totalRecent": 1057,
   "feed": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "rceptNo": "20260909000113",
+      "filedAt": "2026-09-09",
+      "kind": "insider",
+      "reporter": "배상기",
+      "role": "비등기임원",
+      "title": "부사장",
+      "relation": null,
+      "sharesAfter": 1846,
+      "sharesDelta": -1164,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "sell",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260909000113"
+    },
     {
       "ticker": "329180.KS",
       "name": "HD현대중공업",
@@ -1067,24 +1085,6 @@
       "direction": "flat",
       "reason": "보유주식에 관한 계약내용 변경(차입금 연장)",
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260904000407"
-    },
-    {
-      "ticker": "454910.KS",
-      "name": "두산로보틱스",
-      "rceptNo": "20260904000401",
-      "filedAt": "2026-09-04",
-      "kind": "major",
-      "reporter": "두산",
-      "role": "일반",
-      "title": null,
-      "relation": null,
-      "sharesAfter": 32394277,
-      "sharesDelta": 0,
-      "ratioAfter": 49.98,
-      "ratioDelta": 0,
-      "direction": "flat",
-      "reason": "계약 내용의 변경",
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260904000401"
     }
   ]
 }
