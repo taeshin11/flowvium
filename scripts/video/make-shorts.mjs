@@ -1682,6 +1682,17 @@ for (let i = 0; i < scenes.length; i++) {
   log(`[합성] ${i + 1}/${scenes.length}`);
 }
 
+// ── 고정 홍보 클립 붙이기 (2026-09-09 사용자 요청) ─────────────────────────────
+//   "영상마다 맨 마지막에 aisvi 홍보 멘트랑 장면 넣어줘" · "고정 영상 하나 만들어놓고 계속 붙이면될듯"
+//   회차마다 합성하면 같은 문장인데도 소리가 미묘하게 달라지고 매번 TTS 시간을 쓴다.
+//   한 번 만들어 둔 것을 붙인다 — scripts/video/make-outro-clip.mjs 가 만든다.
+//   **본편과 같은 규격(1080x1920 · 30fps · AAC 24kHz 모노)** 이라 다시 인코딩하지 않는다.
+//   없으면 그냥 넘어간다 — 홍보 컷 때문에 회차를 잃지 않는다.
+{
+  const promo = resolve(ROOT, 'assets/outro/aisvi.mp4');
+  if (existsSync(promo)) { parts.push(promo); log('[화면] 고정 홍보 클립을 끝에 붙인다 (aisviagent.com)'); }
+  else log('[화면] 고정 홍보 클립이 없다 — 없이 간다 (node scripts/video/make-outro-clip.mjs 로 만든다)');
+}
 writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));
 const cat = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`,
   '-c', 'copy', '-y', OUT], { stdio: ['ignore', 'ignore', 'pipe'] });
