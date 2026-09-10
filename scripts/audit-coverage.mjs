@@ -45,12 +45,15 @@ const STRUCTURAL_NULLS = {
   'news_archive.importance': '분석 필드 — 분석 행 0%null, 원시 피드 100%null(실측 2026-09-09)',
   'news_archive.report_id': '보고서에 실린 행만 채움 — 분석 행 0%null, 원시 피드 100%null(실측 2026-09-09)',
   'news_archive.cascades_json': '캐스케이드 분석 산출물 — news-cascade/company-change 0%null, 그 외 100%null(실측 2026-09-09)',
-  // ⚠ ticker 는 표 전체 92%null 이 구조적(원시 피드는 종목 매핑 대상이 아님)이라 여기 둔다.
-  //   다만 **분석 행 안에 별개의 실결함이 있다**: news-cascade 2274 행 중 443 행(19%)이
-  //   ticker NULL 이면서 tickers_json 이 [] 다 — "Broadcom sees bullish views…",
-  //   "Yum! Brands in exclusive talks…" 처럼 회사명이 헤드라인에 있는데 추출이 0개를 냈다.
-  //   원시 피드의 구조적 NULL 에 가려 안 보이던 갭이다. 별건으로 추적한다(추출기 fix 대상).
-  'news_archive.ticker': '원시 피드는 종목 매핑 대상 아님(100%null) · company-change/supply-chain 0%null. ⚠ news-cascade 443행 추출 실패는 별건 추적',
+  // ticker 는 표 전체 92%null 이 구조적이다 — 원시 피드는 종목 매핑 대상이 아니다.
+  //   2026-09-09 에 여기 "news-cascade 443행은 추출 실패(실결함)" 라고 적었는데 **틀렸다.**
+  //   2026-09-10 재확인: news-cascade 2307행 중 ticker 있는 1864행은 cascades_json 이 채워져
+  //   있고, ticker 없는 443행은 전부 cascades_json 이 [] 다. 즉 분석은 돌았고 **투자 연결고리를
+  //   찾지 못했다는 결과**이지 추출기가 죽은 게 아니다. 실제로 직방(비상장)·중진공(기관)·
+  //   東京株式(지수 시황)은 종목이 없는 것이 맞다.
+  //   남는 것은 결함이 아니라 품질 질문이다 — 대상(001680.KS)·SM벡셀처럼 상장사인데 연결고리
+  //   없음으로 판정된 건이 얼마나 되는가. 그건 별도 표본 평가로 볼 일이지 NULL 감사로 볼 일이 아니다.
+  'news_archive.ticker': '원시 피드는 종목 매핑 대상 아님(100%null) · company-change/supply-chain 0%null · news-cascade 는 캐스케이드 발견 시에만 채움(미발견 443행은 cascades_json=[])',
   'news_archive.pub_date': 'company-change 행은 기사 아님→날짜 N/A (news-cascade 행은 pub_date 100%)',
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',
   'asset_flow_archive.return_1d': 'capital-flows 가 1w/4w/13w 제공, 1d 미제공(소스 부재)',
