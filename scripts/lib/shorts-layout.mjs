@@ -21,16 +21,26 @@
  */
 
 /** 쇼츠 기본 기하. 유튜브 쇼츠는 1080×1920 이 표준이다. */
+/**
+ * 화면 배분. 2026-09-03 에 정한 뒤 그대로였다 — 사진이 39%, 검은 띠가 60% 다.
+ *   2026-09-10 눈검증: 폰에서 보면 죽은 검정이 화면의 절반을 넘는다. 경쟁 쇼츠는 화면을 꽉 채운다.
+ *   하락의 원인은 아니지만(레이아웃은 09-03 이후 불변) 성능의 천장일 수 있다.
+ *   비율을 바꾸면 **모든 영상의 생김새가 바뀐다** — 기본값은 그대로 두고 환경변수로 시험한다.
+ *     SHORTS_HOOK_H=440 SHORTS_MEDIA_H=1040   (사진 54%)
+ */
+const HOOK_H = Number(process.env.SHORTS_HOOK_H || 560);
+const MEDIA_H = Number(process.env.SHORTS_MEDIA_H || 760);
+
 export const SHORTS = {
   W: 1080,
   H: 1920,
   FPS: 30,
-  /** 위 검은 띠(훅). 화면의 약 29% — 참고 화면에서 두 줄 훅이 이만큼 차지한다. */
-  hook: { top: 0, height: 560 },
+  /** 위 검은 띠(훅). 기본은 화면의 약 29% — 두 줄 훅이 이만큼 차지한다. */
+  hook: { top: 0, height: HOOK_H },
   /** 소재 영역. 위·아래 띠 사이. */
-  media: { top: 560, height: 760 },
-  /** 아래 검은 띠(캡션). */
-  caption: { top: 1320, height: 600 },
+  media: { top: HOOK_H, height: MEDIA_H },
+  /** 아래 검은 띠(캡션). 남는 만큼. */
+  caption: { top: HOOK_H + MEDIA_H, height: 1920 - HOOK_H - MEDIA_H },
 };
 
 /** 훅 문구를 두 줄로 나눈다. 뒷줄이 강조(노랑)라 **뒤쪽이 결정적인 말**이어야 한다. */
