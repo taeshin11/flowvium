@@ -326,6 +326,28 @@ async function checkOnce() {
     }
   } catch { /* 판단 불가 — skip */ }
 
+  // [7-c] 설정 드리프트 — 고쳤는데 프로세스가 옛것을 돌고 있는 상태 (2026-09-10 신설).
+  //   cron-runner 는 09-08 부터 떠 있었고 09-09·09-10 에 추가한 작업 셋이 **한 번도 안 돌았다.**
+  //   로그에 흔적이 없어 "등록 안 함" 과 구별되지 않았다. 빌드 드리프트와 같은 얼굴이다.
+  //   자동 재기동은 하지 않는다 — 돌던 작업을 끊을 수 있어 사람이 시점을 고르는 편이 낫다.
+  try {
+    const { isStale, processStartedAt, fileMtime } = await import('./lib/config-drift.mjs');
+    const WATCH = [
+      { name: 'cron-runner', proc: 'cron-runner', file: 'scripts/cron-runner.mjs',
+        how: 'launchctl kickstart -k gui/$(id -u)/com.spinai.flowvium-cron' },
+    ];
+    for (const w of WATCH) {
+      const stale = isStale({ startedAt: processStartedAt(w.proc), configMtime: fileMtime(`${_PROJECT_ROOT}/${w.file}`) });
+      if (stale === true) {
+        issues.push(`설정 드리프트 — ${w.file} 이 ${w.name} 프로세스보다 새롭다. `
+          + `추가한 작업이 돌지 않는다(로그에 흔적도 없다) → ${w.how}`);
+      } else if (stale === false) info.push(`${w.name} 설정 최신 ✓`);
+    }
+  } catch (e) {
+    // 조용히 삼키면 검사가 있는지 없는지도 모른다 — 실제로 resolve 미import 로 한 번 먹혔다.
+    info.push(`설정 드리프트 검사 불가: ${String(e.message).slice(0, 60)}`);
+  }
+
   // [7-b] 빌드 드리프트 — 고쳤는데 사용자에게 안 닿는 상태 (2026-09-10 신설).
   //   웹 레인은 launchd 가 `next start` 로 띄운다 — 프로덕션 빌드를 서빙하고,
   //   flowvium.net 이 이 서버로 터널되므로 그게 곧 사용자 화면이다.

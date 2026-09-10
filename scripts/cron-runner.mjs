@@ -44,6 +44,9 @@ try {
 
 const PORT = process.env.PORT || 3000;
 const BASE = `http://localhost:${PORT}`;
+// ⚠ 여기 적는 모든 schedules 는 **UTC** 다. KST 로 적으면 9시간 어긋난다 —
+//   2026-09-10 에 shorts-health/reconcile/verify 를 KST 로 적어 전부 엉뚱한 시각에 걸렸다.
+//   KST 시각에서 9를 빼면 UTC 다(빼서 음수면 전날 +24).
 const TZ = process.env.CRON_TZ || 'Etc/UTC'; // Vercel cron 은 UTC 기준이었음 → 동일 유지
 const SECRET = process.env.CRON_SECRET || ''; // 있으면 Authorization 헤더로 전달
 
@@ -576,12 +579,12 @@ const MAINT_JOBS = [
   //   그런데 로그의 "⚠ 편성 대장 기록 실패" 를 아무도 안 봤고, 원장이 0편으로 남자 중복 방지가
   //   꺼져 같은 뉴스가 56분 간격으로 두 번 나갔다. 실패는 나되 **누적되지는 않게** 한다.
   //   유튜브를 기준으로 원장을 맞춘다. 슬롯 묶음이 끝난 직후마다 본다(호출 1건, 싸다).
-  { label: 'shorts-reconcile',     script: 'scripts/shorts-reconcile.mjs --hours 24 --yes', timeoutMs: 120000, commitPaths: [],           schedules: ['50 10 * * *', '50 14 * * *', '50 19 * * *', '55 22 * * *'], maxAgeH: 14 },
+  { label: 'shorts-reconcile',     script: 'scripts/shorts-reconcile.mjs --hours 24 --yes', timeoutMs: 120000, commitPaths: [],           schedules: ['50 1 * * *', '50 5 * * *', '50 10 * * *', '55 13 * * *'], maxAgeH: 14 },  // UTC — KST 10:50·14:50·19:50·22:55
   // 2026-09-10: 올라간 영상이 만든 영상과 같은지 아무도 안 봤다. 렌더 로그는 "광고를 붙인다" 를
   //   찍지만 붙었는지는 확인하지 않는다. 길이·공개상태·제목중복을 하루 두 번 대조한다.
   //   내리거나 지우지 않는다 — 알리기만 한다.
-  { label: 'shorts-verify',        script: 'scripts/shorts-verify-published.mjs --hours 24', timeoutMs: 120000, commitPaths: [], schedules: ['20 13 * * *', '20 23 * * *'], maxAgeH: 14 },
-  { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 8 * * *'],                 maxAgeH: 30 },
+  { label: 'shorts-verify',        script: 'scripts/shorts-verify-published.mjs --hours 24', timeoutMs: 120000, commitPaths: [], schedules: ['20 4 * * *', '20 14 * * *'], maxAgeH: 14 },  // UTC — KST 13:20·23:20
+  { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 23 * * *'],                maxAgeH: 30 },  // 23:30 UTC = 08:30 KST
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
