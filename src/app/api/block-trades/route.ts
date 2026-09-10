@@ -25,6 +25,11 @@ const TRACKED_TICKERS = [
   'SMCI', 'COIN', 'MU', 'AVGO', 'ASML', 'KLAC', 'LRCX', 'AMAT',
   'LMT', 'RTX', 'NOC', 'LLY', 'LHX', 'MRNA', 'REGN', 'FCX', 'ALB', 'KTOS',
 ];
+const SOURCE = 'yahoo-5m-burst-proxy';
+const SOURCE_FRESH = `${SOURCE} (분봉 거래량 이상치 — 실제 체결 아님)`;
+const ERR_ALL_FAILED = 'all_sources_failed';
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
 const BURST_MULT = 4;        // 20봉 평균 대비 배수
 const MIN_NOTIONAL = 3e6;    // $3M+
 
@@ -85,7 +90,7 @@ export async function GET(req: Request) {
         logger.info('api.block-trades', 'cache_hit', { total: cached.items.length });
         return NextResponse.json({
           items: cached.items, configured: true, cached: true, total: cached.items.length,
-          scanned: cached.scanned ?? null, asOf: cached.asOf ?? null, source: 'yahoo-5m-burst-proxy',
+          scanned: cached.scanned ?? null, asOf: cached.asOf ?? null, source: SOURCE,
         }, { headers: CDN_HEADERS });
       }
     } catch (err) { logger.warn('api.block-trades', 'cache_read_error', { error: err }); }
@@ -113,9 +118,11 @@ export async function GET(req: Request) {
   if (scanned === 0) {
     logger.error('api.block-trades', 'all_sources_failed', { tried: TRACKED_TICKERS.length });
     return NextResponse.json(
-      { items: [], configured: true, cached: false, total: 0, scanned: 0, asOf, source: 'yahoo-5m-burst-proxy', error: '전 종목 조회 실패 — 0건이 아니라 고장이다' },
-      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      // 에러는 산문이 아니라 코드로 낸다 — 소비처가 문자열을 비교하고, 산문은 번역 대상이 된다.
+      //   "0건이 아니라 고장" 이라는 뜻은 scanned: 0 이 이미 말한다.
+      { items: [], configured: true, cached: false, total: 0, scanned: 0, asOf, source: SOURCE, error: ERR_ALL_FAILED },
+      { status: 503, headers: NO_STORE },
     );
   }
-  return NextResponse.json({ items: trades, configured: true, cached: false, total: trades.length, scanned, asOf, source: 'yahoo-5m-burst-proxy (분봉 거래량 이상치 — 실제 체결 아님)' }, { headers: CDN_HEADERS });
+  return NextResponse.json({ items: trades, configured: true, cached: false, total: trades.length, scanned, asOf, source: SOURCE_FRESH }, { headers: CDN_HEADERS });
 }
