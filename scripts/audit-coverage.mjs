@@ -54,6 +54,10 @@ const STRUCTURAL_NULLS = {
   //   남는 것은 결함이 아니라 품질 질문이다 — 대상(001680.KS)·SM벡셀처럼 상장사인데 연결고리
   //   없음으로 판정된 건이 얼마나 되는가. 그건 별도 표본 평가로 볼 일이지 NULL 감사로 볼 일이 아니다.
   'news_archive.ticker': '원시 피드는 종목 매핑 대상 아님(100%null) · company-change/supply-chain 0%null · news-cascade 는 캐스케이드 발견 시에만 채움(미발견 443행은 cascades_json=[])',
+  // 2026-09-10 신설. 올린 파일의 실제 길이 — 유튜브가 보고하는 길이와 대조해 광고 클립 누락·
+  //   업로드 잘림을 잡는다(shorts-verify-published). 컬럼을 만든 시점 이후 발행분만 채워지므로
+  //   과거 행은 영구 NULL 이다. 신규 발행이 쌓이면 비율이 내려간다 — 그때 이 줄을 지운다.
+  'shorts_published.duration_sec': '2026-09-10 신설 — 이후 발행분만 채움. 과거 행은 소급 불가(파일이 이미 없다)',
   'news_archive.pub_date': 'company-change 행은 기사 아님→날짜 N/A (news-cascade 행은 pub_date 100%)',
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',
   'asset_flow_archive.return_1d': 'capital-flows 가 1w/4w/13w 제공, 1d 미제공(소스 부재)',

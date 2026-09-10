@@ -302,6 +302,30 @@ async function checkOnce() {
     else info.push('git 동기화 ✓ (origin/master 와 일치)');
   } catch { /* git 미가용 — skip */ }
 
+  // [7-a] 회차 간 추천 교체율 (2026-09-10 신설).
+  //   하루 4~5회차가 각각 다른 포트폴리오를 낸다. 실측 7일 — 직전 회차와 평균 48% 겹치고,
+  //   31쌍 중 9건은 25% 이하였다(사실상 전면 교체). 따라가는 사람에게는 따라갈 수 없는 신호다.
+  //   갈아엎는 것 자체는 결함이 아니다(새 데이터로 판단이 바뀔 수 있다) — 그래서 고치지 않고 보이게만 한다.
+  try {
+    const { churnSummary, CHURN_FLOOR } = await import('./lib/portfolio-churn.mjs');
+    const cdb2 = (await import('./lib/db.mjs')).openDb();
+    const rows = cdb2.prepare(
+      `SELECT id, full_json FROM reports WHERE datetime(generated_at) >= datetime('now','-3 days') ORDER BY generated_at`,
+    ).all();
+    const sessions = rows.map((r) => {
+      try { return { id: r.id, tickers: (JSON.parse(r.full_json).portfolio ?? []).map((p) => p.ticker) }; }
+      catch { return { id: r.id, tickers: [] }; }
+    });
+    const c = churnSummary(sessions);
+    if (c.pairs >= 3 && c.avg != null) {
+      const line = `회차 간 추천 유지율 ${(c.avg * 100).toFixed(0)}% (최근 ${c.pairs}쌍)`;
+      if (c.wiped.length >= 2) {
+        issues.push(`${line} — 그중 ${c.wiped.length}건은 ${CHURN_FLOOR * 100}% 이하로 갈아엎었다`
+          + `(${c.wiped.slice(-3).map((w) => w.id.slice(5)).join(', ')}). 따라갈 수 있는 신호인지 볼 것`);
+      } else info.push(`${line} ✓`);
+    }
+  } catch { /* 판단 불가 — skip */ }
+
   // [7-b] 빌드 드리프트 — 고쳤는데 사용자에게 안 닿는 상태 (2026-09-10 신설).
   //   웹 레인은 launchd 가 `next start` 로 띄운다 — 프로덕션 빌드를 서빙하고,
   //   flowvium.net 이 이 서버로 터널되므로 그게 곧 사용자 화면이다.

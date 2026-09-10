@@ -307,7 +307,16 @@ if (isShorts && last.keyword) {
       if (up?.id && Date.now() - Date.parse(up.at) < 30 * 60_000) videoId = up.id;
     } catch { /* 없으면 id 없이 남긴다 */ }
     // 브리핑은 한 편에 뉴스가 넷이다 — 제목만 남기면 나머지가 다음 회차에 또 나온다.
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads });
+    // 2026-09-10: 올린 파일의 실제 길이를 함께 남긴다 — 유튜브가 보고하는 길이와 대조해
+    //   광고 클립 누락·업로드 잘림을 잡는다. 렌더 로그는 "붙인다" 만 찍고 붙었는지는 안 본다.
+    let durationSec = null;
+    try {
+      const ff = (await import('ffmpeg-static')).default;
+      const probe = spawnSync(ff, ['-hide_banner', '-i', VIDEO], { encoding: 'utf8' });
+      const m = String(probe.stderr).match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
+      if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]);
+    } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.

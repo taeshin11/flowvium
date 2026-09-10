@@ -1993,6 +1993,12 @@ function ensureHeadlinesColumn(db) {
   }
 }
 
+/** duration_sec 컬럼 보장(기존 DB 는 없다). idempotent. */
+function ensureDurationColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
+  if (!cols.includes('duration_sec')) db.exec('ALTER TABLE shorts_published ADD COLUMN duration_sec REAL');
+}
+
 export function recentShortsHeadlines(hours = 24) {
   const db = openDb();
   ensureHeadlinesColumn(db);
@@ -2019,16 +2025,20 @@ export function recentShortsIssues(hours = 24) {
 }
 
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [] }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null }) {
   const db = openDb();
   ensureHeadlinesColumn(db);
+  // 2026-09-10: 올린 파일의 실제 길이를 남긴다. 유튜브가 보고하는 길이와 대조해
+  //   광고 클립 누락·업로드 잘림을 잡는다(로그는 "붙인다" 만 찍고 붙었는지는 안 본다).
+  ensureDurationColumn(db);
   // 브리핑은 한 편에 뉴스가 넷이다. **전부 남긴다** — 제목만 남기면 나머지 셋이 다음에 또 나온다.
   const all = [...new Set([headline, ...(headlines ?? [])].filter(Boolean).map((h) => String(h).slice(0, 300)))];
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
-    new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null);
+    new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null,
+    Number.isFinite(durationSec) ? durationSec : null);
 }
 
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */

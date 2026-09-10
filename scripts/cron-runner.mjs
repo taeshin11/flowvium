@@ -577,6 +577,10 @@ const MAINT_JOBS = [
   //   꺼져 같은 뉴스가 56분 간격으로 두 번 나갔다. 실패는 나되 **누적되지는 않게** 한다.
   //   유튜브를 기준으로 원장을 맞춘다. 슬롯 묶음이 끝난 직후마다 본다(호출 1건, 싸다).
   { label: 'shorts-reconcile',     script: 'scripts/shorts-reconcile.mjs --hours 24 --yes', timeoutMs: 120000, commitPaths: [],           schedules: ['50 10 * * *', '50 14 * * *', '50 19 * * *', '55 22 * * *'], maxAgeH: 14 },
+  // 2026-09-10: 올라간 영상이 만든 영상과 같은지 아무도 안 봤다. 렌더 로그는 "광고를 붙인다" 를
+  //   찍지만 붙었는지는 확인하지 않는다. 길이·공개상태·제목중복을 하루 두 번 대조한다.
+  //   내리거나 지우지 않는다 — 알리기만 한다.
+  { label: 'shorts-verify',        script: 'scripts/shorts-verify-published.mjs --hours 24', timeoutMs: 120000, commitPaths: [], schedules: ['20 13 * * *', '20 23 * * *'], maxAgeH: 14 },
   { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 8 * * *'],                 maxAgeH: 30 },
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },

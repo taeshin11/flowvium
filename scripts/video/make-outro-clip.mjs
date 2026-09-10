@@ -35,7 +35,12 @@ mkdirSync(WORK, { recursive: true });
 mkdirSync(resolve(ROOT, 'assets/outro'), { recursive: true });
 
 const SPOKEN = process.env.AISVI_SPOKEN || '에이스비 에이전트';
-const SAY = `말하는 대로 내 컴퓨터를 조종하는 ${SPOKEN}. 나만의 자비스입니다.`;
+// 2026-09-10 사용자 "aisviagent.com 에서 다운로드받으라고 광고에 나와야할듯".
+//   주소를 라틴 문자로 읽히면 TTS 가 매번 다르게 깨진다(2026-09-05 실측: flowvium.net →
+//   "플로우 비오모 소삼드톤 네트"). 한글로 적어 음을 고정하고, 주소 자체는 화면에 크게 띄운다.
+const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || '에이스비 에이전트 닷컴';
+const SAY = `말하는 대로 내 컴퓨터를 조종하는 ${SPOKEN}. 나만의 자비스입니다. `
+  + `${SITE_SPOKEN}에서 지금 받으세요.`;
 
 console.log(`  대사: ${SAY}`);
 const [voice] = synthesizeKoreanBatch([SAY], { outPrefix: `${WORK}/v` });
@@ -81,7 +86,8 @@ body{background:#05070f;color:#eef3ff;
 .d{font-size:48px;font-weight:700;line-height:1.45;color:#dbe6ff}
 .u{font-size:66px;font-weight:900;color:#ffd400;letter-spacing:.01em;
   -webkit-text-stroke:5px #0a0a0a;paint-order:stroke fill;margin-top:6px}
-.c{font-size:32px;color:#93a7cc;letter-spacing:.06em}
+.c{font-size:38px;font-weight:700;color:#ffd400;letter-spacing:.04em;margin-top:-14px}
+.c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
 </style>
 ${hasPhoto ? '<div class="p"></div>' : ''}
 <div class="body">
@@ -89,7 +95,9 @@ ${hasPhoto ? '<div class="p"></div>' : ''}
 <div class="w">AISVI</div><div class="r"></div>
 <div class="d">말하는 대로<br>내 컴퓨터를 조종합니다</div>
 <div class="u">aisviagent.com</div>
-<div class="c">화면을 보고 프로그램을 열고 눌러 줍니다</div>
+<!-- 가격은 확인된 바 없어 적지 않는다. 광고에 확인 안 된 사실을 넣지 않는다. -->
+<div class="c">에서 다운로드</div>
+<div class="c2">화면을 보고 프로그램을 열고 눌러 줍니다</div>
 </div>`);
 await page.screenshot({ path: `${WORK}/bg.png` });
 await browser.close();
