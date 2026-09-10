@@ -1,44 +1,26 @@
 {
-  "generatedAt": "2026-09-09T13:00:23.074Z",
+  "generatedAt": "2026-09-10T09:01:33.043Z",
   "universe": "US",
   "scanned": 298,
-  "count": 11,
-  "strongCount": 1,
-  "watchCount": 10,
+  "count": 9,
+  "strongCount": 0,
+  "watchCount": 9,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "GOLD",
-      "name": "Gold.com, Inc.",
-      "tier": "strong",
-      "score": 37,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 9.2,
-      "runup5dPct": 5.6,
-      "medDollarVolUsd": 18107025,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SPWH",
-      "name": "Sportsman's Warehouse Holdings,",
+      "ticker": "TYRA",
+      "name": "Tyra Biosciences, Inc.",
       "tier": "watch",
-      "score": 36,
+      "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "거래량 4.7× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.1,
-      "runup5dPct": 7.1,
-      "medDollarVolUsd": 395766,
+      "runup20dPct": -12.6,
+      "runup5dPct": -13,
+      "medDollarVolUsd": 17873855,
       "smartAccum": false,
       "official": null
     },
@@ -50,29 +32,29 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 2.7× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -7.6,
-      "runup5dPct": 0.7,
-      "medDollarVolUsd": 9217179,
+      "runup20dPct": -10.1,
+      "runup5dPct": -1.6,
+      "medDollarVolUsd": 9445280,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "KE",
-      "name": "Kimball Electronics, Inc.",
+      "ticker": "SPWH",
+      "name": "Sportsman's Warehouse Holdings,",
       "tier": "watch",
-      "score": 28,
+      "score": 31,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 0.1,
-      "runup5dPct": 6.6,
-      "medDollarVolUsd": 4770718,
+      "runup20dPct": 1.7,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 390278,
       "smartAccum": false,
       "official": null
     },
@@ -83,18 +65,18 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 7.4× 상승(지속 매집)",
-        "거래량 12.9× 급증(가격 평탄)"
+        "거래량 추세 7.8× 상승(지속 매집)",
+        "거래량 13.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": 7,
-      "runup5dPct": 8.6,
-      "medDollarVolUsd": 177300,
+      "runup20dPct": 2,
+      "runup5dPct": 4.5,
+      "medDollarVolUsd": 178800,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PSFE",
-      "name": "Paysafe Limited",
+      "ticker": "AMPY",
+      "name": "Amplify Energy Corp.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
@@ -103,26 +85,26 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -8.7,
-      "runup5dPct": 1.2,
-      "medDollarVolUsd": 2201262,
+      "runup20dPct": 9.1,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 2686584,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "RYZ",
-      "name": "Ryerson Holding Corporation",
+      "ticker": "KE",
+      "name": "Kimball Electronics, Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -7.2,
-      "runup5dPct": 3.7,
-      "medDollarVolUsd": 11518302,
+      "runup20dPct": -0.8,
+      "runup5dPct": 4.8,
+      "medDollarVolUsd": 4770718,
       "smartAccum": false,
       "official": null
     },
@@ -133,45 +115,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.9× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 4.0× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.5,
-      "runup5dPct": 1.7,
-      "medDollarVolUsd": 1876524,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GNK",
-      "name": "Genco Shipping & Trading Limite",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 7,
-      "runup5dPct": 2.2,
-      "medDollarVolUsd": 8687748,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SMP",
-      "name": "Standard Motor Products, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -0.4,
-      "runup5dPct": 4.6,
-      "medDollarVolUsd": 4995381,
+      "runup20dPct": -7.3,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 1890444,
       "smartAccum": false,
       "official": null
     },
@@ -185,9 +134,25 @@
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 70%(강한 매수 흡수)"
       ],
-      "runup20dPct": -11.5,
-      "runup5dPct": 4.4,
-      "medDollarVolUsd": 28439969,
+      "runup20dPct": -8.9,
+      "runup5dPct": 7.1,
+      "medDollarVolUsd": 28213348,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GNK",
+      "name": "Genco Shipping & Trading Limite",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 9.8,
+      "runup5dPct": 4.3,
+      "medDollarVolUsd": 8705411,
       "smartAccum": false,
       "official": null
     }
