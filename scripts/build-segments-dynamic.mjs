@@ -17,7 +17,7 @@ import { readFileSync } from 'fs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
 import { saveSegments, getSegmentedTickers } from './lib/db.mjs';
 import { resolveLlm } from './lib/llm-config.mjs';
-import { openRotation } from './lib/segment-rotation.mjs';
+import { cikMapSane, resolvableTickers, secTicker, openRotation } from './lib/segment-rotation.mjs';
 const rotation = openRotation(new URL('../data/flowvium.db', import.meta.url).pathname);
 
 const UA = { 'User-Agent': 'flowvium research contact@flowvium.net' };
@@ -266,7 +266,7 @@ function findRegion(txt) {
 }
 
 async function extractForTicker(ticker, cikMap) {
-  const cik = cikMap[ticker.toUpperCase()];
+  const cik = cikMap[secTicker(ticker)];   // SEC 는 클래스주를 BRK-B 처럼 하이픈으로 적는다
   if (!cik) return { ticker, error: 'no-cik' };
   const filing = await latest10K(cik);
   if (!filing) return { ticker, error: 'no-10k' };
@@ -305,6 +305,13 @@ async function extractForTicker(ticker, cikMap) {
   return { ticker, ...seg, asOf: filing.date, source: `${filing.form}/${method}`, url };
 }
 
+const cikMapEarly = await loadCikMap();
+if (!cikMapSane(cikMapEarly)) {
+  // SEC 목록 조회가 통째로 실패하면 전 종목이 no-cik 으로 보인다. 그날은 아무것도 시도하지 않는다.
+  console.log(`[build-segments-dynamic] SEC 목록이 ${Object.keys(cikMapEarly).length}개뿐 — 조회 이상으로 보고 이번 회차는 건너뛴다`);
+  process.exit(0);
+}
+
 const rawArgs = process.argv.slice(2);
 const refreshArg = rawArgs.find(a => /^--refresh=\d+$/.test(a));
 let tickers;
@@ -315,7 +322,12 @@ if (refreshArg) {
   // 2026-08-20: 종전 getSegmentTickersToRefresh 는 실패 종목이 company_segments 에 행을 안 남기는
   //   탓에 영원히 missing 맨 앞에 남아, 매 주기 같은 6개를 다시 골랐다(15회 연속 ✓0 ✗6).
   //   시도 자체를 기록해 실패해도 전진하고, 반복 실패는 지수 백오프로 쉬게 한다.
-  const universe = cand.filter(t => !/\.(KS|KQ)$/.test(t)).map(t => t.toUpperCase());
+  const universe0 = cand.filter(t => !/\.(KS|KQ)$/.test(t)).map(t => t.toUpperCase());
+  // 2026-09-10: SEC 에 없는 티커를 시도하고 실패로 세면 진짜 실패가 묻힌다. 실측 183건의 no-cik 중
+  //   178건이 ETF(XLF·YINN)이거나 상장폐지(GPS→GAP, GTLS 피인수)였다. 최신 목록으로 미리 거른다.
+  const universe = resolvableTickers(universe0, cikMapEarly);
+  const dropped = universe0.length - universe.length;
+  if (dropped) console.log(`[build-segments-dynamic] SEC 에 없어 제외 ${dropped}종목(ETF·상장폐지 등) — 실패가 아니라 대상 아님`);
   tickers = rotation.pick(universe, getSegmentedTickers(), n);
   const rs = rotation.stats();
   console.log(`[build-segments-dynamic] refresh 모드 — 갱신 대상 ${tickers.length}: ${tickers.join(', ') || '(없음 — 전부 최신이거나 백오프 중)'}`);
@@ -325,7 +337,7 @@ if (refreshArg) {
 }
 if (!tickers.length) { console.log('사용: node scripts/build-segments-dynamic.mjs AAPL MSFT ...  또는  --refresh=8'); process.exit(0); }
 
-const cikMap = await loadCikMap();
+const cikMap = cikMapEarly;
 // DB-only 저장(flowvium.db = cron checkout wipe 경로 밖, 영속). data/*.json 은 wipe 경로 + refresh
 //   마다 dirty → wipe-risk 유발하므로 미사용(2026-06-07 churn 제거).
 let ok = 0, fail = 0;

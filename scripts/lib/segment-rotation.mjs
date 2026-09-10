@@ -15,6 +15,34 @@
  */
 import Database from 'better-sqlite3';
 
+/**
+ * SEC 표기로 정규화. 클래스주는 점이 아니라 하이픈이다 — BRK.B → BRK-B.
+ *   2026-09-10: 이 차이 하나로 BRK.B 가 계속 no-cik 이었다. 죽은 티커가 아니라 표기 문제였다.
+ */
+export function secTicker(t) {
+  return String(t ?? '').toUpperCase().replace(/\./g, '-');
+}
+
+/**
+ * SEC 목록에 실제로 있는 티커만 남긴다(원래 표기 유지 — 호출부가 그 이름으로 저장한다).
+ *
+ * 2026-09-10: 실측 183건의 no-cik 중 178건이 ETF(XLF·YINN)이거나 상장폐지(GPS→GAP 개명,
+ *   GTLS 피인수)였다. 대상이 아닌 것을 시도하고 실패로 세면 진짜 실패가 묻힌다.
+ *   저장된 실패 이력으로 추측하지 않는다 — 그 방식으로는 SPY·QQQ·DIA·MDY 가 걸렸는데
+ *   지금 SEC 목록에는 멀쩡히 있다(과거 조회 이상의 흔적). 매번 최신 목록으로 확인한다.
+ *   목록이 빈약하면(조회 이상) 아무것도 거르지 않는다 — 멀쩡한 티커를 버리는 쪽이 더 나쁘다.
+ */
+export function resolvableTickers(universe, cikMap) {
+  if (!cikMapSane(cikMap)) return [...universe];
+  return universe.filter((t) => Object.prototype.hasOwnProperty.call(cikMap, secTicker(t)));
+}
+
+export const MIN_CIK_ENTRIES = 5000;
+export function cikMapSane(map) {
+  return Object.keys(map ?? {}).length >= MIN_CIK_ENTRIES;
+}
+
+
 // 연속 실패 n회 → 2^n 시간 대기. 6회면 64시간 — 사실상 사람이 볼 때까지 쉰다.
 const BACKOFF_BASE_MS = 60 * 60 * 1000;
 const MAX_BACKOFF_POW = 6;
