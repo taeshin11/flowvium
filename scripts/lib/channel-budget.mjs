@@ -21,6 +21,8 @@
  *   그래서 발행은 10편에 둔다. 관측이 쌓이면 환경변수로 조정한다 — 코드를 고치지 않는다.
  */
 
+import { openDb } from './db.mjs';
+
 /** 상한. 환경변수로 덮되, 기본값은 위 실측에 근거한다. */
 export const LIMITS = {
   publish: Number(process.env.SHORTS_MAX_PER_DAY ?? 10),
@@ -60,7 +62,19 @@ export function budgetCheck(kind, used) {
     : { ok: false, allowance: 0, limit, used, reason: `${topic(LABEL[kind])} 하루 ${limit}건까지다 (오늘 ${used}건)` };
 }
 
-/** DB 에서 오늘치를 세어 그대로 판정한다. 호출부가 날짜 계산을 다시 하지 않게 한다. */
+/**
+ * 오늘치를 세어 판정한다. **연결은 스스로 연다 — 그리고 닫지 않는다.**
+ *
+ * 2026-09-10: 처음엔 호출부가 openDb()/db.close() 를 하게 했다. 그런데 openDb() 는
+ *   싱글턴이라 close() 가 프로세스 전체의 연결을 닫는다. 09:20 회차는 업로드까지 갔는데
+ *   편성 대장 기록이 "The database connection is not open" 으로 실패했고, 원장이 0편으로
+ *   남아 상한 계산과 중복 방지가 함께 망가졌다. 검사가 호출부에 연결 관리를 떠넘기면 안 된다.
+ */
+export function checkBudget(kind, day = kstDay()) {
+  return checkAgainstDb(openDb(), kind, day);
+}
+
+/** 연결을 직접 넘기는 형태. 넘긴 연결을 닫지 않는다 — openDb() 는 싱글턴이다. */
 export function checkAgainstDb(db, kind, day = kstDay()) {
   const col = kind === 'publish' ? 'published_at' : 'retracted_at';
   const rows = db

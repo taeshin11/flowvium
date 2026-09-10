@@ -132,11 +132,10 @@ const run = (args, label) => {
 // 하루 총량을 먼저 본다. 진입점이 슬롯·백필 둘이라 각자 정상 동작하면서 합계가 넘칠 수 있다
 //   — 2026-09-06 에 그렇게 21편이 나갔고 이틀 뒤 채널 조회수가 1/3 로 떨어졌다.
 {
-  const { openDb } = await import('./lib/db.mjs');
-  const { checkAgainstDb } = await import('./lib/channel-budget.mjs');
-  const db = openDb();
-  const budget = checkAgainstDb(db, 'publish');
-  db.close();
+  // ⚠ openDb() 는 싱글턴이다 — 여기서 close() 하면 이후 markShortsPublished 가 죽는다.
+  //   2026-09-10 09:20 회차가 실제로 그렇게 됐다(업로드 성공, 원장 기록 실패). 검사가 스스로 연다.
+  const { checkBudget } = await import('./lib/channel-budget.mjs');
+  const budget = checkBudget('publish');
   if (!budget.ok) {
     log(`오늘 몫을 다 썼다 — ${budget.reason}. 올리지 않고 끝낸다`);
     process.exit(3);   // 3 = 올릴 게 없음(재시도 가능). 실패가 아니다.

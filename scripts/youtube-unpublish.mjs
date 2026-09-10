@@ -41,11 +41,9 @@ if (v.status.privacyStatus === 'private') { console.log('이미 비공개다 —
 //   ⚠ 다만 **해로운 편은 상한과 무관하게 즉시 내린다** — 사실이 틀렸거나 정책에 걸리는 영상을
 //     "오늘 몫을 다 썼다" 는 이유로 남겨두는 것은 어떤 조회수보다 나쁘다. 그때는 --force 를 준다.
 if (!process.argv.includes('--force')) {
-  const { openDb } = await import('./lib/db.mjs');
-  const { checkAgainstDb } = await import('./lib/channel-budget.mjs');
-  const db = openDb();
-  const budget = checkAgainstDb(db, 'retract');
-  db.close();
+  // openDb() 는 싱글턴 — 닫으면 아래 markShortsRetracted 가 죽는다(2026-09-10 실증).
+  const { checkBudget } = await import('./lib/channel-budget.mjs');
+  const budget = checkBudget('retract');
   if (!budget.ok) {
     console.error(`❌ ${budget.reason}`);
     console.error('   해로운 영상이라 지금 꼭 내려야 하면 --force 를 준다.');

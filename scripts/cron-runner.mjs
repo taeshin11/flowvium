@@ -572,6 +572,11 @@ const MAINT_JOBS = [
   // 2026-09-09: 조회수가 09-08 부터 1/3 로 떨어졌는데 사흘 뒤 사용자가 물어서야 알았다.
   //   shorts_stats 수집은 자동이었지만 판정이 없었다. 나이 맞춘 중앙값을 매일 재고,
   //   하락이면 종료코드 1 로 경보를 올린다. 마지막 편이 8시간을 넘긴 뒤에 돈다.
+  // 2026-09-10: 원장 기록은 try/catch 안이라 실패해도 발행이 계속된다(업로드를 되돌릴 이유는 없다).
+  //   그런데 로그의 "⚠ 편성 대장 기록 실패" 를 아무도 안 봤고, 원장이 0편으로 남자 중복 방지가
+  //   꺼져 같은 뉴스가 56분 간격으로 두 번 나갔다. 실패는 나되 **누적되지는 않게** 한다.
+  //   유튜브를 기준으로 원장을 맞춘다. 슬롯 묶음이 끝난 직후마다 본다(호출 1건, 싸다).
+  { label: 'shorts-reconcile',     script: 'scripts/shorts-reconcile.mjs --hours 24 --yes', timeoutMs: 120000, commitPaths: [],           schedules: ['50 10 * * *', '50 14 * * *', '50 19 * * *', '55 22 * * *'], maxAgeH: 14 },
   { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 8 * * *'],                 maxAgeH: 30 },
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },

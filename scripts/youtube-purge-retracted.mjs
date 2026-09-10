@@ -28,9 +28,9 @@ let rows = db.prepare(
 // 하루에 지울 수 있는 수를 넘기지 않는다. 2026-09-07 에 11편을 한 번에 지웠고
 //   다음 날부터 그날 발행분 전부가 이전의 1/3 로 떨어졌다(09-09 실측).
 //   되돌릴 수 없는 작업이므로 초과분은 자르고 남긴다 — 내일 다시 돌리면 된다.
-const { checkAgainstDb } = await import('./lib/channel-budget.mjs');
-const budget = checkAgainstDb(db, 'purge');
-db.close();
+const { checkBudget } = await import('./lib/channel-budget.mjs');
+const budget = checkBudget('purge');
+// db.close() 를 하지 않는다 — openDb() 는 싱글턴이라 프로세스 전체의 연결이 닫힌다.
 if (!budget.ok) { console.log(`오늘은 더 못 지운다 — ${budget.reason}`); process.exit(0); }
 if (rows.length > budget.allowance) {
   console.log(`대상 ${rows.length}건 중 ${budget.allowance}건만 지운다 (하루 ${budget.limit}건 상한)`);

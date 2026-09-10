@@ -54,3 +54,21 @@ test('조사가 맞는다 — "발행는" 처럼 쓰지 않는다', () => {
   assert.match(budgetCheck('retract', 99).reason, /내리기는/);
   assert.match(budgetCheck('purge', 99).reason, /삭제는/);
 });
+
+/**
+ * 2026-09-10: 상한 검사가 공유 DB 연결을 닫아 발행을 망가뜨렸다.
+ *
+ * openDb() 는 싱글턴(_dbInstance)이다. 검사 뒤 db.close() 를 부르자 같은 프로세스의
+ * 이후 호출이 전부 죽었다 — 09:20 회차는 **업로드는 됐는데 편성 대장 기록이 실패**했고
+ * ("The database connection is not open") 원장이 0편으로 남아 상한 계산과 중복 방지가 함께 망가졌다.
+ * 검사는 호출부에 연결 관리를 떠넘기지 않는다. 스스로 열고, 닫지 않는다.
+ */
+test('checkBudget 뒤에도 DB 를 계속 쓸 수 있다', async () => {
+  const { checkBudget } = await import('./channel-budget.mjs');
+  const { openDb } = await import('./db.mjs');
+  const r = checkBudget('publish');
+  assert.equal(typeof r.ok, 'boolean');
+  // 검사가 연결을 닫았다면 여기서 "The database connection is not open" 으로 죽는다.
+  const n = openDb().prepare('SELECT COUNT(*) n FROM shorts_published').get().n;
+  assert.equal(typeof n, 'number');
+});

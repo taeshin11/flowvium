@@ -535,7 +535,14 @@ CREATE INDEX IF NOT EXISTS idx_filings_fetched ON filings(fetched_at);
 let _dbInstance = null;
 
 export function openDb() {
-  if (_dbInstance) return _dbInstance;
+  // 2026-09-10: 종전에는 인스턴스가 있으면 상태를 안 보고 그대로 돌려줬다. 그런데 스크립트
+  //   20여 곳이 끝에서 db.close() 를 부르고, 그중 하나라도 프로세스 도중에 닫으면 이후 호출이
+  //   전부 "The database connection is not open" 으로 죽는다. 09:20 쇼츠 회차가 그렇게 됐다 —
+  //   업로드는 성공했는데 편성 대장 기록이 실패해 원장이 0편으로 남았고, 상한 계산과 중복
+  //   방지가 함께 망가졌다. 호출부를 하나씩 고치면 다음에 추가되는 곳을 못 막는다.
+  //   싱글턴을 쥔 쪽이 닫힌 상태를 감지해 다시 연다.
+  if (_dbInstance?.open) return _dbInstance;
+  _dbInstance = null;
   mkdirSync(DATA_DIR, { recursive: true });
   const db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL');
