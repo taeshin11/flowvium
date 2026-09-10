@@ -63,6 +63,7 @@ import { fetchSeibroShort } from './lib/seibro.mjs';
 import { buildKrFlowClaim } from './lib/kr-flow-claim.mjs';
 import { loadPriorMacroState } from './lib/prior-macro-state.mjs';
 import { canonSector } from './lib/sector-canon.mjs';
+import { classifyNarrativeEdit } from './lib/narrative-edit-kind.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
@@ -9446,6 +9447,7 @@ async function generateViaOllama() {
     // 2026-06-23 (H1 closed loop): snapshot 대비 *실제 바뀐* 필드를 defect 로 변환 — 다음 보고서 prompt
     //   [⚠️ AVOID THESE HALLUCINATIONS] 에 before→after inject → 모델이 garble 자체를 학습(sanitizer 가림 종식).
     const getField = (k) => k.startsWith('marketNarrative.') ? finalReport.marketNarrative?.[k.split('.')[1]] : finalReport[k];
+    const _narrSkipped = {};
     for (const [k, before] of Object.entries(_narrSnap)) {
       const after = getField(k);
       if (typeof before === 'string' && before && before !== after) {
@@ -9457,7 +9459,13 @@ async function generateViaOllama() {
         // 덧붙이기만 한 변화는 교정이 아니라 보강이다(예: flow-contract 결정론 append).
         //   실측 2026-08-22 저녁: 그걸 "이 garble 반복 금지: 점으로 작용하고 있다." 로 적었다 —
         //   모델에게 고칠 게 없는 걸 가르치는 기록이다.
-        if (d && d.kind === 'edit') {
+        // 2026-09-10: 달라졌다고 다 결함이 아니다. 표기 통일(컨탱고→콘탱고)과 실측 대조
+        //   (KOSPI 6,900→6,918)까지 "이 garble 반복 금지" 로 주입하고 있었다 —
+        //   모니터가 "교정기 상시발동 23/32보고서" 로 잡은 것이 이것이다.
+        //   고칠 것 없는 걸 가르치면 프롬프트 자리를 먹고 진짜 결함이 잡음에 묻힌다.
+        const kind = d ? classifyNarrativeEdit(d.before, d.after) : 'none';
+        if (kind !== 'defect' && kind !== 'none') _narrSkipped[kind] = (_narrSkipped[kind] ?? 0) + 1;
+        if (d && d.kind === 'edit' && kind === 'defect') {
           narrativeDefectsForLearning.push({
             ticker: 'NARRATIVE', defect_type: 'narrative_garble_sanitized',
             llm_value: `${k}: "${d.before}"`,
@@ -9466,6 +9474,12 @@ async function generateViaOllama() {
           });
         }
       }
+    }
+    // 조용히 버리지 않는다 — 무엇을 안 배우기로 했는지 남긴다.
+    const skipped = Object.entries(_narrSkipped);
+    if (skipped.length) {
+      console.log(`  [narrative-corrector] 학습 제외 ${skipped.map(([k, n]) => `${k} ${n}건`).join(' · ')}`
+        + ' (표기 통일·실측 대조는 모델 잘못이 아니다)');
     }
   } catch (e) { console.warn(`  [narrative-corrector] skip: ${e.message}`); }
   // 2026-07-02: stale riskEvents corrector 의 drop 도 H1 폐루프 적재 — _sanitized(발간 전 자동교정) 관례라
