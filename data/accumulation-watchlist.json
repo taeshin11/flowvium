@@ -1,26 +1,63 @@
 {
-  "generatedAt": "2026-09-09T22:20:22.787Z",
+  "generatedAt": "2026-09-10T07:20:23.977Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
-  "strongCount": 0,
-  "watchCount": 2,
+  "count": 4,
+  "strongCount": 1,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "232140.KQ",
-      "name": "와이씨",
+      "ticker": "190510.KQ",
+      "name": "나무가",
+      "tier": "strong",
+      "score": 42,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 5.3× 상승(지속 매집)",
+        "거래량 10.0× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 6.7,
+      "runup5dPct": 13.7,
+      "medDollarVolUsd": 495507,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "094970.KQ",
+      "name": "제이엠티",
       "tier": "watch",
-      "score": 40,
+      "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 4.3× 상승(지속 매집)",
-        "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 11.7,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 5842330,
+      "runup20dPct": -13.1,
+      "runup5dPct": -0.2,
+      "medDollarVolUsd": 196314,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "052020.KQ",
+      "name": "에스티큐브",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -11.3,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 1080483,
       "smartAccum": true,
       "official": null
     },
@@ -36,8 +73,8 @@
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 7.9,
-      "runup5dPct": 3.6,
+      "runup20dPct": 7.5,
+      "runup5dPct": 5.2,
       "medDollarVolUsd": 1547507,
       "smartAccum": true,
       "official": null
