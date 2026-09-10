@@ -326,6 +326,33 @@ async function checkOnce() {
     }
   } catch { /* 판단 불가 — skip */ }
 
+  // [6-b] 전향 연구 결과가 읽히고 있는가 (2026-09-10 신설).
+  //   eval-shadow-rules 는 주 1회 돌며 shadow 룰의 전향 성적을 낸다. 잘 돌고 있다 —
+  //   실제로 trend_pullback 이 n=30 에서 +0.9%p(승격 기준 충족)였다가 n=73 에서 -0.28%p 로
+  //   뒤집혔고, 그 덕에 성급한 승격을 막았다. 그런데 **결과가 아무 데도 안 간다**:
+  //   콘솔에 찍는 "🎓 승격 후보" 는 크론 로그에 안 남고("완료 (28s)" 만 남는다),
+  //   shadow-stats.json 은 아무도 읽지 않는다. 재는데 보지 않으면 재지 않는 것과 같다.
+  try {
+    const { readFileSync, statSync } = await import('node:fs');
+    const f = `${_PROJECT_ROOT}/reports/shadow-stats.json`;
+    const j = JSON.parse(readFileSync(f, 'utf8'));
+    const ageD = (Date.now() - statSync(f).mtimeMs) / 86400000;
+    if (ageD > 9) {
+      issues.push(`전향 연구 결과가 ${ageD.toFixed(0)}일째 갱신 안 됨 — eval-shadow-rules 는 주 1회다`);
+    } else {
+      // 승격 기준: n≥30 && (초과수익 ≥ +0.5%p || 승률 ≥ 58%). 충족분은 사람이 옮겨야 한다.
+      const promo = (j.rules ?? []).filter((r) => r.evaluated >= 30 && (r.avgExcess5 >= 0.5 || r.winRate5 >= 58));
+      if (promo.length) {
+        issues.push(`전향 연구 승격 후보 ${promo.length}건 — `
+          + `${promo.map((r) => `${r.ruleId}(n=${r.evaluated}, 초과 ${r.avgExcess5}%p, 승률 ${r.winRate5}%)`).join(' · ')}`
+          + ' → live 룰셋 이관은 사람이 판단한다');
+      } else {
+        const worst = [...(j.rules ?? [])].sort((a, b) => a.avgExcess5 - b.avgExcess5)[0];
+        info.push(`전향 연구 ✓ 승격 후보 없음 (최저 ${worst?.ruleId} ${worst?.avgExcess5}%p n=${worst?.evaluated})`);
+      }
+    }
+  } catch (e) { info.push(`전향 연구 결과 못 읽음: ${String(e.message).slice(0, 50)}`); }
+
   // [7-c] 설정 드리프트 — 고쳤는데 프로세스가 옛것을 돌고 있는 상태 (2026-09-10 신설).
   //   cron-runner 는 09-08 부터 떠 있었고 09-09·09-10 에 추가한 작업 셋이 **한 번도 안 돌았다.**
   //   로그에 흔적이 없어 "등록 안 함" 과 구별되지 않았다. 빌드 드리프트와 같은 얼굴이다.
