@@ -61,6 +61,8 @@ const LLM_DISPATCHER = new Agent({
 });
 import { fetchSeibroShort } from './lib/seibro.mjs';
 import { buildKrFlowClaim } from './lib/kr-flow-claim.mjs';
+import { loadPriorMacroState } from './lib/prior-macro-state.mjs';
+import { canonSector } from './lib/sector-canon.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
@@ -73,7 +75,7 @@ import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
-import { saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
+import { openDb, saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
 import { filterConflicts, filterAveragingDown } from './lib/buy-sell-conflict.mjs';
 
 // 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
@@ -5683,7 +5685,8 @@ function buildManipulationWatch() {
 //   hard-veto 를 우회했음. mc=rich macroCtx(insider/inst13f/uoa/contract/news/sector/region maps), sig=tech(fetchSellSignals).
 function buildSellEvalCtx(ticker, pos, mc, sig) {
   const isKR = /\.(KS|KQ)$/.test(ticker);
-  const sectorKey = String(pos?.sector ?? '').toLowerCase();
+  // 2026-09-10: 종목 섹터도 같은 정규 이름으로 바꿔야 스탠스 조회가 맞는다(안 그러면 14개 중 1개만 맞았다).
+  const sectorKey = canonSector(pos?.sector) ?? String(pos?.sector ?? '').toLowerCase();
   const ins = mc?.insider?.get(ticker);
   const i13f = mc?.inst13f?.get(ticker);
   const news = mc?.newsSentimentMap?.get(ticker);
@@ -7000,15 +7003,31 @@ async function generateViaOllama() {
   // 2026-05-29: 매수 후보 4-stage scoring (Wave 1 portfolio LLM 호출 직전)
   // macro/sector/region 데이터는 ctxRaw 에서 추출. 매도와 동일 macroCtx 재사용.
   console.log('\n[1.5/7] 매수 후보 4-stage scoring (1,200+ ticker)...');
+  // 2026-09-10 (사용자 승인): 이 단계는 Wave 1 보다 먼저 돌아 riskLevel·섹터/지역 스탠스가 없었다.
+  //   그래서 이를 쓰는 룰 5개(rotation_sector_in · rotation_defensive · macro_low_risk ·
+  //   micro_sector_overweight · micro_region_bullish, 점수 비중 19/293)가 한 번도 발화하지 못했다.
+  //   순서를 바꾸면 후보 선정 자체가 달라져 추천이 흔들린다 — 대신 **직전 회차 값**을 쓴다.
+  //   리스크 레벨·스탠스는 한 회차(3~5시간) 사이에 잘 뒤집히지 않는다. 10시간이 넘으면 안 쓴다.
+  const priorMacro = (() => {
+    // 예외를 조용히 삼키지 않는다 — 못 읽었으면 왜 못 읽었는지 남긴다.
+    try { return loadPriorMacroState(openDb(), { locale: localeArg }); }
+    catch (e) { console.warn(`  ⚠️  [buy-cand] 직전 회차 거시 스탠스를 못 읽었다: ${String(e.message).slice(0, 70)}`); return null; }
+  })();
+  console.log(priorMacro
+    ? `  [buy-cand] 거시 스탠스는 ${priorMacro.provenance} — risk=${priorMacro.riskLevel ?? 'N/A'} · 섹터 ${priorMacro.sectorStanceMap.size} · 지역 ${priorMacro.regionStanceMap.size}`
+    : '  [buy-cand] 쓸 만한 직전 회차가 없다 — 거시 스탠스 없이 점수를 낸다(종전과 동일)');
+
   const buyMacroCtx = {
-    riskLevel: null, // Wave 1 macroData 가 아직 없음 — fg/vix 만 활용
+    riskLevel: priorMacro?.riskLevel ?? null, // 직전 회차 값(없으면 null — 종전 동작)
     // 2026-06-12 fix: volatility 응답 필드는 .vix (.score 는 미존재 — earlyWarning 과 동일 오필드 버그.
     //   매수 룰의 ctx.vix 가 항상 null 이라 VIX 조건 룰이 한 번도 발화 못 하던 상태)
     vix: ctxRaw?.volatility?.vix ?? null,
     fgScore: ctxRaw?.fearGreed?.score ?? ctxRaw?.fear_greed?.score ?? null,
-    sectorPeMap: new Map((sectorPeRaw ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio])),
-    sectorStanceMap: new Map(), // Wave1 후 채워질 데이터 — Stage 1 에는 빈 Map
-    regionStanceMap: new Map(),
+    sectorPeMap: new Map((sectorPeRaw ?? []).map(s => [canonSector(s.sector) ?? String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio])),
+    sectorStanceMap: priorMacro?.sectorStanceMap ?? new Map(),
+    regionStanceMap: priorMacro?.regionStanceMap ?? new Map(),
+    // 근거 문자열에 붙여 '지금 값이 아니라 직전 회차 값' 임을 숨기지 않는다.
+    stanceProvenance: priorMacro?.provenance ?? null,
     newsSentimentMap: (() => {
       // 2026-06-12 죽은 신호 복원: ① 기사 스키마에 tickers 필드 부재 ② 필드명도 ctxRaw.news(미존재,
       //   실제는 cascade) — micro_news_positive 가 개통 이래 0 발화. 제목/요약 ↔ 종목명·티커
@@ -7128,6 +7147,11 @@ async function generateViaOllama() {
     })(),
   };
   const buyCandidates = await buildBuyCandidates(livePrices, buyMacroCtx, 30);
+  // 이 회차의 거시 스탠스가 '지금 값' 인지 '직전 회차 값' 인지 보고서에 남긴다.
+  //   로그는 회전되지만 보고서는 남는다 — 나중에 "왜 이 종목이 뽑혔나" 를 되짚을 때 필요하다.
+  const buyStanceSource = priorMacro
+    ? { source: 'prior_report', reportId: priorMacro.reportId, ageHours: Number(priorMacro.ageHours.toFixed(1)) }
+    : { source: 'none', note: '쓸 만한 직전 회차가 없어 거시 스탠스 없이 점수를 냈다' };
 
   // ── [2/7] Wave 1: 5섹션 병렬 ─────────────────────────────────────────────────
   console.log('\n[2/7] Wave1 — 5개 병렬 Ollama 호출 (macro/portfolio/regional/opportunity/narrative)...');
@@ -7322,8 +7346,13 @@ async function generateViaOllama() {
 
   // 2026-05-29: 매도 후보 — multi-factor (가격/tech/fund/구루/macro/micro) + Karpathy outcome 학습.
   const excludeForSell = new Set(portfolioItemsDeduped.map(p => p.ticker));
-  const sectorPeMap = new Map((sectorPeRaw ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio]));
-  const sectorStanceMap = new Map((portfolioData?.sectorAllocation ?? []).map(s => [String(s.sector ?? '').toLowerCase(), s.stance]));
+  // sectorPe 도 같은 sectorKey 로 조회된다 — 함께 맞춘다.
+  const sectorPeMap = new Map((sectorPeRaw ?? [])
+    .map(s => [canonSector(s.sector) ?? String(s.sector ?? '').toLowerCase(), s.peAvg ?? s.peRatio]));
+  // 2026-09-10: 조회 키(sectorKey)를 정규 이름으로 바꿨으므로 **매도 쪽 맵도 같은 이름**이어야 한다.
+  //   한쪽만 바꾸면 매수는 살고 매도가 죽는다 — 공유하는 ctx 빌더를 통해 같은 키로 찾기 때문이다.
+  const sectorStanceMap = new Map((portfolioData?.sectorAllocation ?? [])
+    .map(s => [canonSector(s.sector) ?? String(s.sector ?? '').toLowerCase(), s.stance]));
   const regionStanceMap = new Map(Object.entries(regionalData?.regionStances ?? {}).map(([k, v]) => [k === 'korea' ? 'kr' : k, v?.stance]));
   // 2026-06-14 죽은 신호 배선 복원 (ChatGPT 리뷰 §3-2 검증 결과 — sell macroCtx 의 3개 맵이 미존재
   //   필드를 읽어 micro_news_*/micro_13f_distribution/macro_vix_spike 가 silently inert 였음):
@@ -8235,6 +8264,9 @@ async function generateViaOllama() {
     thesis: macroData?.thesis ?? gatedStance,
     portfolio: dedupedPortfolio,
     buySellReconciliation: reconciliationLog,  // 매수↔매도 경합심사 요약 (연구·UI 노출용)
+    // 2026-09-10: 후보 점수를 낼 때 쓴 거시 스탠스가 '지금 값' 인지 '직전 회차 값' 인지.
+    //   Stage 1 은 Wave 1 보다 먼저 돌아 지금 값을 못 쓴다 — 그 사실을 결과에 남긴다.
+    buyStanceSource,
     earlyWarning,  // 거시 급락 조기경보 (결정론적 composite)
     reboundWatch,  // 과매도 반등 관찰 신호 (결정론, 매수 단정 아님 — 2026-06-12)
     marketVerdict, // 종합 판정: 전조+공포매수+과거 유사국면 → 관망/매수/중립 (결정론 — 2026-06-12)
