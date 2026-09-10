@@ -302,6 +302,22 @@ async function checkOnce() {
     else info.push('git 동기화 ✓ (origin/master 와 일치)');
   } catch { /* git 미가용 — skip */ }
 
+  // [7-b] 빌드 드리프트 — 고쳤는데 사용자에게 안 닿는 상태 (2026-09-10 신설).
+  //   웹 레인은 launchd 가 `next start` 로 띄운다 — 프로덕션 빌드를 서빙하고,
+  //   flowvium.net 이 이 서버로 터널되므로 그게 곧 사용자 화면이다.
+  //   그런데 자동 빌드가 어디에도 없다. src/ 를 고쳐 커밋·푸시까지 해도 손으로 `next build` 를
+  //   하지 않으면 라이브는 옛 코드 그대로다. "고쳤다" 와 "닿았다" 사이의 이 틈은 아무 소리도 안 낸다.
+  //   빌드는 여기서 돌리지 않는다 — CPU·메모리를 크게 먹어 보고서·쇼츠 렌더와 경합한다.
+  try {
+    const { driftingFiles, buildStamp } = await import('./lib/build-drift.mjs');
+    const drift = driftingFiles();
+    if (!buildStamp()) issues.push('빌드 없음 — .next/BUILD_ID 가 없다. 웹 레인이 서빙할 빌드가 없다 → npm run build');
+    else if (drift.length) {
+      issues.push(`빌드 드리프트 ${drift.length}파일 — 고쳤지만 라이브는 옛 코드다(자동 빌드 없음): `
+        + `${drift.slice(0, 4).join(', ')} → 한가할 때 npm run build 후 웹 레인 재기동`);
+    } else info.push('빌드 최신 ✓ (src 변경 없음)');
+  } catch { /* 판단 불가 — skip */ }
+
   // [8] 자원 압력 — 메모리·스왑·열 (2026-08-21 신설).
   //     종전 검사 7종에 자원 항목이 하나도 없었다. 이 기기는 27B(31.7GB)+4B(5.2GB)+embed 를
   //     상주시키고(vmmap 실측) llm-local.ts 에 hard freeze 전력이 기록돼 있는데, 고갈을 보는

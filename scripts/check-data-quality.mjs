@@ -433,6 +433,10 @@ async function main() {
       // 2026-06-17: 스캐너/리스트 엔드포인트(accumulation-watch 등)는 신호 0건이 *정상*(작전주 무신호).
       //   source:'live' + asOf/scanned 메타가 있으면 '살아있는 스캔이 0건 반환' → alive (company-signals
       //   조용한 종목 케이스와 동일 원리). asOf(타임스탬프)·scanned(스캔수)를 liveness 마커로 인정.
+      // 2026-09-10: block-trades 가 이 마커를 안 줘서 "조용한 날"이 "정지 의심" 으로 6사이클 경보 후
+      //   '개입 필요' 까지 승격됐다(볼 것이 없으니 아무도 개입 못 했다). 엔드포인트 쪽에 scanned/asOf 를
+      //   붙여 해결했다 — 검사는 원래부터 이 마커를 인정하고 있었다. 빈 응답을 죽음으로 단정하지 않으려면
+      //   **엔드포인트가 살아있었다는 증거를 스스로 실어야** 한다. 새 엔드포인트도 같은 규칙을 따른다.
       const hasScalar = b.score != null || b.value != null || b.probability != null || b.balance != null || b.total > 0 || typeof b.updatedAt === 'string' || typeof b.generatedAt === 'string' || typeof b.asOf === 'string' || typeof b.scanned === 'number';
       // company-signals: ticker별 시그널 — 조용한 종목은 uoa/burst/contract 전부 비어도 *정상*(잘못 아님).
       //   200 + 정상 shape(ticker echo + uoa 배열 키 존재)면 alive 로 인정 (empty≠dead).
