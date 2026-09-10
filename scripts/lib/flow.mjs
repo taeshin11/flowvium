@@ -259,6 +259,24 @@ async function openDefaults(page, { tries = 3 } = {}) {
  */
 export const IMAGE_MODEL = 'Nano Banana 2';
 
+/**
+ * 드롭다운 표시에서 **모델 이름만** 남긴다.
+ *
+ * 2026-09-10: 표시가 `Nano Banana 2 crop_16_9 x2` 로 바뀌면서 "이미 선택됨" 판정이 빗나갔고,
+ *   이미 맞는 모델인데도 드롭다운을 열어 정확히 "Nano Banana 2" 인 항목을 찾다가 실패했다
+ *   (option_missing). crop·장수는 **설정**이지 모델 이름이 아니다.
+ *   접두사 비교로 풀면 "Nano Banana 2" 가 "Nano Banana 2 Lite" 를 삼킨다 — 토큰만 걷어낸다.
+ */
+export function modelName(shown) {
+  return String(shown ?? '')
+    .replace(/\s+/g, ' ')
+    .replace('arrow_drop_down', '')
+    .replace(/^🍌\s*/, '')
+    .replace(/\s*\bcrop_\S+/g, '')
+    .replace(/\s*\bx\d+\b/g, '')
+    .trim();
+}
+
 async function openImageDrop(page) {
   await openDefaults(page);
   return page.locator('button:has-text("Nano Banana")').last();
@@ -283,8 +301,7 @@ export async function setImageModel(page, model = IMAGE_MODEL) {
     await closeDefaults(page);
     return modelResult(MODEL_RESULT.PANEL_CLOSED);
   }
-  const norm = (t) => String(t ?? '').replace(/\s+/g, ' ').replace('arrow_drop_down', '').replace(/^🍌\s*/, '').trim();
-  let shown = norm(await drop.innerText().catch(() => ''));
+  let shown = modelName(await drop.innerText().catch(() => ''));
   if (shown !== model) {
     await drop.click({ timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1800);

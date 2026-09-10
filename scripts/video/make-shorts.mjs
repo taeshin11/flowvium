@@ -914,13 +914,22 @@ const SITE_URL = process.env.SITE_URL || 'flowvium.net';
 //   한글로 적으면 "플로비옴 단넷" 으로 안정적이다(같은 방식으로 확인).
 //   화면 그래픽에는 flowvium.net 이 그대로 크게 뜨므로 주소는 눈으로 전달된다.
 const SITE_SPOKEN = process.env.SITE_SPOKEN || '플로비움 닷넷';
-scenes.push({
-  hook: '더 깊은 분석은',
-  say: `오늘 다룬 이슈의 전체 분석과 실시간 시장 데이터는 ${SITE_SPOKEN}에서 보실 수 있습니다.`,
-  visual: '',
-  isOutro: true,
-});
-log(`[대본] 마무리 장면 추가 (${SITE_URL})`);
+// 2026-09-10 사용자 "광고를 flowvium 말고 aisvi 광고넣자".
+//   끝에 광고가 둘(플로비움 아웃트로 + AISVI 고정 클립) 붙어 11초를 잡아먹고 있었다.
+//   쇼츠에서 마지막 11초는 이탈 구간이라 하나만 남긴다. 지우지 않고 꺼 둔다 —
+//   사이트 홍보를 다시 하려면 SHORTS_SITE_OUTRO=1 이면 된다.
+const SITE_OUTRO = process.env.SHORTS_SITE_OUTRO === '1';
+if (SITE_OUTRO) {
+  scenes.push({
+    hook: '더 깊은 분석은',
+    say: `오늘 다룬 이슈의 전체 분석과 실시간 시장 데이터는 ${SITE_SPOKEN}에서 보실 수 있습니다.`,
+    visual: '',
+    isOutro: true,
+  });
+  log(`[대본] 마무리 장면 추가 (${SITE_URL})`);
+} else {
+  log('[대본] 사이트 마무리 장면 없음 — 끝 광고는 AISVI 고정 클립 하나');
+}
 log(`[대본] 장면 ${scenes.length}개 · ${scenes.reduce((n, s) => n + s.say.length, 0)}자`);
 for (const s of scenes) log(`   · [${s.hook}] ${s.say.slice(0, 42)}…`);
 if (DRY) { log('--dry — 여기까지'); process.exit(0); }
@@ -1618,7 +1627,8 @@ body{background:radial-gradient(820px 620px at 50% 42%,#1d3a6e 0%,rgba(0,0,0,0) 
 <div class="w">FLOWVIUM</div><div class="r"></div>
 <div class="u">${SITE_URL}</div>
 <div class="c">전체 분석 · 실시간 시장 데이터</div>`);
-await page.screenshot({ path: `${WORK}/outro.png` });
+// 아웃트로 장면이 없으면 이 그림도 쓰이지 않는다 — 만들지 않는다(스크린샷 한 번은 0.4초쯤 든다).
+if (scenes.some((x) => x.isOutro)) await page.screenshot({ path: `${WORK}/outro.png` });
 
 await page.setContent(`<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}

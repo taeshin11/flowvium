@@ -20,7 +20,7 @@
  */
 import { chromium } from 'playwright';
 import { spawnSync } from 'child_process';
-import { mkdirSync, existsSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
@@ -41,29 +41,56 @@ console.log(`  대사: ${SAY}`);
 const [voice] = synthesizeKoreanBatch([SAY], { outPrefix: `${WORK}/v` });
 console.log(`  음성 ${voice.durationSec.toFixed(1)}초`);
 
-// 화면 — 본편 마무리와 같은 결로 만든다(어두운 남색 + 노란 주소).
+// 배경 사진 — 2026-09-10 사용자 "자비스 되는 사진 넣어서".
+//   Flow(Nano Banana)로 만든다: node scripts/flow-image.mjs --prompt "..." --out assets/outro/jarvis.jpg
+//   **없으면 사진 없이 만든다** — 생성이 실패한 날 광고가 통째로 빠지는 편이 더 나쁘다.
+//   setContent 는 about:blank 기준이라 file:// 이 막힐 수 있어 base64 로 심는다.
+//
+//   왜 잘라내지 않고 '띠' 로 쓰는가: Flow 의 이미지 crop 설정이 16:9 라 가로로 나온다.
+//   9:16 로 가운데를 자르면 폭의 2/3이 날아가 구도가 무너진다(사람과 홀로그램이 좌우로 퍼진 그림이다).
+//   위쪽에 온전한 비율로 얹고 아래로 자연스럽게 어두워지게 해 문구 자리를 만든다.
+const PHOTO = resolve(ROOT, process.env.AISVI_PHOTO || 'assets/outro/jarvis.jpg');
+const hasPhoto = existsSync(PHOTO);
+const photoB64 = hasPhoto ? readFileSync(PHOTO).toString('base64') : '';
+console.log(hasPhoto ? `  배경 사진: ${PHOTO}` : '  배경 사진 없음 — 문구만으로 만든다');
+
+// 사진 띠 높이. 원본은 16:9(607px)인데 그대로 얹으면 사진과 문구 사이가 400px 비어 허전하다.
+//   세로로 조금 더 키워 채운다 — center/cover 라 위아래가 8%쯤 잘리지만 인물과 홀로그램은 가운데라 남는다.
+//   9:16 로 통째로 자르면 폭의 2/3이 날아가 구도가 무너지므로 거기까지는 가지 않는다.
+const BAND = Math.round(H * 0.42);
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.setContent(`<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:${W}px;height:${H}px}
-body{background:radial-gradient(900px 700px at 50% 40%,#20305c 0%,rgba(0,0,0,0) 68%),
-  linear-gradient(160deg,#05070f,#0e1730 55%,#05070f);
-  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#eef3ff;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:0 70px}
+/* 사진이 페이드로 녹아드는 색과 **같은 색**을 바닥에 깐다 —
+   다르면 사진이 끝나는 자리에 가로줄이 보인다(2026-09-10 첫 시안에서 실제로 보였다). */
+body{background:#05070f;color:#eef3ff;
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;
+  display:flex;flex-direction:column;overflow:hidden}
+.p{position:relative;width:${W}px;height:${BAND}px;flex:none;
+  background:url(data:image/jpeg;base64,${photoB64}) center/cover no-repeat}
+.p::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(5,7,15,.15) 0%,rgba(5,7,15,0) 40%,#05070f 100%)}
+/* 남은 아래 공간 전체를 쓰고 그 안에서 가운데 정렬 — 아래가 휑하게 비지 않는다. */
+.body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:30px;text-align:center;padding:0 70px 150px}
 .t{font-size:64px;font-weight:800;color:#7fd4ff;letter-spacing:.04em}
-.w{font-size:104px;font-weight:900;letter-spacing:.20em;text-indent:.20em;color:#fff}
+.w{font-size:112px;font-weight:900;letter-spacing:.20em;text-indent:.20em;color:#fff}
 .r{width:150px;height:8px;background:linear-gradient(90deg,#38bdf8,#2563eb)}
-.d{font-size:44px;font-weight:700;line-height:1.45;text-align:center;color:#dbe6ff}
-.u{font-size:64px;font-weight:900;color:#ffd400;letter-spacing:.01em;
-  -webkit-text-stroke:5px #0a0a0a;paint-order:stroke fill;margin-top:8px}
-.c{font-size:30px;color:#93a7cc;letter-spacing:.06em}
+.d{font-size:48px;font-weight:700;line-height:1.45;color:#dbe6ff}
+.u{font-size:66px;font-weight:900;color:#ffd400;letter-spacing:.01em;
+  -webkit-text-stroke:5px #0a0a0a;paint-order:stroke fill;margin-top:6px}
+.c{font-size:32px;color:#93a7cc;letter-spacing:.06em}
 </style>
+${hasPhoto ? '<div class="p"></div>' : ''}
+<div class="body">
 <div class="t">나만의 자비스</div>
 <div class="w">AISVI</div><div class="r"></div>
 <div class="d">말하는 대로<br>내 컴퓨터를 조종합니다</div>
 <div class="u">aisviagent.com</div>
-<div class="c">화면을 보고 프로그램을 열고 눌러 줍니다</div>`);
+<div class="c">화면을 보고 프로그램을 열고 눌러 줍니다</div>
+</div>`);
 await page.screenshot({ path: `${WORK}/bg.png` });
 await browser.close();
 
