@@ -79,7 +79,23 @@ export const TRACKED_ENDPOINTS = [
   '/api/insider-kr',
 ];
 
-async function fetchOne(baseUrl, path, timeoutMs = 12000) {
+/**
+ * 엔드포인트별 타임아웃.
+ *
+ * 2026-09-10: /api/flow-analysis 가 스냅샷 적재에서 50번 연속 실패했다. 간헐이 아니라
+ *   구조적으로 불가능한 조합이었다 — 그 엔드포인트는 LLM 생성을 돌려 실측 150초인데
+ *   여기 타임아웃은 12초다. 캐시가 식어 있으면 매번 진다.
+ *   느린 하나 때문에 나머지 50여 개를 늘리지는 않는다. 목록에 근거와 함께 적는다.
+ */
+export const DEFAULT_TIMEOUT_MS = 12000;
+export const SLOW_ENDPOINTS = {
+  '/api/flow-analysis': { ms: 200000, why: 'LLM 으로 국가별 수급 분석을 생성한다 — 로컬 27B 실측 150초' },
+};
+export function timeoutFor(path) {
+  return SLOW_ENDPOINTS[path]?.ms ?? DEFAULT_TIMEOUT_MS;
+}
+
+async function fetchOne(baseUrl, path, timeoutMs = timeoutFor(path)) {
   const url = `${baseUrl}${path}`;
   const t0 = Date.now();
   try {

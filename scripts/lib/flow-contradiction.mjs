@@ -44,6 +44,12 @@ export function measuredClaimText(report, claimText = null) {
 /** 실측 문구에서 방향 추출. 'buy' | 'sell' | null. */
 export function measuredDirection(claimText) {
   const s = String(claimText ?? '');
+  // 2026-09-10: 종전엔 문자열 전체에서 순매수를 먼저 찾았다. 계약문이 외국인과 기관을 함께
+  //   적으면("외국인 순매도 5441억원, 기관 순매수 6343억원") **기관 방향을 읽어** 실측이 뒤집혔다.
+  //   이 모듈의 모든 판정은 외국인 기준이다(regionStances.korea.thesis 도 외국인 기준).
+  //   외국인 절이 있으면 그것만 본다.
+  const f = s.match(/외국인[^,.]{0,16}(순매수|순매도)/);
+  if (f) return f[1] === '순매수' ? 'buy' : 'sell';
   if (/순매수/.test(s)) return 'buy';
   if (/순매도/.test(s)) return 'sell';
   return null;

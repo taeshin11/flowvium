@@ -60,6 +60,7 @@ const LLM_DISPATCHER = new Agent({
   keepAliveMaxTimeout: 600_000,
 });
 import { fetchSeibroShort } from './lib/seibro.mjs';
+import { buildKrFlowClaim } from './lib/kr-flow-claim.mjs';
 import { correctNarrative, sanitizeReport, fixDuplicateCentralBankEvents, attributePctSubjects, dedupeThesisMacro, fixKrFlowContradiction } from './lib/narrative-fix.mjs';
 import { repairLatinBleed } from './lib/latin-repair.mjs';
 import { resolveServedModelId, servedModelBasename } from './lib/served-model.mjs';
@@ -4703,21 +4704,13 @@ function getGuruContext() {
 function buildFlowNarrativeEvidence(ctxRaw) {
   const claims = [];
   try {
-    // 1) KR 진짜 flow — KRX 외국인+기관 순매수 실측. 임계 |합| ≥ 3,000억(잡음 컷).
-    const kf = ctxRaw?.koreaFlow;
-    const fNet = kf?.foreignNet, iNet = kf?.institutionNet;
-    if (Number.isFinite(fNet)) {
-      const net = fNet + (Number.isFinite(iNet) ? iNet : 0);
-      if (Math.abs(net) >= 3e11) {
-        claims.push({
-          id: 'kr_smart_flow', kind: 'true_flow', market: 'KR',
-          // 2026-07-04: 범위 명시 — korea-flow 합계는 시장 전체가 아니라 순매수·도 랭킹 상위 수집분 합계.
-          //   무범위 서술("외국인 1.9조 순매수")은 시장 전체 수급으로 과대해석됨(사용자 스크린샷 회고).
-          text: `KR 외국인${Number.isFinite(iNet) ? '+기관' : ''} 주요 종목 ${net > 0 ? '순매수' : '순매도'} ${(Math.abs(net) / 1e8).toFixed(0)}억원(${kf.period ?? '기간'}, 수급 상위 종목 합계)`,
-          allowedVerbs: ['순매수', '순매도', '유입', '이탈'], confidence: 'high',
-        });
-      }
-    }
+    // 1) KR 진짜 flow — KRX 외국인·기관 순매수 실측. 판단은 kr-flow-claim.mjs 단일 소스.
+    //   2026-09-10: 종전 임계는 **합계** |외국인+기관| ≥ 3,000억이었다. 09-09 에 외국인 -5,441억 ·
+    //   기관 +6,343억 → 합계 +901억으로 미달해 계약이 아예 안 만들어졌고, 계약 없는 LLM 이
+    //   "외국인 자금 유입을 견인했다"(실측은 순매도)를 발간했다. 합계가 작다는 건 수급이 없다는 뜻이
+    //   아니라 둘이 반대로 크게 움직였다는 뜻이고, 그날이야말로 계약이 가장 필요하다.
+    const krClaim = buildKrFlowClaim(ctxRaw?.koreaFlow);
+    if (krClaim) claims.push(krClaim);
     // 1.2) 미국 실측 — ICI 주간 ETF net issuance (창설/상환 기반, 주간 지연). 뚜렷할 때만:
     //   |미국주식| ≥ $3B 또는 채권-미국주식 스프레드 ≥ $8B. '어디서→어디로'를 실측으로 서술 가능.
     const ff = ctxRaw?.fundFlows?.categories;
