@@ -1,28 +1,69 @@
 {
-  "generatedAt": "2026-09-11T03:21:03.053Z",
+  "generatedAt": "2026-09-11T22:20:22.961Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 3,
   "strongCount": 1,
-  "watchCount": 0,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "190510.KQ",
       "name": "나무가",
       "tier": "strong",
-      "score": 42,
-      "coFire": 3,
+      "score": 46,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 5.6× 상승(지속 매집)",
-        "거래량 9.9× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 5.7× 상승(지속 매집)",
+        "거래량 10.0× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 6.9,
-      "runup5dPct": 8.7,
-      "medDollarVolUsd": 495507,
-      "smartAccum": false,
+      "runup20dPct": 5.5,
+      "runup5dPct": 7.3,
+      "medDollarVolUsd": 499295,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "030530.KQ",
+      "name": "원익홀딩스",
+      "tier": "watch",
+      "score": 45,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)",
+        "⚠️ 거래소 투자주의: 상한가잔량"
+      ],
+      "runup20dPct": 7.5,
+      "runup5dPct": -0.7,
+      "medDollarVolUsd": 9737246,
+      "smartAccum": true,
+      "official": {
+        "category": "caution",
+        "reason": "상한가잔량",
+        "fewAccount": false,
+        "designatedDate": "2026-09-04"
+      }
+    },
+    {
+      "ticker": "094970.KQ",
+      "name": "제이엠티",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -14.6,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 196314,
+      "smartAccum": true,
       "official": null
     }
   ]
