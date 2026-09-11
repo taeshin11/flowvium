@@ -4,7 +4,8 @@
 // 2026-05-30 Karpathy closed loop: 결함을 defects 배열로 모아 caller 가 DB 적재 가능.
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
 import fs from 'node:fs';
-import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
+import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';
+import { latinGarbleFragments } from './lib/latin-garble.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
 import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex, contradictingSentence } from './lib/flow-contradiction.mjs';
 import { isMovementClaim } from './lib/flow-move-claim.mjs';
 import { detectIndexLevelMismatch } from './lib/index-level-check.mjs';
@@ -1022,10 +1023,11 @@ export async function verifyReport(file, { silent = false } = {}) {
     const garble = [];
     for (const [k, v] of Object.entries(koFields)) {
       if (typeof v !== 'string') continue;
-      const frags = [...new Set([
-        ...(v.match(/[가-힣][a-z]{2,6}(?![가-힣])/g) || []),     // 한글+라틴(뒤에 한글 아님 — latin_bleed 미포함분)
-        ...(v.match(/(?<![가-힣A-Za-z])[a-z]{2,6}[가-힣]/g) || []),  // 라틴+한글 — 2026-07-03: 앞 라틴 제외(CamelCase "SoftBank의"→"ank" 오탐 fix)
-      ].map(x => x.replace(/[가-힣]/g, '')).filter(lat => !UNIT_OK.test(lat)))];
+      // 2026-09-12: 종전 두 번째 패턴은 앞이 **공백**이어도 잡아서 "Humped regime에서" 를
+      //   garble 로 찍었다(regime 은 변동성 곡선 형태를 가리키는 금융 용어다).
+      //   오탐은 소음이 아니라 push 를 막고 사람을 멀쩡한 문장을 고치러 보낸다.
+      //   한글 **바로 뒤**에 붙은 라틴만 본다 — 공백 뒤 라틴은 영어 단어 + 조사다.
+      const frags = latinGarbleFragments(v);
       if (frags.length) garble.push(`${k}:${frags.slice(0, 4).join(',')}`);
     }
     if (garble.length) {
