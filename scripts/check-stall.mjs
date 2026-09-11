@@ -326,6 +326,22 @@ async function checkOnce() {
     }
   } catch { /* 판단 불가 — skip */ }
 
+  // [5-b] 유튜브 토큰 만료 예고 (2026-09-12 신설).
+  //   OAuth 앱이 '테스트' 상태면 갱신 토큰이 7일 뒤 폐기된다. 2026-09-11 19:23 을 마지막으로
+  //   업로드가 invalid_grant 로 죽었고 **9시간 뒤에야** 알았다 — 그동안 렌더는 계속 돌았다.
+  //   로그의 invalid_grant 는 이번이 5번째였다. 죽은 뒤 아는 것과 죽기 전 아는 것은 다르다.
+  //   앱을 프로덕션으로 게시하면 만료가 사라진다 — 그때는 YOUTUBE_APP_PUBLISHED=1 로 끈다.
+  try {
+    const { tokenVerdict } = await import('./lib/token-age.mjs');
+    const { readFileSync: rf } = await import('node:fs');
+    const tk = JSON.parse(rf(`${_PROJECT_ROOT}/secrets/youtube-token.json`, 'utf8'));
+    // expiry_date 는 access token 만료(발급 +1시간)다. 여기서 1시간을 빼면 발급 시각이 된다.
+    const issuedAt = Number.isFinite(tk.expiry_date) ? tk.expiry_date - 3600_000 : null;
+    const v = tokenVerdict({ issuedAt, published: process.env.YOUTUBE_APP_PUBLISHED === '1' });
+    if (v.level === 'expired' || v.level === 'warn') issues.push(v.line);
+    else if (v.level === 'ok') info.push(v.line);
+  } catch (e) { info.push(`유튜브 토큰 나이 판정 불가: ${String(e.message).slice(0, 50)}`); }
+
   // [6-a] 쇼츠 조회수 추세 (2026-09-11 신설).
   //   shorts-health 는 재고 찍기만 한다. 경보는 여기서 올린다 —
   //   종전에는 그 스크립트가 하락 시 종료코드 1 로 끝냈는데, 크론이 그걸 '작업 실패' 로 읽어
