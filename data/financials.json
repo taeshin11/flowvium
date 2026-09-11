@@ -350,11 +350,11 @@
     "fy": "2026"
   },
   "INTU": {
-    "revUsd": 18831000000,
-    "revYoYPct": 15.6,
-    "opMarginPct": 26.1,
-    "roePct": 19.6,
-    "fy": "2025"
+    "revUsd": 21448000000,
+    "revYoYPct": 13.9,
+    "opMarginPct": 27.4,
+    "roePct": 24,
+    "fy": "2026"
   },
   "ADP": {
     "revUsd": 21947400000,
@@ -364,11 +364,11 @@
     "fy": "2026"
   },
   "PANW": {
-    "revUsd": 9221500000,
-    "revYoYPct": 14.9,
-    "opMarginPct": 13.5,
-    "roePct": 14.5,
-    "fy": "2025"
+    "revUsd": 11480000000,
+    "revYoYPct": 24.5,
+    "opMarginPct": 6.1,
+    "roePct": 1.1,
+    "fy": "2026"
   },
   "ANET": {
     "revUsd": 9005700000,
@@ -2142,11 +2142,11 @@
     "fy": "2025"
   },
   "GOLD": {
-    "revUsd": 10978614000,
-    "revYoYPct": 13.2,
+    "revUsd": 618000000,
+    "revYoYPct": 249.3,
     "opMarginPct": null,
-    "roePct": 2.7,
-    "fy": "2025"
+    "roePct": 9.4,
+    "fy": "2026"
   },
   "MSTR": {
     "revUsd": 477233000,
