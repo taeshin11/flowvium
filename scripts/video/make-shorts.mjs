@@ -27,6 +27,7 @@ import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
+import { ffmpegOpts, describeFfmpegResult } from '../lib/ffmpeg-timeout.mjs';
 import { stripByline, cleanHeadline, textLeftovers, unsourcedAffiliation } from '../lib/wire-text.mjs';
 import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
@@ -1683,7 +1684,7 @@ for (let i = 0; i < scenes.length; i++) {
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '160k', '-r', String(G.FPS), '-t', String(dur), '-y', part,
   ];
-  const r = spawnSync(ffmpegPath, a, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const r = spawnSync(ffmpegPath, a, ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
   if (r.status !== 0) {
     console.error(`❌ 장면 ${i + 1} 렌더 실패:\n${String(r.stderr).slice(0, 400)}`);
     process.exit(1);
@@ -1705,7 +1706,7 @@ for (let i = 0; i < scenes.length; i++) {
 }
 writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));
 const cat = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`,
-  '-c', 'copy', '-y', OUT], { stdio: ['ignore', 'ignore', 'pipe'] });
+  '-c', 'copy', '-y', OUT], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
 if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat.stderr).slice(0, 400)}`); process.exit(1); }
 
 // ── 배경음악 (2026-09-06 사용자 "좀 뉴스 스러운 배경음악 돌려쓸수있는거 없니?") ──────
@@ -1745,12 +1746,14 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
       '-map', '0:v', '-map', '[a]',
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
       '-shortest', '-y', withBgm,
-    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    ], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
     if (r.status === 0 && existsSync(withBgm)) {
       copyFileSync(withBgm, OUT);
       log(`[음악] ${beds[shortsPublishedCount() % beds.length]} 를 깔았다(-20 LUFS 로 맞춘 뒤 말할 때 더킹)`);
     } else {
-      log(`[음악] 배경음 입히기 실패 — 음악 없이 간다: ${String(r.stderr).slice(0, 80)}`);
+      // 시간 초과와 입력 오류는 조치가 다르다 — 사유를 구분해 남긴다.
+      //   2026-09-11: 여기서 12시간 18분 멈춰 렌더 체인이 통째로 물렸다(입력이 구글드라이브 경로).
+      log(`[음악] 배경음 입히기 실패 — 음악 없이 간다: ${describeFfmpegResult(r) ?? '사유 불명'}`);
     }
   }
 }

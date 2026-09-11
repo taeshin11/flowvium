@@ -310,8 +310,20 @@ for (const [ep, s] of epStatus) {
     // 24h 내 호출이 아예 없다 = 현재 파이프라인이 쓰지 않는 엔드포인트. 과거 실패는 이력이지 라이브 장애가 아니다.
     warn(`${(ep ?? '?').padEnd(40)} 7일 ${errPct.toFixed(0)}% 실패였으나 최근 24h 호출 0회 — 현재 미사용(이력 aging out 대기)`);
   } else if (errPct >= 50 && !recovered) {
-    const reason = latestHttpOk ? `최근 24h ${fail24}회 실패 (flapping — 마지막만 ok)` : '라우트 죽음 의심';
-    err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — ${reason}`);
+    // 2026-09-11: 같은 라우트의 **다른 인자**가 200 이면 라우트가 죽은 게 아니다 —
+    //   그 종목의 데이터가 없는 것이다. 실측: /api/company-financials/XOM 이 404 인데
+    //   AAPL·CVX 는 200 이었다. 엑슨모빌이 지주사로 재편돼 새 CIK(2115436)에 제출 이력이
+    //   없어서였다 — 실제 기업 사건이지 코드 결함이 아니다.
+    //   같은 오진이 전에도 있었다(XLF — ETF라 기업재무가 없다, :296 주석).
+    //   틀린 진단은 사람을 엉뚱한 조치로 보낸다. 형제 인자를 보고 문구를 가른다.
+    const base = String(ep ?? '').replace(/\/[^/]+$/, '/');
+    const sibOk = base.length > 1 && [...epStatus.entries()].some(([e2, s2]) =>
+      e2 !== ep && e2.startsWith(base) && s2.total > 0 && (s2.total - s2.err4 - s2.err5) > 0);
+    const reason = latestHttpOk ? `최근 24h ${fail24}회 실패 (flapping — 마지막만 ok)`
+      : sibOk ? '같은 라우트의 다른 인자는 200 — 라우트가 아니라 **이 인자의 데이터가 없다**'
+      : '라우트 죽음 의심';
+    if (sibOk) warn(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — ${reason}`);
+    else err(`${(ep ?? '?').padEnd(40)} 4XX:${s.err4} 5XX:${s.err5} / ${s.total} (${errPct.toFixed(0)}% 실패) — ${reason}`);
   } else if (errPct >= 50 && recovered) {
     warn(`${(ep ?? '?').padEnd(40)} 7일 ${errPct.toFixed(0)}% 실패였으나 최근 스냅샷 ok + 24h 안정 — 회복(과거 실패 aging out)`);
   } else if (errPct >= 20) {

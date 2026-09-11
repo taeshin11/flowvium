@@ -326,6 +326,23 @@ async function checkOnce() {
     }
   } catch { /* 판단 불가 — skip */ }
 
+  // [6-a] 쇼츠 조회수 추세 (2026-09-11 신설).
+  //   shorts-health 는 재고 찍기만 한다. 경보는 여기서 올린다 —
+  //   종전에는 그 스크립트가 하락 시 종료코드 1 로 끝냈는데, 크론이 그걸 '작업 실패' 로 읽어
+  //   20분마다 재시도하며 실패 로그만 쌓였다(실패 4 · skip 8, 정작 경보는 한 번도 안 올라갔다).
+  try {
+    const { dailyTrend, verdict } = await import('./lib/shorts-health.mjs');
+    const hdb = (await import('./lib/db.mjs')).openDb();
+    const rows = hdb.prepare(`
+      SELECT s.video_id, s.views, s.age_hours, date(p.published_at, '+9 hours') AS day
+        FROM shorts_stats s JOIN shorts_published p ON p.video_id = s.video_id
+       WHERE p.retracted_at IS NULL
+         AND date(p.published_at,'+9 hours') >= date('now','+9 hours','-7 days')`).all();
+    const v = verdict(dailyTrend(rows));
+    if (v.state === 'down') issues.push(`쇼츠 조회수 — ${v.line}`);
+    else if (v.state !== 'unknown') info.push(`쇼츠 조회수 ${v.state === 'up' ? '↑' : '·'} ${v.line}`);
+  } catch (e) { info.push(`쇼츠 조회수 판정 불가: ${String(e.message).slice(0, 50)}`); }
+
   // [6-b] 전향 연구 결과가 읽히고 있는가 (2026-09-10 신설).
   //   eval-shadow-rules 는 주 1회 돌며 shadow 룰의 전향 성적을 낸다. 잘 돌고 있다 —
   //   실제로 trend_pullback 이 n=30 에서 +0.9%p(승격 기준 충족)였다가 n=73 에서 -0.28%p 로
