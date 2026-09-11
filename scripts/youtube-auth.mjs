@@ -62,6 +62,22 @@ const server = createServer(async (req, res) => {
       throw new Error(`동의에서 빠진 권한: ${missing.join(', ')}\n     받은 권한: ${[...granted].join(' ') || '(없음)'}`
         + '\n     동의 화면의 체크박스를 모두 켜고 다시 시도할 것.');
     }
+    // 2026-09-11: 권한이 다 와도 **계정이 틀리면** 다른 채널의 숫자가 돌아온다.
+    //   실제로 taeshin8250 으로 받았더니 Powder & Ink(구독 5)가 인증됐고, 분석이 그 채널 숫자를
+    //   답했다(Flowvium 은 구독 37). 동의·저장·API 전부 성공한 채로 틀린다 — 저장 전에 대조한다.
+    {
+      const { google: g } = await import('googleapis');
+      const { channelMatches } = await import('./lib/channel-identity.mjs');
+      const { envValue } = await import('./lib/footage.mjs');
+      const probe = new g.auth.OAuth2(c.client_id, c.client_secret, redirect);
+      probe.setCredentials(tokens);
+      const me = await g.youtube({ version: 'v3', auth: probe }).channels.list({ part: ['snippet'], mine: true });
+      // ⚠ 바깥 c 는 자격증명이다 — 가리지 않게 다른 이름을 쓴다.
+      const mine = me.data.items?.[0];
+      const v = channelMatches(mine?.id, envValue('YOUTUBE_CHANNEL_ID'), { got: `${mine?.snippet?.title ?? '?'}(${mine?.id ?? '?'})` });
+      if (v.ok === false) throw new Error(v.reason);
+      console.log(v.ok ? `   채널 확인: ${mine.snippet.title} (${mine.id})` : `   ⚠ ${v.reason}`);
+    }
     const { writeFileSync } = await import('fs');
     writeFileSync(resolve(ROOT, 'secrets/youtube-token.json'), JSON.stringify(tokens, null, 1), { mode: 0o600 });
     res.end('<meta charset="utf-8"><h2>인증 완료 — 창을 닫아도 됩니다.</h2>');
