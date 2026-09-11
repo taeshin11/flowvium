@@ -26,6 +26,10 @@ export const SCOPES = [
   // 채널 정보(설명·키워드·국가·기본언어) 수정에 필요하다. upload 만으로는 channels.update 가 403 이다.
   //   ⚠ 이 스코프로도 **채널 이름과 프로필 사진은 못 바꾼다** — 그건 Studio 에서 사람이 한다.
   'https://www.googleapis.com/auth/youtube',
+  // 2026-09-11: 노출수·클릭률·유입경로. 조회수가 떨어졌을 때 **배분이 멈춘 것인지 클릭이 안 된 것인지**
+  //   지금 도구로는 못 가른다(실측 09-07 편차 32 → 조회수만으로는 판정 불가).
+  //   readonly 라 채널을 바꾸지 못한다 — 읽기만 한다.
+  'https://www.googleapis.com/auth/yt-analytics.readonly',
 ];
 const CRED = resolve(ROOT, 'secrets/youtube-oauth.json');
 const TOKEN = resolve(ROOT, 'secrets/youtube-token.json');
@@ -46,9 +50,15 @@ function loadClient() {
 }
 
 /** 최초 1회. 브라우저 동의 → code → refresh token 저장. */
-export function authUrl() {
+export function authUrl(opts = {}) {
   const o = loadClient();
-  return o.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES });
+  // 2026-09-11: 계정을 여러 개 쓰면 동의 화면이 엉뚱한 계정으로 열린다(유튜브 채널 소유 계정이
+  //   아닌 계정으로 동의하면 조회가 전부 빈다). login_hint 로 처음부터 그 계정을 고른다.
+  const loginHint = opts.account || process.env.YOUTUBE_ACCOUNT || undefined;
+  return o.generateAuthUrl({
+    access_type: 'offline', prompt: 'consent', scope: SCOPES,
+    ...(loginHint ? { login_hint: loginHint } : {}),
+  });
 }
 
 export async function exchangeCode(code) {

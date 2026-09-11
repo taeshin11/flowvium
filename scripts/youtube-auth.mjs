@@ -30,7 +30,20 @@ const oauth = new google.auth.OAuth2(c.client_id, c.client_secret, redirect);
 // 스코프는 **lib/youtube.mjs 의 SCOPES 하나만** 본다.
 //   여기에 목록을 따로 두었다가, 라이브러리에만 권한을 추가하고 "동의 화면에서 빠졌다" 고
 //   두 번이나 오진했다(2026-08-28). 같은 것을 두 군데 적으면 반드시 어긋난다.
-const url = oauth.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES });
+// 2026-09-11: 계정이 여러 개면 동의 화면이 엉뚱한 계정으로 열린다 — 채널 소유 계정이 아닌 것으로
+//   동의하면 분석 조회가 전부 빈다. login_hint 로 처음부터 그 계정을 고른다.
+//   사용: node scripts/youtube-auth.mjs --account taeshin8250@gmail.com
+const ACC = (() => {
+  const i = process.argv.indexOf('--account');
+  const v = i > 0 ? process.argv[i + 1] : process.env.YOUTUBE_ACCOUNT;
+  if (!v) return undefined;
+  return v.includes('@') ? v : `${v}@gmail.com`;   // 아이디만 줘도 받는다
+})();
+if (ACC) console.log(`  계정 지정: ${ACC}`);
+const url = oauth.generateAuthUrl({
+  access_type: 'offline', prompt: 'consent', scope: SCOPES,
+  ...(ACC ? { login_hint: ACC } : {}),
+});
 
 const server = createServer(async (req, res) => {
   const u = new URL(req.url, redirect);
