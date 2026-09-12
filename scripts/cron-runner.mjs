@@ -572,6 +572,11 @@ const MAINT_JOBS = [
   //   한 번 돌려 보니 41건 → 12건으로 줄었다. 밀린 것이지 고장이 아니었다.
   //   평가(18:50) 직후에 검증을 돌린다. 건수를 제한해 Yahoo 를 몰아치지 않는다.
   { label: 'buy-outcomes-verify',  script: 'scripts/evaluate-recommendations.mjs --verify --limit=80', timeoutMs: 900000, commitPaths: [],           schedules: ['10 19 * * *'],                maxAgeH: 30 },
+  // ⚠ maxAgeH 는 "이만큼 안 돌았으면 놓친 것" 기준이다. 주기보다 조금만 길게 잡아야
+  //   놓친 직후 소급된다(auto-monitor 가 20분마다 stale 잡 1개를 즉석 실행).
+  //   2026-09-12: node-cron 이 실행을 827번 놓쳤다(최근 이틀 68번) — 단일 프로세스라 한 작업이
+  //   오래 물면 그 사이 스케줄이 밀린다. 그날 shorts-health 가 08:30 에 그렇게 날아갔다.
+  //   느슨하면(주기 6h 에 maxAgeH 14) 놓친 뒤 8시간을 더 기다린다.
   // 2026-09-09: 조회수가 09-08 부터 1/3 로 떨어졌는데 사흘 뒤 사용자가 물어서야 알았다.
   //   shorts_stats 수집은 자동이었지만 판정이 없었다. 나이 맞춘 중앙값을 매일 재고,
   //   하락이면 종료코드 1 로 경보를 올린다. 마지막 편이 8시간을 넘긴 뒤에 돈다.
@@ -579,12 +584,12 @@ const MAINT_JOBS = [
   //   그런데 로그의 "⚠ 편성 대장 기록 실패" 를 아무도 안 봤고, 원장이 0편으로 남자 중복 방지가
   //   꺼져 같은 뉴스가 56분 간격으로 두 번 나갔다. 실패는 나되 **누적되지는 않게** 한다.
   //   유튜브를 기준으로 원장을 맞춘다. 슬롯 묶음이 끝난 직후마다 본다(호출 1건, 싸다).
-  { label: 'shorts-reconcile',     script: 'scripts/shorts-reconcile.mjs --hours 24 --yes', timeoutMs: 120000, commitPaths: [],           schedules: ['50 1 * * *', '50 5 * * *', '50 10 * * *', '55 13 * * *'], maxAgeH: 14 },  // UTC — KST 10:50·14:50·19:50·22:55
+  { label: 'shorts-reconcile',     script: 'scripts/shorts-reconcile.mjs --hours 24 --yes', timeoutMs: 120000, commitPaths: [],           schedules: ['50 1 * * *', '50 5 * * *', '50 10 * * *', '55 13 * * *'], maxAgeH: 7 },  // UTC — KST 10:50·14:50·19:50·22:55
   // 2026-09-10: 올라간 영상이 만든 영상과 같은지 아무도 안 봤다. 렌더 로그는 "광고를 붙인다" 를
   //   찍지만 붙었는지는 확인하지 않는다. 길이·공개상태·제목중복을 하루 두 번 대조한다.
   //   내리거나 지우지 않는다 — 알리기만 한다.
-  { label: 'shorts-verify',        script: 'scripts/shorts-verify-published.mjs --hours 24', timeoutMs: 120000, commitPaths: [], schedules: ['20 4 * * *', '20 14 * * *'], maxAgeH: 14 },  // UTC — KST 13:20·23:20
-  { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 23 * * *'],                maxAgeH: 30 },  // 23:30 UTC = 08:30 KST
+  { label: 'shorts-verify',        script: 'scripts/shorts-verify-published.mjs --hours 24', timeoutMs: 120000, commitPaths: [], schedules: ['20 4 * * *', '20 14 * * *'], maxAgeH: 13 },  // UTC — KST 13:20·23:20
+  { label: 'shorts-health',        script: 'scripts/shorts-health.mjs',              timeoutMs: 120000,  commitPaths: [],                                     schedules: ['30 23 * * *'],                maxAgeH: 26 },  // 23:30 UTC = 08:30 KST
   { label: 'tune-sell-rules',      script: 'scripts/tune-sell-rules.mjs --apply',    timeoutMs: 600000,  commitPaths: ['data/sell-rules-tuned.json'],         schedules: ['5 19 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'tune-buy-rules',       script: 'scripts/tune-buy-rules.mjs --apply',     timeoutMs: 600000,  commitPaths: ['data/buy-rules-tuned.json'],          schedules: ['20 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
