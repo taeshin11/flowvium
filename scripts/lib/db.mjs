@@ -16,6 +16,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { insiderDirection } from './insider-direction.mjs';
 import { isTicker } from './ticker.mjs';
+import { REALIZED, sqlIn } from './outcome-classes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '../..');
@@ -1785,7 +1786,7 @@ export function getTickerStats() {
            SUM(CASE WHEN o.outcome='not_entered'   THEN 1 ELSE 0 END)    AS skipped,
            SUM(CASE WHEN o.outcome='still_holding' THEN 1 ELSE 0 END)    AS holding,
            ROUND(AVG(o.pnl_pct), 2)                                      AS avg_pnl,
-           ROUND(AVG(CASE WHEN o.outcome IN ('hit_target','stop_loss')
+           ROUND(AVG(CASE WHEN o.outcome ${sqlIn(REALIZED)}
                           THEN o.pnl_pct END), 2)                        AS realized_pnl,
            MIN(r.generated_at)                                            AS first_seen,
            MAX(r.generated_at)                                            AS last_seen,

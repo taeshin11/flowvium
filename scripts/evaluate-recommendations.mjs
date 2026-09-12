@@ -15,6 +15,7 @@
  */
 import { realizedPnlPct, markToMarketPnlPct } from './lib/realized-pnl.mjs';
 import { toYahooTicker } from './lib/ticker-normalize.mjs';
+import { fetchSpySeries, spyReturnBetween, spanOf } from './lib/spy-benchmark.mjs';
 import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary,
          getUnverifiedOutcomes, updateVerifiedOutcome } from './lib/db.mjs';
 
@@ -125,14 +126,6 @@ function judgeOutcome(rec, ohlc) {
   };
 }
 
-async function fetchSpyReturn(fromIso, toIso) {
-  const ohlc = await fetchYahooOHLC('SPY', fromIso, toIso);
-  if (!ohlc || ohlc.closes.length < 2) return null;
-  const first = ohlc.closes[0];
-  const last = ohlc.closes.at(-1);
-  return parseFloat(((last - first) / first * 100).toFixed(2));
-}
-
 /**
  * 체결 미검증 outcome 재평가.
  *
@@ -199,11 +192,18 @@ async function main() {
   }
   if (ALL) console.log(`📡 --all 모드: 14d 윈도우 무시 (${queue.length}건 조기 baseline 평가)\n`);
 
-  // SPY 벤치마크 — 가장 오래된 보고서 시점부터 캐싱
-  const oldestGen = queue.reduce((min, r) => r.generated_at < min ? r.generated_at : min, queue[0].generated_at);
+  // SPY 벤치마크 — 시계열은 한 번만 받고, 수익률은 **추천 건별 보유구간으로** 낸다.
+  //   (2026-09-12) 종전에는 배치에서 가장 오래된 추천 기준 한 값을 전 행에 찍었다.
+  //   그래서 4.4일 보유한 추천이 126일치 SPY 와 비교됐고(2026-09-08 배치 실측 189행),
+  //   alpha = pnl - spy 의 오른쪽이 구간 길이에 좌우됐다. 구간이 다르면 그 차이는 알파가 아니다.
   const nowIso = new Date().toISOString();
-  const spyRet = await fetchSpyReturn(oldestGen, nowIso);
-  console.log(`SPY ${oldestGen.slice(0,10)} → now: ${spyRet}%\n`);
+  const span = spanOf([...queue.map(r => ({ t: r.generated_at })), { t: nowIso }], 't');
+  const spySeries = await fetchSpySeries(span.minMs, span.maxMs).catch((e) => {
+    console.log(`⚠️ SPY 시계열 실패 (${e.message}) — 이번 회차 벤치마크는 비워 둔다`);
+    return [];
+  });
+  const spyFor = (genAt) => spyReturnBetween(spySeries, Date.parse(genAt), Date.parse(nowIso));
+  console.log(`SPY 시계열 ${spySeries.length}일 — 벤치마크는 추천 건별 보유구간으로 계산\n`);
 
   let counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0, skipped_watch: 0 };
   const neClasses = { NE_WINNER_MISSED: 0, NE_UP_DRIFT: 0, NE_NO_FILL: 0 };  // 2026-06-14 NE 세분
@@ -234,7 +234,7 @@ async function main() {
         ohlc_days: ohlc?.days ?? 0,
         high_seen: judge.highSeen ?? null,
         low_seen: judge.lowSeen ?? null,
-        spy_return: spyRet,
+        spy_return: spyFor(rec.generated_at),
         details: { ...judge, pnlBasis: 'realized', mtmPnlPct: mtm },
       });
     }

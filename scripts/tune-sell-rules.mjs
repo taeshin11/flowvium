@@ -27,6 +27,7 @@ import Database from 'better-sqlite3';
 import { readFileSync, writeFileSync, copyFileSync, renameSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { REALIZED, sqlIn } from './lib/outcome-classes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -226,7 +227,7 @@ const buyOutcomes = db.prepare(`
   FROM recommendations r
   JOIN recommendation_outcomes o ON o.recommendation_id = r.id
   WHERE r.action = 'buy'
-    AND o.outcome IN ('hit_target', 'stop_loss', 'still_holding')
+    AND o.outcome ${sqlIn(REALIZED)}
     AND r.target IS NOT NULL AND r.stop_loss IS NOT NULL AND r.price_at_gen IS NOT NULL
 `).all();
 

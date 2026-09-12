@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 import { readFileSync, writeFileSync, renameSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { REALIZED, ENTRY_SCOPE, sqlIn } from './lib/outcome-classes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -30,7 +31,7 @@ const outcomes = db.prepare(`
   FROM recommendations r
   JOIN recommendation_outcomes o ON o.recommendation_id = r.id
   WHERE r.action = 'buy'
-    AND o.outcome IN ('hit_target', 'stop_loss', 'still_holding', 'not_entered')
+    AND o.outcome ${sqlIn(ENTRY_SCOPE)}
 `).all();
 
 const total = outcomes.length;
@@ -94,7 +95,7 @@ const ruleOutcomeRows = db.prepare(`
   --   그걸 빼면 "목표에 닿았나" 만 남고, 이익으로 팔아 준 룰은 점수를 한 푼도 못 받는다.
   --   실제로 오늘 제안 4건이 전부 감점이었고 사유가 모두 hit=0% 였다.
   --   손익이 채워진 것만 넣는다 — --verify 가 매일 채운다(2026-09-07 신설).
-  WHERE o.outcome IN ('hit_target', 'stop_loss', 'sold')
+  WHERE o.outcome ${sqlIn(REALIZED)}
     AND o.pnl_pct IS NOT NULL
 `).all();
 const ruleEdge = {}; // id → { n, hits, stops, pnlSum, alphaSum, alphaN, hitRate, avgPnl, avgAlpha, edge }

@@ -4,6 +4,7 @@
  */
 import Database from 'better-sqlite3';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+import { REALIZED, sqlIn } from './lib/outcome-classes.mjs';
 
 const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 const PAD = (s, n) => String(s ?? '').padEnd(n);
@@ -78,7 +79,7 @@ const tickerPerf = db.prepare(`
     SUM(CASE WHEN o.outcome='hit_target' THEN 1 ELSE 0 END) AS hits,
     SUM(CASE WHEN o.outcome='stop_loss' THEN 1 ELSE 0 END) AS stops,
     SUM(CASE WHEN o.outcome='not_entered' THEN 1 ELSE 0 END) AS ne,
-    ROUND(AVG(CASE WHEN o.outcome IN ('hit_target','stop_loss','still_holding') THEN o.pnl_pct END), 2) AS avg_pnl
+    ROUND(AVG(CASE WHEN o.outcome ${sqlIn(REALIZED)} THEN o.pnl_pct END), 2) AS avg_pnl
   FROM recommendations r
   JOIN recommendation_outcomes o ON o.recommendation_id = r.id
   WHERE r.action = 'buy'

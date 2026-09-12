@@ -6,6 +6,7 @@
  */
 import Database from 'better-sqlite3';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
+import { REALIZED, ENTRY_SCOPE, sqlIn } from './lib/outcome-classes.mjs';
 const db = new Database(`${_PROJECT_ROOT}/data/flowvium.db`, { readonly: true });
 
 console.log('═══════════════════════════════════════════════════════════');
@@ -20,7 +21,7 @@ const confCal = db.prepare(`
     SUM(CASE WHEN o.outcome='stop_loss' THEN 1 ELSE 0 END) stops,
     SUM(CASE WHEN o.outcome='not_entered' THEN 1 ELSE 0 END) ne,
     ROUND(AVG(o.pnl_pct),1) avg_pnl,
-    ROUND(AVG(CASE WHEN o.outcome IN ('hit_target','stop_loss','still_holding') THEN o.pnl_pct END),1) real_pnl
+    ROUND(AVG(CASE WHEN o.outcome ${sqlIn(REALIZED)} THEN o.pnl_pct END),1) real_pnl
   FROM recommendation_outcomes o JOIN recommendations r ON r.id=o.recommendation_id
   WHERE r.action='buy' AND r.confidence IS NOT NULL
   GROUP BY r.confidence
@@ -43,7 +44,7 @@ const alpha = db.prepare(`
     SUM(CASE WHEN o.pnl_pct > o.spy_return THEN 1 ELSE 0 END) beat_spy,
     SUM(CASE WHEN o.pnl_pct < o.spy_return THEN 1 ELSE 0 END) lose_spy
   FROM recommendation_outcomes o JOIN recommendations r ON r.id=o.recommendation_id
-  WHERE r.action='buy' AND o.outcome IN ('hit_target','stop_loss','still_holding') AND o.spy_return IS NOT NULL
+  WHERE r.action='buy' AND o.outcome ${sqlIn(REALIZED)} AND o.spy_return IS NOT NULL
 `).get();
 console.log(`   n=${alpha.n}, ticker avg=${alpha.ticker_avg}%, SPY avg=${alpha.spy_avg}%, ALPHA=${alpha.alpha}%`);
 console.log(`   beat SPY: ${alpha.beat_spy} / lose: ${alpha.lose_spy} → win rate ${((alpha.beat_spy/(alpha.beat_spy+alpha.lose_spy))*100).toFixed(0)}%`);
@@ -58,7 +59,7 @@ const timeToHit = db.prepare(`
     ROUND(AVG(o.ohlc_days),1) avg_days,
     MIN(o.ohlc_days) min_d, MAX(o.ohlc_days) max_d
   FROM recommendation_outcomes o
-  WHERE o.outcome IN ('hit_target','stop_loss','still_holding','not_entered') AND o.ohlc_days IS NOT NULL
+  WHERE o.outcome ${sqlIn(ENTRY_SCOPE)} AND o.ohlc_days IS NOT NULL
   GROUP BY o.outcome
 `).all();
 for (const r of timeToHit) {
