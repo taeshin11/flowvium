@@ -57,7 +57,16 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   log "[WARN] 죽은 락(${age_s}s) 회수"
   rmdir "$LOCK_DIR" 2>/dev/null; mkdir "$LOCK_DIR" 2>/dev/null || { log "[FATAL] 락 획득 실패"; exit 3; }
 fi
-cleanup() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
+# 2026-09-12: 알림 해제를 여기로 옮긴다. 종전엔 정상 종료 경로(4-c)에만 있어서
+#   회차가 죽거나 OOM 으로 끊기면 — 하필 옆 세션이 강제 종료되던 바로 그 상황이다 —
+#   `report` 키가 영원히 남고 상대가 2시간을 기다렸다. 어떻게 끝나든 지워야 한다.
+#   PEER_NOTIFIED 가 설정된 뒤에만 해제한다(알리기 전에 죽으면 지울 것도 없다).
+cleanup() {
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+  if [ -n "${PEER_NOTIFIED:-}" ]; then
+    "$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-end >/dev/null 2>&1 || true
+  fi
+}
 trap cleanup EXIT INT TERM
 
 cd "$APP_DIR"
@@ -71,8 +80,15 @@ cd "$APP_DIR"
 #   이 회차가 28GB 모델을 30~60분 붙잡는다. 같은 맥미니를 쓰는 세션이 오늘만 두 번
 #   메모리 부족으로 강제 종료됐고(여유 3GB 아래면 macOS 가 끊는다), 그 원인일 가능성이 크다.
 #   서로 언제 무거운지 모르면 계속 부딪힌다. 파일 한 줄로 남긴다 — 상대가 그것만 보면 된다.
-"$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-start \
-  --detail "$* · 27B 28GB · 예상 30~60분" >/dev/null 2>&1 || true
+#   "예상 30~60분" 은 손으로 적은 값이었고 틀렸다 — 실측은 다섯 회차 모두 90분 안팎이다.
+#   상대가 그 숫자를 믿고 자기 작업을 잡았다가 4분 차이로 부딪힐 뻔했다. 기록에서 뽑는다.
+SESSION_NAME="$(printf '%s\n' "$@" | sed -n 's/^--session=//p' | head -1)"
+ETA="$("$NODE_BIN" -e "import('$APP_DIR/scripts/lib/report-eta.mjs').then(m=>console.log(m.etaLine(process.argv[1])))" "${SESSION_NAME:-unknown}" 2>/dev/null || echo '소요시간 기록 없음')"
+#   --pid 로 임자를 남긴다. trap 은 SIGKILL 에 안 걸리고 bash 는 foreground 명령이 끝나야
+#   trap 을 돈다(실측). 해제 신호를 못 보내고 죽어도, 읽는 쪽이 PID 로 죽은 키를 알아본다.
+"$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-start --pid $$ \
+  --detail "$* · 27B 28GB · $ETA" >/dev/null 2>&1 || true
+PEER_NOTIFIED=1
 
 # ── 1. LLM 헬스 대기 ───────────────────────────────────────────────────────────
 # 1-a. 포트 기동 대기. 이건 *기동* 확인일 뿐 정상 확인이 아니다 — 아래 1-b 가 진짜 판정이다.
@@ -173,8 +189,7 @@ if [ "$rc" -eq 0 ]; then
   fi
 fi
 
-# ── 4-c. 알림 해제 — 무거운 구간이 끝났음을 알린다.
-"$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-end >/dev/null 2>&1 || true
+# ── 4-c. 알림 해제는 trap cleanup 이 한다 (정상·비정상 양쪽 모두).
 
 # ── 5. 보고서 모델 내려놓기 (2026-09-07 사용자 "GPU 꼭 써야 되는거만 남기고 나머진 비워") ──
 #   :8000 이 들고 있는 모델은 28GB 다. 하루 다섯 번 쓰는데 24시간 떠 있었다.

@@ -330,20 +330,19 @@ async function checkOnce() {
   //   같은 맥미니(48GB)를 쓰는 세션이 오늘만 두 번 메모리 부족으로 강제 종료됐다.
   //   서로 언제 무거운지 모르면 계속 부딪힌다 — 공유 파일 한 줄로 주고받기로 합의했다.
   //   우리 회차 시작·종료는 run-report.sh 가 남기고, 여기서는 **상대 것**을 읽어 알린다.
+  //   2026-09-12 추가: 해제 신호만 믿지 않는다. SIGKILL 은 trap 에 안 걸리고(메모리 부족으로
+  //   macOS 가 끊을 때 쓰는 신호다), bash 는 foreground 명령이 끝나야 trap 을 돈다 — 둘 다
+  //   실측으로 확인했다. 임자 PID 가 죽었으면 남은 키는 '죽은 키' 로 읽고 그렇게 말한다.
   try {
-    const { readFileSync: rf, existsSync: ex } = await import('node:fs');
-    const f = `${process.env.HOME}/flowvium_runtime/machine-load-now.json`;
-    if (ex(f)) {
-      const cur = JSON.parse(rf(f, 'utf8'));
-      const others = Object.entries(cur).filter(([k]) => k !== 'report');
-      if (others.length) {
-        const line = others.map(([k, v]) => {
-          const h = v?.since ? ((Date.now() - Date.parse(v.since)) / 3600000).toFixed(1) : '?';
-          return `${k}(${h}h째${v?.detail ? ` · ${v.detail}` : ''})`;
-        }).join(' · ');
-        info.push(`같은 기기 작업 중: ${line} — 무거운 것을 새로 시작하기 전에 고려할 것`);
-      }
-    }
+    const { currentLoad } = await import('./lib/peer-load.mjs');
+    const { live, stale } = currentLoad({ exclude: ['report'] });
+    const fmt = (e) => `${e.key}(${e.ageH != null ? e.ageH.toFixed(1) : '?'}h째${e.detail ? ` · ${e.detail}` : ''})`;
+    if (live.length) info.push(`같은 기기 작업 중: ${live.map(fmt).join(' · ')} — 무거운 것을 새로 시작하기 전에 고려할 것`);
+    if (stale.length) issues.push(`죽은 부하 키 ${stale.length}건 — ${stale.map(fmt).join(' · ')} · 임자 프로세스가 없다. `
+      + `상대가 이걸 보고 기다리고 있을 수 있다 (해제: 그 키를 machine-load-now.json 에서 지운다)`);
+    // 우리 키가 죽은 채 남아 있으면 그건 우리가 치울 일이다.
+    const ours = currentLoad().stale.filter((e) => e.key === 'report');
+    if (ours.length) issues.push(`우리 report 키가 죽은 채 남아 있다 (${ours[0].ageH?.toFixed(1)}h) — 옆 세션이 헛기다린다. 지울 것`);
   } catch { /* 없으면 그만 */ }
 
   // [5-b] 유튜브 토큰 만료 예고 (2026-09-12 신설).
