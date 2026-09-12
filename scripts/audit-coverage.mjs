@@ -57,6 +57,10 @@ const STRUCTURAL_NULLS = {
   // 2026-09-10 신설. 올린 파일의 실제 길이 — 유튜브가 보고하는 길이와 대조해 광고 클립 누락·
   //   업로드 잘림을 잡는다(shorts-verify-published). 컬럼을 만든 시점 이후 발행분만 채워지므로
   //   과거 행은 영구 NULL 이다. 신규 발행이 쌓이면 비율이 내려간다 — 그때 이 줄을 지운다.
+  // 내린 회차에만 값이 있다 — 대부분은 안 내리는 것이 정상이다(내림이 많으면 그게 문제다).
+  //   2026-09-12 실측 82%null = 18%를 내렸다는 뜻. 09-06 대량 내림의 잔상이라 시간이 지나면 더 내려간다.
+  'shorts_published.retracted_at': '내린 회차에만 채움 — 안 내리는 것이 정상. 낮을수록 좋은 지표다',
+  'shorts_published.retract_reason': 'retracted_at 과 짝 — 내린 회차에만 채움',
   'shorts_published.duration_sec': '2026-09-10 신설 — 이후 발행분만 채움. 과거 행은 소급 불가(파일이 이미 없다)',
   'news_archive.pub_date': 'company-change 행은 기사 아님→날짜 N/A (news-cascade 행은 pub_date 100%)',
   'news_archive.link': 'company-change 행은 기사 링크 없음 (news-cascade 행은 link 100%)',

@@ -326,6 +326,26 @@ async function checkOnce() {
     }
   } catch { /* 판단 불가 — skip */ }
 
+  // [5-a] 같은 기기의 다른 세션이 무거운 걸 돌리고 있나 (2026-09-12).
+  //   같은 맥미니(48GB)를 쓰는 세션이 오늘만 두 번 메모리 부족으로 강제 종료됐다.
+  //   서로 언제 무거운지 모르면 계속 부딪힌다 — 공유 파일 한 줄로 주고받기로 합의했다.
+  //   우리 회차 시작·종료는 run-report.sh 가 남기고, 여기서는 **상대 것**을 읽어 알린다.
+  try {
+    const { readFileSync: rf, existsSync: ex } = await import('node:fs');
+    const f = `${process.env.HOME}/flowvium_runtime/machine-load-now.json`;
+    if (ex(f)) {
+      const cur = JSON.parse(rf(f, 'utf8'));
+      const others = Object.entries(cur).filter(([k]) => k !== 'report');
+      if (others.length) {
+        const line = others.map(([k, v]) => {
+          const h = v?.since ? ((Date.now() - Date.parse(v.since)) / 3600000).toFixed(1) : '?';
+          return `${k}(${h}h째${v?.detail ? ` · ${v.detail}` : ''})`;
+        }).join(' · ');
+        info.push(`같은 기기 작업 중: ${line} — 무거운 것을 새로 시작하기 전에 고려할 것`);
+      }
+    }
+  } catch { /* 없으면 그만 */ }
+
   // [5-b] 유튜브 토큰 만료 예고 (2026-09-12 신설).
   //   OAuth 앱이 '테스트' 상태면 갱신 토큰이 7일 뒤 폐기된다. 2026-09-11 19:23 을 마지막으로
   //   업로드가 invalid_grant 로 죽었고 **9시간 뒤에야** 알았다 — 그동안 렌더는 계속 돌았다.
