@@ -406,6 +406,29 @@ async function checkOnce() {
     }
   } catch (e) { info.push(`전향 연구 결과 못 읽음: ${String(e.message).slice(0, 50)}`); }
 
+  // [6-c] 매수 추천이 실제로 SPY 를 이기고 있나 (2026-09-12 신설).
+  //   이 숫자를 내는 check-prospective-gaps.mjs 는 크론에 없다 — 손으로 부를 때만 돈다.
+  //   그래서 벤치마크·분모 두 곳의 측정 결함으로 알파가 -2.17% 로 잘못 나오던 3개월간
+  //   아무도 몰랐다(고친 뒤 실측 +0.83%). 파일을 하나 더 만들면 그 파일이 낡으므로
+  //   감시가 DB 를 직접 읽는다.
+  try {
+    const { buyAlpha } = await import('./lib/buy-alpha.mjs');
+    const a = buyAlpha({ days: 30 });
+    if (a.window.n === 0) {
+      info.push(`매수 성과 ${a.line}`);
+    } else if (a.verdict === 'behind') {
+      issues.push(`매수 추천이 SPY 에 뒤진다 — ${a.line} (승률이 동전과 구별될 만큼 낮다)`);
+    } else if (a.window.alpha < 0) {
+      // 평균은 마이너스인데 승률은 반반 이상일 수 있다 — 소수의 큰 손실이 끌어내린 모양.
+      const t = a.tail?.share != null
+        ? ` · 결손의 ${a.tail.share}%가 -10%p 밑 ${a.tail.n}건에서 나왔다`
+        : '';
+      info.push(`매수 성과 주의: ${a.line}${a.window.beat > a.window.lose ? ' · 이긴 건은 더 많다' : ''}${t}`);
+    } else {
+      info.push(`매수 성과 ✓ ${a.line}`);
+    }
+  } catch (e) { info.push(`매수 성과 판정 불가: ${String(e.message).slice(0, 50)}`); }
+
   // [7-c] 설정 드리프트 — 고쳤는데 프로세스가 옛것을 돌고 있는 상태 (2026-09-10 신설).
   //   cron-runner 는 09-08 부터 떠 있었고 09-09·09-10 에 추가한 작업 셋이 **한 번도 안 돌았다.**
   //   로그에 흔적이 없어 "등록 안 함" 과 구별되지 않았다. 빌드 드리프트와 같은 얼굴이다.
