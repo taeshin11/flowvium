@@ -1,30 +1,12 @@
 {
-  "generatedAt": "2026-09-11T10:41:24.310Z",
+  "generatedAt": "2026-09-12T07:00:59.879Z",
   "universe": "US",
   "scanned": 298,
   "count": 6,
-  "strongCount": 1,
-  "watchCount": 5,
+  "strongCount": 0,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "GOLD",
-      "name": "Gold.com, Inc.",
-      "tier": "strong",
-      "score": 37,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 2.7,
-      "runup5dPct": 4.7,
-      "medDollarVolUsd": 18253721,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "TYRA",
       "name": "Tyra Biosciences, Inc.",
@@ -32,13 +14,30 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.4× 급증(가격 평탄)",
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -7,
-      "runup5dPct": -6.3,
+      "runup20dPct": -12,
+      "runup5dPct": -11.4,
       "medDollarVolUsd": 18381400,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CMCM",
+      "name": "Cheetah Mobile Inc.",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 1.3,
+      "runup5dPct": -7.8,
+      "medDollarVolUsd": 21987,
       "smartAccum": false,
       "official": null
     },
@@ -49,28 +48,29 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 8.0× 상승(지속 매집)",
-        "거래량 14.3× 급증(가격 평탄)"
+        "거래량 추세 8.1× 상승(지속 매집)",
+        "거래량 14.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": 3,
-      "runup5dPct": 5.9,
-      "medDollarVolUsd": 179094,
+      "runup20dPct": 2,
+      "runup5dPct": 2,
+      "medDollarVolUsd": 179571,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "HEPS",
-      "name": "D-Market Electronic Services & ",
+      "ticker": "GNK",
+      "name": "Genco Shipping & Trading Limite",
       "tier": "watch",
-      "score": 26,
-      "coFire": 2,
+      "score": 25,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "변동성 수축(coiling) — 돌파 압축"
+        "거래량 추세 1.5× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": -7,
-      "runup5dPct": -1.5,
-      "medDollarVolUsd": 294451,
+      "runup20dPct": 3.2,
+      "runup5dPct": -1.7,
+      "medDollarVolUsd": 8914174,
       "smartAccum": false,
       "official": null
     },
@@ -84,25 +84,25 @@
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 70%(강한 매수 흡수)"
       ],
-      "runup20dPct": -8.1,
-      "runup5dPct": 6.5,
+      "runup20dPct": -4.5,
+      "runup5dPct": 9.7,
       "medDollarVolUsd": 27190318,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NAT",
-      "name": "Nordic American Tankers Limited",
+      "ticker": "HEPS",
+      "name": "D-Market Electronic Services & ",
       "tier": "watch",
-      "score": 15,
+      "score": 19,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%"
+        "거래량 추세 1.9× 상승",
+        "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": 12,
-      "runup5dPct": 2,
-      "medDollarVolUsd": 21334796,
+      "runup20dPct": -7.1,
+      "runup5dPct": -2.2,
+      "medDollarVolUsd": 294451,
       "smartAccum": false,
       "official": null
     }
