@@ -28,6 +28,7 @@ import { readFileSync, writeFileSync, copyFileSync, renameSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { REALIZED, sqlIn } from './lib/outcome-classes.mjs';
+import { direction, describe } from './lib/edge-significance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -173,18 +174,35 @@ for (const r of spec.rules) {
   }
   const e = ruleEdge[r.id];
   const current = r.score;
-  if (!e || e.evaluated < MIN_SAMPLE) {
+  // 2026-09-12: 매수 튜너와 같은 관문 — 개수(eval>=5)가 아니라 good_call 비율이
+  //   동전과 구별되는가로 본다. 5건 중 4건 good 은 동전으로도 19% 확률로 나온다.
+  const dir = e ? direction({ wins: e.good, losses: e.evaluated - e.good }) : 0;
+  if (!e || dir === 0) {
     proposals.push({
       id: r.id, fired: e?.fired ?? 0, evaluated: e?.evaluated ?? 0,
       edge: e?.edge ?? null, current, proposed: current, changed: false,
-      reason: `표본부족(eval=${e?.evaluated ?? 0}<${MIN_SAMPLE})`,
+      reason: `판정보류(${e ? describe({ wins: e.good, losses: e.evaluated - e.good }) : '표본 0'})`,
+    });
+    continue;
+  }
+  if (Math.sign(e.edge) !== dir) {
+    proposals.push({
+      id: r.id, fired: e.fired, evaluated: e.evaluated, edge: e.edge,
+      current, proposed: current, changed: false,
+      reason: `방향 불일치(good ${dir > 0 ? '+' : '-'} vs edge ${e.edge})`,
     });
     continue;
   }
   const mult = 1 + Math.max(-MAX_CHANGE_PCT, Math.min(MAX_CHANGE_PCT, e.edge * MAX_CHANGE_PCT));
   let proposed = Math.round(current * mult);
   proposed = Math.max(SCORE_MIN, Math.min(SCORE_MAX, proposed)); // never 0, cap at bounds
-  // 정수 반올림으로 cap 안에서 변화 0 일 수 있음 — 그대로 둠.
+  // 2026-09-12: 매수 튜너(2026-09-09)와 같은 '갇힘' 풀기. `edge × 20%` 는 정수 반올림에 먹혀
+  //   높은 점수의 나쁜 룰이 제자리에 머문다 — 실측: price_stop_near 는 44건에 good 20% 인데
+  //   8 × 0.946 = 7.57 → 반올림 8 로 그대로였다. 판정이 서 있고(동전과 구별) 방향이
+  //   뚜렷하면(|edge| >= 0.2) 한 칸은 움직인다. 주 1회라 잘못돼도 다음 주에 되돌아온다.
+  if (proposed === current && Math.abs(e.edge) >= 0.2) {
+    proposed = Math.max(SCORE_MIN, Math.min(SCORE_MAX, current + dir));
+  }
   proposals.push({
     id: r.id, fired: e.fired, evaluated: e.evaluated, edge: e.edge,
     avoidedLossPct: Math.round(e.avoidedLossPct * 10) / 10,
@@ -215,8 +233,8 @@ for (const p of proposals) {
     + '  ' + p.reason);
 }
 const changedScores = proposals.filter((p) => p.changed);
-const tunable = proposals.filter((p) => p.evaluated >= MIN_SAMPLE);
-console.log(`\n  요약: ${proposals.length} 룰 중 ${tunable.length} 룰 표본충분(eval≥${MIN_SAMPLE}), ${changedScores.length} 룰 score 변경 제안.`);
+const tunable = proposals.filter((p) => p.changed || /판정보류/.test(p.reason) === false);
+console.log(`\n  요약: ${proposals.length} 룰 중 ${tunable.length} 룰 판정 성립(동전과 구별), ${changedScores.length} 룰 score 변경 제안.`);
 
 // ── [4] buy outcome 기반 cross-learning: target / stop 임계값 grid search ─────
 console.log('\n▶ [3] buy outcome 기반 매도 룰 임계값 grid search');

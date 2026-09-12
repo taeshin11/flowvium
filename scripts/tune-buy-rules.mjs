@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, renameSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { REALIZED, ENTRY_SCOPE, sqlIn } from './lib/outcome-classes.mjs';
+import { direction, describe } from './lib/edge-significance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -134,8 +135,19 @@ for (const r of spec.rules) {
     continue;
   }
   const e = ruleEdge[r.id];
-  if (!e || e.n < MIN_SAMPLE) {
-    ruleProposals.push({ id: r.id, category: r.category, n: e?.n ?? 0, edge: e?.edge ?? null, current: r.score, proposed: r.score, changed: false, reason: `표본부족(n=${e?.n ?? 0}<${MIN_SAMPLE})` });
+  // 2026-09-12: 관문을 개수(n>=5)에서 **동전과 구별되는가** 로 바꾼다.
+  //   분모를 고쳐 표본이 늘자(532건 귀속) n=6·수익 83% 짜리까지 점수를 올리자고 나왔다.
+  //   공정한 동전을 6번 던져 5번 앞면이 나올 확률이 11% 다 — 구별되지 않는다.
+  //   Wilson 한쪽 90% 구간이 0.5 를 넘어야 올리고 밑돌아야 내린다(edge-significance.mjs).
+  //   문턱 숫자를 손으로 올리는 건 또 하나의 감이라 쓰지 않았다.
+  const dir = direction(e);
+  if (!e || dir === 0) {
+    ruleProposals.push({ id: r.id, category: r.category, n: e?.n ?? 0, edge: e?.edge ?? null, current: r.score, proposed: r.score, changed: false, reason: `판정보류(${describe(e)})` });
+    continue;
+  }
+  // 수익 비율과 edge(수익+알파 합성)의 방향이 엇갈리면 움직이지 않는다 — 둘 다 같은 말을 할 때만.
+  if (Math.sign(e.edge) !== dir) {
+    ruleProposals.push({ id: r.id, category: r.category, n: e.n, edge: e.edge, current: r.score, proposed: r.score, changed: false, reason: `방향 불일치(수익 ${dir > 0 ? '+' : '-'} vs edge ${e.edge})` });
     continue;
   }
   const mult = 1 + Math.max(-MAX_CHANGE_PCT, Math.min(MAX_CHANGE_PCT, e.edge * MAX_CHANGE_PCT));
@@ -152,12 +164,13 @@ for (const r of spec.rules) {
   }
   ruleProposals.push({ id: r.id, category: r.category, n: e.n, hitRate: Math.round(e.hitRate * 100), winRate: Math.round(e.winRate * 100), avgAlpha: Math.round(e.avgAlpha * 10) / 10, edge: e.edge, current: r.score, proposed, changed: proposed !== r.score, reason: proposed !== r.score ? `edge=${e.edge} → ×${mult.toFixed(2)}` : `edge=${e.edge}(변화없음)` });
 }
-const tunable = ruleProposals.filter((p) => p.n >= MIN_SAMPLE);
+// '표본충족' 은 이제 개수가 아니라 판정이 선 룰이다 — 숫자가 뜻을 갖게.
+const tunable = ruleProposals.filter((p) => direction(ruleEdge[p.id]) !== 0);
 const changes = ruleProposals.filter((p) => p.changed);
 console.log(`\n▶ [3.5] 룰별 outcome 백튜닝 ("좋은 것만 학습")`);
 console.log(`  종결 outcome 귀속 ${ruleOutcomeRows.length}건 → 표본충족 룰 ${tunable.length}/${spec.rules.length}, 조정 제안 ${changes.length}`);
 for (const p of changes) console.log(`    ${p.id.padEnd(24)} score ${p.current}→${p.proposed} (${p.reason}; n=${p.n}, 수익=${p.winRate ?? p.hitRate}%, α=${p.avgAlpha}%)`);
-if (!tunable.length) console.log(`  (아직 룰당 종결 outcome ${MIN_SAMPLE}건 미만 — 데이터 축적 시 자동 활성. 매 발간 outcome 평가로 채워짐.)`);
+if (!tunable.length) console.log(`  (아직 어느 룰도 동전과 구별되는 성적이 없다 — 데이터 축적 시 자동 활성. 매 발간 outcome 평가로 채워짐.)`);
 spec.ruleEdge = Object.fromEntries(Object.entries(ruleEdge).map(([k, v]) => [k, { n: v.n, hitRate: Math.round(v.hitRate * 100), winRate: Math.round(v.winRate * 100), avgAlpha: Math.round(v.avgAlpha * 10) / 10, edge: v.edge }]));
 
 // ── [4] buy-rules-tuned.json 업데이트 ──────────────────────────────────────────
