@@ -31,7 +31,7 @@ const v = verdict(trend);
 
 if (JSON_OUT) { console.log(JSON.stringify({ trend, verdict: v }, null, 2)); process.exit(0); }
 
-console.log('  날짜        발행 8시간 조회수(중앙)   표본');
+console.log('  날짜        발행 48시간 조회수(중앙)   표본');
 for (const d of trend) {
   console.log(`   ${d.day}   ${String(d.median ?? '—').padStart(10)}   ${String(d.n).padStart(6)}편`);
 }
