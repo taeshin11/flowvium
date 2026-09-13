@@ -89,15 +89,33 @@ export function isProudHeadline(h) {
   return KOREA.test(t) || listedKoreanCorp(t);
 }
 
+/**
+ * 인용부호로 시작하는가. 곧은 따옴표·굽은 따옴표·홑따옴표를 모두 본다 —
+ * 연합뉴스 계열은 굽은 따옴표(“)를, 다른 곳은 곧은 따옴표(")를 쓴다.
+ */
+export function startsWithQuote(h) {
+  return /^\s*["'\u201c\u201d\u2018\u2019\u300c\u300e]/.test(String(h ?? ''));
+}
+
 export function orderForTitle(heads, isKo) {
   let list = (heads ?? []).filter(Boolean);
   // 2026-09-04 사용자: "왜 제목 설명이 영어로 나갔어?"
   //   한국어 채널인데 "Should Investors Ride the Silver…" 가 제목으로 나갔다.
   //   같은 이슈 묶음에 한국어 헤드라인이 넷이나 있었는데 **첫 줄이 영어**라 그게 제목이 됐다.
   //   한국어 편이면 한글 헤드라인을 앞세운다. 하나도 없으면 그대로 둔다(호출부가 막는다).
+  // 우선순위를 한 군데서 정한다. 규칙을 따로따로 덧붙이면 나중 규칙이 앞 규칙을 덮는다
+  //   (실제로 2026-09-13 에 인용 회피를 뒤에 붙였다가 한글 우선이 깨졌다).
+  //   ① 한글 먼저 — 한국어 채널에 영어 제목이 나가면 안 된다(2026-09-04 사고).
+  //   ② 그 안에서 인용으로 시작하지 않는 것 먼저 (2026-09-13, 아래 실측).
+  //      48시간 기준으로 인용으로 시작한 11편 중 9편이 그날 하위였다.
+  //      중간 위 2/11, Wilson 90% 구간 6~43% — 동전과 구별되게 낮다(그날 순위 17%ile).
+  //      쇼츠 피드는 제목 앞부분만 보여준다. 인용부터 들이밀면 누가 한 말인지 모른 채 지나간다.
+  //   **헤드라인을 고쳐 쓰지 않는다 — 고르는 순서만 바꾼다.** 전부 인용이면 그대로 간다.
   if (isKo) {
-    const ko = list.filter((h) => /[가-힣]/.test(String(h)));
-    if (ko.length) list = [...ko, ...list.filter((h) => !/[가-힣]/.test(String(h)))];
+    const rank = (h) => (/[가-힣]/.test(String(h)) ? 0 : 2) + (startsWithQuote(h) ? 1 : 0);
+    list = list.map((h, k) => ({ h, k, r: rank(h) }))
+      .sort((a, b) => a.r - b.r || a.k - b.k)   // 같은 등급이면 원래 순서 유지
+      .map((x) => x.h);
   }
   if (!isKo || list.length < 2) return { ordered: list, proud: false };
   const i = list.findIndex((h) => isProudHeadline(h));

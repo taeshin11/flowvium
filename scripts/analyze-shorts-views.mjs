@@ -90,7 +90,7 @@ for (const list of byDay.values()) {
  * 룰 튜닝에서 쓰는 같은 잣대다(edge-significance.mjs). 감으로 문턱을 정하지 않는다.
  */
 const cmp = (label, pick) => {
-  const yes = rows.filter(pick), no = rows.filter((r) => !pick(r));
+  const yes = g.filter(pick), no = g.filter((r) => !pick(r));
   if (yes.length < 3 || no.length < 3) return console.log(`   ${label.padEnd(18)} 표본 부족 (${yes.length} vs ${no.length})`);
   const py = med(yes.map((r) => r.pct)), pn = med(no.map((r) => r.pct));
   const vy = med(yes.map((r) => r.views)), vn = med(no.map((r) => r.views));
@@ -101,7 +101,17 @@ const cmp = (label, pick) => {
     + `${verdict}  [중간 위 ${describe({ wins: above, losses: yes.length - above })}]`);
 };
 
-console.log('\n② 날짜 안에서 갈린 이유 — 그날 순위 백분위로 비교 (50%ile = 그날 중간)\n');
+// ②는 **48시간 자료만** 쓴다. 9시간 표본을 섞으면 안 된다 —
+//   9시간 값은 48시간 값의 69%라 아직 이틀이 안 된 편이 조직적으로 낮게 앉는다.
+//   최근 편은 발행 시간대가 한쪽에 몰려 있어서, 섞으면 **없는 시간대 효과가 생긴다.**
+//   실제로 섞은 자료에서는 "오전 6~12시 불리(6/20, 16~48%)"가 나왔는데
+//   48시간 자료만 보면 5/14(19~57%)로 판정이 서지 않는다. 그 차이가 전부 이 오염이었다.
+const g = rows.filter((r) => r.tier === 0);
+for (const list of Object.values(Object.fromEntries([...new Set(g.map((r) => r.day))].map((d) => [d, g.filter((r) => r.day === d)])))) {
+  const sorted = [...list].sort((a, b) => a.views - b.views);
+  sorted.forEach((r, i) => { r.pct = list.length > 1 ? i / (list.length - 1) * 100 : 50; });
+}
+console.log(`\n② 날짜 안에서 갈린 이유 — 48시간 자료 ${g.length}편만 (9시간 표본을 섞으면 없는 효과가 생긴다)\n`);
 cmp('🇰🇷 국뽕 제목', (r) => r.gukppong);
 cmp('[속보] 로 시작', (r) => r.breaking);
 cmp('따옴표로 시작', (r) => r.quoted);

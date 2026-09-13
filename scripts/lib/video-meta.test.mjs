@@ -222,5 +222,43 @@ const M = await import('./video-meta.mjs');
   if (saved !== undefined) process.env.DONATION_ACCOUNT = saved;
 }
 
+// ── 따옴표로 시작하는 제목은 뒤로 민다 (2026-09-13) ────────────────────────────
+// 실측: 48시간 기준으로 재니 따옴표로 시작한 11편 중 **9편이 그날 하위**였다
+//   (중간 위 2/11, Wilson 90% 구간 6~43% — 동전과 구별되게 낮다).
+//   쇼츠 피드는 제목 앞부분만 보여주는데, 따옴표로 시작하면 누가 한 말인지 모른 채
+//   인용부터 들이밀게 된다. 같은 이슈 묶음 안에 인용 아닌 헤드라인이 있으면 그쪽을 쓴다.
+//
+// 지켜야 할 선: **헤드라인을 고쳐 쓰지 않는다.** 고르는 순서만 바꾼다 —
+//   제목 문자열은 언제나 원문에서 나온다(이 파일의 기존 원칙).
+{
+  const M = await import('./video-meta.mjs');
+  const heads = ['"고용 너무 잘 나왔다"…금리인상 공포 재점화', '코스피 사흘 만에 반등…외국인 순매수'];
+  const { ordered } = M.orderForTitle(heads, true);
+  ordered[0] === heads[1]
+    ? ok('따옴표로 시작하지 않는 헤드라인을 앞세운다')
+    : bad(`따옴표 헤드라인이 그대로 제목이 된다: ${ordered[0]}`);
+
+  // 전부 따옴표면 버리지 않는다 — 제목이 없어지는 것보다는 낫다
+  const allQuoted = ['"첫째 인용"…무슨 일', '"둘째 인용"…다른 일'];
+  const r2 = M.orderForTitle(allQuoted, true);
+  r2.ordered.length === 2 && r2.ordered[0] === allQuoted[0]
+    ? ok('전부 인용이면 순서를 흔들지 않는다 (헤드라인을 잃지 않는다)')
+    : bad(`전부 인용일 때 목록이 바뀌었다: ${JSON.stringify(r2.ordered)}`);
+
+  // 국뽕이 있으면 국뽕이 이긴다 — 앞머리가 붙어 어차피 따옴표로 시작하지 않는다
+  const withProud = ['"인용 헤드라인"…어쩌고', '삼성전자, 사상 최대 수출 기록 달성'];
+  const r3 = M.orderForTitle(withProud, true);
+  r3.ordered[0] !== withProud[0]
+    ? ok('국뽕/일반 헤드라인이 인용보다 앞선다')
+    : bad('인용이 여전히 앞에 온다');
+
+  // 한글 우선 규칙을 깨지 않는다
+  const mixed = ['Fed holds rates steady', '"물가 잡힌다"…한은 총재 발언'];
+  const r4 = M.orderForTitle(mixed, true);
+  /[가-힣]/.test(r4.ordered[0])
+    ? ok('한글 우선이 인용 회피보다 먼저다 (영어 제목이 나가면 안 된다)')
+    : bad(`영어 헤드라인이 앞에 왔다: ${r4.ordered[0]}`);
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);
