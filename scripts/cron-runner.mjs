@@ -595,6 +595,10 @@ const MAINT_JOBS = [
   { label: 'build-backlog',        script: 'scripts/build-backlog.mjs',              timeoutMs: 1200000, commitPaths: ['data/backlog.json'],                  schedules: ['5 20 * * 6'],                 maxAgeH: 9 * 24 },
   { label: 'build-financials',     script: 'scripts/build-financials-cache.mjs',     timeoutMs: 1500000, commitPaths: ['data/financials.json'],               schedules: ['35 19 * * *'],                maxAgeH: 30 },
   // 2026-07-03: 전향연구 평가 — shadow 룰(live 미참여 후보)의 전향 5/10일 성적 주간 집계(TER 회고 후속).
+  // 2026-09-13: 공매도 잔고 순환 적재. FINRA 결제일 기준 월 2회 갱신이라 하루 한 번이면 넉넉하고,
+  //   한 회차 150종이면 715종 풀이 5일에 한 바퀴 돈다. 08:40 UTC = 17:40 KST —
+  //   보고서 다섯 회차(13:30·20:30·01:30·05:30·11:00 UTC)와 옆 세션 새벽 배치(15:20~20:15 UTC) 사이.
+  { label: 'short-interest',       script: 'scripts/ingest-short-interest.mjs --limit=150', timeoutMs: 900000, commitPaths: [],           schedules: ['40 8 * * *'],                 maxAgeH: 30 },
   { label: 'eval-shadow-rules',    script: 'scripts/eval-shadow-rules.mjs',          timeoutMs: 600000,  commitPaths: [],                                     schedules: ['50 19 * * 6'],                maxAgeH: 9 * 24 },
   // 2026-07-04: 전 종목(1,338) 회사페이지 *렌더* 전수검증 주간 — API 전수(audit-company-*)와 별개로
   //   실제 화면 렌더(NaN/에러/스켈레톤/가격 미렌더)를 detector 로 회귀 감시(사용자 "모든 회사 페이지 캡쳐검증").

@@ -6,6 +6,16 @@
  *   whisper 도 base.en(영어 전용)이다. 한국어 대본을 그대로 넣으면 소리가 깨진다 —
  *   채널을 한국어로 돌리면서 이걸 못 봤으면 미국 남성이 한국어를 읽는 영상이 공개로 나갔다.
  *
+ * 현재 기본 엔진은 **MeloTTS** 다 (2026-09-13, 사용자 비교 청취 후 "멜로가 낫다").
+ *   실측 — 적재 0.8초 · 문장당 0.7~0.9초(실시간 7배). Qwen3-TTS 는 적재 7초에 문장당 15초
+ *   (실시간 0.26배)였다. 같은 3문장이 44초 → 2.4초. 네 장면짜리 한 회차에서 1분 넘게 줄어든다.
+ *   되들음 정확도는 Qwen 이 약간 앞섰지만(오독 5곳 vs 7곳, whisper base 기준) 사용자가
+ *   두 음성을 직접 듣고 Melo 를 골랐다 — 판단 기준은 속도가 아니라 말투였다.
+ *
+ * 아래 Piper 단락은 2026-09-03 시점의 기록이다. 그때 MeloTTS 를 포기한 이유로 적힌
+ *   "mecab 모듈명 충돌" 은 증상이었고, 진짜 원인은 이 맥의 파일시스템이 대소문자를
+ *   구분하지 않아 `MeCab/` 과 `mecab/` 이 같은 디렉터리인 것이었다(2026-09-13 규명).
+ *
  * 왜 Piper 인가 — 셋을 재고 골랐다:
  *   ElevenLabs  starter 40,000자 중 **104자 잔여**, 갱신 3주 뒤. 하루 5편은 어떤 등급으로도 무리.
  *   MeloTTS     MIT 이고 한국어를 하지만 mecab-python3(일본어)와 python-mecab-ko(한국어 g2p)가
@@ -148,4 +158,85 @@ export function synthesizeKoreanBatch(texts, opts = {}) {
   } finally {
     for (const f of [tf, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
   }
+}
+
+
+// ── MeloTTS 경로 (2026-09-13, 기본 엔진) ──────────────────────────────────────
+
+/** MeloTTS venv. Piper 와 같은 venv 를 쓴다 — onnxruntime 말고는 겹치는 의존이 없다. */
+export function meloPythonPath() {
+  return process.env.KO_TTS_MELO_PYTHON || join(homedir(), '.flowvium-tools', 'melo-venv', 'bin', 'python');
+}
+
+/** 엔진 자체 속도. 음높이를 보존하므로 배속 후처리보다 깨끗하다. */
+export const MELO_SPEED = Number(process.env.KO_TTS_MELO_SPEED || 1.15);
+
+export function meloTtsReady() {
+  const py = meloPythonPath();
+  if (!existsSync(py)) return { ok: false, reason: `melo venv 없음: ${py}` };
+  const script = resolve(ROOT, 'scripts/tts/melo_align.py');
+  if (!existsSync(script)) return { ok: false, reason: `정렬 스크립트 없음: ${script}` };
+  return { ok: true, python: py, script };
+}
+
+/**
+ * MeloTTS 로 여러 문장을 한 프로세스에서 합성한다.
+ * 반환 계약은 Qwen·Piper 와 같다 — 호출부가 엔진을 몰라도 된다.
+ */
+export function synthesizeKoreanMelo(texts, opts = {}) {
+  const { outPrefix, speed = MELO_SPEED, timeoutMs = 30 * 60_000 } = opts;
+  if (!outPrefix) throw new Error('outPrefix 가 필요하다');
+  const ready = meloTtsReady();
+  if (!ready.ok) throw new Error(`MeloTTS 준비 안 됨 — ${ready.reason}`);
+
+  mkdirSync(dirname(outPrefix), { recursive: true });
+  const tag = `melo-${process.pid}-${Math.abs(hash(texts.join('|')))}`;
+  const tf = join(tmpdir(), `${tag}.json`);
+  const jf = join(tmpdir(), `${tag}.out.json`);
+  try {
+    writeFileSync(tf, JSON.stringify(texts), 'utf8');
+    execFileSync(ready.python, [
+      ready.script, '--texts-file', tf, '--out-prefix', outPrefix, '--json-out', jf,
+      '--speed', String(speed),
+    ], {
+      timeout: timeoutMs,
+      stdio: ['ignore', 'ignore', 'inherit'],
+      env: { ...process.env, FFMPEG_BIN: process.env.FFMPEG_BIN || ffmpegBin() },
+    });
+    const out = JSON.parse(readFileSync(jf, 'utf8'));
+    if (!Array.isArray(out) || out.length !== texts.length) {
+      throw new Error(`결과 개수 불일치 — 입력 ${texts.length}, 출력 ${out?.length}`);
+    }
+    return out;
+  } finally {
+    for (const f of [tf, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
+  }
+}
+
+/**
+ * 한국어 배치 합성 — 엔진 한 칸.
+ *
+ * 기본은 melo. KO_TTS_ENGINE=qwen 으로 되돌릴 수 있다.
+ * **조용히 떨어지지 않는다** — 어느 엔진이 돌았는지, 왜 바뀌었는지 찍는다.
+ * 목소리가 바뀐 걸 모르고 발행하는 게 느린 것보다 나쁘다.
+ */
+export function synthesizeKoreanAuto(texts, opts = {}) {
+  const want = (process.env.KO_TTS_ENGINE || 'melo').toLowerCase();
+  const log = opts.log ?? ((m) => console.log(`  [ko-tts] ${m}`));
+
+  if (want === 'qwen') {
+    log('엔진 qwen (KO_TTS_ENGINE 지정)');
+    return synthesizeKoreanBatch(texts, opts);
+  }
+  const melo = meloTtsReady();
+  if (melo.ok) {
+    log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})`);
+    return synthesizeKoreanMelo(texts, opts);
+  }
+  const qwen = qwenTtsReady();
+  if (qwen.ok) {
+    log(`⚠️ melo 사용 불가(${melo.reason}) — qwen 으로 진행. 목소리가 달라진다.`);
+    return synthesizeKoreanBatch(texts, opts);
+  }
+  throw new Error(`한국어 TTS 없음 — melo: ${melo.reason} / qwen: ${qwen.reason}`);
 }

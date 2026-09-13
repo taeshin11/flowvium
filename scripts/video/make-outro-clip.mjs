@@ -25,7 +25,7 @@ import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { ROOT } from '../lib/project-root.mjs';
-import { synthesizeKoreanBatch } from '../lib/tts-korean.mjs';
+import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
 
 const ffmpeg = createRequire(import.meta.url)('ffmpeg-static');
 const W = 1080; const H = 1920;
@@ -43,7 +43,7 @@ const SAY = `말하는 대로 내 컴퓨터를 조종하는 ${SPOKEN}. 나만의
   + `${SITE_SPOKEN}에서 지금 받으세요.`;
 
 console.log(`  대사: ${SAY}`);
-const [voice] = synthesizeKoreanBatch([SAY], { outPrefix: `${WORK}/v` });
+const [voice] = synthesizeKoreanAuto([SAY], { outPrefix: `${WORK}/v` });
 console.log(`  음성 ${voice.durationSec.toFixed(1)}초`);
 
 // 배경 사진 — 2026-09-10 사용자 "자비스 되는 사진 넣어서".

@@ -35,7 +35,7 @@ import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
 import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
-import { synthesizeKorean, synthesizeKoreanBatch, koTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
+import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
@@ -60,15 +60,16 @@ const log = (...a) => console.log(' ', ...a);
 
 // ── 0. 준비 확인 — 조용히 영어 음성으로 떨어지면 안 된다 ────────────────────────
 {
-  // Qwen 이 주력이고 Piper 가 대비책이다. **둘 다 없으면** 멈춘다 —
+  // Melo 가 주력, Qwen 이 예비, Piper 가 마지막 그물이다. **셋 다 없으면** 멈춘다 —
   //   여기서 통과시키면 tts-local(미국 남성)이 한국어를 읽는 영상이 나간다.
+  const m = meloTtsReady();
   const q = qwenTtsReady();
   const p = koTtsReady();
-  if (!q.ok && !p.ok) {
-    console.error(`❌ 한국어 TTS 가 하나도 준비 안 됨 — Qwen: ${q.reason} / Piper: ${p.reason}`);
+  if (!m.ok && !q.ok && !p.ok) {
+    console.error(`❌ 한국어 TTS 가 하나도 준비 안 됨 — Melo: ${m.reason} / Qwen: ${q.reason} / Piper: ${p.reason}`);
     process.exit(1);
   }
-  if (!q.ok) log(`⚠ Qwen 미준비(${q.reason}) — Piper 로 간다`);
+  if (!m.ok) log(`⚠ Melo 미준비(${m.reason}) — 목소리가 달라진다`);
 }
 
 // ── 1. 소재가 될 이슈 하나 ──────────────────────────────────────────────────────
@@ -936,19 +937,21 @@ for (const s of scenes) log(`   · [${s.hook}] ${s.say.slice(0, 42)}…`);
 if (DRY) { log('--dry — 여기까지'); process.exit(0); }
 
 // ── 3. 음성 ─────────────────────────────────────────────────────────────────────
-// 기본은 Qwen3-TTS(Sohee, 아나운서 톤). 사용자가 네 후보를 듣고 'brief' 지시를 골랐다.
-//   Piper 대비 억양이 두 배 넓지만(4.54→7.86반음) **합성이 실시간의 0.3~0.6배**로 느리다.
-//   그래서 실패하면 Piper 로 떨어진다 — 느린 엔진 하나 때문에 그날 편을 통째로 잃지 않는다.
+// 2026-09-13: 기본 엔진이 MeloTTS 가 됐다(사용자 비교 청취 "멜로가 낫다").
+//   실측 — 문장당 0.7~0.9초, 실시간 7배. 종전 Qwen3-TTS 는 문장당 15초(실시간 0.26배)라
+//   네 장면이면 1분 넘게 차이 난다. 엔진 선택은 synthesizeKoreanAuto 가 한 곳에서 한다
+//   (KO_TTS_ENGINE=qwen 으로 되돌릴 수 있다).
+//   그래도 마지막 그물은 남긴다 — 배치가 통째로 실패하면 Piper 로 한 문장씩 떨어진다.
 //   되돌아갈 때 조용히 넘기지 않는다: 목소리가 바뀐 것을 로그가 말해야 한다.
 {
   const texts = scenes.map((s) => s.say);
   let out = null;
   try {
     const t0 = Date.now();
-    out = synthesizeKoreanBatch(texts, { outPrefix: `${WORK}/q` });
-    log(`[음성] Qwen3(Sohee·아나운서톤) ${((Date.now() - t0) / 1000).toFixed(0)}초`);
+    out = synthesizeKoreanAuto(texts, { outPrefix: `${WORK}/q`, log });
+    log(`[음성] 배치 합성 ${((Date.now() - t0) / 1000).toFixed(0)}초 (${texts.length}문장)`);
   } catch (e) {
-    log(`⚠ Qwen 합성 실패 — Piper 로 진행한다 (목소리가 달라진다): ${String(e.message).slice(0, 120)}`);
+    log(`⚠ 배치 합성 실패 — Piper 로 진행한다 (목소리가 달라진다): ${String(e.message).slice(0, 120)}`);
   }
   for (let i = 0; i < scenes.length; i++) {
     const r = out ? out[i] : synthesizeKorean(scenes[i].say, { outPath: `${WORK}/s${i}.wav` });
