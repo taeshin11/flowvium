@@ -1,8 +1,8 @@
 {
   "_note": "사용자 노출 문자열 하드코딩의 파일별 건수 기준선. 손으로 고치지 말 것 — 아래 명령으로 재생성한다. 증가하면 CI 가 막고, 줄면 이 파일을 갱신해 되돌아갈 수 없게 한다.",
   "command": "node scripts/check-i18n-ratchet.mjs --update",
-  "generatedAt": "2026-09-10T02:57:57.447Z",
-  "total": 2646,
+  "generatedAt": "2026-09-13T05:08:16.203Z",
+  "total": 2647,
   "files": {
     "src/app/[locale]/about/page.tsx": 50,
     "src/app/[locale]/admin/logs/page.tsx": 1,
@@ -114,7 +114,7 @@
     "src/app/api/price-history/route.ts": 8,
     "src/app/api/sector-metrics/route.ts": 2,
     "src/app/api/sector-pe/route.ts": 12,
-    "src/app/api/short-interest/route.ts": 10,
+    "src/app/api/short-interest/route.ts": 11,
     "src/app/api/signal-retrospective/route.ts": 2,
     "src/app/api/stock-price/[ticker]/route.ts": 1,
     "src/app/api/stock-supply/route.ts": 10,

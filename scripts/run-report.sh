@@ -15,6 +15,27 @@
 #   SKIP_PREFLIGHT / SKIP_INGEST  = 1 이면 해당 단계 생략
 set -uo pipefail
 
+# ── 실행 중 자기 파일이 바뀌어도 죽지 않게 (2026-09-13) ────────────────────────
+#   bash 는 스크립트를 통째로 읽지 않는다. **바이트 오프셋을 들고 이어서 읽는다.**
+#   그래서 도는 중에 이 파일이 편집되면 다음 읽기가 줄 중간에 떨어져 문법 오류로 죽는다.
+#   실제로 2026-09-12 22:30 자정 회차가 그렇게 끊겼다 —
+#     run-report.sh: line 153: syntax error near unexpected token `('
+#   생성 시작 직후였고, 회차 하나를 통째로 잃었다. 원인은 편집 시점이지 코드가 아니다.
+#
+#   "도는 중엔 편집하지 말자" 는 약속으로 막을 일이 아니다. 구조로 막는다 —
+#   시작하자마자 자기 사본을 만들어 그 사본으로 갈아탄다. 원본이 어떻게 바뀌든 상관없다.
+if [ -z "${REPORT_SELF_COPY:-}" ]; then
+  _self_copy="$(mktemp -t run-report)" || _self_copy=""
+  if [ -n "$_self_copy" ] && cp "${BASH_SOURCE[0]}" "$_self_copy" 2>/dev/null; then
+    chmod +x "$_self_copy" 2>/dev/null || true
+    # 사본은 회차가 끝나면 지운다. exec 로 갈아타므로 여기서 지울 수 없어 사본이 스스로 지운다.
+    REPORT_SELF_COPY="$_self_copy" exec bash "$_self_copy" "$@"
+  fi
+  # 사본을 못 만들면 원본으로 계속 간다 — 회차를 거르는 것보다는 낫다.
+  echo "[WARN] 자기 사본 생성 실패 — 원본으로 진행(실행 중 편집에 취약)" >&2
+fi
+#   사본 삭제는 아래 cleanup() 이 한다 — 여기서 trap 을 걸면 그쪽 trap 이 덮어써 사본이 남는다.
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_DIR:-$(dirname "$HERE")}"
 NODE_BIN="${NODE_BIN:-$(command -v node || true)}"
@@ -63,6 +84,7 @@ fi
 #   PEER_NOTIFIED 가 설정된 뒤에만 해제한다(알리기 전에 죽으면 지울 것도 없다).
 cleanup() {
   rmdir "$LOCK_DIR" 2>/dev/null || true
+  [ -n "${REPORT_SELF_COPY:-}" ] && rm -f "$REPORT_SELF_COPY" 2>/dev/null
   if [ -n "${PEER_NOTIFIED:-}" ]; then
     "$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-end >/dev/null 2>&1 || true
   fi

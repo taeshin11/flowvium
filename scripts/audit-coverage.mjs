@@ -32,6 +32,9 @@ console.log('## [1] silent NULL audit (column 있는데 항상 NULL)\n');
 //   각 항목은 audit 으로 검증된 "왜 NULL 인가" 의 결론(증거 동반). earnings_archive 는 실버그라 fix(1fa371d),
 //   아래는 구조적이라 [L2] 처럼 정직하게 acknowledged 처리해 verification 정확도 확보(사용자 "권고 말고 고쳐").
 const STRUCTURAL_NULLS = {
+  // 2026-09-13: 성공한 행에는 오류가 없다. 실패한 행에만 값이 있는 게 정상이다
+  //   (적재 715종 중 실패 11종 = 98% NULL). 값이 차면 그때가 이상한 것.
+  'short_interest.last_error': '성공 행에는 오류 문구가 없다 — 실패한 종목에만 채워진다',
   // 2026-08-26 실측: signal_type/direction 은 *분석* 필드다. source 별 NULL 비율 —
   //   company-change 0% / news-cascade·Yahoo·Seeking Alpha·연합뉴스 100%.
   //   원시 뉴스 피드 행은 분석 전이라 비는 게 정상이고, 한 테이블에 원시+분석이 섞여 85% 가 된다.

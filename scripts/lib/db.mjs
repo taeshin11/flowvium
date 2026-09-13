@@ -234,6 +234,26 @@ CREATE TABLE IF NOT EXISTS short_squeeze_archive (
 CREATE INDEX IF NOT EXISTS idx_squeeze_ticker ON short_squeeze_archive(ticker, captured_at);
 CREATE INDEX IF NOT EXISTS idx_squeeze_score ON short_squeeze_archive(score DESC);
 
+-- 2026-09-13: 공매도 잔고 — 종목 풀 전체. 회차 산출물이 아니라 **종목의 상태**다.
+--   종전에는 /api/short-interest 의 TRACKED_TICKERS 33종이 전부였다(코드에 박힌 목록).
+--   1,338종 풀 중 33종만 재고 있으니 "숏스퀴즈를 찾는다" 는 말이 성립하지 않았다 —
+--   매수룰 micro_squeeze_score 는 개통 이래 0건 발화했고, 그 33종 중 임계(50)를 넘는 건
+--   MRNA·COIN 둘뿐인데 둘 다 후보 30위 안에 든 적이 없다.
+--   공매도 잔고는 FINRA 결제일 기준 월 2회 갱신이라 분 단위로 받을 이유가 없다.
+--   백그라운드가 돌아가며 채우고, API 는 여기서 읽는다.
+CREATE TABLE IF NOT EXISTS short_interest (
+  ticker          TEXT PRIMARY KEY,
+  updated_at      TEXT NOT NULL,          -- 마지막으로 값을 받아 온 시각
+  short_pct_float REAL,                   -- Yahoo defaultKeyStatistics.shortPercentOfFloat × 100
+  short_ratio     REAL,                   -- days to cover
+  source          TEXT,                   -- 'yahoo' 등
+  fail_streak     INTEGER DEFAULT 0,      -- 연속 실패. 죽은 티커가 큐를 영원히 차지하지 않게
+  last_error      TEXT,
+  attempted_at    TEXT                    -- 성공·실패 무관하게 시도한 시각(순환 큐의 기준)
+);
+CREATE INDEX IF NOT EXISTS idx_short_interest_attempted ON short_interest(attempted_at);
+CREATE INDEX IF NOT EXISTS idx_short_interest_pct ON short_interest(short_pct_float DESC);
+
 -- 2026-05-29: 기업 실적 아카이브 (분기별 매출/이익 추적)
 CREATE TABLE IF NOT EXISTS earnings_archive (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2104,4 +2124,86 @@ export function recommendationHistory(ticker, { days = 90 } = {}) {
     // 마지막 추천 이후 며칠 지났는지 — 매일 같은 것을 미는 중인지 드러난다.
     lastAt: rows[rows.length - 1].generated_at,
   };
+}
+
+
+// ── 공매도 잔고 (2026-09-13) ────────────────────────────────────────────────────
+
+/**
+ * 다음에 받아올 티커들 — **한 번도 안 받은 것 먼저, 그다음 오래된 순.**
+ * 연속 실패가 쌓인 티커는 뒤로 민다(상장폐지·표기 차이로 영원히 실패하는 것들).
+ *
+ * @param {string[]} universe 대상 종목 전체
+ * @param {{limit?:number, staleHours?:number, maxFailStreak?:number}} opt
+ */
+export function pickShortInterestQueue(universe, { limit = 150, staleHours = 72, maxFailStreak = 5 } = {}) {
+  const db = openDb();
+  const known = new Map(
+    db.prepare(`SELECT ticker, attempted_at, fail_streak FROM short_interest`).all()
+      .map((r) => [r.ticker, r]),
+  );
+  const cutoff = Date.now() - staleHours * 3600e3;
+  const scored = [];
+  for (const t of universe) {
+    const k = known.get(t);
+    if (!k) { scored.push({ ticker: t, at: 0, fail: 0 }); continue; }   // 한 번도 안 받음 = 가장 급함
+    const at = Date.parse(k.attempted_at ?? '') || 0;
+    if (at > cutoff) continue;                                          // 아직 신선함
+    if ((k.fail_streak ?? 0) >= maxFailStreak) continue;                // 계속 실패하는 건 빼 둔다
+    scored.push({ ticker: t, at, fail: k.fail_streak ?? 0 });
+  }
+  scored.sort((a, b) => (a.fail - b.fail) || (a.at - b.at));
+  return scored.slice(0, limit).map((x) => x.ticker);
+}
+
+/** 받아온 값을 기록한다. 실패도 기록한다 — 조용히 다시 큐 앞으로 오지 않게. */
+export function saveShortInterest({ ticker, shortPctFloat = null, shortRatio = null, source = 'yahoo', error = null }) {
+  const db = openDb();
+  const now = new Date().toISOString();
+  if (error) {
+    db.prepare(`
+      INSERT INTO short_interest (ticker, updated_at, attempted_at, fail_streak, last_error)
+      VALUES (?, ?, ?, 1, ?)
+      ON CONFLICT(ticker) DO UPDATE SET
+        attempted_at = excluded.attempted_at,
+        fail_streak  = short_interest.fail_streak + 1,
+        last_error   = excluded.last_error
+    `).run(ticker, now, now, String(error).slice(0, 200));
+    return { ok: false };
+  }
+  db.prepare(`
+    INSERT INTO short_interest (ticker, updated_at, attempted_at, short_pct_float, short_ratio, source, fail_streak, last_error)
+    VALUES (?, ?, ?, ?, ?, ?, 0, NULL)
+    ON CONFLICT(ticker) DO UPDATE SET
+      updated_at      = excluded.updated_at,
+      attempted_at    = excluded.attempted_at,
+      short_pct_float = excluded.short_pct_float,
+      short_ratio     = excluded.short_ratio,
+      source          = excluded.source,
+      fail_streak     = 0,
+      last_error      = NULL
+  `).run(ticker, now, now, shortPctFloat, shortRatio, source);
+  return { ok: true };
+}
+
+/** 값이 있는 종목들. 공매도 비중 높은 순. */
+export function getShortInterest({ minPctFloat = 0, limit = 2000 } = {}) {
+  return openDb().prepare(`
+    SELECT ticker, short_pct_float AS shortPctFloat, short_ratio AS shortRatio, updated_at AS updatedAt
+    FROM short_interest
+    WHERE short_pct_float IS NOT NULL AND short_pct_float >= ?
+    ORDER BY short_pct_float DESC LIMIT ?
+  `).all(minPctFloat, limit);
+}
+
+/** 적재 상태 한 줄 — 감시가 "몇 종이 채워졌나" 를 보게. */
+export function shortInterestCoverage() {
+  const r = openDb().prepare(`
+    SELECT COUNT(*) attempted,
+           SUM(CASE WHEN short_pct_float IS NOT NULL THEN 1 ELSE 0 END) withData,
+           SUM(CASE WHEN fail_streak >= 5 THEN 1 ELSE 0 END) givenUp,
+           MAX(updated_at) newest, MIN(attempted_at) oldestAttempt
+    FROM short_interest
+  `).get();
+  return r;
 }

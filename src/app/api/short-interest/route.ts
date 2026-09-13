@@ -15,6 +15,8 @@ import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import type { InstitutionalSignal } from '@/data/institutional-signals';
+import { resolve } from 'path';
+import Database from 'better-sqlite3';
 import { createMemoryCache } from '@/lib/memory-cache';
 export const dynamic = 'force-dynamic';
 
@@ -132,23 +134,54 @@ async function fetchYahooShortData(
   return { floatMap, ratioMap };
 }
 
-// Tracked tickers — ordered by interest
-const TRACKED_TICKERS = [
-  // Semiconductors
+/**
+ * 대상 종목 — 2026-09-13 이전에는 여기 33종이 손으로 박혀 있었다.
+ *
+ * 그 33종만 재면서 "숏스퀴즈를 찾는다" 고 할 수 없었다. 실측으로 확인된 결과:
+ *   · 매수룰 micro_squeeze_score(임계 50)는 개통 이래 0건 발화
+ *   · 33종 중 임계를 넘는 건 MRNA(65)·COIN(55) 둘뿐, 둘 다 후보 30위에 든 적 없음
+ *   · 풀 전체 715종을 재 보니 공매도 비중 상위는 BROS 41.5% · SWKS 36.4% · CAKE 36.2% ·
+ *     WEN 35.3% · RXRX 35.0% 였다. MRNA 는 12% 로 근처도 아니었다.
+ *     33종 안에서만 1등이었을 뿐이다.
+ *
+ * 이제 ingest-short-interest.mjs 가 풀 전체를 순환하며 공매도 잔고를 적재하고,
+ * 여기서는 **실측 공매도 비중 상위 N종**을 골라 상세(FINRA 일간·기관수급)를 붙인다.
+ * 손으로 고른 목록이 아니라 잰 값으로 고른다.
+ *
+ * 적재가 비어 있으면(최초 실행·DB 없음) 종전 목록으로 떨어진다 — 조용히 0종이 되지 않게.
+ */
+const FALLBACK_TICKERS = [
   'NVDA', 'AMD', 'ARM', 'TSM', 'ASML', 'MU', 'AMAT', 'LRCX', 'KLAC', 'SMCI', 'MRVL',
-  // EV & Battery
-  'TSLA', 'ALB', 'RIVN',
-  // Crypto
-  'COIN', 'MSTR',
-  // Pharma/Biotech
-  'MRNA', 'REGN', 'LLY',
-  // Defense & AI
-  'KTOS', 'PLTR', 'RTX', 'NOC', 'LHX', 'LMT',
-  // Commodities
-  'FCX',
-  // Tech platforms
+  'TSLA', 'ALB', 'RIVN', 'COIN', 'MSTR', 'MRNA', 'REGN', 'LLY',
+  'KTOS', 'PLTR', 'RTX', 'NOC', 'LHX', 'LMT', 'FCX',
   'DELL', 'ORCL', 'MSFT', 'GOOGL', 'AAPL', 'AMZN', 'META',
 ];
+
+/** 상세를 붙일 상한. 종목마다 FINRA·Yahoo 왕복이 있어 보고서의 12초 예산을 넘기면 안 된다. */
+const DETAIL_LIMIT = Number(process.env.SHORT_INTEREST_DETAIL_LIMIT ?? 45);
+
+function trackedTickers(): string[] {
+  try {
+    const db = new Database(resolve(process.cwd(), 'data/flowvium.db'), { readonly: true, fileMustExist: true });
+    try {
+      const rows = db.prepare(
+        `SELECT ticker FROM short_interest
+          WHERE short_pct_float IS NOT NULL
+          ORDER BY short_pct_float DESC LIMIT ?`,
+      ).all(DETAIL_LIMIT) as Array<{ ticker: string }>;
+      if (rows.length) {
+        // 종전 목록의 종목도 같이 본다 — 비중이 낮아도 사람이 계속 보던 이름들이다.
+        return Array.from(new Set([...rows.map((r) => r.ticker), ...FALLBACK_TICKERS]));
+      }
+    } finally { db.close(); }
+  } catch (e) {
+    // 조용히 폴백하지 않는다 — 33종으로 돌아간 걸 모르면 "재고 있다" 고 착각한다.
+    logger.warn('api.short-interest', 'tracked_from_db_failed', { error: String((e as Error)?.message).slice(0, 160) });
+    return FALLBACK_TICKERS;
+  }
+  logger.warn('api.short-interest', 'tracked_from_db_empty', { note: 'short_interest table empty - check ingest-short-interest.mjs ran' });
+  return FALLBACK_TICKERS;
+}
 
 export interface ShortEntry {
   ticker: string;
@@ -342,7 +375,7 @@ export async function GET(req: Request) {
   }
 
   // Deduplicate tickers
-  const tickers = Array.from(new Set(TRACKED_TICKERS));
+  const tickers = trackedTickers();
   const tickerSet = new Set(tickers);
 
   // Fetch FINRA short vol, Finnhub P/E, 13f-signals, and Yahoo shortFloat in parallel.
