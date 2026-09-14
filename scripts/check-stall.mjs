@@ -318,10 +318,15 @@ async function checkOnce() {
     });
     const c = churnSummary(sessions);
     if (c.pairs >= 3 && c.avg != null) {
+      // 2026-09-14: 경보에서 참고로 내렸다. "값을 하는가" 를 실측으로 물었고 답이 나왔다 —
+      //   넣은 종목 vs 뺀 종목 5거래일 수익률이 94/185 회차(구간 45~57%)로 동전과 같다.
+      //   재촉할 근거가 없다. 숫자는 계속 보여 준다 — 안 보이면 나중에 달라져도 모른다.
+      //   (근거: scripts/analyze-churn-value.mjs · scripts/lib/portfolio-churn.mjs 머리말)
       const line = `회차 간 추천 유지율 ${(c.avg * 100).toFixed(0)}% (최근 ${c.pairs}쌍)`;
       if (c.wiped.length >= 2) {
-        issues.push(`${line} — 그중 ${c.wiped.length}건은 ${CHURN_FLOOR * 100}% 이하로 갈아엎었다`
-          + `(${c.wiped.slice(-3).map((w) => w.id.slice(5)).join(', ')}). 따라갈 수 있는 신호인지 볼 것`);
+        info.push(`${line} — ${c.wiped.length}건은 ${CHURN_FLOOR * 100}% 이하 교체`
+          + `(${c.wiped.slice(-3).map((w) => w.id.slice(5)).join(', ')}). `
+          + `갈아엎기의 값어치는 2026-09-14 에 측정했다 — 넣은 것 vs 뺀 것이 동전(94/185)이라 재촉하지 않는다`);
       } else info.push(`${line} ✓`);
     }
   } catch { /* 판단 불가 — skip */ }
