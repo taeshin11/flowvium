@@ -30,21 +30,81 @@ import { audioArgs } from '../lib/shorts-layout.mjs';
 
 const ffmpeg = createRequire(import.meta.url)('ffmpeg-static');
 const W = 1080; const H = 1920;
-const OUT = resolve(ROOT, 'assets/outro/aisvi.mp4');
 const WORK = join(tmpdir(), 'flowvium-outro');
 mkdirSync(WORK, { recursive: true });
 mkdirSync(resolve(ROOT, 'assets/outro'), { recursive: true });
 
-const SPOKEN = process.env.AISVI_SPOKEN || '에이스비 에이전트';
-// 2026-09-10 사용자 "aisviagent.com 에서 다운로드받으라고 광고에 나와야할듯".
-//   주소를 라틴 문자로 읽히면 TTS 가 매번 다르게 깨진다(2026-09-05 실측: flowvium.net →
-//   "플로우 비오모 소삼드톤 네트"). 한글로 적어 음을 고정하고, 주소 자체는 화면에 크게 띄운다.
-const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || '에이스비 에이전트 닷컴';
-const SAY = `말하는 대로 내 컴퓨터를 조종하는 ${SPOKEN}. 나만의 자비스입니다. `
-  + `${SITE_SPOKEN}에서 지금 받으세요.`;
+// ── 로케일별 문구 (2026-09-15) ────────────────────────────────────────────────
+//   같은 광고를 일본어로도 붙이게 됐다(K연예 채널). 사본을 뜨면 시간이 지나 어긋나므로
+//   **문구만 갈아끼우고 구조는 하나로** 둔다. 색·크기·배치는 로케일과 무관하다.
+//
+//   주소를 라틴 문자로 읽히지 않는 원칙은 로케일과 무관하게 지킨다 —
+//   2026-09-05 실측: flowvium.net → "플로우 비오모 소삼드톤 네트".
+//   소리는 그 나라 글자로 음을 박고, 주소 자체는 화면에 크게 띄워 눈으로 전달한다.
+const COPY = {
+  ko: {
+    spoken: '에이스비 에이전트',
+    siteSpoken: '에이스비 에이전트 닷컴',
+    say: (b, site) => `말하는 대로 내 컴퓨터를 조종하는 ${b}. 나만의 자비스입니다. ${site}에서 지금 받으세요.`,
+    tagline: '나만의 자비스',
+    desc: '말하는 대로<br>내 컴퓨터를 조종합니다',
+    cta: '에서 다운로드',
+    note: '화면을 보고 프로그램을 열고 눌러 줍니다',
+  },
+  ja: {
+    // 2026-09-15: 한국어판을 그대로 옮긴 것이다. **브랜드 발음(エイスビ)은 확정된 값이 아니다** —
+    //   한국어 '에이스비' 도 사용자가 정한 것이지 철자 읽기가 아니다. 일본어 표기는
+    //   사람이 확인한 뒤 AISVI_SPOKEN / AISVI_SITE_SPOKEN 로 덮어쓰는 것을 전제로 둔다.
+    spoken: 'エイスビ エージェント',
+    siteSpoken: 'エイスビ エージェント ドットコム',
+    say: (b, site) => `話すだけでパソコンを操作する、${b}。自分だけのジャービスです。${site}で今すぐ手に入れてください。`,
+    tagline: '自分だけのジャービス',
+    desc: '話すだけで<br>パソコンを操作します',
+    cta: 'からダウンロード',
+    note: '画面を見てアプリを開き、クリックします',
+  },
+};
+
+const argOf = (k, d = '') => {
+  const i = process.argv.indexOf(`--${k}`);
+  return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d;
+};
+const LOCALE = argOf('locale', process.env.AISVI_LOCALE || 'ko');
+const T = COPY[LOCALE];
+if (!T) {
+  console.error(`❌ 모르는 로케일: ${LOCALE} (가능: ${Object.keys(COPY).join(', ')})`);
+  process.exit(2);
+}
+
+// 한국어판은 종전 경로 그대로다 — make-shorts 가 assets/outro/aisvi.mp4 를 본다.
+//   다른 로케일은 파일을 나눈다(aisvi-ja.mp4). --out 으로 덮어쓸 수 있다.
+const OUT = resolve(ROOT, argOf('out', `assets/outro/aisvi${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
+
+const SPOKEN = process.env.AISVI_SPOKEN || T.spoken;
+const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || T.siteSpoken;
+const SAY = T.say(SPOKEN, SITE_SPOKEN);
 
 console.log(`  대사: ${SAY}`);
-const [voice] = synthesizeKoreanAuto([SAY], { outPrefix: `${WORK}/v` });
+// 소리. 우리 TTS 는 **한국어 전용**이다(MeloTTS 한국어 g2p).
+//   다른 로케일에서 이걸 그대로 부르면 한국어 발음으로 일본어를 읽는다 —
+//   조용히 그렇게 나가는 게 제일 나쁘다. 그래서 막고, 대신 만들어 온 소리를 받는다.
+let voice;
+const AUDIO_IN = argOf('audio', process.env.AISVI_AUDIO || '');
+if (AUDIO_IN) {
+  if (!existsSync(AUDIO_IN)) { console.error(`❌ 음성 파일이 없다: ${AUDIO_IN}`); process.exit(2); }
+  const probe = spawnSync(ffmpeg, ['-v', 'error', '-i', AUDIO_IN, '-f', 'null', '-'], { encoding: 'utf8' });
+  const m = /time=(\d+):(\d+):([\d.]+)/.exec(String(probe.stderr ?? ''));
+  const secs = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
+  if (!(secs > 0)) { console.error(`❌ 음성 길이를 못 잰다: ${AUDIO_IN}`); process.exit(2); }
+  voice = { path: AUDIO_IN, durationSec: secs };
+  console.log(`  소리: 받아온 파일 ${AUDIO_IN} (${secs.toFixed(1)}초)`);
+} else if (LOCALE === 'ko') {
+  [voice] = synthesizeKoreanAuto([SAY], { outPrefix: `${WORK}/v` });
+} else {
+  console.error(`❌ ${LOCALE} 로케일에는 소리를 만들 수단이 없다 — 우리 TTS 는 한국어 전용이다.`);
+  console.error('   그 언어로 만든 wav 를 --audio <파일> 로 주십시오. 한국어 발음으로 읽히지 않게 막는다.');
+  process.exit(2);
+}
 console.log(`  음성 ${voice.durationSec.toFixed(1)}초`);
 
 // 배경 사진 — 2026-09-10 사용자 "자비스 되는 사진 넣어서".
@@ -92,13 +152,13 @@ body{background:#05070f;color:#eef3ff;
 </style>
 ${hasPhoto ? '<div class="p"></div>' : ''}
 <div class="body">
-<div class="t">나만의 자비스</div>
+<div class="t">${T.tagline}</div>
 <div class="w">AISVI</div><div class="r"></div>
-<div class="d">말하는 대로<br>내 컴퓨터를 조종합니다</div>
+<div class="d">${T.desc}</div>
 <div class="u">aisviagent.com</div>
 <!-- 가격은 확인된 바 없어 적지 않는다. 광고에 확인 안 된 사실을 넣지 않는다. -->
-<div class="c">에서 다운로드</div>
-<div class="c2">화면을 보고 프로그램을 열고 눌러 줍니다</div>
+<div class="c">${T.cta}</div>
+<div class="c2">${T.note}</div>
 </div>`);
 await page.screenshot({ path: `${WORK}/bg.png` });
 await browser.close();
