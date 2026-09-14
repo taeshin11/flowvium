@@ -99,7 +99,7 @@ if (googleCoolingDown()) {
   process.exit(0);
 }
 
-log(`${elapsed - done}편 모자란다 — 한 편 메운다(국뽕 우선)`);
+log(`${elapsed - done}편 모자란다 — 한 편 메운다(한국 성과 우선)`);
 const r = spawnSync(process.execPath, [
   resolve(ROOT, 'scripts/video-publish.mjs'),
   '--shorts', '--locale', 'ko', '--privacy', 'public',

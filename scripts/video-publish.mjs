@@ -259,7 +259,7 @@ let title = isShorts
   : buildTitle(top, isKoUpload);
 // 쇼츠는 제목·설명에 #Shorts 가 있어야 유튜브가 쇼츠 선반에 올린다(세로+3분이하 만으로는 놓칠 때가 있다).
 if (isShorts && !/#Shorts/i.test(title)) title = `${title} #Shorts`;
-if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다(국뽕)');
+if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다');
 
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
 const tagWords = buildTags(top, last.keywords, isKoUpload);

@@ -260,5 +260,31 @@ const M = await import('./video-meta.mjs');
     : bad(`영어 헤드라인이 앞에 왔다: ${r4.ordered[0]}`);
 }
 
+// ── 발행물에 쓰지 않는 말 (2026-09-14 사용자 "국뽕 이라는 단어를 직접쓰진마") ──────
+// 제목 앞머리 다섯 중 하나가 '🇰🇷 국뽕 차오릅니다' 였다. 아직 그 앞머리가 붙어 나간 편은
+//   없었지만(발행 이력 조회 0건) 5분의 1 확률로 곧 나갈 참이었다.
+// 감탄을 붙이는 것 자체는 사용자 지시대로 유지한다 — 그 단어만 빼는 것이다.
+// 헤드라인 원문에 그 말이 있으면 **고쳐 쓰지 않고 뒤로 민다**(인용 회피와 같은 방식).
+{
+  const M = await import('./video-meta.mjs');
+  const bad = M.PROUD_PREFIX.filter((x) => M.AVOID_IN_TITLE.some((w) => x.includes(w)));
+  bad.length === 0
+    ? ok(`제목 앞머리 ${M.PROUD_PREFIX.length}개에 피할 말이 없다`)
+    : bad(`앞머리에 그대로 남아 있다: ${bad.join(', ')}`);
+
+  // 헤드라인이 그 말을 담고 있으면 다른 헤드라인을 앞세운다
+  const heads = ['국뽕 차오르는 수출 실적…반도체 사상 최대', '반도체 수출 사상 최대…전년 대비 27% 증가'];
+  const { ordered } = M.orderForTitle(heads, true);
+  ordered[0] === heads[1]
+    ? ok('그 말이 든 헤드라인 대신 다른 헤드라인을 제목으로 쓴다')
+    : bad(`그 말이 든 헤드라인이 제목이 된다: ${ordered[0]}`);
+
+  // 전부 그 말이 들어 있으면 버리지 않는다 — 제목이 없어지는 것보다는 낫다
+  const allBad = ['국뽕 소식 하나', '또 다른 국뽕 소식'];
+  M.orderForTitle(allBad, true).ordered.length === 2
+    ? ok('전부 그 말이면 헤드라인을 잃지 않는다')
+    : bad('헤드라인이 사라졌다');
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

@@ -179,7 +179,7 @@ if (!fresh.length && wideRows.length) {
     .filter((it) => (it.headlines ?? []).some(isProudHeadline));
   if (wideIssues.length) {
     fresh = wideIssues;
-    log(`[편성] 오늘 새 이슈가 없다 — 최근 ${WIDE_HOURS}시간의 국뽕 ${fresh.length}건에서 고른다`);
+    log(`[편성] 오늘 새 이슈가 없다 — 최근 ${WIDE_HOURS}시간의 한국 성과 ${fresh.length}건에서 고른다`);
   }
 }
 if (!fresh.length) {
@@ -458,8 +458,8 @@ if (FORCE_ISSUE) {
     if (proudFirst.length) {
       fresh = [...proudFirst, ...fresh.filter((c) => !proudFirst.includes(c))];
       issue = fresh[0];
-      log(`[편성] 백필 — 국뽕 주제 ${proudFirst.length}건을 앞으로 당긴다`);
-    } else log('[편성] 백필 — 국뽕 주제가 없다. 평소 순서로 간다');
+      log(`[편성] 백필 — 한국 성과 주제 ${proudFirst.length}건을 앞으로 당긴다`);
+    } else log('[편성] 백필 — 한국 성과 주제가 없다. 평소 순서로 간다');
   }
 
   // 2026-09-06 사용자 "조회수 안나오는 주제들은 하지마".
@@ -528,14 +528,14 @@ if (FORCE_ISSUE) {
     //   범위를 좁힐 이유가 없었다 — 전체에서 국뽕을 찾는다.
     const proud = fresh.filter((c) => (c.headlines ?? []).some(isProudHeadline));
     if (proud.length) {
-      log(`[편성] 앞 후보에 소재가 없다 — 국뽕 후보 ${proud.length}건을 뒤진다`);
+      log(`[편성] 앞 후보에 소재가 없다 — 한국 성과 후보 ${proud.length}건을 뒤진다`);
       for (const cand of proud.slice(0, PROUD_PROBE_N)) {
         const { n, terms, probed } = await footageScore(cand);
-        log(`[소재탐색·국뽕] "${cand.keyword}" (${terms.join(' ') || '고유명사 없음'}) → ${n}건`);
+        log(`[소재탐색·한국성과] "${cand.keyword}" (${terms.join(' ') || '고유명사 없음'}) → ${n}건`);
         if (n > 0) {
           issue = cand;
           PROBED = probed ?? [];
-          log(`[편성] 국뽕 주제 "${issue.keyword}" 로 낸다 — 거르는 것보다 낫다`);
+          log(`[편성] 한국 성과 주제 "${issue.keyword}" 로 낸다 — 거르는 것보다 낫다`);
           break;
         }
       }
