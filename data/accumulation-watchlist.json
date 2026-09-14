@@ -1,26 +1,45 @@
 {
-  "generatedAt": "2026-09-14T07:20:23.917Z",
+  "generatedAt": "2026-09-14T22:20:24.347Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
-  "strongCount": 0,
+  "count": 2,
+  "strongCount": 1,
   "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "080160.KQ",
-      "name": "모두투어",
-      "tier": "watch",
-      "score": 38,
+      "ticker": "161580.KQ",
+      "name": "필옵틱스",
+      "tier": "strong",
+      "score": 46,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "거래량 5.0× 급증(가격 평탄)",
+        "거래량 추세 4.3× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 7.3,
-      "runup5dPct": 8.1,
-      "medDollarVolUsd": 234696,
+      "runup20dPct": 4.5,
+      "runup5dPct": -6.9,
+      "medDollarVolUsd": 2502680,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "052790.KQ",
+      "name": "액토즈소프트",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 3.8,
+      "runup5dPct": 2.6,
+      "medDollarVolUsd": 68252,
       "smartAccum": true,
       "official": null
     }
