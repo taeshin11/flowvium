@@ -24,12 +24,18 @@ set -uo pipefail
 #
 #   "도는 중엔 편집하지 말자" 는 약속으로 막을 일이 아니다. 구조로 막는다 —
 #   시작하자마자 자기 사본을 만들어 그 사본으로 갈아탄다. 원본이 어떻게 바뀌든 상관없다.
+#   **APP_DIR 을 먼저 정해서 사본에 넘긴다.** 사본은 /var/folders 에 있어서 자기 위치로
+#   저장소를 못 찾는다. 2026-09-13 에 이걸 빠뜨려 회차 다섯 번이 통째로 죽었다 —
+#     Error: Cannot find module '/var/folders/.../scripts/llm-health-check.mjs'
+#   사본으로 갈아타는 것과 "내가 어느 저장소 소속인가" 는 별개다. 후자는 원본이 알고 있다.
 if [ -z "${REPORT_SELF_COPY:-}" ]; then
+  _orig_here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  _orig_app="${APP_DIR:-$(dirname "$_orig_here")}"
   _self_copy="$(mktemp -t run-report)" || _self_copy=""
   if [ -n "$_self_copy" ] && cp "${BASH_SOURCE[0]}" "$_self_copy" 2>/dev/null; then
     chmod +x "$_self_copy" 2>/dev/null || true
     # 사본은 회차가 끝나면 지운다. exec 로 갈아타므로 여기서 지울 수 없어 사본이 스스로 지운다.
-    REPORT_SELF_COPY="$_self_copy" exec bash "$_self_copy" "$@"
+    APP_DIR="$_orig_app" REPORT_SELF_COPY="$_self_copy" exec bash "$_self_copy" "$@"
   fi
   # 사본을 못 만들면 원본으로 계속 간다 — 회차를 거르는 것보다는 낫다.
   echo "[WARN] 자기 사본 생성 실패 — 원본으로 진행(실행 중 편집에 취약)" >&2
@@ -38,6 +44,11 @@ fi
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_DIR:-$(dirname "$HERE")}"
+# APP_DIR 이 진짜 저장소인지 확인한다. 틀린 채로 진행하면 "모듈 없음" 이 15분 뒤에야 나온다.
+if [ ! -f "$APP_DIR/scripts/llm-health-check.mjs" ]; then
+  echo "[FATAL] APP_DIR 이 저장소가 아니다: $APP_DIR (scripts/llm-health-check.mjs 없음)" >&2
+  exit 4
+fi
 NODE_BIN="${NODE_BIN:-$(command -v node || true)}"
 LLM_HEALTH="${LLM_HEALTH:-http://127.0.0.1:8000/v1/models}"
 LLM_WAIT_S="${LLM_WAIT_S:-900}"
