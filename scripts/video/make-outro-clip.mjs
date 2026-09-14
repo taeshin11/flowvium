@@ -26,6 +26,7 @@ import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { ROOT } from '../lib/project-root.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
+import { audioArgs } from '../lib/shorts-layout.mjs';
 
 const ffmpeg = createRequire(import.meta.url)('ffmpeg-static');
 const W = 1080; const H = 1920;
@@ -112,7 +113,8 @@ const r = spawnSync(ffmpeg, [
   '-filter_complex', `[0:v]scale=${W}:${H},fps=30,format=yuv420p[v];[1:a]aresample=24000,apad=whole_dur=${sec}[a]`,
   '-map', '[v]', '-map', '[a]',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
-  '-c:a', 'aac', '-b:a', '128k', '-ac', '1', '-ar', '24000',
+  // 본편 조각과 **같은 규격**이어야 concat -c copy 가 안전하다(2026-09-14: 어긋나서 클립이 사라졌다).
+  ...audioArgs(),
   '-shortest', '-y', OUT,
 ], { stdio: ['ignore', 'ignore', 'pipe'] });
 if (r.status !== 0) { console.error(`❌ 만들기 실패:\n${String(r.stderr).slice(0, 400)}`); process.exit(1); }

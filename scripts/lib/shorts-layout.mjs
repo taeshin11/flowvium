@@ -233,3 +233,22 @@ export function mediaFilter(inLabel, outLabel) {
     `[mrg]pad=${W}:${g.H}:0:${g.media.top}:black,fps=${g.FPS},setsar=1[${outLabel}]`,
   ].join(';');
 }
+
+
+/**
+ * 이어붙일 조각들이 공유해야 하는 소리 규격. (2026-09-14 신설)
+ *
+ * 왜 상수로 묶나: 본편 조각은 TTS 가 준 표본율을 그대로 따라갔고, 고정 홍보 클립은 24kHz 로
+ *   박혀 있었다. TTS 를 Qwen(24kHz) → Melo(44.1kHz) 로 바꾸자 둘이 어긋났고,
+ *   `concat -c copy` 가 **오류 없이** 깨진 소리를 만들었다(exit 0, Duration 도 맞게 나온다).
+ *   그 뒤 배경음 단계의 `-shortest` 가 소리가 끊긴 지점에서 영상을 잘라 —
+ *   **홍보 클립이 통째로 사라졌다.** 로그에는 "끝에 붙인다" 가 찍힌 채로.
+ *
+ *   엔진이 또 바뀔 수 있다. 그때마다 같은 일이 나지 않게 규격을 한 군데서 정한다.
+ */
+export const AUDIO_SPEC = { rate: 44100, channels: 1, bitrate: '160k' };
+
+/** ffmpeg 인자로. 모든 조각이 이걸 쓰면 concat -c copy 가 안전하다. */
+export function audioArgs() {
+  return ['-c:a', 'aac', '-b:a', AUDIO_SPEC.bitrate, '-ac', String(AUDIO_SPEC.channels), '-ar', String(AUDIO_SPEC.rate)];
+}

@@ -36,7 +36,7 @@ import { bestQuote } from '../lib/quote-card.mjs';
 import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
-import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers } from '../lib/shorts-layout.mjs';
+import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs} from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
 import { attributionIssues } from '../lib/attribution.mjs';
@@ -1685,7 +1685,7 @@ for (let i = 0; i < scenes.length; i++) {
     '-filter_complex', chain,
     '-map', `[v${cues.length}]`, '-map', `${audioIdx}:a`,
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac', '-b:a', '160k', '-r', String(G.FPS), '-t', String(dur), '-y', part,
+    ...audioArgs(), '-r', String(G.FPS), '-t', String(dur), '-y', part,
   ];
   const r = spawnSync(ffmpegPath, a, ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
   if (r.status !== 0) {
@@ -1711,6 +1711,30 @@ writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));
 const cat = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`,
   '-c', 'copy', '-y', OUT], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
 if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat.stderr).slice(0, 400)}`); process.exit(1); }
+
+// 이어붙인 소리가 **끝까지 멀쩡한가**. (2026-09-14)
+//   concat -c copy 는 조각들의 소리 규격이 어긋나도 **exit 0 을 준다.** 컨테이너 길이도 맞게 나온다.
+//   깨진 건 소리 스트림뿐이라 눈으로는 안 보이고, 다음 단계의 -shortest 가 그 지점에서 영상을 자른다.
+//   실제로 그렇게 **홍보 클립이 하루 동안 통째로 사라졌다** — 로그에는 "끝에 붙인다" 가 찍힌 채로.
+//   규격은 위에서 맞췄지만, 맞췄다고 믿지 않고 **결과를 디코딩해 확인한다.**
+{
+  const probe = spawnSync(ffmpegPath, ['-v', 'error', '-i', OUT, '-map', '0:a', '-f', 'null', '-'],
+    ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
+  const err = String(probe.stderr ?? '');
+  if (probe.status !== 0 || /Invalid data|Error while decoding/i.test(err)) {
+    log(`⚠ 이어붙인 소리가 중간에 깨졌다 — 다시 인코딩해 붙인다: ${err.split('\n')[0].slice(0, 90)}`);
+    const re = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`,
+      '-c:v', 'copy', ...audioArgs(), '-y', `${WORK}/fixed.mp4`],
+      ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
+    if (re.status === 0 && existsSync(`${WORK}/fixed.mp4`)) {
+      copyFileSync(`${WORK}/fixed.mp4`, OUT);
+      log('[합성] 소리를 다시 인코딩해 이어붙였다');
+    } else {
+      console.error(`❌ 다시 인코딩해도 실패:\n${String(re.stderr).slice(0, 300)}`);
+      process.exit(1);
+    }
+  }
+}
 
 // ── 배경음악 (2026-09-06 사용자 "좀 뉴스 스러운 배경음악 돌려쓸수있는거 없니?") ──────
 //   CC0 음원을 받아 쓰는 길도 있지만(Pixabay·Creazilla) 이 채널은 이미 사진으로 저작권이
@@ -1747,7 +1771,7 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
       + '[v1][ducked]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1,'
       + 'alimiter=limit=0.95[a]',
       '-map', '0:v', '-map', '[a]',
-      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
+      '-c:v', 'copy', ...audioArgs(),
       '-shortest', '-y', withBgm,
     ], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
     if (r.status === 0 && existsSync(withBgm)) {
