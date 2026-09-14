@@ -138,13 +138,19 @@ export function orderForTitle(heads, isKo) {
  * 편성 기록 수를 씨앗으로 돌린다(무작위가 아니라 결정론 — 같은 편은 같은 제목이 나온다).
  */
 export const PROUD_PREFIX = [
+  // 2026-09-14 사용자: "국뽕 이라는 단어를 직접쓰진마" → "한국이 해냈다는 식으로 해".
+  //   종전 '🇰🇷 국뽕 차오릅니다' 자리를 그 말투로 채우고, 주어 없던 '또 해냈습니다' 에도
+  //   주어를 붙였다. 깃발만으로 주어를 대신하면 앞이 잘렸을 때 누가 해냈다는 건지 사라진다.
+  //   **사실을 주장하지는 않는다**(아래 원칙) — 무엇을 해냈는지는 뒤따르는 헤드라인 원문이 댄다.
+  //   이 앞머리는 isProudHeadline 이 참일 때만 붙으므로 '해냈다' 의 근거가 바로 뒤에 온다.
+  //   길이도 제약이다 — 쇼츠 제목 상한이 38자(#Shorts 제외)라 앞머리가 길면 헤드라인이 잘린다.
+  //   실측: 16자까지는 안 잘리고 18자면 잘린다. 그래서 전부 16자 이하로 맞췄다.
+  //   길이를 섞어 둔다 — 헤드라인이 길면 짧은 것만 들어가는데, 짧은 쪽이 전부 다른 말투면
+  //   긴 헤드라인인 날엔 요청하신 말투가 아예 안 나온다.
+  '🇰🇷 한국이 또 해냈습니다',
+  '🇰🇷 한국이 해냈습니다',
+  '🇰🇷 한국이 일냈습니다',
   '🇰🇷 또 해냈습니다',
-  '🇰🇷 이게 대한민국입니다',
-  // 2026-09-14 사용자 "국뽕 이라는 단어를 직접쓰진마".
-  //   종전 '🇰🇷 국뽕 차오릅니다' 자리. 감탄을 붙이는 것은 지시대로 유지하고 그 말만 뺀다.
-  //   아직 이 앞머리가 붙어 나간 편은 없었다(발행 이력 조회 0건) — 5분의 1 확률로 곧 나갈 참이었다.
-  '🇰🇷 가슴이 웅장해집니다',
-  '🇰🇷 자랑스럽습니다',
   '🇰🇷 대한민국 클라스',
 ];
 
@@ -171,13 +177,37 @@ export function hasAvoidedWord(h) {
  *
  * @param {number} [seed] 앞머리 회전용. 편성 회차 수를 넣으면 편마다 달라진다.
  */
+/**
+ * 앞머리 고르기 — 씨앗으로 돌린다. 길이 때문에 말투를 포기하지는 않는다.
+ *
+ * 2026-09-14 에 한 번 "헤드라인이 잘리면 짧은 앞머리로 비킨다" 로 만들었다가 되돌렸다.
+ *   실제 헤드라인이 25~30자라 38자 상한에서는 **제일 짧은 것 하나만** 들어간다.
+ *   그래서 여섯 편 전부 같은 앞머리가 붙었다 — 다양성이 죽고, 사용자가 요청한 말투
+ *   ("한국이 해냈다는 식으로")는 아예 안 나왔다. 제약에 맞추려다 요청을 지운 꼴이다.
+ *
+ * 헤드라인이 조금 잘리는 것은 원래 그랬고 clip() 이 자연스러운 자리에서 끊는다.
+ *   다만 **알아볼 수 없을 만큼** 남으면 그때는 짧은 앞머리로 비킨다 — 그건 잘림이 아니라 소실이다.
+ */
+const MIN_HEADLINE_CHARS = 12;
+
+export function pickProudPrefix(seed, headline, cap) {
+  const i = Math.abs(Math.trunc(seed)) % PROUD_PREFIX.length;
+  const first = PROUD_PREFIX[i];
+  const room = (p) => cap - p.length - 1;
+  if (room(first) >= MIN_HEADLINE_CHARS) return first;
+  const ok = PROUD_PREFIX.filter((p) => room(p) >= MIN_HEADLINE_CHARS);
+  if (ok.length) return ok[Math.abs(Math.trunc(seed)) % ok.length];
+  return PROUD_PREFIX.reduce((a, b) => (b.length < a.length ? b : a));
+}
+
 export function buildTitle(heads, isKo, seed = 0, opts = {}) {
   const { ordered, proud } = orderForTitle(heads, isKo);
   let t = ordered[0] ?? '';
-  const prefix = proud ? `${PROUD_PREFIX[Math.abs(Math.trunc(seed)) % PROUD_PREFIX.length]} ` : '';
+  const cap0 = Math.max(20, Math.trunc(opts.maxLen ?? 100));
+  const prefix = proud ? `${pickProudPrefix(seed, t, cap0)} ` : '';
   // 상한. 유튜브 제목은 100자가 최대지만 **쇼츠 피드는 한두 줄만 보여준다** —
   //   2026-09-03 실측 95자 제목은 시청자에게 앞 토막만 보였다. 호출부가 상한을 준다.
-  const cap = Math.max(20, Math.trunc(opts.maxLen ?? 100));
+  const cap = cap0;
   if (cap < 100) {
     // 짧게 써야 하면 헤드라인을 잇지 않는다. 하나를 자연스러운 자리에서 끊는다.
     return `${prefix}${clip(t, cap - prefix.length)}`;
