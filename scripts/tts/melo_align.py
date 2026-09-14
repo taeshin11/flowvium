@@ -32,7 +32,10 @@ import sys
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--texts-file", required=True, help="JSON 배열 파일 — 합성할 문장들")
+    ap.add_argument("--texts-file", required=True, help="JSON 배열 파일 — **소리로 낼** 문장들")
+    ap.add_argument("--display-texts-file", default="",
+                    help="자막으로 쓸 문장들(JSON 배열). 비우면 소리와 같은 글로 쓴다. "
+                         "숫자를 한글로 바꿔 읽히되 화면에는 '6800억' 을 그대로 두려고 나눈다.")
     ap.add_argument("--out-prefix", required=True, help="s0.wav, s1.wav … 로 저장할 접두사")
     ap.add_argument("--json-out", required=True)
     ap.add_argument("--speed", type=float, default=1.15, help="엔진 자체 속도(음높이 보존)")
@@ -48,6 +51,13 @@ def main():
     if not texts:
         print("빈 입력", file=sys.stderr)
         sys.exit(2)
+    display = texts
+    if a.display_texts_file:
+        with open(a.display_texts_file, encoding="utf-8") as f:
+            display = [str(t) for t in json.load(f)]
+        if len(display) != len(texts):
+            print(f"자막 개수 불일치 — 소리 {len(texts)} vs 자막 {len(display)}", file=sys.stderr)
+            sys.exit(2)
 
     from melo.api import TTS
 
@@ -64,12 +74,16 @@ def main():
         # 엔진 속도로 이미 조였으므로 tempo 는 보통 1.0. 무음 정리는 그래도 한다.
         post_process(out_wav, tempo=a.tempo, trim=True)
         dur = wav_duration(out_wav)
-        st, en, note = char_times(txt, word_times(out_wav, a.whisper, a.lang), dur)
+        # 시각은 **소리**에서 얻고, 글자는 **자막**에서 가져온다.
+        #   char_times 는 낱말 시각을 글자 수에 비례해 펴는 근사라, 글자가 달라도 같은 방식으로 편다.
+        #   (자막이 "6800억", 소리가 "육천팔백억" 이면 글자 수가 다르지만 구간은 같다.)
+        shown = display[i]
+        st, en, note = char_times(shown, word_times(out_wav, a.whisper, a.lang), dur)
         results.append({
             "path": out_wav,
             "durationSec": dur,
             "alignment": {
-                "characters": list(txt),
+                "characters": list(shown),
                 "character_start_times_seconds": st,
                 "character_end_times_seconds": en,
             },

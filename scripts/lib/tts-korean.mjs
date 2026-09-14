@@ -31,6 +31,7 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from '
 import { homedir, tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
 import { ROOT } from './project-root.mjs';
+import { speakNumbers } from './kr-number.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -184,7 +185,7 @@ export function meloTtsReady() {
  * 반환 계약은 Qwen·Piper 와 같다 — 호출부가 엔진을 몰라도 된다.
  */
 export function synthesizeKoreanMelo(texts, opts = {}) {
-  const { outPrefix, speed = MELO_SPEED, timeoutMs = 30 * 60_000 } = opts;
+  const { outPrefix, speed = MELO_SPEED, timeoutMs = 30 * 60_000, display = null } = opts;
   if (!outPrefix) throw new Error('outPrefix 가 필요하다');
   const ready = meloTtsReady();
   if (!ready.ok) throw new Error(`MeloTTS 준비 안 됨 — ${ready.reason}`);
@@ -195,9 +196,16 @@ export function synthesizeKoreanMelo(texts, opts = {}) {
   const jf = join(tmpdir(), `${tag}.out.json`);
   try {
     writeFileSync(tf, JSON.stringify(texts), 'utf8');
+    // 자막은 원문 그대로(숫자는 숫자로), 소리는 한글로 읽은 것 — 시각만 공유한다.
+    let df = null;
+    if (display && display.length === texts.length) {
+      df = join(tmpdir(), `${tag}.display.json`);
+      writeFileSync(df, JSON.stringify(display), 'utf8');
+    }
     execFileSync(ready.python, [
       ready.script, '--texts-file', tf, '--out-prefix', outPrefix, '--json-out', jf,
       '--speed', String(speed),
+      ...(df ? ['--display-texts-file', df] : []),
     ], {
       timeout: timeoutMs,
       stdio: ['ignore', 'ignore', 'inherit'],
@@ -230,8 +238,14 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
   }
   const melo = meloTtsReady();
   if (melo.ok) {
-    log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})`);
-    return synthesizeKoreanMelo(texts, opts);
+    // 2026-09-14 사용자 "숫자읽을때 이상하게 읽네".
+    //   Melo 의 한국어 g2p 가 여러 자리 숫자를 못 읽는다(실측 10건 중 8건 오독,
+    //   "2026년"→"2016년" 처럼 값이 바뀌는 것까지). 소리에는 한글로 읽은 글을 주고
+    //   **자막에는 원문을 그대로** 둔다 — 화면의 "6800억" 이 "육천팔백억" 보다 읽기 쉽다.
+    const spoken = texts.map((t) => speakNumbers(t));
+    const changed = spoken.filter((t, i) => t !== texts[i]).length;
+    log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})${changed ? ` · 숫자 한글화 ${changed}/${texts.length}문장` : ''}`);
+    return synthesizeKoreanMelo(spoken, { ...opts, display: texts });
   }
   const qwen = qwenTtsReady();
   if (qwen.ok) {
