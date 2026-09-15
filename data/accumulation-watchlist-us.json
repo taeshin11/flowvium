@@ -1,12 +1,47 @@
 {
-  "generatedAt": "2026-09-14T13:00:24.254Z",
+  "generatedAt": "2026-09-15T10:21:03.956Z",
   "universe": "US",
-  "scanned": 298,
-  "count": 6,
-  "strongCount": 0,
-  "watchCount": 6,
+  "scanned": 324,
+  "count": 10,
+  "strongCount": 1,
+  "watchCount": 9,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "GNK",
+      "name": "Genco Shipping & Trading Limite",
+      "tier": "strong",
+      "score": 37,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 2.5,
+      "runup5dPct": -2.4,
+      "medDollarVolUsd": 9047790,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GOLD",
+      "name": "Gold.com, Inc.",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 7.5,
+      "runup5dPct": 2.6,
+      "medDollarVolUsd": 18396144,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "TYRA",
       "name": "Tyra Biosciences, Inc.",
@@ -14,69 +49,103 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 추세 3.1× 상승(지속 매집)",
         "거래량 3.7× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -12,
-      "runup5dPct": -11.4,
+      "runup20dPct": -0.9,
+      "runup5dPct": -12.5,
       "medDollarVolUsd": 18381400,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CMCM",
-      "name": "Cheetah Mobile Inc.",
+      "ticker": "LMNR",
+      "name": "Limoneira Co",
+      "tier": "watch",
+      "score": 31,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -3.4,
+      "runup5dPct": -10.7,
+      "medDollarVolUsd": 931468,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SB",
+      "name": "Safe Bulkers, Inc",
       "tier": "watch",
       "score": 30,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 추세 2.1× 상승(지속 매집)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 1.3,
-      "runup5dPct": -7.8,
-      "medDollarVolUsd": 21987,
+      "runup20dPct": 7.7,
+      "runup5dPct": -8.9,
+      "medDollarVolUsd": 6205216,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "WDH",
-      "name": "Waterdrop Inc.",
+      "ticker": "BRCC",
+      "name": "BRC Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 8.1× 상승(지속 매집)",
-        "거래량 14.6× 급증(가격 평탄)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 2,
-      "runup5dPct": 2,
-      "medDollarVolUsd": 179571,
+      "runup20dPct": 5.8,
+      "runup5dPct": 2.6,
+      "medDollarVolUsd": 877760,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "GNK",
-      "name": "Genco Shipping & Trading Limite",
+      "ticker": "GLAS",
+      "name": "Glass House Brands Inc. Subordi",
       "tier": "watch",
       "score": 25,
-      "coFire": 3,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 1.5× 상승",
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 3.2,
-      "runup5dPct": -1.7,
-      "medDollarVolUsd": 8914174,
+      "runup20dPct": -13.9,
+      "runup5dPct": -8.8,
+      "medDollarVolUsd": 3588033,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CEVA",
-      "name": "CEVA, Inc.",
+      "ticker": "IMOS",
+      "name": "ChipMOS TECHNOLOGIES INC.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -8.2,
+      "runup5dPct": -7,
+      "medDollarVolUsd": 5938614,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MG",
+      "name": "Mistras Group Inc",
       "tier": "watch",
       "score": 20,
       "coFire": 2,
@@ -84,9 +153,9 @@
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 70%(강한 매수 흡수)"
       ],
-      "runup20dPct": -4.5,
-      "runup5dPct": 9.7,
-      "medDollarVolUsd": 27190318,
+      "runup20dPct": 7.9,
+      "runup5dPct": 2.1,
+      "medDollarVolUsd": 3221288,
       "smartAccum": false,
       "official": null
     },
@@ -100,9 +169,9 @@
         "거래량 추세 1.9× 상승",
         "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": -7.1,
-      "runup5dPct": -2.2,
-      "medDollarVolUsd": 294451,
+      "runup20dPct": -6.5,
+      "runup5dPct": -2.4,
+      "medDollarVolUsd": 294336,
       "smartAccum": false,
       "official": null
     }
