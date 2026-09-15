@@ -690,7 +690,17 @@ export function hasDistinctiveTerm(terms) {
 export function isRealFootage(c) {
   const u = String(c?.url ?? '').toLowerCase();
   const t = String(c?.title ?? '').toLowerCase();
-  if (/\.(svg|pdf|tif|tiff)(\?|$)/.test(u)) return false;
+  // 2026-09-15: 주소 끝만 봐서 **문서 스캔이 전부 통과하고 있었다**(실측 9건 중 9건).
+  //   커먼즈는 PDF 를 `…/국회회의록….pdf/page1-800px-….pdf.jpg` 로 렌더해 준다 —
+  //   끝은 .jpg 라 여기를 그냥 지나가고, 진짜 확장자는 **제목에만** 남는다.
+  //   그래서 "국회회의록 20대 346회 17차 국회본회의.pdf", "보도참고자료 「감염병의 예방…」",
+  //   "自由新聞 1948-06-16.pdf" 가 쇼츠 사진 자리까지 올 수 있었다. 회의록 스캔은 소재가 아니다.
+  //   원본 확장자는 제목에도, 주소 **경로 안쪽**(썸네일 앞)에도 남으므로 둘 다 본다.
+  const DOC_EXT = /\.(svg|pdf|djvu|tif|tiff)(\?|\/|$)/;
+  //   깨진 퍼센트 인코딩에 decodeURIComponent 가 던진다 — 소재 한 장 때문에 회차가 죽으면 안 된다.
+  let uDec = u;
+  try { uDec = decodeURIComponent(u); } catch { /* 인코딩이 깨졌으면 원문으로만 본다 */ }
+  if (DOC_EXT.test(u) || DOC_EXT.test(uDec) || DOC_EXT.test(t.trim())) return false;
   // 실측으로 걸린 것들: "Emblem of the Ministry…", "Tanzanian National Assembly chart.svg"
   // 복수형을 빠뜨려 "Charts of fishing industry in Taiwan 1930s" 가 통과했다(실측 2026-09-03).
   //   도표·지도·문장은 단수만 막아도 소용없다.
@@ -943,4 +953,28 @@ export function properNounsFrom(text, { max = 4 } = {}) {
     add(m[1]);
   }
   return [...out.entries()].sort((a, b) => b[1] - a[1]).slice(0, max).map(([w]) => w);
+}
+
+
+/**
+ * 한국 관련 제목을 **앞세우되 버리지는 않는다**. (2026-09-15)
+ *
+ * 왜 바꾸나(실측): 한국어 이슈면 `looksKorean(제목)` 을 **하드 필터**로 걸고 있었다.
+ *   커먼즈·오픈버스 제목은 대부분 영어라 거의 다 탈락한다 —
+ *   실측: "코스피" 8건 중 한글 제목 0건, "국회 본회의" 8건 중 2건.
+ *   그래서 **회색 카드로 간 회차에서 스톡이 성공한 흔적이 한 건도 없었다**(로그 전수).
+ *   기사 사진이 마르면 그대로 회색 카드가 되고, 그 회차는 시청률이 63%로 떨어진다
+ *   (사진 있는 회차 78~83%). 59편 중 11편(19%)이 그랬다.
+ *
+ * 그 필터는 엉뚱한 사진을 막으려고 넣은 것이다(검찰총장 사진·임시정부 청사·투호 지게가
+ *   실제로 나갔던 적이 있다). 그때는 CLIP 이 없었다. 지금은 CLIP 이 주제 불일치를 점수로 잡는다.
+ *   **언어로 먼저 버리지 말고 CLIP 이 판정하게 한다.** 다만 한국 관련은 여전히 앞에 둔다 —
+ *   같은 값이면 그쪽이 맞을 확률이 높다.
+ */
+export function preferKorean(list, koAnchor = true) {
+  const a = list ?? [];
+  if (!koAnchor) return a;
+  const ko = a.filter((c) => looksKorean(c?.title));
+  const rest = a.filter((c) => !looksKorean(c?.title));
+  return [...ko, ...rest];
 }

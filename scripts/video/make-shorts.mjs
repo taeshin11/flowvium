@@ -33,7 +33,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs} from '../lib/shorts-layout.mjs';
@@ -274,14 +274,22 @@ async function footageScore(it) {
         if (at.length < q.length) return false;
         return Math.max(...at) - Math.min(...at) <= q.length + 1;
       };
-      const n = r.filter((c) => isRealFootage(c) && titleRelevant(c.title, q)
-        && nearQ(c.title) && (!koA || looksKorean(c.title))).length;
-      if (n > 0) probed.push({ q, n });
-      if (n > best.n) best = { n, terms: q, probed };
+      // 2026-09-15: 여기서 한 번 더 같은 실수를 할 뻔했다.
+      //   장면 단계가 제목 언어로 **버리지 않게**(preferKorean) 바뀌었는데 여기만 버리고 세면,
+      //   바로 위 주석("재는 잣대와 쓰는 잣대를 맞춘다")이 다시 어긋난다.
+      //   커먼즈 제목은 대부분 영어다(실측: "코스피" 8건 중 한글 0건) — 예전 잣대로 세면
+      //   쓸 수 있는 이슈를 0건으로 깎아 놓고 더 못한 주제에 자리를 내준다.
+      //   그러니 **세는 것도 언어로 버리지 않는다.** 주제가 맞는지는 장면 단계에서 CLIP 이 본다.
+      //   한국 자료 수는 버리지 말고 동점일 때 가르는 데만 쓴다.
+      const pass = r.filter((c) => isRealFootage(c) && titleRelevant(c.title, q) && nearQ(c.title));
+      const n = pass.length;
+      const nKo = koA ? pass.filter((c) => looksKorean(c.title)).length : n;
+      if (n > 0) probed.push({ q, n, nKo });
+      if (n > best.n || (n === best.n && n > 0 && nKo > (best.nKo ?? 0))) best = { n, nKo, terms: q, probed };
       if (best.n >= 2) break;
     } catch { /* 한 질의가 죽어도 나머지로 */ }
   }
-  best.probed = probed.sort((a, b) => b.n - a.n).map((x) => x.q);
+  best.probed = probed.sort((a, b) => (b.n - a.n) || ((b.nKo ?? 0) - (a.nKo ?? 0))).map((x) => x.q);
 
   // 2026-09-05 사용자 "사진은 구글에 있겠지 왜없어?" — 맞는 지적이다.
   //   여기(편성)는 아카이브만 뒤지는데 장면 단계는 구글도 쓴다. **재는 소스와 쓰는 소스가 달랐다.**
@@ -1214,9 +1222,12 @@ for (let i = 0; i < scenes.length; i++) {
       break;
     }
     const koAnchor = KO_ISSUE || needsKoreaAnchor(terms);
-    const relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
+    let relevant = cands.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
       && titleRelevant(c.title, terms) && near(c.title)
-      && (!koAnchor || looksKorean(c.title)));
+      );
+    // 2026-09-15: 언어로 버리지 않고 **앞세우기만** 한다 — CLIP 이 주제를 판정한다.
+    //   하드 필터였을 때 스톡이 회색 카드를 한 번도 못 막았다(로그 전수 0건).
+    relevant = preferKorean(relevant, koAnchor);
     // 최신 자료를 앞으로. 아카이브에는 20년 전 사진이 그대로 남아 있다
     //   (실측: '총리' 로 2003년 고건 총리 사진이 잡혔다).
     const got = pickFootageMany(preferRecent(relevant), 1, { terms, preferFree: true });
@@ -1343,8 +1354,9 @@ for (let i = 0; i < scenes.length; i++) {
       try { cands2 = cands2.concat(await fn(alt, { limit: 8 }) ?? []); } catch { /* 다음 소스 */ }
     }
     const koA = KO_ISSUE || needsKoreaAnchor(alt);
-    const rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
-      && titleRelevant(c.title, alt) && (!koA || looksKorean(c.title)));
+    let rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
+      && titleRelevant(c.title, alt));
+    rel2 = preferKorean(rel2, koA);
     const p2 = pickFootageMany(preferRecent(rel2), 1, { terms: alt, preferFree: true });
     if (p2.length) { scenes[i].pick = p2[0]; log(`[화면] ${i + 1} 대체 질의 "${alt.join(' ')}" 로 찾음`); }
   }
@@ -1370,8 +1382,9 @@ for (let i = 0; i < scenes.length; i++) {
       for (const fn of [searchKoglCommons, searchCommons, searchOpenverse]) {
         try { ko = ko.concat(await fn(pair, { limit: 8 })); } catch { /* 다음 소스로 */ }
       }
-      const rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair)
-        && (!KO_ISSUE || looksKorean(c.title)));
+      let rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair)
+        );
+      rel = preferKorean(rel, KO_ISSUE);
       const pick = pickFootageMany(preferRecent(rel), 1, { terms: pair, preferFree: true });
       if (pick.length) {
         scenes[i].pick = pick[0];
