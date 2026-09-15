@@ -264,7 +264,32 @@ if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다');
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
 const tagWords = buildTags(top, last.keywords, isKoUpload);
 
-const desc = buildDescription(top, isKoUpload);
+let desc = buildDescription(top, isKoUpload);
+
+// ── 표기 의무를 설명란까지 보낸다 ──────────────────────────────────────────
+// 2026-09-15: make-shorts 가 CC BY 소재의 크레딧을 `<영상>-credits.txt` 에 모아 두는데
+//   **여기서 아무도 읽지 않아 설명란에 한 줄도 안 들어가고 있었다.** 파일로 남기는 것은
+//   기록이지 표기가 아니다 — 보는 사람에게 닿아야 표기다. CC BY 는 저작자 표시가 조건이라
+//   빠지면 라이선스를 벗어난 사용이 된다.
+//   지금까지 실제로 새어 나간 적은 없다(크레딧 파일이 생긴 회차가 없었다 — 소재가 전부
+//   기사 사진이라 CC 항목이 없었다). 유튜브 CC 영상을 쓰기 시작하면 매 편 생긴다.
+const creditsFile = VIDEO.replace(/\.mp4$/i, '-credits.txt');
+if (existsSync(creditsFile)) {
+  const lines = readFileSync(creditsFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean);
+  if (lines.length) {
+    // 유튜브 설명란은 5,000자다. 크레딧이 본문을 밀어내면 안 되므로 남는 만큼만 넣고,
+    //   다 못 넣으면 **넣지 않고 멈춘다** — 일부만 표기하는 건 표기가 아니라 누락이다.
+    const block = `\n\n출처 · 라이선스\n${lines.map((l) => `· ${l}`).join('\n')}`;
+    if (desc.length + block.length <= 4900) {
+      desc += block;
+      log(`출처 표기 ${lines.length}건을 설명란에 넣었다`);
+    } else {
+      log(`❌ 출처 표기 ${lines.length}건이 설명란에 안 들어간다(${desc.length}+${block.length}자) — 발행 중단.`);
+      log('   CC BY 는 저작자 표시가 조건이라 표기 없이 올리면 라이선스를 벗어난다.');
+      process.exit(5);
+    }
+  }
+}
 // 넣기로 한 것이 빠졌으면 말한다. 설명란은 올린 뒤에 확인하기 번거롭다.
 if (!String(process.env.DONATION_ACCOUNT ?? '').trim()) {
   log('⚠ DONATION_ACCOUNT 가 비어 있다 — 후원 안내가 빠진 채로 올라간다 (.env.local 확인)');

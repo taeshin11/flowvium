@@ -33,6 +33,7 @@ import { loadEnvLocal } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
+import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '../lib/youtube-cc.mjs';
 import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -1410,6 +1411,41 @@ for (let i = 0; i < scenes.length; i++) {
     }
   }
   }
+  // ── 컷마다 유튜브 CC 영상 (2026-09-15 신설) ────────────────────────────────
+  //   여기까지 왔다는 건 아카이브·구글이 다 비었다는 뜻이다. 실측으로 그 원인이 분명하다 —
+  //   커먼즈 제목 매칭은 한국어 낱말이 제목에 그대로 박혀 있기를 요구하는데 커먼즈 제목은
+  //   영어라, 8개 주제에서 쓸 수 있는 것이 2~4건뿐이었다(코스피·삼성전자·원자력은 0건).
+  //   같은 낱말을 유튜브 CC 검색에 넣으면 6개 주제 전부 5/5 가 나온다.
+  //
+  //   ⚠ 다만 **한국어 CC 영상은 b-roll 라이브러리가 아니다.** 표본 6건을 눈으로 본 결과
+  //   6건이 6건 다 그대로는 못 쓴다 — 남의 헤드라인 자막이 박힌 완성 쇼츠, 방송사 로고,
+  //   주식 방송 차트, 전화번호가 박힌 광고였다. 그래서 이 경로는 **기본으로 꺼져 있고**
+  //   (YT_CC_DOWNLOAD=1), 켜더라도 뒤의 CLIP 관문이 배너·로고를 거른다.
+  //   재사용보다 먼저 시도한다 — 같은 사진을 두 번 까는 것보다 새 장면이 낫다.
+  if (!scenes[i].media && ccDownloadReady().ok && ccBudgetLeft() > 0) {
+    const ccTerms = termCandidates.find((t) => t?.length) ?? [];
+    if (ccTerms.length) {
+      try {
+        const vids = await searchCcVideos(ccTerms, { max: 10 });
+        const fresh = vids.find((v) => !usedMedia.has(v.url));
+        if (fresh) {
+          const got = downloadCcClip(fresh, `${WORK}/cc${i}.mp4`, { seconds: 8 });
+          if (got) {
+            usedMedia.add(fresh.url);
+            scenes[i].pick = fresh;       // creditLine() 이 여기서 표기를 만든다
+            scenes[i].media = got;
+            scenes[i].credit = `출처- ${fresh.author}`;
+            log(`[화면] ${i + 1} 유튜브 CC "${ccTerms.join(' ')}" → ${fresh.title.slice(0, 34)} [${fresh.author}]`);
+          }
+        } else if (vids.length) {
+          log(`[화면] ${i + 1} 유튜브 CC ${vids.length}건 — 전부 이미 쓴 것`);
+        }
+      } catch (e) {
+        log(`[화면] ${i + 1} 유튜브 CC 실패: ${String(e?.message ?? e).slice(0, 50)}`);
+      }
+    }
+  }
+
   if (!scenes[i].media) {
     // 2026-09-03 사용자 "마지막엔 영상 사진도 아예없네".
     //   못 찾았다고 바로 카드로 떨어뜨리지 않는다. 같은 편 안의 다른 장면 소재를 다시 쓴다 —
@@ -1448,12 +1484,28 @@ closeGoogleImages();
   // ── 발행 전 마지막 관문: 사진이 이 회차 이야기인가 (2026-09-06 신설) ──────────────
   //   규칙(제목 겹침·날짜·도표 패턴)으로는 끝이 없었다 — 여덟 번을 눈으로 잡아 내렸다.
   //   한국어 CLIP 에게 묻는다. 판정 못 하면(모델 없음·느림) 막지 않는다.
+  // 2026-09-15: CLIP 관문은 media 경로를 **사진으로 연다**. 유튜브 CC 영상이 들어오면
+  //   PIL 이 mp4 를 못 열어 clipCheck 가 예외 → 빈 배열을 돌려주고, 그러면 그 회차의
+  //   **사진 검사가 통째로 건너뛰어진다**(조용히 전부 통과). 새 소재를 넣으면서 기존 관문을
+  //   끄는 셈이라, 영상은 대표 프레임을 뽑아 같은 잣대로 잰다.
+  //   가운데에서 뽑는다 — 앞은 인트로, 뒤는 엔드카드가 오는 자리다.
+  const clipStill = (m) => {
+    if (!m || !/\.(mp4|webm|mov)$/i.test(m)) return m;
+    const out = `${WORK}/still-${Buffer.from(m).toString('hex').slice(-12)}.jpg`;
+    if (existsSync(out)) return out;
+    const r = spawnSync(ffmpegPath, ['-y', '-v', 'error', '-ss', '1', '-i', m,
+      '-frames:v', '1', out], ffmpegOpts({ timeoutMs: 60_000 }));
+    return (r.status === 0 && existsSync(out)) ? out : null;
+  };
+
   // 같은 장면을 다른 매체가 찍은 사진은 URL·픽셀이 달라 해시로 못 잡는다.
   //   실측: 이재명 편 네 장면 중 셋이 같은 자리·같은 옷이었다(31초 내내 정지 화면).
   try {
     const { clipDuplicates } = await import('../lib/clip-gate.mjs');
     const withMedia = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media);
-    const dup = clipDuplicates(withMedia.map((r) => r.x.media));
+    // 영상은 대표 프레임으로 견준다. 프레임을 못 뽑은 것은 짝이 어긋나지 않게 빼 둔다.
+    const dupIn = withMedia.map((r, n) => ({ n, still: clipStill(r.x.media) })).filter((u) => u.still);
+    const dup = clipDuplicates(dupIn.map((u) => u.still)).map((i) => dupIn[i]?.n).filter((n) => n != null);
     for (const i of dup) {
       const r = withMedia[i];
       log(`[화면] ${r.k + 1} 앞 장면과 거의 같은 사진 — 뺀다`);
@@ -1470,10 +1522,16 @@ closeGoogleImages();
       const verdict = BRIEF
         ? cand.flatMap((r) => {
           const topic = (BRIEF[r.k]?.it?.headlines ?? [])[0] ?? headlines[0] ?? issue.keyword;
-          const one = clipCheck([{ image: r.x.media }], topic);
+          const still = clipStill(r.x.media);
+          const one = still ? clipCheck([{ image: still }], topic) : [];
           return one.length ? [{ ...one[0], index: cand.indexOf(r) }] : [];
         })
-        : clipCheck(cand.map((r) => ({ image: r.x.media })), headlines[0] ?? issue.keyword);
+        : (() => {
+          // 프레임을 못 뽑은 소재는 검사 대상에서 빼되 **index 가 어긋나지 않게** 짝을 유지한다.
+          const usable = cand.map((r, n) => ({ n, still: clipStill(r.x.media) })).filter((u) => u.still);
+          const out = clipCheck(usable.map((u) => ({ image: u.still })), headlines[0] ?? issue.keyword);
+          return out.map((v) => ({ ...v, index: usable[v.index]?.n ?? v.index }));
+        })();
       // 2026-09-06: 미끼가 넓어 멀쩡한 사진 둘을 버리고 빈 화면이 나갔다(태극기·한복 → "민속 도구").
       //   미끼는 좁혔지만, **절반 넘게 걸리면 판정 자체를 의심**한다 —
       //   그럴 땐 모델이 주제를 못 잡은 것이지 사진이 다 틀린 게 아니다. 그때는 막지 않는다.
@@ -1805,7 +1863,7 @@ console.log(`   ${totalSec.toFixed(1)}초 · ${size}MB · 장면 ${scenes.length
 // 표기 의무. 라이선스가 요구하면 설명란에 넣어야 한다.
 const credits = scenes.map((s) => (s.pick ? creditLine(s.pick) : null)).filter(Boolean);
 if (credits.length) {
-  const cf = join(MEDIA.root, 'shorts-ko-credits.txt');
+  const cf = OUT.replace(/\.mp4$/i, '-credits.txt');
   writeFileSync(cf, credits.join('\n'));
   console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${cf}`);
 }
