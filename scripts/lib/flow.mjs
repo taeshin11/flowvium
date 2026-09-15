@@ -300,8 +300,58 @@ export function modelName(shown) {
     .trim();
 }
 
+/**
+ * 작성기의 설정 칩. (2026-09-15 — Flow UI 개편)
+ *
+ * 새 UI 는 모델·비율·개수를 **작성기 안의 칩 하나**로 모았고, 칩 글자가 모드에 따라 바뀐다:
+ *     이미지 모드  "🍌 Nano Banana 2 crop_16_9 x1"
+ *     동영상 모드  "동영상 · 720p · 8초 crop_16_9 x1"
+ *   그래서 모델 이름으로 칩을 찾던 코드가 **모드를 한 번 바꾸면 영영 못 찾는다**
+ *   (실측: 영상 시험 뒤 이미지 생성까지 panel_closed 로 죽었다 — 코드가 아니라 남은 상태 탓).
+ *   두 모드에 공통으로 들어 있는 `crop_` 로 찾는다.
+ *
+ * 옛 UI(tune 아이콘 → 설정 패널)도 그대로 둔다. 둘 다 있으면 먼저 찾히는 쪽을 쓴다.
+ */
+async function composerChip(page) {
+  await openDefaults(page);   // 옛 UI 면 여기서 열린다. 새 UI 엔 tune 이 없어 아무 일도 안 한다.
+  // 팝오버가 열려 있으면 그 안에도 `crop_16_9` 같은 **비율 라디오**가 있다 —
+  //   role=radio 를 빼지 않으면 그쪽을 집어 비율을 바꿔 버린다(실측: 9:16 으로 바뀌고 12 크레딧이 됐다).
+  //   작성기 칩은 라디오가 아니고, 개수 표시(x1)를 함께 달고 있다.
+  const byCrop = page.locator('button:not([role=radio]):has-text("crop_")').last();
+  if (await byCrop.count().catch(() => 0)) return byCrop;
+  return page.locator('button:has-text("Nano Banana")').last();   // 옛 UI 폴백
+}
+
+/** 팝오버의 `이미지 | 동영상` 탭. DOM 실측: button[role=radio] "videocam 동영상". */
+async function switchMode(page, want /* '이미지' | '동영상' */) {
+  const tab = page.locator(`button[role=radio]:has-text("${want}")`).first();
+  if (!(await tab.count().catch(() => 0))) return false;
+  await tab.click({ timeout: 6000 }).catch(() => {});
+  await page.waitForTimeout(1200);
+  return true;
+}
+
+/**
+ * 이 생성이 크레딧을 얼마나 쓰는가. 팝오버가 직접 적어 준다 — "생성 시 0 크레딧이 사용됩니다".
+ *
+ * 모델 **이름**으로 무료를 판정하던 것보다 낫다. 이름은 Flow 가 바꾸면 바로 낡고,
+ * 접두사 사고("Veo 3.1 - Lite" 가 유료판 "[Lower Priority]" 의 접두사)도 났던 자리다.
+ * 못 읽으면 null — **무료라고 단정하지 않는다.**
+ */
+export async function readCreditCost(page) {
+  const t = await page.locator('text=/크레딧/').first().innerText().catch(() => '')
+    || await page.locator('text=/credit/i').first().innerText().catch(() => '');
+  const m = /(\d[\d,]*)\s*크레딧/.exec(String(t)) || /(\d[\d,]*)\s*credits?/i.exec(String(t));
+  return m ? Number(m[1].replace(/,/g, '')) : null;
+}
+
 async function openImageDrop(page) {
-  await openDefaults(page);
+  const chip = await composerChip(page);
+  if (await chip.count().catch(() => 0)) {
+    await chip.click({ timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+    await switchMode(page, '이미지');
+  }
   return page.locator('button:has-text("Nano Banana")').last();
 }
 
@@ -590,34 +640,32 @@ export async function readVideoModel(page) {
  *
  * @returns {Promise<string>} 선택 후 실제로 표시되는 모델명(호출부가 검증한다)
  */
+/**
+ * 동영상 모드로 맞추고, **크레딧이 0 인지 팝오버에서 확인한다.** (2026-09-15 개편)
+ *
+ * 종전에는 모델 **이름**이 `Veo 3.1 - Lite [Lower Priority]` 인지로 무료를 판정했다.
+ *   Flow 가 UI 를 바꾸자(모델·비율·개수를 작성기 칩 하나로 통합) 그 판정이 통째로 막혔다.
+ *   그런데 팝오버는 **"생성 시 0 크레딧이 사용됩니다" 를 직접 적어 준다.**
+ *   우리가 알고 싶은 건 이름이 아니라 크레딧이다. 그걸 직접 읽는다 —
+ *   이름이 또 바뀌어도, 무료 등급이 바뀌어도 이 판정은 낡지 않는다.
+ *
+ * 못 읽으면 실패로 둔다. 모르면 막는다 — 크레딧은 잘못 쓰면 되돌릴 수 없다.
+ */
 export async function setVideoModel(page, model = FREE_VIDEO_MODEL) {
-  const drop = await openDefaults(page);
-  if (!(await drop.count().catch(() => 0))) {
+  const chip = await composerChip(page);
+  if (!(await chip.count().catch(() => 0))) return modelResult(MODEL_RESULT.PANEL_CLOSED);
+  await chip.click({ timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(1300);
+  if (!(await switchMode(page, '동영상'))) {
     await closeDefaults(page);
-    return modelResult(MODEL_RESULT.PANEL_CLOSED);
+    return modelResult(MODEL_RESULT.PANEL_CLOSED, '동영상 탭 없음');
   }
-  let shown = (await drop.innerText().catch(() => '')).replace(/\s+/g, ' ').replace('arrow_drop_down', '').trim();
-  if (shown !== model) {
-    await drop.click({ timeout: 8000 }).catch(() => {});
-    await page.waitForTimeout(1800);
-    // 정확히 그 문자열인 항목만. 접두사 매칭 금지 —
-    //   "Veo 3.1 - Lite" 는 "Veo 3.1 - Lite [Lower Priority]" 의 접두사라 **유료 모델**이 잡힌다.
-    const opt = page.locator('[role=option],[role=menuitem],[role=menuitemradio],li')
-      .filter({ hasText: new RegExp(`^\\s*${model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`) }).first();
-    if (!(await opt.count().catch(() => 0))) {
-      await closeDefaults(page);
-      return modelResult(MODEL_RESULT.OPTION_MISSING, shown);
-    }
-    await opt.click({ timeout: 8000 }).catch(() => {});
-    await page.waitForTimeout(1500);
-    const save = page.locator('button:has-text("저장"), button:has-text("Save")').first();
-    if (await save.count().catch(() => 0)) { await save.click({ timeout: 6000 }).catch(() => {}); await page.waitForTimeout(2000); }
-    // "선택했다" 와 "선택됐다" 는 다르다 — 다시 열어 읽는다.
-    shown = await readVideoModel(page);
-  }
-  // 확인하느라 연 패널을 반드시 닫는다. 열린 채로 두면 작성기를 덮어 다음 단계가 통째로 막힌다.
+  const cost = await readCreditCost(page);
+  const shown = (await chip.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
   await closeDefaults(page);
-  return modelResult(shown === model ? MODEL_RESULT.OK : MODEL_RESULT.NOT_APPLIED, shown);
+  if (cost === null) return modelResult(MODEL_RESULT.NOT_APPLIED, `${shown} (크레딧 표시를 못 읽음)`);
+  if (cost > 0) return modelResult(MODEL_RESULT.NOT_APPLIED, `${shown} — ${cost} 크레딧`);
+  return modelResult(MODEL_RESULT.OK, `${shown} · 0 크레딧`);
 }
 
 /**

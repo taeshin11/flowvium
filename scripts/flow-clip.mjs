@@ -82,10 +82,14 @@ await shot('model');
 if (!inProject(page)) await die(`프로젝트 화면을 벗어났다: ${page.url()}`, 'left-project');
 // 실패 사유를 그대로 전달한다. 종전엔 전부 "0 크레딧 모델이 반영되지 않았다" 로 뭉개서
 //   실제 원인(안내 모달이 화면을 덮음)과 무관한 곳을 보게 만들었다.
-if (!isFreeModel(shown) && !ALLOW_PAID) {
-  await die(`0 크레딧 모델을 확인하지 못했다 (${r.status}) — ${r.hint}. 유료로 생성하지 않는다(--allow-paid 로 해제)`, 'model-fail');
+// 2026-09-15: 판정 기준을 **모델 이름 → 팝오버의 크레딧 표시**로 바꿨다.
+//   Flow 가 UI 를 바꾸면서 모델 이름이 칩에서 사라졌고, 이름 기반 판정이 통째로 막혔다.
+//   우리가 알고 싶은 건 이름이 아니라 크레딧이다 — setVideoModel 이 "0 크레딧" 을 읽고 ok 를 준다.
+//   못 읽으면 ok 가 아니다. 모르면 막는다 — 크레딧은 잘못 쓰면 되돌릴 수 없다.
+if (!r.ok && !ALLOW_PAID) {
+  await die(`0 크레딧을 확인하지 못했다 (${r.status}, 표시="${shown}") — ${r.hint}. 유료로 생성하지 않는다(--allow-paid 로 해제)`, 'model-fail');
 }
-if (!isFreeModel(shown)) console.log('  ⚠ 유료 등급으로 생성한다 — 크레딧이 소모된다');
+if (!r.ok) console.log(`  ⚠ 0 크레딧 확인 없이 생성한다 — 크레딧이 소모될 수 있다 (표시="${shown}")`);
 
 // 생성 전에 이미 있는 결과를 기억해 둔다. "영상이 보인다" 만으로는 방금 시킨 것인지 알 수 없다.
 const before = new Set(await videoUrls(page));
