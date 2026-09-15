@@ -22,6 +22,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './project-root.mjs';
+import { envValue } from './footage.mjs';
 
 export const FLOW_URL = 'https://labs.google/fx/tools/flow';
 export const PROFILE_DIR = resolve(ROOT, 'secrets/flow-profile');
@@ -88,7 +89,9 @@ export async function exitEditor(page, { tries = 3 } = {}) {
  *   프로젝트가 바뀌면 조용히 남의 그림을 가져온다. .env.local 의 FLOW_PROJECT_URL 로 못박는다.
  *   안 박아 두면 종전대로 첫 프로젝트로 가되 **어디로 갔는지 찍는다** — 모르고 지나가지 않게.
  */
-export const FLOW_PROJECT_URL = process.env.FLOW_PROJECT_URL || '';
+//   process.env 만 보면 .env.local 에 적어도 안 먹는다(2026-09-15: 적어 놓고 안 읽어서 그대로 샜다).
+//   다른 모듈들이 쓰는 같은 방식으로 파일에서도 읽는다.
+export const FLOW_PROJECT_URL = process.env.FLOW_PROJECT_URL || envValue('FLOW_PROJECT_URL');
 
 export async function openProject(page) {
   if (FLOW_PROJECT_URL) {
