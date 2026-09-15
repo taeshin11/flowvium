@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T07:20:24.242Z",
+  "generatedAt": "2026-09-15T22:20:23.908Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
@@ -7,24 +7,6 @@
   "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "161580.KQ",
-      "name": "필옵틱스",
-      "tier": "watch",
-      "score": 41,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.5× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 10.5,
-      "runup5dPct": -12.4,
-      "medDollarVolUsd": 2502680,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "073540.KQ",
       "name": "에프알텍",
@@ -40,6 +22,23 @@
       "runup20dPct": -2.2,
       "runup5dPct": 7.2,
       "medDollarVolUsd": 50513,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "048410.KQ",
+      "name": "현대바이오",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -12.1,
+      "runup5dPct": 2.6,
+      "medDollarVolUsd": 4328767,
       "smartAccum": true,
       "official": null
     }
