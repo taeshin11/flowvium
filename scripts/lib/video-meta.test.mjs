@@ -286,5 +286,34 @@ const M = await import('./video-meta.mjs');
     : bad('헤드라인이 사라졌다');
 }
 
+// ── 태그: 채널 고정 + 숫자 조각 제거 (2026-09-15) ──────────────────────────────
+// 옆 세션이 자기 채널에서 "업로드 기본 태그가 비어 있다" 를 찾았고, 우리도 점검했다.
+//   채널 설명·키워드·국가·언어는 멀쩡했는데 **영상 태그가 샜다** — 실측 82개 중 11개(13%)가
+//   "6개월·5배·10명·243명·12위·30대" 같은 수 조각이었다. 검색어가 아니다.
+//   그리고 "이 채널이 무슨 채널인가" 를 말해 주는 축이 태그에 하나도 없었다.
+{
+  const M = await import('./video-meta.mjs');
+  const heads = ['6개월 넘긴 중동전쟁…코트라, 지원한도 5배로', '학자금 대출 장기연체자 10명 중 8명이 30대'];
+  const tags = M.buildTags(heads, [], true);
+
+  tags.filter((t) => /^\d/.test(t)).length === 0
+    ? ok('수 + 단위 토막이 태그에 없다 (6개월·5배·10명·30대)')
+    : bad(`수 조각이 남아 있다: ${tags.filter((t) => /^\d/.test(t)).join(', ')}`);
+
+  M.CHANNEL_TAGS.ko.every((t) => tags.includes(t))
+    ? ok(`채널 고정 태그 ${M.CHANNEL_TAGS.ko.length}개가 모든 영상에 붙는다`)
+    : bad(`채널 태그가 빠졌다: ${M.CHANNEL_TAGS.ko.filter((t) => !tags.includes(t)).join(', ')}`);
+
+  // 고정 태그가 앞을 먹어도 그 편의 주제가 남아야 한다
+  tags.some((t) => ['중동전쟁', '코트라', '학자금'].includes(t))
+    ? ok('고정 태그가 앞에 와도 그 편의 주제 태그가 남는다')
+    : bad(`주제 태그가 다 밀렸다: ${tags.join(', ')}`);
+
+  // 조사가 붙은 채로 태그가 되면 안 된다
+  M.buildTags(['호르무즈 이어 홍해마저 이중봉쇄'], [], true).includes('홍해')
+    ? ok("조사를 뗀다 (홍해마저 → 홍해)")
+    : bad(`조사가 붙어 있다: ${M.buildTags(['호르무즈 이어 홍해마저 이중봉쇄'], [], true).join(', ')}`);
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);
