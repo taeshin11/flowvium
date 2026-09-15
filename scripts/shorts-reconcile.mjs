@@ -58,7 +58,42 @@ for (const x of missing) {
 }
 for (const [title, ids] of dups) console.log(`  ⚠ 같은 제목 ${ids.length}편: ${ids.join(' ')} — ${title.slice(0, 34)}`);
 
-if (!missing.length) { console.log('맞춰져 있다'); process.exit(dups.length ? 1 : 0); }
+// ── 반대 방향: 원장에는 살아 있는데 유튜브에서 사라진 편 (2026-09-15 신설) ──────
+//   종전에는 "유튜브에 있는데 원장에 없는" 한쪽만 봤다. 그래서 09-14 16:21 편이
+//   유튜브 API 에서 통째로 사라졌는데도 "맞춰져 있다" 가 나왔다.
+//   사라지는 이유는 셋이고 **셋 다 우리가 알아야 한다**:
+//     · 사람이 지웠다        · 비공개로 돌렸다        · 유튜브가 내렸다(정책)
+//   마지막이 제일 중요하다. 정책으로 내려간 걸 모르면 같은 걸 계속 올린다.
+//   판단은 하지 않는다 — 사라졌다는 사실만 알린다. 원장을 자동으로 고치지도 않는다.
+const vanished = [];
+{
+  const since = new Date(Date.now() - HOURS * 3600e3).toISOString();
+  const ledger = db.prepare(
+    `SELECT video_id, headline, published_at FROM shorts_published
+      WHERE video_id IS NOT NULL AND retracted_at IS NULL AND published_at >= ?`,
+  ).all(since);
+  const live = new Set(items.map((x) => x.id));
+  const suspect = ledger.filter((r) => !live.has(r.video_id));
+  // uploads 목록에 없다고 바로 단정하지 않는다 — 목록이 잘렸을 수도 있다. 건별로 되묻는다.
+  if (suspect.length) {
+    const r = await yt.videos.list({ part: ['status'], id: suspect.map((x) => x.video_id) });
+    const found = new Set((r.data.items ?? []).map((x) => x.id));
+    for (const x of suspect) if (!found.has(x.video_id)) vanished.push(x);
+  }
+}
+if (vanished.length) {
+  console.log(`\n🚨 원장에는 있는데 유튜브에 없는 편 ${vanished.length}편 — 지워졌거나 비공개거나 내려갔다`);
+  for (const x of vanished) {
+    const t = new Date(Date.parse(x.published_at) + 9 * 3600000).toISOString().slice(5, 16).replace('T', ' ');
+    console.log(`  · ${t}  ${x.video_id}  ${String(x.headline ?? '').slice(0, 34)}`);
+  }
+  console.log('  → Studio 에서 사유를 보십시오. 정책으로 내려간 것이면 같은 소재를 다시 올리면 안 됩니다.');
+}
+
+if (!missing.length) {
+  console.log(vanished.length ? '\n원장에 없는 편은 없다(사라진 편은 위 참조)' : '맞춰져 있다');
+  process.exit(dups.length || vanished.length ? 1 : 0);
+}
 if (!YES) { console.log('\n실제로 채우려면 --yes'); process.exit(1); }
 
 // 제목에서 발행기가 붙인 장식을 걷어낸다 — 원장의 headline 은 기사 제목이어야 대조가 된다.

@@ -40,6 +40,8 @@ def main():
     ap.add_argument("--json-out", required=True)
     ap.add_argument("--speed", type=float, default=1.15, help="엔진 자체 속도(음높이 보존)")
     ap.add_argument("--tempo", type=float, default=1.0, help="추가 배속. 보통 speed 로 충분해 1.0")
+    ap.add_argument("--trim-silence", action="store_true",
+                    help="문장 사이 긴 무음을 줄인다. Qwen 용 보정이라 Melo 에서는 기본 꺼짐")
     ap.add_argument("--speaker", default="", help="비우면 첫 화자")
     ap.add_argument("--whisper", default="base")
     ap.add_argument("--lang", default="ko")
@@ -71,8 +73,13 @@ def main():
     for i, txt in enumerate(texts):
         out_wav = f"{a.out_prefix}{i}.wav"
         tts.tts_to_file(txt, sid, out_wav, speed=a.speed, quiet=True)
-        # 엔진 속도로 이미 조였으므로 tempo 는 보통 1.0. 무음 정리는 그래도 한다.
-        post_process(out_wav, tempo=a.tempo, trim=True)
+        # 2026-09-15 사용자 "사람이 읽는 것처럼 자연스럽지가 않아".
+        #   무음 정리를 켜 두고 있었는데 그건 **Qwen 때문에** 넣은 설정이다
+        #   (2026-09-03 "너무 느리고 한숨이 많다"). Melo 는 한숨을 안 쉬는데 설정만 따라왔다.
+        #   실측: 13초짜리에서 2초를 깎고 있었다(10.84초 vs 12.79초). 문장 사이 쉼이 사라져
+        #   쫓기듯 들린다. 엔진이 바뀌면 그 엔진 때문에 넣은 보정도 같이 걷어야 한다.
+        #   필요하면 --trim-silence 로 되켠다.
+        post_process(out_wav, tempo=a.tempo, trim=a.trim_silence)
         dur = wav_duration(out_wav)
         # 시각은 **소리**에서 얻고, 글자는 **자막**에서 가져온다.
         #   char_times 는 낱말 시각을 글자 수에 비례해 펴는 근사라, 글자가 달라도 같은 방식으로 편다.
