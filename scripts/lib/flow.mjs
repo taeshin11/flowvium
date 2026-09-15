@@ -77,7 +77,26 @@ export async function exitEditor(page, { tries = 3 } = {}) {
  *   · 성공 판정은 **URL 에 /project/ 가 들어가는가** 다. 클릭했다 ≠ 들어갔다.
  * @returns {Promise<boolean>}
  */
+/**
+ * 쓸 프로젝트를 고정한다. (2026-09-15)
+ *
+ * 왜: 종전에는 **목록의 첫 프로젝트**로 들어갔다. 그게 우리 것이라는 보장이 없다 —
+ *   오늘 실측으로 들어간 프로젝트에는 "Children waving at snowplow"·"Family having festive dinner"
+ *   같은 **우리가 만들지 않은 영상**이 가득했다. 그 썸네일을 새 결과로 오인해 내려받았고
+ *   (사무실 사진을 시켰는데 눈사람 만화가 왔다) ✅ 까지 찍혔다.
+ *
+ *   프로젝트가 바뀌면 조용히 남의 그림을 가져온다. .env.local 의 FLOW_PROJECT_URL 로 못박는다.
+ *   안 박아 두면 종전대로 첫 프로젝트로 가되 **어디로 갔는지 찍는다** — 모르고 지나가지 않게.
+ */
+export const FLOW_PROJECT_URL = process.env.FLOW_PROJECT_URL || '';
+
 export async function openProject(page) {
+  if (FLOW_PROJECT_URL) {
+    await page.goto(FLOW_PROJECT_URL, { waitUntil: 'domcontentloaded', timeout: 90_000 }).catch(() => {});
+    await page.waitForTimeout(3000);
+    if (/\/project\//.test(page.url())) { console.log(`  [flow] 지정 프로젝트 ${page.url().split('/project/')[1]?.slice(0, 8)}`); return true; }
+    console.warn('  [flow] 지정 프로젝트로 못 들어갔다 — 목록에서 고른다');
+  }
   await page.goto(FLOW_URL, { waitUntil: 'domcontentloaded', timeout: 90_000 }).catch(() => {});
   await page.waitForTimeout(3500);
   for (const t of ['Agree', '동의', 'Accept all']) {
@@ -93,6 +112,7 @@ export async function openProject(page) {
   if (isIn()) { await exitEditor(page); return true; }
 
   // 기존 프로젝트를 재사용한다. 매번 새로 만들면 목록이 쓰레기가 된다.
+  // 어느 프로젝트로 들어가는지 남긴다 — 남의 프로젝트로 들어간 것을 모르고 지나가지 않게.
   const link = page.locator('a[href*="/project/"]').first();
   if (await link.count().catch(() => 0)) {
     const href = await link.getAttribute('href').catch(() => null);

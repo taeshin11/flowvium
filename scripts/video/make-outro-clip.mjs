@@ -92,8 +92,11 @@ let voice;
 const AUDIO_IN = argOf('audio', process.env.AISVI_AUDIO || '');
 if (AUDIO_IN) {
   if (!existsSync(AUDIO_IN)) { console.error(`❌ 음성 파일이 없다: ${AUDIO_IN}`); process.exit(2); }
-  const probe = spawnSync(ffmpeg, ['-v', 'error', '-i', AUDIO_IN, '-f', 'null', '-'], { encoding: 'utf8' });
-  const m = /time=(\d+):(\d+):([\d.]+)/.exec(String(probe.stderr ?? ''));
+  // -v error 를 붙이면 길이 줄까지 지워진다(2026-09-15 실측 — 그래서 "길이를 못 잰다" 가 났다).
+  //   진행 표시(time=)가 아니라 헤더의 Duration 을 읽는다. 짧은 파일은 진행 줄이 안 나올 수도 있다.
+  const probe = spawnSync(ffmpeg, ['-i', AUDIO_IN, '-f', 'null', '-'], { encoding: 'utf8' });
+  const err = String(probe.stderr ?? '');
+  const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(err) || /time=(\d+):(\d+):([\d.]+)/.exec(err);
   const secs = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
   if (!(secs > 0)) { console.error(`❌ 음성 길이를 못 잰다: ${AUDIO_IN}`); process.exit(2); }
   voice = { path: AUDIO_IN, durationSec: secs };

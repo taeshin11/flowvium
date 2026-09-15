@@ -59,7 +59,15 @@ try {
     await page.waitForTimeout(8000);
     const now = await imageUrls(page);
     // 개수가 **늘었을 때만** 새 결과로 본다 — 화면 전환으로 붙은 URL 을 오인하지 않는다.
-    if (now.length > before.size) { fresh = now.find((u) => !before.has(u)) ?? null; if (fresh) break; }
+    // 2026-09-15: `find`(첫 번째 새 URL)를 쓰다가 **엉뚱한 그림을 받았다** —
+    //   프롬프트는 사무실 사진인데 눈사람 만화가 왔다(r1·r2·r3 전부). imageUrls() 는
+    //   페이지의 *모든* <img> 를 보므로 갤러리·추천 썸네일이 늦게 떠도 "새 URL" 이 된다.
+    //   결과는 보통 **맨 뒤에 붙는다** — 마지막 것을 쓴다.
+    if (now.length > before.size) {
+      const added = now.filter((u) => !before.has(u));
+      fresh = added.at(-1) ?? null;
+      if (fresh) break;
+    }
     process.stdout.write('.');
   }
   process.stdout.write('\n');
@@ -67,5 +75,20 @@ try {
 
   await downloadMedia(page, fresh, dest);
   if (!existsSync(dest) || statSync(dest).size < 10_000) { console.error(`❌ 내려받은 파일이 비었다: ${dest}`); process.exit(1); }
+
+  // ⚠ **"받았다" 와 "맞는 걸 받았다" 는 다르다.** (2026-09-15 실측)
+  //   이 스크립트는 화면의 <img> 를 긁어 온다. 생성이 실패하거나 밀리면 갤러리·샘플 썸네일이
+  //   "새 URL" 로 잡히고, 그걸 ✅ 로 찍어 내려받는다 — 사무실 사진을 시켰는데 눈사람 만화가 왔다.
+  //   세 번 연속 그랬고 파일 크기도 56~68KB 였다(정상 생성은 670~800KB).
+  //
+  //   CLIP 으로 대조해 막으려다 **되레 통과시켰다.** 같은 눈사람 그림이 문구에 따라
+  //   2.9% / 50.7% / 100% 로 움직인다(softmax 라 절대 점수에 임계값을 못 건다 —
+  //   clip-gate.mjs 머리말이 이미 경고해 둔 것을 내가 다시 밟았다).
+  //   **틀린 검사는 검사가 없는 것보다 나쁘다.** 그래서 검사를 빼고 사실만 알린다.
+  const kb = statSync(dest).size / 1024;
+  if (kb < 150) {
+    console.log(`  ⚠ ${kb.toFixed(0)}KB — 정상 생성은 보통 600KB 넘는다. 시킨 그림이 아닐 수 있다.`);
+    console.log('     Flow 가 생성에 실패하고 샘플 썸네일을 보여 준 적이 있다. 열어서 확인하십시오.');
+  }
   console.log(`✅ ${dest} · ${(statSync(dest).size / 1024).toFixed(0)}KB`);
 } finally { await ctx.close(); }
