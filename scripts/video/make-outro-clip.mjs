@@ -119,6 +119,11 @@ console.log(`  음성 ${voice.durationSec.toFixed(1)}초`);
 //   9:16 로 가운데를 자르면 폭의 2/3이 날아가 구도가 무너진다(사람과 홀로그램이 좌우로 퍼진 그림이다).
 //   위쪽에 온전한 비율로 얹고 아래로 자연스럽게 어두워지게 해 문구 자리를 만든다.
 const PHOTO = resolve(ROOT, process.env.AISVI_PHOTO || 'assets/outro/jarvis.jpg');
+// 2026-09-15 사용자 "사진 한장으로 쭉가니까 너무심심하다 … 영상으로 바꿔".
+//   띠에 영상을 깐다. 영상이 있으면 글자판을 **투명 배경**으로 뽑아 영상 위에 얹는다.
+//   없으면 종전대로 사진 한 장 — 영상이 없다고 광고를 못 만들면 안 된다.
+const BGVID = argOf('bg-video', process.env.AISVI_BG_VIDEO || 'assets/outro/aisvi-bg.mp4');
+const bgVideo = existsSync(resolve(ROOT, BGVID)) ? resolve(ROOT, BGVID) : null;
 const hasPhoto = existsSync(PHOTO);
 const photoB64 = hasPhoto ? readFileSync(PHOTO).toString('base64') : '';
 console.log(hasPhoto ? `  배경 사진: ${PHOTO}` : '  배경 사진 없음 — 문구만으로 만든다');
@@ -134,11 +139,11 @@ await page.setContent(`<!doctype html><meta charset="utf-8"><style>
 html,body{width:${W}px;height:${H}px}
 /* 사진이 페이드로 녹아드는 색과 **같은 색**을 바닥에 깐다 —
    다르면 사진이 끝나는 자리에 가로줄이 보인다(2026-09-10 첫 시안에서 실제로 보였다). */
-body{background:#05070f;color:#eef3ff;
+body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
   font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;
   display:flex;flex-direction:column;overflow:hidden}
 .p{position:relative;width:${W}px;height:${BAND}px;flex:none;
-  background:url(data:image/jpeg;base64,${photoB64}) center/cover no-repeat}
+  background:${bgVideo ? 'transparent' : `url(data:image/jpeg;base64,${photoB64}) center/cover no-repeat`}}
 .p::after{content:'';position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(5,7,15,.15) 0%,rgba(5,7,15,0) 40%,#05070f 100%)}
 /* 남은 아래 공간 전체를 쓰고 그 안에서 가운데 정렬 — 아래가 휑하게 비지 않는다. */
@@ -163,17 +168,56 @@ ${hasPhoto ? '<div class="p"></div>' : ''}
 <div class="c">${T.cta}</div>
 <div class="c2">${T.note}</div>
 </div>`);
-await page.screenshot({ path: `${WORK}/bg.png` });
+// 영상이면 알파를 살려 찍는다 — 띠 자리가 뚫려야 아래 영상이 보인다.
+await page.screenshot({ path: `${WORK}/bg.png`, omitBackground: !!bgVideo });
 await browser.close();
 
 // 음성 길이에 맞추되 최소 4초 — 너무 짧으면 읽히기 전에 지나간다.
 const sec = Math.max(4, voice.durationSec + 0.6);
+// 영상이 있으면 **두 단계**로 만든다. 한 그래프에 다 넣었더니 필터가 깨졌다
+//   ("Error reinitializing filters" — tpad·trim·overlay 를 한 번에 물리면 불안정하다).
+//   ① 띠 영상을 광고 길이에 맞춰 따로 렌더  ② 그 위에 글자판(알파)을 얹는다.
+//   영상은 8초, 광고는 10.7초다. 마지막 프레임을 물린다(tpad=clone) —
+//   되감거나 다시 트는 건 눈에 띈다. 끝난 화면은 그대로 두는 편이 자연스럽다.
+//   Veo 가 넣은 소리는 버린다 — 우리 내레이션과 겹친다.
+let bandFile = null;
+if (bgVideo) {
+  bandFile = `${WORK}/band.mp4`;
+  const b = spawnSync(ffmpeg, [
+    '-v', 'error', '-i', bgVideo,
+    '-an',
+    // scale 에 높이를 -2 로 주면 force_original_aspect_ratio 가 안 먹는다 —
+    //   1280x720 이 1080x607 이 되어 806 높이로 자를 수 없다(실측 실패). 둘 다 적는다.
+    '-vf', `scale=${W}:${BAND}:force_original_aspect_ratio=increase,crop=${W}:${BAND},`
+      + `tpad=stop_mode=clone:stop_duration=${sec},fps=30`,
+    '-t', String(sec), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
+    '-pix_fmt', 'yuv420p', '-y', bandFile,
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  if (b.status !== 0) {
+    console.log(`  ⚠ 띠 영상 렌더 실패 — 사진으로 간다: ${String(b.stderr).slice(0, 120)}`);
+    bandFile = null;
+  }
+}
+
+const vArgs = bandFile
+  ? [
+    '-f', 'lavfi', '-t', String(sec), '-i', `color=c=0x05070f:s=${W}x${H}:r=30`,
+    '-i', bandFile,
+    '-loop', '1', '-t', String(sec), '-i', `${WORK}/bg.png`,
+    '-i', voice.path,
+    '-filter_complex',
+    `[0:v][1:v]overlay=0:0[bg];[bg][2:v]overlay=0:0,fps=30,format=yuv420p[v];`
+      + `[3:a]aresample=24000,apad=whole_dur=${sec}[a]`,
+  ]
+  : [
+    '-loop', '1', '-t', String(sec), '-i', `${WORK}/bg.png`,
+    '-i', voice.path,
+    '-filter_complex', `[0:v]scale=${W}:${H},fps=30,format=yuv420p[v];[1:a]aresample=24000,apad=whole_dur=${sec}[a]`,
+  ];
+console.log(bandFile ? `  띠 배경: 영상 ${bgVideo.split('/').pop()}` : '  띠 배경: 사진');
 const r = spawnSync(ffmpeg, [
   '-v', 'error',
-  '-loop', '1', '-t', String(sec), '-i', `${WORK}/bg.png`,
-  '-i', voice.path,
-  // 본편과 **같은 규격**으로 맞춘다 — 다르면 이어붙일 때 다시 인코딩해야 한다.
-  '-filter_complex', `[0:v]scale=${W}:${H},fps=30,format=yuv420p[v];[1:a]aresample=24000,apad=whole_dur=${sec}[a]`,
+  ...vArgs,
   '-map', '[v]', '-map', '[a]',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
   // 본편 조각과 **같은 규격**이어야 concat -c copy 가 안전하다(2026-09-14: 어긋나서 클립이 사라졌다).
