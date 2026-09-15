@@ -74,6 +74,8 @@ import { reconcileCompanyYoY, isMeasuredYoY } from './lib/yoy-reconcile.mjs';
 import { inspectContextSections, formatContextCoverage, describeContextShapes } from './lib/context-coverage.mjs';
 import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
+// 이름은 sec-name-clean 의 sameCompany(회사 '이름' 비교)와 겹친다 — 이쪽은 **티커**로 본다.
+import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-company.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { openDb, saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
@@ -897,6 +899,10 @@ function qualityCheck(report) {
       if (tickersSeen.has(norm)) {
         issues.push(`ticker DUPLICATE: "${raw}" ≡ "${tickersSeen.get(norm)}" (alias not resolved)`);
       } else {
+        // 2026-09-15: 표기 차이(NVDA/NVIDIA)만 보던 검사라 **같은 회사의 다른 종류주**를 놓쳤다.
+        //   GOOGL 과 GOOG 은 정규화해도 다른 문자열이라 통과했고, 한 회사에 43% 가 실렸다.
+        const twin = [...tickersSeen.values()].find((prev) => sameCompanyByTicker(raw, prev));
+        if (twin) issues.push(`same company TWICE: "${raw}" ≡ "${twin}" (다른 종류주 — 한 회사에 두 자리)`);
         tickersSeen.set(norm, raw);
       }
     }
@@ -7977,7 +7983,11 @@ async function generateViaOllama() {
       if (!hadCands) { console.log(`  [경합심사/재충원] ${mkt} 후보 풀 자체 공백 — skip`); continue; }
       const have = new Set(dedupedPortfolio.map(p => p.ticker));
       const tried = new Set(adjudication.candidates.map(c => c.ticker));
-      const pool = (buyCandidates ?? []).filter(c => isKRt(c.ticker) === want && !have.has(c.ticker) && !tried.has(c.ticker) && livePrices.get(c.ticker)?.price).slice(0, 8);
+      // 2026-09-15: 티커 문자열만 보면 **같은 회사의 다른 종류주**가 들어온다.
+      //   실측 — GOOGL 25% 가 이미 있는데 GOOG 18% 가 재충원으로 들어가 한 회사에 43% 가 됐다
+      //   (게다가 화면에는 "AI/클라우드" 와 "반도체" 라는 다른 종목으로 보였다).
+      const heldTickers = dedupedPortfolio.map(p => p.ticker);
+      const pool = (buyCandidates ?? []).filter(c => isKRt(c.ticker) === want && !have.has(c.ticker) && !tried.has(c.ticker) && !alreadyHeld(c.ticker, heldTickers) && livePrices.get(c.ticker)?.price).slice(0, 8);
       if (!pool.length) continue;
       const refillSig = await fetchSellSignals(pool.map(c => c.ticker));
       let added = 0;
