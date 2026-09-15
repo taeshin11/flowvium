@@ -234,6 +234,24 @@ async function retierWithLiveCaps(metaObj) {
     return changed;
   } catch (e) { console.warn(`  [retier] 실패(정적 유지): ${String(e?.message).slice(0, 60)}`); return 0; }
 }
+// 2026-09-15: 위 정규식 긁기는 **이름·섹터를 못 믿는다.**
+//   티커 뒤 3000자에서 첫 name·sector 를 집는 방식이라 내부 제품 배열이나 다음 회사 항목이 들어온다
+//   (실측 — 이름 872종 중 700종 어긋남, META·GOOG·AMZN·MSFT 가 전부 'semiconductors').
+//   긁은 값을 그대로 두지 말고 **실제 출처로 덮는다**. 안 그러면 다시 빌드할 때마다 되돌아간다.
+//   미국 종목 이름·섹터는 야후(DB ticker_sectors), 한국 종목 이름은 그대로 둔다(한글이 맞다).
+try {
+  const { getTickerSectors } = await import('./lib/db.mjs');
+  const truth = getTickerSectors();
+  let n = 0, sec = 0;
+  for (const [t, m] of Object.entries(out.meta ?? {})) {
+    const v = truth[t]; if (!v) continue;
+    const isKR = /\.(KS|KQ)$/i.test(t);
+    if (!isKR && v.name && m.name !== v.name) { m.name = v.name; n++; }
+    if (v.sector && m.sector !== v.sector) { m.sector = v.sector; sec++; }
+  }
+  console.log(`[meta] 실제 출처로 덮음 — 이름 ${n} · 섹터 ${sec} (ingest-ticker-sectors.mjs 가 채운다)`);
+} catch (e) { console.warn(`[meta] 실제 출처 덮기 실패(긁은 값 유지): ${String(e?.message).slice(0, 60)}`); }
+
 const retiered = await retierWithLiveCaps(out.meta);
 if (retiered) {
   // byBand 재집계 (meta 기준)

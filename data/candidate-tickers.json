@@ -1352,2493 +1352,2493 @@
   ],
   "meta": {
     "UNH": {
-      "name": "UnitedHealthcare",
-      "sector": "healthcare",
+      "name": "UnitedHealth Group Incorporated",
+      "sector": "Healthcare",
       "cap": "mega"
     },
     "JNJ": {
-      "name": "Innovative Medicine",
-      "sector": "healthcare",
+      "name": "Johnson & Johnson",
+      "sector": "Healthcare",
       "cap": "mega"
     },
     "ABT": {
-      "name": "Medical Devices",
-      "sector": "healthcare",
+      "name": "Abbott Laboratories",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "TMO": {
-      "name": "Life Sciences Solutions",
-      "sector": "healthcare",
+      "name": "Thermo Fisher Scientific Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "DHR": {
-      "name": "Biotechnology",
-      "sector": "healthcare",
+      "name": "Danaher Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "BMY": {
-      "name": "Eliquis",
-      "sector": "healthcare",
+      "name": "Bristol-Myers Squibb Company",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "SYK": {
-      "name": "MedSurg & Neurotechnology",
-      "sector": "healthcare",
+      "name": "Stryker Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "ISRG": {
-      "name": "da Vinci Systems",
-      "sector": "healthcare",
+      "name": "Intuitive Surgical, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "MDT": {
-      "name": "Cardiovascular",
-      "sector": "healthcare",
+      "name": "Medtronic plc",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "CI": {
-      "name": "Evernorth Health Services",
-      "sector": "healthcare",
+      "name": "The Cigna Group",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "ELV": {
-      "name": "Health Benefits",
-      "sector": "healthcare",
+      "name": "Elevance Health, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "HCA": {
-      "name": "Inpatient Services",
-      "sector": "healthcare",
+      "name": "HCA Healthcare, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "ZTS": {
-      "name": "Companion Animal Products",
-      "sector": "healthcare",
+      "name": "Zoetis Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "BSX": {
-      "name": "Cardiovascular",
-      "sector": "healthcare",
+      "name": "Boston Scientific Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "BDX": {
-      "name": "BD Medical",
-      "sector": "healthcare",
+      "name": "Becton, Dickinson and Company",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "EW": {
-      "name": "TAVR (SAPIEN)",
-      "sector": "healthcare",
+      "name": "Edwards Lifesciences Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "DXCM": {
-      "name": "Dexcom G7",
-      "sector": "healthcare",
+      "name": "DexCom, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "IDXX": {
-      "name": "Companion Animal Diagnostics",
-      "sector": "healthcare",
+      "name": "IDEXX Laboratories, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "A": {
-      "name": "Life Sciences & Applied Markets",
-      "sector": "healthcare",
+      "name": "Agilent Technologies, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "IQV": {
-      "name": "Technology & Analytics",
-      "sector": "healthcare",
+      "name": "IQVIA Holdings Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "MTD": {
-      "name": "Laboratory Instruments",
-      "sector": "healthcare",
+      "name": "Mettler-Toledo International Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "HOLX": {
-      "name": "Diagnostics",
+      "name": "Hologic",
       "sector": "healthcare",
       "cap": "large"
     },
     "ALGN": {
-      "name": "Invisalign Clear Aligners",
-      "sector": "healthcare",
+      "name": "Align Technology, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "RMD": {
-      "name": "CPAP/BiPAP Devices",
-      "sector": "healthcare",
+      "name": "ResMed Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "COO": {
-      "name": "CooperVision",
-      "sector": "healthcare",
+      "name": "The Cooper Companies, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "TECH": {
-      "name": "Protein Sciences",
-      "sector": "healthcare",
+      "name": "Bio-Techne Corporation",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "WAT": {
-      "name": "LC Systems",
-      "sector": "healthcare",
+      "name": "Waters Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "BIO": {
-      "name": "Life Science Research",
-      "sector": "healthcare",
+      "name": "Bio-Rad Laboratories, Inc.",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "HSIC": {
-      "name": "Dental Distribution",
-      "sector": "healthcare",
+      "name": "Henry Schein, Inc.",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "WST": {
-      "name": "Proprietary Products",
-      "sector": "healthcare",
+      "name": "West Pharmaceutical Services, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "CAT": {
-      "name": "Construction Industries",
-      "sector": "industrials",
+      "name": "Caterpillar Inc.",
+      "sector": "Industrials",
       "cap": "mega"
     },
     "HON": {
-      "name": "Aerospace",
-      "sector": "industrials",
+      "name": "Honeywell International Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "UNP": {
-      "name": "Bulk Freight",
-      "sector": "industrials",
+      "name": "Union Pacific Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "UPS": {
-      "name": "US Domestic Package",
-      "sector": "industrials",
+      "name": "United Parcel Service, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "DE": {
-      "name": "Production & Precision Agriculture",
-      "sector": "industrials",
+      "name": "Deere & Company",
+      "sector": "Industrials",
       "cap": "large"
     },
     "GE": {
-      "name": "Commercial Engines & Services",
-      "sector": "industrials",
+      "name": "GE Aerospace",
+      "sector": "Industrials",
       "cap": "mega"
     },
     "MMM": {
-      "name": "Safety & Industrial",
-      "sector": "industrials",
+      "name": "3M Company",
+      "sector": "Industrials",
       "cap": "large"
     },
     "ETN": {
-      "name": "Electrical Americas",
-      "sector": "industrials",
+      "name": "Eaton Corporation plc",
+      "sector": "Industrials",
       "cap": "large"
     },
     "ITW": {
-      "name": "Automotive OEM",
-      "sector": "industrials",
+      "name": "Illinois Tool Works Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "EMR": {
-      "name": "Intelligent Devices",
-      "sector": "industrials",
+      "name": "Emerson Electric Co.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "PH": {
-      "name": "Diversified Industrial NA",
-      "sector": "industrials",
+      "name": "Parker-Hannifin Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "CTAS": {
-      "name": "Uniform Rental & Facility Services",
-      "sector": "industrials",
+      "name": "Cintas Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "FAST": {
-      "name": "Fasteners",
-      "sector": "industrials",
+      "name": "Fastenal Company",
+      "sector": "Industrials",
       "cap": "large"
     },
     "ODFL": {
-      "name": "LTL Shipping",
-      "sector": "industrials",
+      "name": "Old Dominion Freight Line, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "NSC": {
-      "name": "Intermodal",
-      "sector": "industrials",
+      "name": "Norfolk Southern Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "CSX": {
-      "name": "Merchandise",
-      "sector": "industrials",
+      "name": "CSX Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "WM": {
-      "name": "Collection",
-      "sector": "industrials",
+      "name": "Waste Management, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "RSG": {
-      "name": "Collection",
-      "sector": "industrials",
+      "name": "Republic Services, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "VRSK": {
-      "name": "Insurance Solutions",
-      "sector": "industrials",
+      "name": "Verisk Analytics, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "IR": {
-      "name": "Industrial Technologies",
-      "sector": "industrials",
+      "name": "Ingersoll Rand Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "ROK": {
-      "name": "Intelligent Devices",
-      "sector": "industrials",
+      "name": "Rockwell Automation, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "DOV": {
-      "name": "Engineered Products",
-      "sector": "industrials",
+      "name": "Dover Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "SWK": {
-      "name": "Tools & Outdoor",
-      "sector": "industrials",
+      "name": "Stanley Black & Decker, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "AME": {
-      "name": "Electronic Instruments",
-      "sector": "industrials",
+      "name": "AMETEK, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "GNRC": {
-      "name": "Residential Products",
-      "sector": "industrials",
+      "name": "Generac Holdings Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "NDSN": {
-      "name": "Industrial Precision Solutions",
-      "sector": "industrials",
+      "name": "Nordson Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "FTV": {
-      "name": "Intelligent Operating Solutions",
-      "sector": "industrials",
+      "name": "Fortive Corporation",
+      "sector": "Technology",
       "cap": "large"
     },
     "HUBB": {
-      "name": "Utility Solutions",
-      "sector": "industrials",
+      "name": "Hubbell Incorporated",
+      "sector": "Industrials",
       "cap": "large"
     },
     "TT": {
-      "name": "Commercial HVAC",
-      "sector": "industrials",
+      "name": "Trane Technologies plc",
+      "sector": "Industrials",
       "cap": "large"
     },
     "PWR": {
-      "name": "Electric Power",
-      "sector": "industrials",
+      "name": "Quanta Services, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "PCAR": {
-      "name": "Kenworth Trucks",
-      "sector": "industrials",
+      "name": "PACCAR Inc",
+      "sector": "Industrials",
       "cap": "large"
     },
     "CPRT": {
-      "name": "Vehicle Auction Services",
-      "sector": "industrials",
+      "name": "Copart, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "LII": {
-      "name": "Home Comfort Solutions",
-      "sector": "industrials",
+      "name": "Lennox International Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "SNA": {
-      "name": "Tools Group",
-      "sector": "industrials",
+      "name": "Snap-on Incorporated",
+      "sector": "Industrials",
       "cap": "large"
     },
     "TDG": {
-      "name": "Actuators & Controls (Power & Control)",
-      "sector": "industrials",
+      "name": "TransDigm Group Incorporated",
+      "sector": "Industrials",
       "cap": "large"
     },
     "BA": {
-      "name": "Airbus",
-      "sector": "industrials",
+      "name": "The Boeing Company",
+      "sector": "Industrials",
       "cap": "large"
     },
     "RTX": {
-      "name": "Delta / United / American Airlines",
-      "sector": "industrials",
+      "name": "RTX Corporation",
+      "sector": "Industrials",
       "cap": "mega"
     },
     "LMT": {
-      "name": "Air carriers (aftermarket MRO)",
-      "sector": "industrials",
+      "name": "Lockheed Martin Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "NOC": {
-      "name": "L3Harris",
-      "sector": "industrials",
+      "name": "Northrop Grumman Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "LHX": {
-      "name": "Electric Actuator Systems (eActuation)",
-      "sector": "industrials",
+      "name": "L3Harris Technologies, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "ALLE": {
-      "name": "Mechanical Locks & Hardware",
-      "sector": "industrials",
+      "name": "Allegion plc",
+      "sector": "Industrials",
       "cap": "large"
     },
     "AOS": {
-      "name": "North America Water Heating",
-      "sector": "industrials",
+      "name": "A. O. Smith Corporation",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "CHRW": {
-      "name": "NAST Truckload",
-      "sector": "industrials",
+      "name": "C.H. Robinson Worldwide, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "DAL": {
-      "name": "Passenger Revenue - Domestic",
-      "sector": "industrials",
+      "name": "Delta Air Lines, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "LUV": {
-      "name": "Passenger Revenue",
-      "sector": "industrials",
+      "name": "Southwest Airlines Co.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "AAL": {
-      "name": "Mainline Passenger",
-      "sector": "industrials",
+      "name": "American Airlines Group Inc.",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "UAL": {
-      "name": "Domestic Passenger",
-      "sector": "industrials",
+      "name": "United Airlines Holdings, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "CDW": {
-      "name": "Hardware Solutions",
-      "sector": "technology",
+      "name": "CDW Corporation",
+      "sector": "Technology",
       "cap": "large"
     },
     "PTC": {
-      "name": "Creo (CAD/CAM)",
-      "sector": "technology",
+      "name": "PTC Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "TDC": {
-      "name": "Teradata Vantage (Cloud)",
-      "sector": "technology",
+      "name": "Teradata Corporation",
+      "sector": "Technology",
       "cap": "mid"
     },
     "LOGI": {
-      "name": "PC Peripherals (Mice, Keyboards)",
-      "sector": "technology",
+      "name": "Logitech International S.A.",
+      "sector": "Technology",
       "cap": "large"
     },
     "STM": {
-      "name": "Microcontrollers (STM32)",
-      "sector": "semiconductors",
+      "name": "STMicroelectronics N.V.",
+      "sector": "Technology",
       "cap": "large"
     },
     "COHR": {
-      "name": "Transceiver Modules (Datacom)",
-      "sector": "semiconductors",
+      "name": "Coherent Corp.",
+      "sector": "Technology",
       "cap": "large"
     },
     "MKSI": {
-      "name": "Vacuum & Gas Control",
-      "sector": "semiconductors",
+      "name": "MKS Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "ALGM": {
-      "name": "Current Sensors",
-      "sector": "semiconductors",
+      "name": "Allegro MicroSystems, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "AEIS": {
-      "name": "Semiconductor Power Supplies",
-      "sector": "semiconductors",
+      "name": "Advanced Energy Industries, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "CERT": {
-      "name": "Phoenix PK/PD Software",
-      "sector": "healthcare",
+      "name": "Certara, Inc.",
+      "sector": "Healthcare",
       "cap": "small"
     },
     "MEDP": {
-      "name": "Full-Service CRO",
-      "sector": "healthcare",
+      "name": "Medpace Holdings, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "RXRX": {
-      "name": "Recursion OS (Drug Discovery Platform)",
-      "sector": "healthcare",
+      "name": "Recursion Pharmaceuticals, Inc.",
+      "sector": "Healthcare",
       "cap": "small"
     },
     "ACAD": {
-      "name": "Nuplazid (Parkinson",
-      "sector": "healthcare",
+      "name": "ACADIA Pharmaceuticals Inc.",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "INSM": {
-      "name": "ARIKAYCE (MAC lung disease)",
-      "sector": "healthcare",
+      "name": "Insmed Incorporated",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "GKOS": {
-      "name": "iStent (MIGS)",
-      "sector": "healthcare",
+      "name": "Glaukos Corporation",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "RARE": {
-      "name": "Mepsevii (MPS VII)",
-      "sector": "healthcare",
+      "name": "Ultragenyx Pharmaceutical Inc.",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "LAZ": {
-      "name": "Financial Advisory (M&A, Restructuring)",
-      "sector": "financials",
+      "name": "Lazard, Inc.",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "SLM": {
-      "name": "Private Student Loans",
-      "sector": "financials",
+      "name": "SLM Corporation",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "NAVI": {
-      "name": "Federal Student Loan Servicing",
-      "sector": "financials",
+      "name": "Navient Corporation",
+      "sector": "Financial Services",
       "cap": "small"
     },
     "WU": {
-      "name": "Consumer-to-Consumer (C2C) Transfers",
-      "sector": "financials",
+      "name": "The Western Union Company",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "HRB": {
-      "name": "Assisted Tax Prep (Retail)",
-      "sector": "financials",
+      "name": "H&R Block, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "NSP": {
-      "name": "Workforce Solutions (PEO)",
-      "sector": "financials",
+      "name": "Insperity, Inc.",
+      "sector": "Industrials",
       "cap": "small"
     },
     "GPS": {
-      "name": "Old Navy",
+      "name": "The Gap Inc.",
       "sector": "consumer-discretionary",
       "cap": "large"
     },
     "URBN": {
-      "name": "Anthropologie",
-      "sector": "consumer-discretionary",
+      "name": "Urban Outfitters, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "BOOT": {
-      "name": "Western Wear & Boots",
-      "sector": "consumer-discretionary",
+      "name": "Boot Barn Holdings, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "SFM": {
-      "name": "Fresh Produce & Bulk Foods",
-      "sector": "consumer-discretionary",
+      "name": "Sprouts Farmers Market, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "mid"
     },
     "WING": {
-      "name": "Chicken Wings (12 flavors)",
-      "sector": "consumer-discretionary",
+      "name": "Wingstop Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "BROS": {
-      "name": "Drive-Thru Coffee & Energy Drinks",
-      "sector": "consumer-discretionary",
+      "name": "Dutch Bros Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "DRVN": {
-      "name": "Maintenance (Take 5 Oil Change, Midas)",
-      "sector": "consumer-discretionary",
+      "name": "Driven Brands Holdings Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "GTLS": {
-      "name": "Cryo Equipment & Heat Exchangers",
-      "sector": "industrials",
+      "name": "Chart Industries Inc",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "DCI": {
-      "name": "Engine Filtration",
-      "sector": "industrials",
+      "name": "Donaldson Company, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "ENSG": {
-      "name": "Skilled Nursing Facilities (SNF)",
-      "sector": "healthcare",
+      "name": "The Ensign Group, Inc.",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "CNX": {
-      "name": "Appalachian Natural Gas (Marcellus/Utica)",
-      "sector": "energy",
+      "name": "CNX Resources Corporation",
+      "sector": "Energy",
       "cap": "mid"
     },
     "GLPI": {
-      "name": "Regional Gaming Casino Net Leases",
-      "sector": "real-estate",
+      "name": "Gaming and Leisure Properties, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "EPRT": {
-      "name": "Single-Tenant Net Lease Properties",
-      "sector": "real-estate",
+      "name": "Essential Properties Realty Trust, Inc.",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "ADC": {
-      "name": "Retail Net Lease Properties (Ground Leases, NNN)",
-      "sector": "real-estate",
+      "name": "Agree Realty Corporation",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "NXST": {
-      "name": "Local TV Stations (200 markets)",
-      "sector": "communication-services",
+      "name": "Nexstar Media Group, Inc.",
+      "sector": "Communication Services",
       "cap": "mid"
     },
     "AMCX": {
-      "name": "AMC (Linear Cable Channel)",
-      "sector": "communication-services",
+      "name": "AMC Global Media Inc.",
+      "sector": "Communication Services",
       "cap": "small"
     },
     "FLO": {
-      "name": "Nature",
-      "sector": "consumer-discretionary",
+      "name": "Flowers Foods, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "small"
     },
     "CAKE": {
-      "name": "Cheesecake Factory Restaurants",
-      "sector": "consumer-discretionary",
+      "name": "The Cheesecake Factory Incorporated",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "ABG": {
-      "name": "New Vehicle Sales",
-      "sector": "consumer-discretionary",
+      "name": "Asbury Automotive Group, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "DIS": {
-      "name": "Disney+",
-      "sector": "communication-services",
+      "name": "The Walt Disney Company",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "NFLX": {
-      "name": "Subscription Streaming",
-      "sector": "communication-services",
+      "name": "Netflix, Inc.",
+      "sector": "Communication Services",
       "cap": "mega"
     },
     "CMCSA": {
-      "name": "Xfinity Broadband & Cable",
-      "sector": "communication-services",
+      "name": "Comcast Corporation",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "T": {
-      "name": "Wireless (Mobility)",
-      "sector": "communication-services",
+      "name": "AT&T Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "VZ": {
-      "name": "Consumer Wireless",
-      "sector": "communication-services",
+      "name": "Verizon Communications Inc.",
+      "sector": "Communication Services",
       "cap": "mega"
     },
     "TMUS": {
-      "name": "Postpaid Wireless",
-      "sector": "communication-services",
+      "name": "T-Mobile US, Inc.",
+      "sector": "Communication Services",
       "cap": "mega"
     },
     "CHTR": {
-      "name": "Spectrum Internet",
-      "sector": "communication-services",
+      "name": "Charter Communications, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "EA": {
-      "name": "EA Sports FC",
-      "sector": "communication-services",
+      "name": "Electronic Arts Inc",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "TTWO": {
-      "name": "Grand Theft Auto Series",
-      "sector": "communication-services",
+      "name": "Take-Two Interactive Software, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "WBD": {
-      "name": "Max Streaming",
-      "sector": "communication-services",
+      "name": "Warner Bros. Discovery, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "FOX": {
-      "name": "Fox News Channel",
-      "sector": "communication-services",
+      "name": "Fox Corporation",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "FOXA": {
-      "name": "Fox News Channel",
-      "sector": "communication-services",
+      "name": "Fox Corporation",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "OMC": {
-      "name": "Advertising",
-      "sector": "communication-services",
+      "name": "Omnicom Group Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "LYV": {
-      "name": "Concerts & Events",
-      "sector": "communication-services",
+      "name": "Live Nation Entertainment, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "MTCH": {
-      "name": "Tinder",
-      "sector": "communication-services",
+      "name": "Match Group, Inc.",
+      "sector": "Communication Services",
       "cap": "mid"
     },
     "RBLX": {
-      "name": "Roblox Platform",
-      "sector": "communication-services",
+      "name": "Roblox Corporation",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "AMT": {
-      "name": "US Tower Leasing",
-      "sector": "real-estate",
+      "name": "American Tower Corporation",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "PLD": {
-      "name": "Logistics Facilities Leasing",
-      "sector": "real-estate",
+      "name": "Prologis, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "CCI": {
-      "name": "Towers",
-      "sector": "real-estate",
+      "name": "Crown Castle Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "EQIX": {
-      "name": "Colocation",
-      "sector": "real-estate",
+      "name": "Equinix, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "PSA": {
-      "name": "Self-Storage Rental",
-      "sector": "real-estate",
+      "name": "Public Storage",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "O": {
-      "name": "Single-Tenant Net Lease Retail",
-      "sector": "real-estate",
+      "name": "Realty Income Corporation",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "WELL": {
-      "name": "Senior Housing Operating",
-      "sector": "real-estate",
+      "name": "Welltower Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "DLR": {
-      "name": "Colocation & Interconnection",
-      "sector": "real-estate",
+      "name": "Digital Realty Trust, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "SPG": {
-      "name": "Malls & Premium Outlets",
-      "sector": "real-estate",
+      "name": "Simon Property Group, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "VICI": {
-      "name": "Gaming Properties",
-      "sector": "real-estate",
+      "name": "VICI Properties Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "AVB": {
-      "name": "Apartment Communities",
-      "sector": "real-estate",
+      "name": "AvalonBay Communities Inc",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "EQR": {
-      "name": "Urban Apartments",
-      "sector": "real-estate",
+      "name": "Equity Residential",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "ARE": {
-      "name": "Life Science Campuses",
-      "sector": "real-estate",
+      "name": "Alexandria Real Estate Equities, Inc.",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "MAA": {
-      "name": "Sunbelt Apartments",
-      "sector": "real-estate",
+      "name": "Mid-America Apartment Communities, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "UDR": {
-      "name": "Apartment Communities",
-      "sector": "real-estate",
+      "name": "UDR, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "ESS": {
-      "name": "West Coast Apartments",
-      "sector": "real-estate",
+      "name": "Essex Property Trust, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "INVH": {
-      "name": "Single-Family Home Rentals",
-      "sector": "real-estate",
+      "name": "Invitation Homes Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "CPT": {
-      "name": "Sunbelt Apartment Communities",
-      "sector": "real-estate",
+      "name": "Camden Property Trust",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "VTR": {
-      "name": "Senior Housing Operating",
-      "sector": "real-estate",
+      "name": "Ventas, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "KIM": {
-      "name": "Grocery-Anchored Shopping Centers",
-      "sector": "real-estate",
+      "name": "Kimco Realty Corporation",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "REG": {
-      "name": "Grocery-Anchored Neighborhood Centers",
-      "sector": "real-estate",
+      "name": "Regency Centers Corporation",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "HST": {
-      "name": "Luxury & Upper-Upscale Hotels",
-      "sector": "real-estate",
+      "name": "Host Hotels & Resorts, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "BXP": {
-      "name": "Class-A Office Space",
-      "sector": "real-estate",
+      "name": "BXP, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "SLG": {
-      "name": "Manhattan Office Buildings",
-      "sector": "real-estate",
+      "name": "SL Green Realty Corp.",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "LIN": {
-      "name": "Atmospheric Gases",
-      "sector": "materials",
+      "name": "Linde plc",
+      "sector": "Basic Materials",
       "cap": "mega"
     },
     "APD": {
-      "name": "Industrial Gases",
-      "sector": "materials",
+      "name": "Air Products and Chemicals, Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "SHW": {
-      "name": "Paint Stores Group",
-      "sector": "materials",
+      "name": "The Sherwin-Williams Company",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "ECL": {
-      "name": "Global Industrial",
-      "sector": "materials",
+      "name": "Ecolab Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "FCX": {
-      "name": "Copper Concentrate & Cathode",
-      "sector": "materials",
+      "name": "Freeport-McMoRan Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "NEM": {
-      "name": "Gold",
-      "sector": "materials",
+      "name": "Newmont Corporation",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "NUE": {
-      "name": "Steel Mills Products",
-      "sector": "materials",
+      "name": "Nucor Corporation",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "STLD": {
-      "name": "Steel Operations",
-      "sector": "materials",
+      "name": "Steel Dynamics, Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "VMC": {
-      "name": "Aggregates",
-      "sector": "materials",
+      "name": "Vulcan Materials Company",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "MLM": {
-      "name": "Aggregates",
-      "sector": "materials",
+      "name": "Martin Marietta Materials, Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "DD": {
-      "name": "Electronics & Industrial",
-      "sector": "materials",
+      "name": "DuPont de Nemours, Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "DOW": {
-      "name": "Packaging & Specialty Plastics",
-      "sector": "materials",
+      "name": "Dow Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "PPG": {
-      "name": "Performance Coatings",
-      "sector": "materials",
+      "name": "PPG Industries, Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "CE": {
-      "name": "Engineered Materials",
-      "sector": "materials",
+      "name": "Celanese Corporation",
+      "sector": "Basic Materials",
       "cap": "mid"
     },
     "EMN": {
-      "name": "Advanced Materials",
-      "sector": "materials",
+      "name": "Eastman Chemical Company",
+      "sector": "Basic Materials",
       "cap": "mid"
     },
     "CF": {
-      "name": "Ammonia",
-      "sector": "materials",
+      "name": "CF Industries Holdings, Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "MOS": {
-      "name": "Potash",
-      "sector": "materials",
+      "name": "The Mosaic Company",
+      "sector": "Basic Materials",
       "cap": "mid"
     },
     "IFF": {
-      "name": "Nourish",
-      "sector": "materials",
+      "name": "International Flavors & Fragrances Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "FMC": {
-      "name": "Insecticides",
-      "sector": "materials",
+      "name": "FMC Corporation",
+      "sector": "Basic Materials",
       "cap": "small"
     },
     "PKG": {
-      "name": "Corrugated Products",
-      "sector": "materials",
+      "name": "Packaging Corporation of America",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "IP": {
-      "name": "Industrial Packaging",
-      "sector": "materials",
+      "name": "International Paper Company",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "SEE": {
-      "name": "Food Packaging",
+      "name": "Sealed Air Corporation",
       "sector": "materials",
       "cap": "mid"
     },
     "BALL": {
-      "name": "Beverage Cans (Americas)",
-      "sector": "materials",
+      "name": "Ball Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "AVY": {
-      "name": "Label & Graphic Materials",
-      "sector": "materials",
+      "name": "Avery Dennison Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "DUK": {
-      "name": "Regulated Electric Generation",
-      "sector": "utilities",
+      "name": "Duke Energy Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "SO": {
-      "name": "Regulated Electric Utilities",
-      "sector": "utilities",
+      "name": "The Southern Company",
+      "sector": "Utilities",
       "cap": "large"
     },
     "D": {
-      "name": "Regulated Electric Generation & Distribution",
-      "sector": "utilities",
+      "name": "Dominion Energy, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "AEP": {
-      "name": "Regulated Electric Generation",
-      "sector": "utilities",
+      "name": "American Electric Power Company, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "SRE": {
-      "name": "San Diego Gas & Electric",
-      "sector": "utilities",
+      "name": "Sempra",
+      "sector": "Utilities",
       "cap": "large"
     },
     "EXC": {
-      "name": "Electric Distribution",
-      "sector": "utilities",
+      "name": "Exelon Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "XEL": {
-      "name": "Regulated Electric Service",
-      "sector": "utilities",
+      "name": "Xcel Energy Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "ED": {
-      "name": "Electric Distribution",
-      "sector": "utilities",
+      "name": "Consolidated Edison, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "WEC": {
-      "name": "Regulated Electric Utility",
-      "sector": "utilities",
+      "name": "WEC Energy Group, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "ES": {
-      "name": "Electric Distribution",
-      "sector": "utilities",
+      "name": "Eversource Energy",
+      "sector": "Utilities",
       "cap": "large"
     },
     "DTE": {
-      "name": "DTE Electric",
-      "sector": "utilities",
+      "name": "DTE Energy Company",
+      "sector": "Utilities",
       "cap": "large"
     },
     "PPL": {
-      "name": "PPL Electric Utilities",
-      "sector": "utilities",
+      "name": "PPL Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "CMS": {
-      "name": "Electric Utility",
-      "sector": "utilities",
+      "name": "CMS Energy Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "AEE": {
-      "name": "Ameren Missouri",
-      "sector": "utilities",
+      "name": "Ameren Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "EVRG": {
-      "name": "Electric Generation",
-      "sector": "utilities",
+      "name": "Evergy, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "FE": {
-      "name": "Electric Distribution",
-      "sector": "utilities",
+      "name": "FirstEnergy Corp.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "ATO": {
-      "name": "Natural Gas Distribution",
-      "sector": "utilities",
+      "name": "Atmos Energy Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "NI": {
-      "name": "Gas Distribution",
-      "sector": "utilities",
+      "name": "NiSource Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "LNT": {
-      "name": "Interstate Power & Light (Iowa)",
-      "sector": "utilities",
+      "name": "Alliant Energy Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "PNW": {
-      "name": "Retail Electric Service",
-      "sector": "utilities",
+      "name": "Pinnacle West Capital Corporation",
+      "sector": "Utilities",
       "cap": "large"
     },
     "AWK": {
-      "name": "Regulated Water Service",
-      "sector": "utilities",
+      "name": "American Water Works Company, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "WTRG": {
-      "name": "Regulated Water",
-      "sector": "utilities",
+      "name": "Essential Utilities, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "HD": {
-      "name": "Building Materials & Décor",
-      "sector": "consumer-discretionary",
+      "name": "The Home Depot, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mega"
     },
     "MCD": {
-      "name": "Franchised Restaurants",
-      "sector": "consumer-discretionary",
+      "name": "McDonald's Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "mega"
     },
     "NKE": {
-      "name": "Footwear",
-      "sector": "consumer-discretionary",
+      "name": "NIKE, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "LOW": {
-      "name": "Home Décor & Building Products",
-      "sector": "consumer-discretionary",
+      "name": "Lowe's Companies, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "SBUX": {
-      "name": "Beverages",
-      "sector": "consumer-discretionary",
+      "name": "Starbucks Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "TJX": {
-      "name": "T.J. Maxx / Marshalls",
-      "sector": "consumer-discretionary",
+      "name": "The TJX Companies, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "BKNG": {
-      "name": "Booking.com",
-      "sector": "consumer-discretionary",
+      "name": "Booking Holdings Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "MAR": {
-      "name": "Luxury Brands",
-      "sector": "consumer-discretionary",
+      "name": "Marriott International, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "HLT": {
-      "name": "Management & Franchise",
-      "sector": "consumer-discretionary",
+      "name": "Hilton Worldwide Holdings Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "CMG": {
-      "name": "Restaurant Sales",
-      "sector": "consumer-discretionary",
+      "name": "Chipotle Mexican Grill, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "ORLY": {
-      "name": "Professional Parts",
-      "sector": "consumer-discretionary",
+      "name": "O'Reilly Automotive, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "AZO": {
-      "name": "DIY Auto Parts",
-      "sector": "consumer-discretionary",
+      "name": "AutoZone, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "ROST": {
-      "name": "Ross Dress for Less",
-      "sector": "consumer-discretionary",
+      "name": "Ross Stores, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "DHI": {
-      "name": "Homebuilding",
-      "sector": "consumer-discretionary",
+      "name": "D.R. Horton, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "LEN": {
-      "name": "Homebuilding",
-      "sector": "consumer-discretionary",
+      "name": "Lennar Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "PHM": {
-      "name": "Pulte Homes",
-      "sector": "consumer-discretionary",
+      "name": "PulteGroup, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "NVR": {
-      "name": "Ryan Homes",
-      "sector": "consumer-discretionary",
+      "name": "NVR, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "GPC": {
-      "name": "Automotive Parts (NAPA)",
-      "sector": "consumer-discretionary",
+      "name": "Genuine Parts Company",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "POOL": {
-      "name": "Maintenance & Repair Products",
-      "sector": "consumer-discretionary",
+      "name": "Pool Corporation",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "BBY": {
-      "name": "Computing & Mobile",
-      "sector": "consumer-discretionary",
+      "name": "Best Buy Co., Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "DRI": {
-      "name": "Olive Garden",
-      "sector": "consumer-discretionary",
+      "name": "Darden Restaurants, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "YUM": {
-      "name": "KFC",
-      "sector": "consumer-discretionary",
+      "name": "Yum! Brands, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "DPZ": {
-      "name": "U.S. Franchise Operations",
-      "sector": "consumer-discretionary",
+      "name": "Domino's Pizza, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "WYNN": {
-      "name": "Casino Operations",
-      "sector": "consumer-discretionary",
+      "name": "Wynn Resorts, Limited",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "MGM": {
-      "name": "Casino Operations",
-      "sector": "consumer-discretionary",
+      "name": "MGM Resorts International",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "CZR": {
-      "name": "Casino Operations",
-      "sector": "consumer-discretionary",
+      "name": "Caesars Entertainment, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "LVS": {
-      "name": "Casino Operations",
-      "sector": "consumer-discretionary",
+      "name": "Las Vegas Sands Corp.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "GRMN": {
-      "name": "Fitness",
-      "sector": "consumer-discretionary",
+      "name": "Garmin Ltd.",
+      "sector": "Technology",
       "cap": "large"
     },
     "DECK": {
-      "name": "HOKA",
-      "sector": "consumer-discretionary",
+      "name": "Deckers Outdoor Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "LULU": {
-      "name": "Women",
-      "sector": "consumer-discretionary",
+      "name": "lululemon athletica inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "EBAY": {
-      "name": "Marketplace",
-      "sector": "consumer-discretionary",
+      "name": "eBay Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "ETSY": {
-      "name": "Etsy Marketplace",
-      "sector": "consumer-discretionary",
+      "name": "Etsy, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "W": {
-      "name": "Wayfair.com",
-      "sector": "consumer-discretionary",
+      "name": "Wayfair Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "KMX": {
-      "name": "Used Vehicle Sales",
-      "sector": "consumer-discretionary",
+      "name": "CarMax, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "CCL": {
-      "name": "Carnival Cruise Line",
-      "sector": "consumer-discretionary",
+      "name": "Carnival Corporation Ltd.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "RCL": {
-      "name": "Royal Caribbean International",
-      "sector": "consumer-discretionary",
+      "name": "Royal Caribbean Cruises Ltd.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "NCLH": {
-      "name": "Norwegian Cruise Line",
-      "sector": "consumer-discretionary",
+      "name": "Norwegian Cruise Line Holdings Ltd.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "AAPL": {
-      "name": "iPhone",
-      "sector": "it-software",
+      "name": "Apple Inc.",
+      "sector": "Technology",
       "cap": "titan"
     },
     "CRM": {
-      "name": "Sales Cloud",
-      "sector": "it-software",
+      "name": "Salesforce, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "ACN": {
-      "name": "Consulting",
-      "sector": "it-software",
+      "name": "Accenture plc",
+      "sector": "Technology",
       "cap": "large"
     },
     "ADBE": {
-      "name": "Creative Cloud",
-      "sector": "it-software",
+      "name": "Adobe Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "CSCO": {
-      "name": "Secure Networking",
-      "sector": "it-software",
+      "name": "Cisco Systems, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "IBM": {
-      "name": "Hybrid Cloud (Red Hat)",
-      "sector": "it-software",
+      "name": "International Business Machines Corporation",
+      "sector": "Technology",
       "cap": "mega"
     },
     "INTU": {
-      "name": "TurboTax",
-      "sector": "it-software",
+      "name": "Intuit Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "ADP": {
-      "name": "Employer Services",
-      "sector": "it-software",
+      "name": "Automatic Data Processing, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "FI": {
-      "name": "Merchant Acceptance",
+      "name": "Fiserv, Inc.",
       "sector": "it-software",
       "cap": "mega"
     },
     "FISV": {
-      "name": "Banking Solutions",
+      "name": "Fiserv, Inc.",
       "sector": "it-software",
       "cap": "large"
     },
     "CDNS": {
-      "name": "Custom IC Design",
-      "sector": "it-software",
+      "name": "Cadence Design Systems, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "SNPS": {
-      "name": "EDA Tools",
-      "sector": "it-software",
+      "name": "Synopsys, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "FTNT": {
-      "name": "FortiGate Firewalls",
-      "sector": "it-software",
+      "name": "Fortinet, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "PANW": {
-      "name": "Strata (Network Security)",
-      "sector": "it-software",
+      "name": "Palo Alto Networks, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "ZS": {
-      "name": "Zscaler Internet Access (ZIA)",
-      "sector": "it-software",
+      "name": "Zscaler, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "KEYS": {
-      "name": "Communications Solutions",
-      "sector": "it-software",
+      "name": "Keysight Technologies, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "ZBRA": {
-      "name": "Enterprise Visibility & Mobility",
-      "sector": "it-software",
+      "name": "Zebra Technologies Corporation",
+      "sector": "Technology",
       "cap": "large"
     },
     "TER": {
-      "name": "Semiconductor Test",
-      "sector": "semiconductors",
+      "name": "Teradyne, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "TRMB": {
-      "name": "Buildings & Infrastructure",
-      "sector": "it-software",
+      "name": "Trimble Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "ANET": {
-      "name": "Cloud Networking Switches",
-      "sector": "it-software",
+      "name": "Arista Networks, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "HPE": {
-      "name": "Server",
-      "sector": "it-software",
+      "name": "Hewlett Packard Enterprise Company",
+      "sector": "Technology",
       "cap": "large"
     },
     "HPQ": {
-      "name": "Personal Systems",
-      "sector": "it-software",
+      "name": "HP Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "DELL": {
-      "name": "Infrastructure Solutions Group",
-      "sector": "it-software",
+      "name": "Dell Technologies Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "CTSH": {
-      "name": "Digital Business",
-      "sector": "it-software",
+      "name": "Cognizant Technology Solutions Corporation",
+      "sector": "Technology",
       "cap": "large"
     },
     "EPAM": {
-      "name": "Digital Platform Engineering",
-      "sector": "it-software",
+      "name": "EPAM Systems, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "GEN": {
-      "name": "Norton Security",
-      "sector": "it-software",
+      "name": "Gen Digital Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "WDC": {
-      "name": "Cloud Storage",
-      "sector": "semiconductors",
+      "name": "Western Digital Corporation",
+      "sector": "Technology",
       "cap": "large"
     },
     "STX": {
-      "name": "Mass Capacity Storage",
-      "sector": "semiconductors",
+      "name": "Seagate Technology Holdings plc",
+      "sector": "Technology",
       "cap": "mega"
     },
     "BRK.B": {
-      "name": "Insurance (GEICO, Gen Re)",
-      "sector": "financials",
+      "name": "Berkshire Hathaway Inc.",
+      "sector": "Financial Services",
       "cap": "titan"
     },
     "BAC": {
-      "name": "Consumer Banking",
-      "sector": "financials",
+      "name": "Bank of America Corporation",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "WFC": {
-      "name": "Consumer Banking & Lending",
-      "sector": "financials",
+      "name": "Wells Fargo & Company",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "C": {
-      "name": "Services (TTS & Securities Services)",
-      "sector": "financials",
+      "name": "Citigroup Inc.",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "USB": {
-      "name": "Consumer & Business Banking",
-      "sector": "financials",
+      "name": "U.S. Bancorp",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "PNC": {
-      "name": "Retail Banking",
-      "sector": "financials",
+      "name": "The PNC Financial Services Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "TFC": {
-      "name": "Consumer Banking & Wealth",
-      "sector": "financials",
+      "name": "Truist Financial Corporation",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "COF": {
-      "name": "Credit Card",
-      "sector": "financials",
+      "name": "Capital One Financial Corporation",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "AXP": {
-      "name": "Card Member Services",
-      "sector": "financials",
+      "name": "American Express Company",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "MMC": {
-      "name": "Marsh (Insurance Brokerage)",
+      "name": "Marsh McLennan Companies, Inc.",
       "sector": "financials",
       "cap": "mega"
     },
     "AON": {
-      "name": "Commercial Risk Solutions",
-      "sector": "financials",
+      "name": "Aon plc",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "CB": {
-      "name": "North America Commercial P&C",
-      "sector": "financials",
+      "name": "Chubb Limited",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "AIG": {
-      "name": "General Insurance",
-      "sector": "financials",
+      "name": "American International Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "MET": {
-      "name": "Group Benefits",
-      "sector": "financials",
+      "name": "MetLife, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "PRU": {
-      "name": "PGIM (Asset Management)",
-      "sector": "financials",
+      "name": "Prudential Financial, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "AFL": {
-      "name": "Aflac Japan",
-      "sector": "financials",
+      "name": "Aflac Incorporated",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "ALL": {
-      "name": "Allstate Protection",
-      "sector": "financials",
+      "name": "The Allstate Corporation",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "TRV": {
-      "name": "Business Insurance",
-      "sector": "financials",
+      "name": "The Travelers Companies, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "HIG": {
-      "name": "Commercial Lines",
-      "sector": "financials",
+      "name": "The Hartford Insurance Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "BEN": {
-      "name": "Franklin Templeton Funds",
-      "sector": "financials",
+      "name": "Franklin Templeton Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "IVZ": {
-      "name": "ETFs (QQQ)",
-      "sector": "financials",
+      "name": "Invesco Ltd.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "NDAQ": {
-      "name": "Market Platforms",
-      "sector": "financials",
+      "name": "Nasdaq, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "CME": {
-      "name": "Interest Rate Derivatives",
-      "sector": "financials",
+      "name": "CME Group Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "MSCI": {
-      "name": "Index",
-      "sector": "financials",
+      "name": "MSCI Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "PM": {
-      "name": "IQOS / Heated Tobacco",
-      "sector": "consumer-defensive",
+      "name": "Philip Morris International Inc.",
+      "sector": "Consumer Defensive",
       "cap": "mega"
     },
     "MO": {
-      "name": "Marlboro (US)",
-      "sector": "consumer-defensive",
+      "name": "Altria Group, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "STZ": {
-      "name": "Modelo Especial",
-      "sector": "consumer-defensive",
+      "name": "Constellation Brands, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "TAP": {
-      "name": "Coors Light",
-      "sector": "consumer-defensive",
+      "name": "Molson Coors Beverage Company",
+      "sector": "Consumer Defensive",
       "cap": "mid"
     },
     "SJM": {
-      "name": "Folgers & Café Bustelo",
-      "sector": "consumer-defensive",
+      "name": "The J. M. Smucker Company",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "HSY": {
-      "name": "Hershey",
-      "sector": "consumer-defensive",
+      "name": "The Hershey Company",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "MDLZ": {
-      "name": "Oreo & Biscuits",
-      "sector": "consumer-defensive",
+      "name": "Mondelez International, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "MNST": {
-      "name": "Monster Energy",
-      "sector": "consumer-defensive",
+      "name": "Monster Beverage Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "KDP": {
-      "name": "Keurig Brewing Systems",
-      "sector": "consumer-defensive",
+      "name": "Keurig Dr Pepper Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "CLX": {
-      "name": "Clorox Cleaning",
-      "sector": "consumer-defensive",
+      "name": "The Clorox Company",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "SYY": {
-      "name": "Broadline Distribution",
-      "sector": "consumer-defensive",
+      "name": "Sysco Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "KR": {
-      "name": "Kroger Supermarkets",
-      "sector": "consumer-defensive",
+      "name": "The Kroger Co.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "EL": {
-      "name": "Estée Lauder & Clinique",
-      "sector": "consumer-defensive",
+      "name": "The Estée Lauder Companies Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "MRK": {
-      "name": "Keytruda",
-      "sector": "pharma-biotech",
+      "name": "Merck & Co., Inc.",
+      "sector": "Healthcare",
       "cap": "mega"
     },
     "AZN": {
-      "name": "Oncology Portfolio",
-      "sector": "pharma-biotech",
+      "name": "AstraZeneca PLC",
+      "sector": "Healthcare",
       "cap": "mega"
     },
     "SNY": {
-      "name": "Dupixent",
-      "sector": "pharma-biotech",
+      "name": "Sanofi",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "GSK": {
-      "name": "HIV (ViiV Healthcare)",
-      "sector": "pharma-biotech",
+      "name": "GSK plc",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "VTRS": {
-      "name": "Branded Generics",
-      "sector": "pharma-biotech",
+      "name": "Viatris Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "BIIB": {
-      "name": "Leqembi (lecanemab)",
-      "sector": "pharma-biotech",
+      "name": "Biogen Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "INCY": {
-      "name": "Jakafi (ruxolitinib)",
-      "sector": "pharma-biotech",
+      "name": "Incyte Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "OXY": {
-      "name": "Oil Production",
-      "sector": "energy",
+      "name": "Occidental Petroleum Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "PSX": {
-      "name": "Refined Petroleum Products",
-      "sector": "energy",
+      "name": "Phillips 66",
+      "sector": "Energy",
       "cap": "large"
     },
     "MPC": {
-      "name": "Refined Fuels",
-      "sector": "energy",
+      "name": "Marathon Petroleum Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "VLO": {
-      "name": "Refined Petroleum Products",
-      "sector": "energy",
+      "name": "Valero Energy Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "DVN": {
-      "name": "Delaware Basin Oil",
-      "sector": "energy",
+      "name": "Devon Energy Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "FANG": {
-      "name": "Permian Basin Oil",
-      "sector": "energy",
+      "name": "Diamondback Energy, Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "HAL": {
-      "name": "Completion & Production",
-      "sector": "energy",
+      "name": "Halliburton Company",
+      "sector": "Energy",
       "cap": "large"
     },
     "BKR": {
-      "name": "Oilfield Services & Equipment",
-      "sector": "energy",
+      "name": "Baker Hughes Company",
+      "sector": "Energy",
       "cap": "large"
     },
     "TRGP": {
-      "name": "NGL Gathering & Processing",
-      "sector": "energy",
+      "name": "Targa Resources Corp.",
+      "sector": "Energy",
       "cap": "large"
     },
     "WMB": {
-      "name": "Transco Pipeline",
-      "sector": "energy",
+      "name": "The Williams Companies, Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "KMI": {
-      "name": "Natural Gas Pipelines",
-      "sector": "energy",
+      "name": "Kinder Morgan, Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "OKE": {
-      "name": "NGL Gathering & Processing",
-      "sector": "energy",
+      "name": "ONEOK, Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "HII": {
-      "name": "Nuclear Aircraft Carriers",
-      "sector": "defense",
+      "name": "Huntington Ingalls Industries, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "HWM": {
-      "name": "Engine Products",
-      "sector": "defense",
+      "name": "Howmet Aerospace Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "SAIC": {
-      "name": "Defense & Intelligence IT",
-      "sector": "defense",
+      "name": "Science Applications International Corporation",
+      "sector": "Technology",
       "cap": "mid"
     },
     "PSN": {
-      "name": "Missile Defense & Space",
-      "sector": "defense",
+      "name": "Parsons Corporation",
+      "sector": "Technology",
       "cap": "mid"
     },
     "RKLB": {
-      "name": "Electron Launch Vehicle",
-      "sector": "defense",
+      "name": "Rocket Lab Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "FSLR": {
-      "name": "Series 7 CdTe Modules",
-      "sector": "energy",
+      "name": "First Solar, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "ENPH": {
-      "name": "IQ8 / IQ9 Microinverters",
-      "sector": "energy",
+      "name": "Enphase Energy, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "SEDG": {
-      "name": "DC-Optimized Inverter Systems",
-      "sector": "energy",
+      "name": "SolarEdge Technologies, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "RUN": {
-      "name": "Residential Solar as a Service",
-      "sector": "energy",
+      "name": "Sunrun Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "ALB": {
-      "name": "Lithium Carbonate & Hydroxide",
-      "sector": "materials",
+      "name": "Albemarle Corporation",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "V": {
-      "name": "Consumer Payment Solutions",
-      "sector": "financials",
+      "name": "Visa Inc.",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "MA": {
-      "name": "Consumer Payments",
-      "sector": "financials",
+      "name": "Mastercard Incorporated",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "COIN": {
-      "name": "Retail Trading Platform",
-      "sector": "financials",
+      "name": "Coinbase Global, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "MP": {
-      "name": "Rare Earth Concentrate (Stage I)",
-      "sector": "materials",
+      "name": "MP Materials Corp.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "LDOS": {
-      "name": "Defense Solutions",
-      "sector": "defense",
+      "name": "Leidos Holdings, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "SMCI": {
-      "name": "AI GPU Servers (NVIDIA H/B Series)",
-      "sector": "semiconductors",
+      "name": "Super Micro Computer, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "AMD": {
-      "name": "EPYC Server CPUs",
-      "sector": "semiconductors",
+      "name": "Advanced Micro Devices, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "MSFT": {
-      "name": "Amazon AWS",
-      "sector": "semiconductors",
+      "name": "Microsoft Corporation",
+      "sector": "Technology",
       "cap": "titan"
     },
     "AMZN": {
-      "name": "Google Cloud",
-      "sector": "semiconductors",
+      "name": "Amazon.com, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "titan"
     },
     "GOOG": {
-      "name": "Meta Platforms",
-      "sector": "semiconductors",
+      "name": "Alphabet Inc.",
+      "sector": "Communication Services",
       "cap": "titan"
     },
     "META": {
-      "name": "Client (PC)",
-      "sector": "semiconductors",
+      "name": "Meta Platforms, Inc.",
+      "sector": "Communication Services",
       "cap": "titan"
     },
     "INTC": {
-      "name": "Core Ultra / Xeon CPUs",
-      "sector": "semiconductors",
+      "name": "Intel Corporation",
+      "sector": "Technology",
       "cap": "mega"
     },
     "F": {
-      "name": "F-Series Trucks",
-      "sector": "consumer-discretionary",
+      "name": "Ford Motor Company",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "GM": {
-      "name": "Chevrolet Silverado / GMC Sierra Trucks",
-      "sector": "consumer-discretionary",
+      "name": "General Motors Company",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "TGT": {
-      "name": "Owned Brands (Cat & Jack, Good & Gather, Up&Up)",
-      "sector": "consumer-discretionary",
+      "name": "Target Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "UBER": {
-      "name": "Uber Rides (Mobility)",
-      "sector": "consumer-discretionary",
+      "name": "Uber Technologies, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "PYPL": {
-      "name": "PayPal Checkout (Merchant Services)",
-      "sector": "financials",
+      "name": "PayPal Holdings, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "CVS": {
-      "name": "Pharmacy Benefits (CVS Caremark)",
-      "sector": "healthcare",
+      "name": "CVS Health Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "HUM": {
-      "name": "Medicare Advantage (MA)",
-      "sector": "healthcare",
+      "name": "Humana Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "CARR": {
-      "name": "Commercial HVAC Systems",
-      "sector": "industrials",
+      "name": "Carrier Global Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "OTIS": {
-      "name": "New Equipment (Elevators & Escalators)",
-      "sector": "industrials",
+      "name": "Otis Worldwide Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "AA": {
-      "name": "Aluminum Smelting (Primary)",
-      "sector": "materials",
+      "name": "Alcoa Corporation",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "MCK": {
-      "name": "Pharmaceutical Distribution",
-      "sector": "healthcare",
+      "name": "McKesson Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "CAH": {
-      "name": "Pharmaceutical Distribution",
-      "sector": "healthcare",
+      "name": "Cardinal Health, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "COR": {
-      "name": "Drug Distribution (US Healthcare Solutions)",
-      "sector": "healthcare",
+      "name": "Cencora, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "MOH": {
-      "name": "Medicaid Managed Care",
-      "sector": "healthcare",
+      "name": "Molina Healthcare, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "CNC": {
-      "name": "Medicaid Managed Care",
-      "sector": "healthcare",
+      "name": "Centene Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "FDX": {
-      "name": "FedEx Express",
-      "sector": "industrials",
+      "name": "FedEx Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "JBHT": {
-      "name": "Intermodal (JBI)",
-      "sector": "industrials",
+      "name": "J.B. Hunt Transport Services, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "XPO": {
-      "name": "LTL North America",
-      "sector": "industrials",
+      "name": "XPO, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "KHC": {
-      "name": "Condiments & Sauces",
-      "sector": "consumer-defensive",
+      "name": "The Kraft Heinz Company",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "TSN": {
-      "name": "Chicken",
-      "sector": "consumer-defensive",
+      "name": "Tyson Foods, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "DG": {
-      "name": "Consumables",
-      "sector": "consumer-discretionary",
+      "name": "Dollar General Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "DLTR": {
-      "name": "Dollar Tree Stores",
-      "sector": "consumer-discretionary",
+      "name": "Dollar Tree, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "ULTA": {
-      "name": "Cosmetics & Color",
-      "sector": "consumer-discretionary",
+      "name": "Ulta Beauty, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "ABNB": {
-      "name": "Short-Term Rental Marketplace",
-      "sector": "consumer-discretionary",
+      "name": "Airbnb, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "DASH": {
-      "name": "US Food Delivery Marketplace",
-      "sector": "consumer-discretionary",
+      "name": "DoorDash, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "LYFT": {
-      "name": "Rideshare (US & Canada)",
-      "sector": "consumer-discretionary",
+      "name": "Lyft, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "SNAP": {
-      "name": "Snapchat App",
-      "sector": "communication-services",
+      "name": "Snap Inc.",
+      "sector": "Communication Services",
       "cap": "mid"
     },
     "PINS": {
-      "name": "Pinterest Discovery Platform",
-      "sector": "communication-services",
+      "name": "Pinterest, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "SPOT": {
-      "name": "Premium Subscription",
-      "sector": "communication-services",
+      "name": "Spotify Technology S.A.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "XYZ": {
-      "name": "Cash App",
-      "sector": "financials",
+      "name": "Block, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "GPN": {
-      "name": "Merchant Solutions",
-      "sector": "financials",
+      "name": "Global Payments Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "PAYX": {
-      "name": "Payroll Processing",
-      "sector": "it-software",
+      "name": "Paychex, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "BILL": {
-      "name": "BILL Accounts Payable/Receivable",
-      "sector": "it-software",
+      "name": "BILL Holdings, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "VEEV": {
-      "name": "Veeva Commercial Cloud",
-      "sector": "it-software",
+      "name": "Veeva Systems Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "HUBS": {
-      "name": "Marketing Hub",
-      "sector": "it-software",
+      "name": "HubSpot, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "DT": {
-      "name": "Dynatrace Platform",
-      "sector": "it-software",
+      "name": "Dynatrace, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "TTD": {
-      "name": "Trade Desk Demand-Side Platform (DSP)",
-      "sector": "it-software",
+      "name": "The Trade Desk, Inc.",
+      "sector": "Communication Services",
       "cap": "mid"
     },
     "APP": {
-      "name": "AXON AI Advertising Engine",
-      "sector": "it-software",
+      "name": "AppLovin Corporation",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "ROKU": {
-      "name": "Platform Revenue (Advertising)",
-      "sector": "communication-services",
+      "name": "Roku, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "GTLB": {
-      "name": "GitLab DevSecOps Platform",
-      "sector": "it-software",
+      "name": "GitLab Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "OVV": {
-      "name": "Permian Basin Oil (Midland/Delaware)",
-      "sector": "energy",
+      "name": "Ovintiv Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "CTRA": {
-      "name": "Permian Basin Oil",
+      "name": "Coterra Energy Inc.",
       "sector": "energy",
       "cap": "large"
     },
     "COLD": {
-      "name": "Temperature-Controlled Warehouse Rental",
-      "sector": "real-estate",
+      "name": "Americold Realty Trust, Inc.",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "WPC": {
-      "name": "Net Lease Industrial Properties",
-      "sector": "real-estate",
+      "name": "W. P. Carey Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "NNN": {
-      "name": "Triple-Net Retail Leases",
-      "sector": "real-estate",
+      "name": "NNN REIT, Inc.",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "OLN": {
-      "name": "Chlorine & Caustic Soda (Chlor Alkali)",
-      "sector": "materials",
+      "name": "Olin Corporation",
+      "sector": "Basic Materials",
       "cap": "mid"
     },
     "RPM": {
-      "name": "Construction Products Group",
-      "sector": "materials",
+      "name": "RPM International Inc.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "TOL": {
-      "name": "Luxury Single-Family Homes",
-      "sector": "consumer-discretionary",
+      "name": "Toll Brothers, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "RJF": {
-      "name": "Private Client Group",
-      "sector": "financials",
+      "name": "Raymond James Financial, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "VOYA": {
-      "name": "Workplace Solutions (Retirement)",
-      "sector": "financials",
+      "name": "Voya Financial, Inc.",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "LPLA": {
-      "name": "Independent Financial Advisor Platform",
-      "sector": "financials",
+      "name": "LPL Financial Holdings Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "MELI": {
-      "name": "MercadoLibre Marketplace",
-      "sector": "consumer-discretionary",
+      "name": "MercadoLibre, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "SE": {
-      "name": "Shopee (E-Commerce)",
-      "sector": "consumer-discretionary",
+      "name": "Sea Limited",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "NU": {
-      "name": "Nubank Credit Card",
-      "sector": "financials",
+      "name": "Nu Holdings Ltd.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "BABA": {
-      "name": "Taobao / Tmall (China Commerce)",
-      "sector": "consumer-discretionary",
+      "name": "Alibaba Group Holding Limited",
+      "sector": "Consumer Cyclical",
       "cap": "mega"
     },
     "INFY": {
-      "name": "IT Services & Consulting",
-      "sector": "it-software",
+      "name": "Infosys Limited",
+      "sector": "Technology",
       "cap": "large"
     },
     "NVS": {
-      "name": "Kisqali (ribociclib)",
-      "sector": "pharma-biotech",
+      "name": "Novartis AG",
+      "sector": "Healthcare",
       "cap": "mega"
     },
     "BHP": {
-      "name": "Iron Ore",
-      "sector": "materials",
+      "name": "BHP Group Limited",
+      "sector": "Basic Materials",
       "cap": "mega"
     },
     "RIO": {
-      "name": "Iron Ore (Pilbara)",
-      "sector": "materials",
+      "name": "Rio Tinto Group",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "VALE": {
-      "name": "Iron Ore & Pellets",
-      "sector": "materials",
+      "name": "Vale S.A.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "TM": {
-      "name": "Toyota Passenger Vehicles",
-      "sector": "consumer-discretionary",
+      "name": "Toyota Motor Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "mega"
     },
     "CPNG": {
-      "name": "Rocket Delivery (E-Commerce)",
-      "sector": "consumer-discretionary",
+      "name": "Coupang, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "TCOM": {
-      "name": "Trip.com International OTA",
-      "sector": "consumer-discretionary",
+      "name": "Trip.com Group Limited",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "HMC": {
-      "name": "Automobiles & SUVs",
-      "sector": "automotive",
+      "name": "Honda Motor Co., Ltd.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "STLA": {
-      "name": "Jeep / Ram / Dodge",
-      "sector": "automotive",
+      "name": "Stellantis N.V.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "LI": {
-      "name": "Extended-Range EVs (EREV)",
-      "sector": "automotive",
+      "name": "Li Auto Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "LKQ": {
-      "name": "Aftermarket Parts (North America)",
-      "sector": "automotive",
+      "name": "LKQ Corporation",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "EQT": {
-      "name": "Natural Gas Production",
-      "sector": "energy",
+      "name": "EQT Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "APA": {
-      "name": "US Permian Oil & Gas",
-      "sector": "energy",
+      "name": "APA Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "RRC": {
-      "name": "Marcellus Shale Gas",
-      "sector": "energy",
+      "name": "Range Resources Corporation",
+      "sector": "Energy",
       "cap": "mid"
     },
     "PR": {
-      "name": "Delaware Basin Crude Oil",
-      "sector": "energy",
+      "name": "Permian Resources Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "AR": {
-      "name": "Natural Gas (Marcellus/Utica)",
-      "sector": "energy",
+      "name": "Antero Resources Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "NTES": {
-      "name": "Online Games",
-      "sector": "technology",
+      "name": "NetEase, Inc.",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "BILI": {
-      "name": "Value-Added Services (VAS)",
-      "sector": "technology",
+      "name": "Bilibili Inc.",
+      "sector": "Communication Services",
       "cap": "mid"
     },
     "GRAB": {
-      "name": "Deliveries (GrabFood / GrabMart)",
-      "sector": "technology",
+      "name": "Grab Holdings Limited",
+      "sector": "Technology",
       "cap": "large"
     },
     "TME": {
-      "name": "Online Music (QQ Music, KuGou, Kuwo)",
-      "sector": "technology",
+      "name": "Tencent Music Entertainment Group",
+      "sector": "Communication Services",
       "cap": "large"
     },
     "BEKE": {
-      "name": "Existing Home Transactions (Lianjia)",
-      "sector": "technology",
+      "name": "KE Holdings Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "VIPS": {
-      "name": "Online Discount Retail (Vipshop)",
-      "sector": "consumer-discretionary",
+      "name": "Vipshop Holdings Limited",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "GOLD": {
-      "name": "Gold Mining",
-      "sector": "materials",
+      "name": "Gold.com, Inc.",
+      "sector": "Financial Services",
       "cap": "small"
     },
     "AEM": {
-      "name": "Gold Production",
-      "sector": "materials",
+      "name": "Agnico Eagle Mines Limited",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "WPM": {
-      "name": "Gold Streaming",
-      "sector": "materials",
+      "name": "Wheaton Precious Metals Corp.",
+      "sector": "Basic Materials",
       "cap": "large"
     },
     "CCJ": {
-      "name": "Uranium Production (Cigar Lake / McArthur River)",
-      "sector": "energy",
+      "name": "Cameco Corporation",
+      "sector": "Energy",
       "cap": "large"
     },
     "AFRM": {
-      "name": "BNPL Installment Loans",
-      "sector": "financials",
+      "name": "Affirm Holdings, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "HOOD": {
-      "name": "Options & Equities Trading",
-      "sector": "financials",
+      "name": "Robinhood Markets, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "MSTR": {
-      "name": "Bitcoin Treasury Holdings",
-      "sector": "technology",
+      "name": "Strategy Inc",
+      "sector": "Technology",
       "cap": "large"
     },
     "WEX": {
-      "name": "Fleet Solutions",
-      "sector": "financials",
+      "name": "WEX Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "EVR": {
-      "name": "Advisory (M&A / Restructuring)",
-      "sector": "financials",
+      "name": "Evercore Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "MARA": {
-      "name": "Bitcoin Mining",
-      "sector": "technology",
+      "name": "MARA Holdings, Inc.",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "RIOT": {
-      "name": "Bitcoin Mining",
-      "sector": "technology",
+      "name": "Riot Platforms, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "QSR": {
-      "name": "Tim Hortons",
-      "sector": "consumer-discretionary",
+      "name": "Restaurant Brands International Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "TXRH": {
-      "name": "Texas Roadhouse Restaurants",
-      "sector": "consumer-discretionary",
+      "name": "Texas Roadhouse, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "WEN": {
-      "name": "Wendy",
-      "sector": "consumer-discretionary",
+      "name": "The Wendy's Company",
+      "sector": "Consumer Cyclical",
       "cap": "small"
     },
     "DKNG": {
-      "name": "Sportsbook (DraftKings Sportsbook)",
-      "sector": "consumer-discretionary",
+      "name": "DraftKings Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "PENN": {
-      "name": "ESPN BET (Online Sportsbook)",
-      "sector": "consumer-discretionary",
+      "name": "PENN Entertainment, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "UTHR": {
-      "name": "Tyvaso / Tyvaso DPI (Inhaled Treprostinil)",
-      "sector": "healthcare",
+      "name": "United Therapeutics Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "PODD": {
-      "name": "Omnipod 5 (Automated Insulin Delivery)",
-      "sector": "healthcare",
+      "name": "Insulet Corporation",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "SRPT": {
-      "name": "Elevidys (Delandistrogene Moxeparvovec)",
-      "sector": "healthcare",
+      "name": "Sarepta Therapeutics, Inc.",
+      "sector": "Healthcare",
       "cap": "small"
     },
     "ICLR": {
-      "name": "Clinical Development Services",
-      "sector": "healthcare",
+      "name": "ICON Public Limited Company",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "ACM": {
-      "name": "Americas Advisory, Design & Engineering (ACAD)",
-      "sector": "industrials",
+      "name": "AECOM",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "KBR": {
-      "name": "Government Solutions",
-      "sector": "industrials",
+      "name": "KBR, Inc.",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "TDY": {
-      "name": "Instrumentation",
-      "sector": "industrials",
+      "name": "Teledyne Technologies Incorporated",
+      "sector": "Technology",
       "cap": "large"
     },
     "GGG": {
-      "name": "Contractor Segment (Sprayers)",
-      "sector": "industrials",
+      "name": "Graco Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "RRX": {
-      "name": "Industrial Motion (Rexnord)",
-      "sector": "industrials",
+      "name": "Regal Rexnord Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "NVT": {
-      "name": "Enclosures (Hoffman/Schroff)",
-      "sector": "industrials",
+      "name": "nVent Electric plc",
+      "sector": "Industrials",
       "cap": "large"
     },
     "DOCS": {
-      "name": "Pharmaceutical Marketing Platform",
-      "sector": "technology",
+      "name": "Doximity, Inc.",
+      "sector": "Healthcare",
       "cap": "mid"
     },
     "PCOR": {
-      "name": "Project Management",
-      "sector": "technology",
+      "name": "Procore Technologies, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "TENB": {
-      "name": "Tenable One (Exposure Management)",
-      "sector": "technology",
+      "name": "Tenable Holdings, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "PSTG": {
-      "name": "FlashArray (Block Storage)",
+      "name": "Pure Storage, Inc.",
       "sector": "technology",
       "cap": "large"
     },
     "BURL": {
-      "name": "Apparel (Women/Men/Kids)",
-      "sector": "consumer-discretionary",
+      "name": "Burlington Stores, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "FIVE": {
-      "name": "Trend & Style (teen/tween)",
-      "sector": "consumer-discretionary",
+      "name": "Five Below, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "PVH": {
-      "name": "Calvin Klein",
-      "sector": "consumer-discretionary",
+      "name": "PVH Corp.",
+      "sector": "Consumer Cyclical",
       "cap": "mid"
     },
     "OHI": {
-      "name": "Skilled Nursing Facilities (SNF)",
-      "sector": "real-estate",
+      "name": "Omega Healthcare Investors, Inc.",
+      "sector": "Real Estate",
       "cap": "large"
     },
     "STAG": {
-      "name": "Single-Tenant Industrial Properties",
-      "sector": "real-estate",
+      "name": "STAG Industrial, Inc.",
+      "sector": "Real Estate",
       "cap": "mid"
     },
     "CMC": {
-      "name": "North America Steel Manufacturing",
-      "sector": "materials",
+      "name": "Commercial Metals Company",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "ATI": {
-      "name": "High-Performance Materials (Aerospace)",
-      "sector": "materials",
+      "name": "ATI Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "TREX": {
-      "name": "Trex Decking (Transcend/Select/Enhance)",
-      "sector": "materials",
+      "name": "Trex Company, Inc.",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "EG": {
-      "name": "Reinsurance",
-      "sector": "financials",
+      "name": "Everest Group, Ltd.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "RYAN": {
-      "name": "Wholesale Specialty Insurance Brokerage",
-      "sector": "financials",
+      "name": "Ryan Specialty Holdings, Inc.",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "OMF": {
-      "name": "Personal Loans (Secured & Unsecured)",
-      "sector": "financials",
+      "name": "OneMain Holdings, Inc.",
+      "sector": "Financial Services",
       "cap": "mid"
     },
     "TNET": {
-      "name": "Professional Employer Organization (PEO)",
-      "sector": "industrials",
+      "name": "TriNet Group, Inc.",
+      "sector": "Industrials",
       "cap": "mid"
     },
     "SCI": {
-      "name": "Funeral Services (Dignity Memorial)",
-      "sector": "consumer-discretionary",
+      "name": "Service Corporation International",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "NVDA": {
-      "name": "H100 / H200 GPUs",
-      "sector": "semiconductors",
+      "name": "NVIDIA Corporation",
+      "sector": "Technology",
       "cap": "titan"
     },
     "ORCL": {
-      "name": "Gaming",
-      "sector": "technology",
+      "name": "Oracle Corporation",
+      "sector": "Technology",
       "cap": "mega"
     },
     "TSLA": {
-      "name": "OEM & Other",
-      "sector": "consumer-discretionary",
+      "name": "Tesla, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "titan"
     },
     "TSM": {
-      "name": "3nm Process (N3E/N3P)",
-      "sector": "semiconductors",
+      "name": "Taiwan Semiconductor Manufacturing Company Limited",
+      "sector": "Technology",
       "cap": "titan"
     },
     "MU": {
-      "name": "HBM3e",
-      "sector": "semiconductors",
+      "name": "Micron Technology, Inc.",
+      "sector": "Technology",
       "cap": "titan"
     },
     "ASML": {
-      "name": "High-NA EUV (EXE:5000)",
-      "sector": "semiconductors",
+      "name": "ASML Holding N.V.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "AMAT": {
-      "name": "Etch Systems",
-      "sector": "semiconductors",
+      "name": "Applied Materials, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "LRCX": {
-      "name": "Conductor Etch",
-      "sector": "semiconductors",
+      "name": "Lam Research Corporation",
+      "sector": "Technology",
       "cap": "mega"
     },
     "KLAC": {
-      "name": "Wafer Inspection",
-      "sector": "semiconductors",
+      "name": "KLA Corporation",
+      "sector": "Technology",
       "cap": "mega"
     },
     "GOOGL": {
-      "name": "Google Search & Ads",
-      "sector": "ai-cloud",
+      "name": "Alphabet Inc.",
+      "sector": "Communication Services",
       "cap": "titan"
     },
     "PFE": {
-      "name": "Paxlovid",
-      "sector": "pharma-biotech",
+      "name": "Pfizer Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "MRNA": {
-      "name": "Spikevax (COVID-19 Vaccine)",
-      "sector": "pharma-biotech",
+      "name": "Moderna, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "LLY": {
-      "name": "Mounjaro / Zepbound (tirzepatide)",
-      "sector": "pharma-biotech",
+      "name": "Eli Lilly and Company",
+      "sector": "Healthcare",
       "cap": "titan"
     },
     "NVO": {
-      "name": "Ozempic (semaglutide injection)",
-      "sector": "pharma-biotech",
+      "name": "Novo Nordisk A/S",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "REGN": {
-      "name": "Dupixent (dupilumab)",
-      "sector": "pharma-biotech",
+      "name": "Regeneron Pharmaceuticals, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "MRVL": {
-      "name": "Custom AI Accelerators (ASICs)",
-      "sector": "semiconductors",
+      "name": "Marvell Technology, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "ON": {
-      "name": "Silicon Carbide (SiC) MOSFETs",
-      "sector": "semiconductors",
+      "name": "ON Semiconductor Corporation",
+      "sector": "Technology",
       "cap": "large"
     },
     "MPWR": {
-      "name": "Data Center Power ICs",
-      "sector": "semiconductors",
+      "name": "Monolithic Power Systems, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "AMKR": {
-      "name": "Advanced Packaging (FC-BGA, SiP)",
-      "sector": "semiconductors",
+      "name": "Amkor Technology, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "PLTR": {
-      "name": "Gotham",
-      "sector": "ai-cloud",
+      "name": "Palantir Technologies Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "SNOW": {
-      "name": "Data Cloud Platform",
-      "sector": "ai-cloud",
+      "name": "Snowflake Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "NET": {
-      "name": "Application Services (CDN, DDoS)",
-      "sector": "ai-cloud",
+      "name": "Cloudflare, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "DDOG": {
-      "name": "Infrastructure Monitoring",
-      "sector": "ai-cloud",
+      "name": "Datadog, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "RIVN": {
-      "name": "R1T Electric Pickup",
-      "sector": "ev-battery",
+      "name": "Rivian Automotive, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "CW": {
-      "name": "Defense Electronics",
-      "sector": "defense",
+      "name": "Curtiss-Wright Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "BWXT": {
-      "name": "Naval Nuclear Reactors",
-      "sector": "defense",
+      "name": "BWX Technologies, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "AXON": {
-      "name": "TASER Devices",
-      "sector": "defense",
+      "name": "Axon Enterprise, Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "BNTX": {
-      "name": "Comirnaty (COVID-19 Vaccine)",
-      "sector": "pharma-biotech",
+      "name": "BioNTech SE",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "VRTX": {
-      "name": "Trikafta / Kaftrio",
-      "sector": "pharma-biotech",
+      "name": "Vertex Pharmaceuticals Incorporated",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "BMRN": {
-      "name": "Voxzogo (vosoritide)",
-      "sector": "pharma-biotech",
+      "name": "BioMarin Pharmaceutical Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "EXAS": {
@@ -3847,1202 +3847,1202 @@
       "cap": "mid"
     },
     "AVGO": {
-      "name": "Networking ASICs",
-      "sector": "semiconductors",
+      "name": "Broadcom Inc.",
+      "sector": "Technology",
       "cap": "titan"
     },
     "QCOM": {
-      "name": "Snapdragon Mobile Platforms",
-      "sector": "semiconductors",
+      "name": "QUALCOMM Incorporated",
+      "sector": "Technology",
       "cap": "mega"
     },
     "TXN": {
-      "name": "Analog ICs",
-      "sector": "semiconductors",
+      "name": "Texas Instruments Incorporated",
+      "sector": "Technology",
       "cap": "mega"
     },
     "ADI": {
-      "name": "Data Converters",
-      "sector": "semiconductors",
+      "name": "Analog Devices, Inc.",
+      "sector": "Technology",
       "cap": "mega"
     },
     "SWKS": {
-      "name": "Mobile RF Front-End Modules",
-      "sector": "semiconductors",
+      "name": "Skyworks Solutions, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "NOW": {
-      "name": "IT Service Management (ITSM)",
-      "sector": "ai-cloud",
+      "name": "ServiceNow, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "CRWD": {
-      "name": "Falcon Endpoint Protection",
-      "sector": "ai-cloud",
+      "name": "CrowdStrike Holdings, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "MDB": {
-      "name": "MongoDB Atlas",
-      "sector": "ai-cloud",
+      "name": "MongoDB, Inc.",
+      "sector": "Technology",
       "cap": "large"
     },
     "PATH": {
-      "name": "UiPath Platform (Automation Suite)",
-      "sector": "ai-cloud",
+      "name": "UiPath, Inc.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "ESTC": {
-      "name": "Elastic Search",
-      "sector": "ai-cloud",
+      "name": "Elastic N.V.",
+      "sector": "Technology",
       "cap": "mid"
     },
     "NIO": {
-      "name": "ES/EC SUV Series",
-      "sector": "ev-battery",
+      "name": "NIO Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large"
     },
     "GD": {
-      "name": "Gulfstream Business Jets",
-      "sector": "defense",
+      "name": "General Dynamics Corporation",
+      "sector": "Industrials",
       "cap": "large"
     },
     "TXT": {
-      "name": "Bell Helicopters",
-      "sector": "defense",
+      "name": "Textron Inc.",
+      "sector": "Industrials",
       "cap": "large"
     },
     "CACI": {
-      "name": "Signals Intelligence (SIGINT)",
-      "sector": "defense",
+      "name": "CACI International Inc",
+      "sector": "Technology",
       "cap": "large"
     },
     "ABBV": {
-      "name": "Skyrizi / Rinvoq",
-      "sector": "pharma-biotech",
+      "name": "AbbVie Inc.",
+      "sector": "Healthcare",
       "cap": "mega"
     },
     "AMGN": {
-      "name": "Repatha/Prolia/Xgeva",
-      "sector": "pharma-biotech",
+      "name": "Amgen Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "GILD": {
-      "name": "Biktarvy",
-      "sector": "pharma-biotech",
+      "name": "Gilead Sciences, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "ALNY": {
-      "name": "Onpattro (Patisiran)",
-      "sector": "pharma-biotech",
+      "name": "Alnylam Pharmaceuticals, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "IONS": {
-      "name": "Spinraza (Nusinersen)",
-      "sector": "pharma-biotech",
+      "name": "Ionis Pharmaceuticals, Inc.",
+      "sector": "Healthcare",
       "cap": "large"
     },
     "PG": {
-      "name": "Fabric & Home Care (Tide, Downy, Swiffer)",
-      "sector": "consumer-defensive",
+      "name": "The Procter & Gamble Company",
+      "sector": "Consumer Defensive",
       "cap": "mega"
     },
     "KO": {
-      "name": "Coca-Cola Trademark",
-      "sector": "consumer-defensive",
+      "name": "The Coca-Cola Company",
+      "sector": "Consumer Defensive",
       "cap": "mega"
     },
     "PEP": {
-      "name": "Frito-Lay Snacks (Lay",
-      "sector": "consumer-defensive",
+      "name": "PepsiCo, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "WMT": {
-      "name": "Walmart U.S. Stores",
-      "sector": "consumer-defensive",
+      "name": "Walmart Inc.",
+      "sector": "Consumer Defensive",
       "cap": "mega"
     },
     "COST": {
-      "name": "Warehouse Club Sales",
-      "sector": "consumer-defensive",
+      "name": "Costco Wholesale Corporation",
+      "sector": "Consumer Defensive",
       "cap": "mega"
     },
     "CL": {
-      "name": "Oral Care (Colgate, elmex)",
-      "sector": "consumer-defensive",
+      "name": "Colgate-Palmolive Company",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "GIS": {
-      "name": "Cereal & Snack Bars (Cheerios, Nature Valley)",
-      "sector": "consumer-defensive",
+      "name": "General Mills, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "KMB": {
-      "name": "Personal Care (Huggies, Pull-Ups)",
-      "sector": "consumer-defensive",
+      "name": "Kimberly-Clark Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "CHD": {
-      "name": "Household (Arm & Hammer, OxiClean)",
-      "sector": "consumer-defensive",
+      "name": "Church & Dwight Co., Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large"
     },
     "LW": {
-      "name": "Frozen French Fries & Potato Products",
-      "sector": "consumer-defensive",
+      "name": "Lamb Weston Holdings, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "mid"
     },
     "JPM": {
-      "name": "Consumer & Community Banking",
-      "sector": "financials",
+      "name": "JPMorgan Chase & Co.",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "GS": {
-      "name": "Global Banking & Markets",
-      "sector": "financials",
+      "name": "The Goldman Sachs Group, Inc.",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "MS": {
-      "name": "Wealth Management",
-      "sector": "financials",
+      "name": "Morgan Stanley",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "BLK": {
-      "name": "iShares ETFs",
-      "sector": "financials",
+      "name": "BlackRock, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "SPGI": {
-      "name": "S&P Global Ratings",
-      "sector": "financials",
+      "name": "S&P Global Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "SCHW": {
-      "name": "Brokerage & Trading",
-      "sector": "financials",
+      "name": "The Charles Schwab Corporation",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "ICE": {
-      "name": "Exchanges (NYSE, ICE Futures)",
-      "sector": "financials",
+      "name": "Intercontinental Exchange, Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "TW": {
-      "name": "Rates Trading",
-      "sector": "financials",
+      "name": "Tradeweb Markets Inc.",
+      "sector": "Financial Services",
       "cap": "large"
     },
     "XOM": {
-      "name": "Upstream (Exploration & Production)",
-      "sector": "energy",
+      "name": "ExxonMobil Holdings Corporation",
+      "sector": "Energy",
       "cap": "mega"
     },
     "CVX": {
-      "name": "Upstream (Exploration & Production)",
-      "sector": "energy",
+      "name": "Chevron Corporation",
+      "sector": "Energy",
       "cap": "mega"
     },
     "NEE": {
-      "name": "Florida Power & Light (FPL)",
-      "sector": "energy",
+      "name": "NextEra Energy, Inc.",
+      "sector": "Utilities",
       "cap": "large"
     },
     "COP": {
-      "name": "Lower 48 Production",
-      "sector": "energy",
+      "name": "ConocoPhillips",
+      "sector": "Energy",
       "cap": "large"
     },
     "SLB": {
-      "name": "Digital & Integration",
-      "sector": "energy",
+      "name": "SLB N.V.",
+      "sector": "Energy",
       "cap": "large"
     },
     "EOG": {
-      "name": "Crude Oil Production",
-      "sector": "energy",
+      "name": "EOG Resources, Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "ENB": {
-      "name": "Liquids Pipelines",
-      "sector": "energy",
+      "name": "Enbridge Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "LNG": {
-      "name": "Sabine Pass LNG Terminal",
-      "sector": "energy",
+      "name": "Cheniere Energy, Inc.",
+      "sector": "Energy",
       "cap": "large"
     },
     "ARM": {
-      "name": "Arm Holdings",
-      "sector": "반도체",
+      "name": "Arm Holdings plc",
+      "sector": "Technology",
       "cap": "mega"
     },
     "BRK-B": {
-      "name": "Berkshire B",
-      "sector": "금융",
+      "name": "Berkshire Hathaway Inc.",
+      "sector": "Financial Services",
       "cap": "mega"
     },
     "SPY": {
-      "name": "SPY",
+      "name": "State Street SPDR S&P 500 ETF Trust",
       "sector": "ETF",
       "cap": "etf"
     },
     "VOO": {
-      "name": "VOO",
+      "name": "Vanguard S&P 500 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IVV": {
-      "name": "IVV",
+      "name": "iShares Core S&P 500 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VTI": {
-      "name": "VTI",
+      "name": "Vanguard Morningstar Total Stock Market ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ITOT": {
-      "name": "ITOT",
+      "name": "iShares Core S&P Total U.S. Stock Market ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SPLG": {
-      "name": "SPLG",
+      "name": "State Street SPDR Portfolio S&P 500 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "QQQ": {
-      "name": "QQQ",
+      "name": "Invesco QQQ Trust",
       "sector": "ETF",
       "cap": "etf"
     },
     "QQQM": {
-      "name": "QQQM",
+      "name": "Invesco NASDAQ 100 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "DIA": {
-      "name": "DIA",
+      "name": "State Street SPDR Dow Jones Industrial Average ETF Trust",
       "sector": "ETF",
       "cap": "etf"
     },
     "IWM": {
-      "name": "IWM",
+      "name": "iShares Russell 2000 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IJR": {
-      "name": "IJR",
+      "name": "iShares Core S&P Small-Cap ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IJH": {
-      "name": "IJH",
+      "name": "iShares Core S&P Mid-Cap ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MDY": {
-      "name": "MDY",
+      "name": "State Street SPDR S&P MIDCAP 400 ETF Trust",
       "sector": "ETF",
       "cap": "etf"
     },
     "VB": {
-      "name": "VB",
+      "name": "Vanguard Morningstar Small-Cap ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VO": {
-      "name": "VO",
+      "name": "Vanguard Morningstar Mid-Cap ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "RSP": {
-      "name": "RSP",
+      "name": "Invesco S&P 500 Equal Weight ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VUG": {
-      "name": "VUG",
+      "name": "Vanguard Morningstar Growth ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VTV": {
-      "name": "VTV",
+      "name": "Vanguard Morningstar Value ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IWF": {
-      "name": "IWF",
+      "name": "iShares Russell 1000 Growth ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IWD": {
-      "name": "IWD",
+      "name": "iShares Russell 1000 Value ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IWB": {
-      "name": "IWB",
+      "name": "iShares Russell 1000 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VIG": {
-      "name": "VIG",
+      "name": "Vanguard Dividend Appreciation Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "SCHG": {
-      "name": "SCHG",
+      "name": "Schwab U.S. Large-Cap Growth ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "QUAL": {
-      "name": "QUAL",
+      "name": "iShares MSCI USA Quality Factor ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "USMV": {
-      "name": "USMV",
+      "name": "iShares MSCI USA Min Vol Factor ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SPLV": {
-      "name": "SPLV",
+      "name": "Invesco S&P 500 Low Volatility ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MTUM": {
-      "name": "MTUM",
+      "name": "iShares MSCI USA Momentum Factor ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MAGS": {
-      "name": "MAGS",
+      "name": "Roundhill Magnificent Seven ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MOAT": {
-      "name": "MOAT",
+      "name": "VanEck Morningstar Wide Moat ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLK": {
-      "name": "XLK",
+      "name": "State Street Technology Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLE": {
-      "name": "XLE",
+      "name": "State Street Energy Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLF": {
-      "name": "XLF",
+      "name": "State Street Financial Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLV": {
-      "name": "XLV",
+      "name": "State Street Health Care Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLI": {
-      "name": "XLI",
+      "name": "State Street Industrial Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLY": {
-      "name": "XLY",
+      "name": "State Street Consumer Discretionary Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLP": {
-      "name": "XLP",
+      "name": "State Street Consumer Staples Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLU": {
-      "name": "XLU",
+      "name": "State Street Utilities Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLB": {
-      "name": "XLB",
+      "name": "State Street Materials Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLRE": {
-      "name": "XLRE",
+      "name": "State Street Real Estate Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XLC": {
-      "name": "XLC",
+      "name": "State Street Communication Services Select Sector SPDR ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VGT": {
-      "name": "VGT",
+      "name": "Vanguard Information Technology Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "VHT": {
-      "name": "VHT",
+      "name": "Vanguard Health Care Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "VFH": {
-      "name": "VFH",
+      "name": "Vanguard Financials Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "VDE": {
-      "name": "VDE",
+      "name": "Vanguard Energy Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "VPU": {
-      "name": "VPU",
+      "name": "Vanguard Utilities Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "VNQ": {
-      "name": "VNQ",
+      "name": "Vanguard Real Estate Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "SMH": {
-      "name": "SMH",
+      "name": "VanEck Semiconductor ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SOXX": {
-      "name": "SOXX",
+      "name": "iShares Semiconductor ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IGV": {
-      "name": "IGV",
+      "name": "iShares Expanded Tech-Software Sector ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IYW": {
-      "name": "IYW",
+      "name": "iShares U.S. Technology ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "FDN": {
-      "name": "FDN",
+      "name": "First Trust Dow Jones Internet Index Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "SKYY": {
-      "name": "SKYY",
+      "name": "First Trust Cloud Computing ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "WCLD": {
-      "name": "WCLD",
+      "name": "WisdomTree Cloud Computing Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "AIQ": {
-      "name": "AIQ",
+      "name": "Global X Artificial Intelligence & Technology ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "BOTZ": {
-      "name": "BOTZ",
+      "name": "Global X Robotics & Artificial Intelligence ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "CIBR": {
-      "name": "CIBR",
+      "name": "First Trust NASDAQ Cybersecurity ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "HACK": {
-      "name": "HACK",
+      "name": "Amplify Cybersecurity ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ARKK": {
-      "name": "ARKK",
+      "name": "ARK Innovation ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ARKG": {
-      "name": "ARKG",
+      "name": "ARK Genomic Revolution ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ARKW": {
-      "name": "ARKW",
+      "name": "ARK Next Generation Internet ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ARKF": {
-      "name": "ARKF",
+      "name": "ARK Blockchain & Fintech Innovation ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "FINX": {
-      "name": "FINX",
+      "name": "Global X FinTech ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XBI": {
-      "name": "XBI",
+      "name": "State Street SPDR S&P Biotech ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IBB": {
-      "name": "IBB",
+      "name": "iShares Biotechnology ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "KWEB": {
-      "name": "KWEB",
+      "name": "KraneShares CSI China Internet ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ICLN": {
-      "name": "ICLN",
+      "name": "iShares Global Clean Energy ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "TAN": {
-      "name": "TAN",
+      "name": "Invesco Solar ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "GDX": {
-      "name": "GDX",
+      "name": "VanEck Gold Miners ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "GDXJ": {
-      "name": "GDXJ",
+      "name": "VanEck Junior Gold Miners ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "URA": {
-      "name": "URA",
+      "name": "Global X Uranium ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "LIT": {
-      "name": "LIT",
+      "name": "Global X Lithium & Battery Tech ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "JETS": {
-      "name": "JETS",
+      "name": "U.S. Global Jets ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XME": {
-      "name": "XME",
+      "name": "State Street SPDR S&P Metals & Mining ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "XOP": {
-      "name": "XOP",
+      "name": "State Street SPDR S&P Oil & Gas Exploration & Production ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "KRE": {
-      "name": "KRE",
+      "name": "State Street SPDR S&P Regional Banking ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ITB": {
-      "name": "ITB",
+      "name": "iShares U.S. Home Construction ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "PAVE": {
-      "name": "PAVE",
+      "name": "Global X U.S. Infrastructure Development ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWY": {
-      "name": "EWY",
+      "name": "iShares MSCI South Korea ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWJ": {
-      "name": "EWJ",
+      "name": "iShares MSCI Japan ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "FXI": {
-      "name": "FXI",
+      "name": "iShares China Large-Cap ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MCHI": {
-      "name": "MCHI",
+      "name": "iShares MSCI China ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "ASHR": {
-      "name": "ASHR",
+      "name": "Xtrackers Harvest CSI 300 China A-Shares ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "GXC": {
-      "name": "GXC",
+      "name": "State Street SPDR S&P China ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VGK": {
-      "name": "VGK",
+      "name": "Vanguard FTSE Europe ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EFA": {
-      "name": "EFA",
+      "name": "iShares MSCI EAFE ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IEFA": {
-      "name": "IEFA",
+      "name": "iShares Core MSCI EAFE ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VEA": {
-      "name": "VEA",
+      "name": "Vanguard FTSE Developed Markets Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "SCHF": {
-      "name": "SCHF",
+      "name": "Schwab International Equity ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VWO": {
-      "name": "VWO",
+      "name": "Vanguard FTSE Emerging Markets Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "EEM": {
-      "name": "EEM",
+      "name": "iShares MSCI Emerging Markets ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IEMG": {
-      "name": "IEMG",
+      "name": "iShares Core MSCI Emerging Markets ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWG": {
-      "name": "EWG",
+      "name": "iShares MSCI Germany ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWU": {
-      "name": "EWU",
+      "name": "iShares MSCI United Kingdom ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWC": {
-      "name": "EWC",
+      "name": "iShares MSCI Canada ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWW": {
-      "name": "EWW",
+      "name": "iShares MSCI Mexico ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWT": {
-      "name": "EWT",
+      "name": "iShares MSCI Taiwan ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWH": {
-      "name": "EWH",
+      "name": "iShares MSCI Hong Kong ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWS": {
-      "name": "EWS",
+      "name": "iShares MSCI Singapore ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "INDA": {
-      "name": "INDA",
+      "name": "iShares MSCI India ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EPI": {
-      "name": "EPI",
+      "name": "WisdomTree India Earnings Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "THD": {
-      "name": "THD",
+      "name": "iShares MSCI Thailand ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EIDO": {
-      "name": "EIDO",
+      "name": "iShares MSCI Indonesia ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EPHE": {
-      "name": "EPHE",
+      "name": "iShares MSCI Philippines ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "TUR": {
-      "name": "TUR",
+      "name": "iShares MSCI Turkey ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWA": {
-      "name": "EWA",
+      "name": "iShares MSCI Australia ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWZ": {
-      "name": "EWZ",
+      "name": "iShares MSCI Brazil ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EZA": {
-      "name": "EZA",
+      "name": "iShares MSCI South Africa ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWQ": {
-      "name": "EWQ",
+      "name": "iShares MSCI France ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWL": {
-      "name": "EWL",
+      "name": "iShares MSCI Switzerland ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWN": {
-      "name": "EWN",
+      "name": "iShares MSCI Netherlands ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EWP": {
-      "name": "EWP",
+      "name": "iShares MSCI Spain ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "GLD": {
-      "name": "GLD",
+      "name": "SPDR Gold Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "IAU": {
-      "name": "IAU",
+      "name": "iShares Gold Trust",
       "sector": "ETF",
       "cap": "etf"
     },
     "SLV": {
-      "name": "SLV",
+      "name": "iShares Silver Trust",
       "sector": "ETF",
       "cap": "etf"
     },
     "PPLT": {
-      "name": "PPLT",
+      "name": "abrdn Physical Platinum Shares ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "USO": {
-      "name": "USO",
+      "name": "United States Oil Fund, LP",
       "sector": "ETF",
       "cap": "etf"
     },
     "BNO": {
-      "name": "BNO",
+      "name": "United States Brent Oil Fund, LP",
       "sector": "ETF",
       "cap": "etf"
     },
     "UNG": {
-      "name": "UNG",
+      "name": "United States Natural Gas Fund, LP",
       "sector": "ETF",
       "cap": "etf"
     },
     "DBA": {
-      "name": "DBA",
+      "name": "Invesco DB Agriculture Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "CORN": {
-      "name": "CORN",
+      "name": "Teucrium Corn Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "WEAT": {
-      "name": "WEAT",
+      "name": "Teucrium Wheat Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "PDBC": {
-      "name": "PDBC",
+      "name": "Invesco Optimum Yield Diversified Commodity Strategy No K-1 ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "CPER": {
-      "name": "CPER",
+      "name": "United States Copper Index Fund, LP",
       "sector": "ETF",
       "cap": "etf"
     },
     "TLT": {
-      "name": "TLT",
+      "name": "iShares 20+ Year Treasury Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IEF": {
-      "name": "IEF",
+      "name": "iShares 7-10 Year Treasury Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SHY": {
-      "name": "SHY",
+      "name": "iShares 1-3 Year Treasury Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "GOVT": {
-      "name": "GOVT",
+      "name": "iShares U.S. Treasury Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "AGG": {
-      "name": "AGG",
+      "name": "iShares Core U.S. Aggregate Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "BND": {
-      "name": "BND",
+      "name": "Vanguard Total Bond Market Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "BNDX": {
-      "name": "BNDX",
+      "name": "Vanguard Total International Bond Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "LQD": {
-      "name": "LQD",
+      "name": "iShares iBoxx $ Investment Grade Corporate Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VCIT": {
-      "name": "VCIT",
+      "name": "Vanguard Intermediate-Term Corporate Bond Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "VCSH": {
-      "name": "VCSH",
+      "name": "Vanguard Short-Term Corporate Bond Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "HYG": {
-      "name": "HYG",
+      "name": "iShares iBoxx $ High Yield Corporate Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "JNK": {
-      "name": "JNK",
+      "name": "State Street SPDR Bloomberg High Yield Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "EMB": {
-      "name": "EMB",
+      "name": "iShares J.P. Morgan USD Emerging Markets Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MUB": {
-      "name": "MUB",
+      "name": "iShares National Muni Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "TIP": {
-      "name": "TIP",
+      "name": "iShares TIPS Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SGOV": {
-      "name": "SGOV",
+      "name": "iShares 0-3 Month Treasury Bond ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "BIL": {
-      "name": "BIL",
+      "name": "State Street SPDR Bloomberg 1-3 Month T-Bill ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "MBB": {
-      "name": "MBB",
+      "name": "iShares MBS ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SCHD": {
-      "name": "SCHD",
+      "name": "Schwab U.S. Dividend Equity ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VYM": {
-      "name": "VYM",
+      "name": "Vanguard High Dividend Yield Index Fund ETF Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "DGRO": {
-      "name": "DGRO",
+      "name": "iShares Core Dividend Growth ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "NOBL": {
-      "name": "NOBL",
+      "name": "ProShares S&P 500 Dividend Aristocrats ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "HDV": {
-      "name": "HDV",
+      "name": "iShares Core High Dividend ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SPYD": {
-      "name": "SPYD",
+      "name": "State Street SPDR Portfolio S&P 500 High Dividend ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "JEPI": {
-      "name": "JEPI",
+      "name": "JPMorgan Equity Premium Income ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "JEPQ": {
-      "name": "JEPQ",
+      "name": "JPMorgan Nasdaq Equity Premium Income ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "QYLD": {
-      "name": "QYLD",
+      "name": "Global X NASDAQ 100 Covered Call ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "IBIT": {
-      "name": "IBIT",
+      "name": "iShares Bitcoin Trust ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "FBTC": {
-      "name": "FBTC",
+      "name": "Fidelity Wise Origin Bitcoin Fund",
       "sector": "ETF",
       "cap": "etf"
     },
     "ETHA": {
-      "name": "ETHA",
+      "name": "iShares Ethereum Trust ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "BITO": {
-      "name": "BITO",
+      "name": "ProShares Bitcoin ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "VXX": {
-      "name": "VXX",
+      "name": "iPath Series B S&P 500 VIX Short-Term Futures ETN",
       "sector": "ETF",
       "cap": "etf"
     },
     "TQQQ": {
-      "name": "TQQQ",
+      "name": "ProShares UltraPro QQQ",
       "sector": "ETF",
       "cap": "etf"
     },
     "SQQQ": {
-      "name": "SQQQ",
+      "name": "ProShares UltraPro Short QQQ",
       "sector": "ETF",
       "cap": "etf"
     },
     "UPRO": {
-      "name": "UPRO",
+      "name": "ProShares UltraPro S&P500",
       "sector": "ETF",
       "cap": "etf"
     },
     "SPXU": {
-      "name": "SPXU",
+      "name": "ProShares UltraPro Short S&P500",
       "sector": "ETF",
       "cap": "etf"
     },
     "SPXL": {
-      "name": "SPXL",
+      "name": "Direxion Daily S&P500 Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "SPXS": {
-      "name": "SPXS",
+      "name": "Direxion Daily S&P 500 Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "SOXL": {
-      "name": "SOXL",
+      "name": "Direxion Daily Semiconductor Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "SOXS": {
-      "name": "SOXS",
+      "name": "Direxion Daily Semiconductor Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "TNA": {
-      "name": "TNA",
+      "name": "Direxion Daily Small Cap Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "TZA": {
-      "name": "TZA",
+      "name": "Direxion Daily Small Cap Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "UDOW": {
-      "name": "UDOW",
+      "name": "ProShares UltraPro Dow30",
       "sector": "ETF",
       "cap": "etf"
     },
     "SDOW": {
-      "name": "SDOW",
+      "name": "ProShares UltraPro Short Dow30",
       "sector": "ETF",
       "cap": "etf"
     },
     "QLD": {
-      "name": "QLD",
+      "name": "ProShares Ultra QQQ",
       "sector": "ETF",
       "cap": "etf"
     },
     "QID": {
-      "name": "QID",
+      "name": "ProShares UltraShort QQQ",
       "sector": "ETF",
       "cap": "etf"
     },
     "SSO": {
-      "name": "SSO",
+      "name": "ProShares Ultra S&P500",
       "sector": "ETF",
       "cap": "etf"
     },
     "SDS": {
-      "name": "SDS",
+      "name": "ProShares UltraShort S&P500",
       "sector": "ETF",
       "cap": "etf"
     },
     "TECL": {
-      "name": "TECL",
+      "name": "Direxion Daily Technology Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "TECS": {
-      "name": "TECS",
+      "name": "Direxion Daily Technology Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "FAS": {
-      "name": "FAS",
+      "name": "Direxion Daily Financial Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "FAZ": {
-      "name": "FAZ",
+      "name": "Direxion Daily Financial Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "LABU": {
-      "name": "LABU",
+      "name": "Direxion Daily S&P Biotech Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "LABD": {
-      "name": "LABD",
+      "name": "Direxion Daily S&P Biotech Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "NUGT": {
-      "name": "NUGT",
+      "name": "Direxion Daily Gold Miners Index Bull 2X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "DUST": {
-      "name": "DUST",
+      "name": "Direxion Daily Gold Miners Index Bear 2X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "YINN": {
-      "name": "YINN",
+      "name": "Direxion Daily FTSE China Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "YANG": {
-      "name": "YANG",
+      "name": "Direxion Daily FTSE China Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "TMF": {
-      "name": "TMF",
+      "name": "Direxion Daily 20+ Year Treasury Bull 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "TMV": {
-      "name": "TMV",
+      "name": "Direxion Daily 20+ Year Treasury Bear 3X Shares",
       "sector": "ETF",
       "cap": "etf"
     },
     "BOIL": {
-      "name": "BOIL",
+      "name": "ProShares Ultra Bloomberg Natural Gas",
       "sector": "ETF",
       "cap": "etf"
     },
     "KOLD": {
-      "name": "KOLD",
+      "name": "ProShares UltraShort Bloomberg Natural Gas",
       "sector": "ETF",
       "cap": "etf"
     },
     "UCO": {
-      "name": "UCO",
+      "name": "ProShares Ultra Bloomberg Crude Oil",
       "sector": "ETF",
       "cap": "etf"
     },
     "SCO": {
-      "name": "SCO",
+      "name": "ProShares UltraShort Bloomberg Crude Oil",
       "sector": "ETF",
       "cap": "etf"
     },
     "UVXY": {
-      "name": "UVXY",
+      "name": "ProShares Ultra VIX Short-Term Futures ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SVXY": {
-      "name": "SVXY",
+      "name": "ProShares Short VIX Short-Term Futures ETF",
       "sector": "ETF",
       "cap": "etf"
     },
     "SH": {
-      "name": "SH",
+      "name": "ProShares Short S&P500",
       "sector": "ETF",
       "cap": "etf"
     },
     "PSQ": {
-      "name": "PSQ",
+      "name": "ProShares Short QQQ",
       "sector": "ETF",
       "cap": "etf"
     },
     "FNGU": {
-      "name": "FNGU",
+      "name": "MicroSectors FANG+ 3X Leveraged",
       "sector": "ETF",
       "cap": "etf"
     },
     "BULZ": {
-      "name": "BULZ",
+      "name": "MicroSectors Solactive FANG Innovation 3X Leveraged ETNs",
       "sector": "ETF",
       "cap": "etf"
     },
@@ -5054,7 +5054,7 @@
     },
     "000660.KS": {
       "name": "SK하이닉스",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5066,25 +5066,25 @@
     },
     "373220.KS": {
       "name": "LG에너지솔루션",
-      "sector": "Battery",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "005380.KS": {
       "name": "현대자동차",
-      "sector": "Automotive",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "000270.KS": {
       "name": "기아",
-      "sector": "Automotive",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "051910.KS": {
       "name": "LG화학",
-      "sector": "Chemicals",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5096,31 +5096,31 @@
     },
     "035420.KS": {
       "name": "NAVER",
-      "sector": "IT Services",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "028260.KS": {
       "name": "삼성물산",
-      "sector": "Wholesale",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "105560.KS": {
       "name": "KB금융",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "055550.KS": {
       "name": "신한지주",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "012330.KS": {
       "name": "현대모비스",
-      "sector": "Transportation Equipment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5132,13 +5132,13 @@
     },
     "003550.KS": {
       "name": "LG",
-      "sector": "Banking",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "032830.KS": {
       "name": "삼성생명",
-      "sector": "Insurance",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5150,61 +5150,61 @@
     },
     "017670.KS": {
       "name": "SK텔레콤",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "030200.KS": {
       "name": "케이티",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "086790.KS": {
       "name": "하나금융지주",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "003490.KS": {
       "name": "대한항공",
-      "sector": "Transportation",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "034730.KS": {
       "name": "SK",
-      "sector": "Banking",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "015760.KS": {
       "name": "한국전력공사",
-      "sector": "Energy",
+      "sector": "Utilities",
       "cap": "kr",
       "market": "kospi"
     },
     "010130.KS": {
       "name": "고려아연",
-      "sector": "Metals & Mining",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "005490.KS": {
       "name": "POSCO홀딩스",
-      "sector": "Metals & Mining",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "032640.KS": {
       "name": "LG유플러스",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "047050.KS": {
       "name": "포스코인터내셔널",
-      "sector": "Wholesale",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5222,37 +5222,37 @@
     },
     "316140.KS": {
       "name": "우리금융지주",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "000810.KS": {
       "name": "삼성화재해상보험",
-      "sector": "Insurance",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "033780.KS": {
       "name": "케이티앤지",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "138040.KS": {
       "name": "메리츠금융지주",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "009830.KS": {
       "name": "한화솔루션",
-      "sector": "Chemicals",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "071050.KS": {
       "name": "한국금융지주",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5270,7 +5270,7 @@
     },
     "018260.KS": {
       "name": "삼성에스디에스",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5282,79 +5282,79 @@
     },
     "035720.KS": {
       "name": "카카오",
-      "sector": "IT Services",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "006400.KS": {
       "name": "삼성SDI",
-      "sector": "Battery",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "024110.KS": {
       "name": "기업은행",
-      "sector": "Telecom",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "036460.KS": {
       "name": "한국가스공사",
-      "sector": "Energy",
+      "sector": "Utilities",
       "cap": "kr",
       "market": "kospi"
     },
     "001040.KS": {
       "name": "CJ",
-      "sector": "Banking",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "097950.KS": {
       "name": "CJ제일제당",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "078930.KS": {
       "name": "GS",
-      "sector": "Banking",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "011200.KS": {
       "name": "HMM",
-      "sector": "Transportation",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "004020.KS": {
       "name": "현대제철",
-      "sector": "Metals & Mining",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "011780.KS": {
       "name": "금호석유화학",
-      "sector": "Chemicals",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "042660.KS": {
       "name": "한화오션",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "008770.KS": {
       "name": "호텔신라",
-      "sector": "Retail",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "003230.KS": {
       "name": "삼양식품",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5366,145 +5366,145 @@
     },
     "000720.KS": {
       "name": "현대건설",
-      "sector": "Construction",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "028050.KS": {
       "name": "삼성E&A",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "047040.KS": {
       "name": "대우건설",
-      "sector": "Construction",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "000210.KS": {
       "name": "DL",
-      "sector": "Chemicals",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "064350.KS": {
       "name": "현대로템",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "180640.KS": {
       "name": "한진칼",
-      "sector": "Banking",
+      "sector": "Real Estate",
       "cap": "kr",
       "market": "kospi"
     },
     "090430.KS": {
       "name": "아모레퍼시픽",
-      "sector": "Chemicals",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "051900.KS": {
       "name": "LG생활건강",
-      "sector": "Chemicals",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "001450.KS": {
       "name": "현대해상",
-      "sector": "Insurance",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "039570.KS": {
       "name": "HDC랩스",
-      "sector": "Construction",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "016880.KS": {
       "name": "웅진",
-      "sector": "Professional Services",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "002790.KS": {
       "name": "아모레퍼시픽홀딩스",
-      "sector": "Chemicals",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "021240.KS": {
       "name": "코웨이",
-      "sector": "Other",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "041510.KQ": {
       "name": "에스엠",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "036570.KS": {
       "name": "NC",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "251270.KS": {
       "name": "넷마블",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "293490.KQ": {
       "name": "카카오게임즈",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "086280.KS": {
       "name": "현대글로비스",
-      "sector": "Transportation",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "000990.KS": {
       "name": "DB하이텍",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "012450.KS": {
       "name": "한화에어로스페이스",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "054180.KQ": {
       "name": "메디콕스",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "272210.KS": {
       "name": "한화시스템",
-      "sector": "Technology",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "042700.KS": {
       "name": "한미반도체",
-      "sector": "Industrials",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
     "000120.KS": {
       "name": "CJ대한통운",
-      "sector": "Transportation",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5516,25 +5516,25 @@
     },
     "267250.KS": {
       "name": "HD현대",
-      "sector": "Banking",
+      "sector": "Energy",
       "cap": "kr",
       "market": "kospi"
     },
     "079550.KS": {
       "name": "LIG디펜스앤에어로스페이스",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "175330.KS": {
       "name": "JB금융지주",
-      "sector": "Banking",
+      "sector": "Financial Services",
       "cap": "kr",
       "market": "kospi"
     },
     "192820.KS": {
       "name": "코스맥스",
-      "sector": "Chemicals",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5546,13 +5546,13 @@
     },
     "271560.KS": {
       "name": "오리온",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "007310.KS": {
       "name": "오뚜기",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5570,13 +5570,13 @@
     },
     "352820.KS": {
       "name": "하이브",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "326030.KS": {
       "name": "에스케이바이오팜",
-      "sector": "Professional Services",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5588,13 +5588,13 @@
     },
     "200130.KQ": {
       "name": "콜마비앤에이치",
-      "sector": "Healthcare",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kosdaq"
     },
     "069960.KS": {
       "name": "현대백화점",
-      "sector": "Retail",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5606,13 +5606,13 @@
     },
     "161390.KS": {
       "name": "한국타이어앤테크놀로지",
-      "sector": "Other",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "004990.KS": {
       "name": "롯데지주",
-      "sector": "Banking",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5624,19 +5624,19 @@
     },
     "004800.KS": {
       "name": "효성",
-      "sector": "Banking",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "054620.KQ": {
       "name": "APS",
-      "sector": "Banking",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "003670.KS": {
       "name": "포스코퓨처엠",
-      "sector": "Electrical Equipment",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5648,13 +5648,13 @@
     },
     "067830.KS": {
       "name": "세이브존I&C",
-      "sector": "Retail",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "002310.KS": {
       "name": "아세아제지",
-      "sector": "Other",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5666,49 +5666,49 @@
     },
     "007070.KS": {
       "name": "GS리테일",
-      "sector": "Retail",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "000080.KS": {
       "name": "하이트진로",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "005810.KS": {
       "name": "풍산홀딩스",
-      "sector": "Banking",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "001680.KS": {
       "name": "대상",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "139480.KS": {
       "name": "이마트",
-      "sector": "Retail",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "030000.KS": {
       "name": "제일기획",
-      "sector": "Professional Services",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kospi"
     },
     "047810.KS": {
       "name": "한국항공우주",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "010140.KS": {
       "name": "삼성중공업",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5732,55 +5732,55 @@
     },
     "214150.KQ": {
       "name": "클래시스",
-      "sector": "Other",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "032350.KS": {
       "name": "롯데관광개발",
-      "sector": "Professional Services",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "002600.KS": {
       "name": "조흥",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "011390.KS": {
       "name": "부산산업",
-      "sector": "Other",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "011760.KS": {
       "name": "현대코퍼레이션",
-      "sector": "Wholesale",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "227840.KS": {
       "name": "현대코퍼레이션홀딩스",
-      "sector": "Wholesale",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "036800.KQ": {
       "name": "나이스정보통신",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "031430.KS": {
       "name": "신세계인터내셔날",
-      "sector": "Retail",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "003960.KS": {
       "name": "사조대림",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5792,7 +5792,7 @@
     },
     "002070.KS": {
       "name": "비비안",
-      "sector": "Textiles",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5804,43 +5804,43 @@
     },
     "003030.KS": {
       "name": "세아제강지주",
-      "sector": "Banking",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kospi"
     },
     "001120.KS": {
       "name": "LX인터내셔널",
-      "sector": "Wholesale",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "010280.KQ": {
       "name": "아이티센엔텍",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "058430.KS": {
       "name": "포스코스틸리온",
-      "sector": "Metals & Mining",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "042000.KQ": {
       "name": "카페24",
-      "sector": "IT Services",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "001800.KS": {
       "name": "오리온홀딩스",
-      "sector": "Banking",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "029530.KS": {
       "name": "신도리코",
-      "sector": "Technology",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5858,13 +5858,13 @@
     },
     "247540.KQ": {
       "name": "에코프로비엠",
-      "sector": "Battery",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "357780.KQ": {
       "name": "솔브레인",
-      "sector": "Chemicals",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -5882,13 +5882,13 @@
     },
     "035760.KQ": {
       "name": "CJ ENM",
-      "sector": "Entertainment",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "018290.KQ": {
       "name": "브이티",
-      "sector": "Chemicals",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -5900,7 +5900,7 @@
     },
     "048410.KQ": {
       "name": "현대바이오",
-      "sector": "Chemicals",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -5942,13 +5942,13 @@
     },
     "054450.KQ": {
       "name": "텔레칩스",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "267260.KS": {
       "name": "HD현대일렉트릭",
-      "sector": "Electrical Equipment",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -5960,7 +5960,7 @@
     },
     "095700.KQ": {
       "name": "제넥신",
-      "sector": "Professional Services",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -5978,13 +5978,13 @@
     },
     "039030.KQ": {
       "name": "이오테크닉스",
-      "sector": "Industrials",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "032280.KQ": {
       "name": "삼일",
-      "sector": "Transportation",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -5996,7 +5996,7 @@
     },
     "100120.KQ": {
       "name": "뷰웍스",
-      "sector": "Other",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6014,13 +6014,13 @@
     },
     "352480.KQ": {
       "name": "씨앤씨인터내셔널",
-      "sector": "Chemicals",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kosdaq"
     },
     "065690.KQ": {
       "name": "파커스",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6032,7 +6032,7 @@
     },
     "130740.KQ": {
       "name": "티피씨글로벌",
-      "sector": "Transportation Equipment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6050,13 +6050,13 @@
     },
     "108490.KQ": {
       "name": "로보티즈",
-      "sector": "Industrials",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "052600.KQ": {
       "name": "한네트",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6068,13 +6068,13 @@
     },
     "093050.KS": {
       "name": "LF",
-      "sector": "Textiles",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "199480.KQ": {
       "name": "뱅크웨어글로벌",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6086,25 +6086,25 @@
     },
     "122870.KQ": {
       "name": "와이지엔터테인먼트",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "089470.KS": {
       "name": "HDC현대EP",
-      "sector": "Chemicals",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "049630.KQ": {
       "name": "재영솔루텍",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "203650.KQ": {
       "name": "드림시큐리티",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6122,19 +6122,19 @@
     },
     "048870.KQ": {
       "name": "시너지이노베이션",
-      "sector": "Other",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "215600.KQ": {
       "name": "신라젠",
-      "sector": "Professional Services",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "196170.KQ": {
       "name": "알테오젠",
-      "sector": "Professional Services",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6170,7 +6170,7 @@
     },
     "112610.KS": {
       "name": "씨에스윈드",
-      "sector": "Other",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6188,7 +6188,7 @@
     },
     "065500.KQ": {
       "name": "오리엔트정공",
-      "sector": "Transportation Equipment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6200,7 +6200,7 @@
     },
     "014710.KS": {
       "name": "사조씨푸드",
-      "sector": "Consumer Staples",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6218,7 +6218,7 @@
     },
     "107640.KQ": {
       "name": "한중엔시에스",
-      "sector": "Electrical Equipment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6242,7 +6242,7 @@
     },
     "053800.KQ": {
       "name": "안랩",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6254,7 +6254,7 @@
     },
     "089600.KQ": {
       "name": "KT나스미디어",
-      "sector": "Professional Services",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6266,7 +6266,7 @@
     },
     "036540.KQ": {
       "name": "SFA반도체",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6290,37 +6290,37 @@
     },
     "054540.KQ": {
       "name": "삼영엠텍",
-      "sector": "Other",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "043370.KQ": {
       "name": "피에이치에이",
-      "sector": "Transportation Equipment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
     "024120.KQ": {
       "name": "KB오토시스",
-      "sector": "Transportation Equipment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
     "199800.KQ": {
       "name": "툴젠",
-      "sector": "Professional Services",
+      "sector": "Healthcare",
       "cap": "kr",
       "market": "kosdaq"
     },
     "034230.KS": {
       "name": "파라다이스",
-      "sector": "Entertainment",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kospi"
     },
     "104830.KQ": {
       "name": "원익머트리얼즈",
-      "sector": "Chemicals",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6338,25 +6338,25 @@
     },
     "214420.KS": {
       "name": "토니모리",
-      "sector": "Chemicals",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kospi"
     },
     "025900.KQ": {
       "name": "동화기업",
-      "sector": "Other",
+      "sector": "Basic Materials",
       "cap": "kr",
       "market": "kosdaq"
     },
     "017040.KS": {
       "name": "광명전기",
-      "sector": "Electrical Equipment",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
     "056730.KQ": {
       "name": "CNT85",
-      "sector": "Construction",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6368,13 +6368,13 @@
     },
     "098460.KQ": {
       "name": "고영",
-      "sector": "Industrials",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "081000.KS": {
       "name": "일진다이아",
-      "sector": "Chemicals",
+      "sector": "Industrials",
       "cap": "kr",
       "market": "kospi"
     },
@@ -6392,25 +6392,25 @@
     },
     "037400.KQ": {
       "name": "우리엔터프라이즈",
-      "sector": "Wholesale",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
     "025870.KQ": {
       "name": "신라에스지",
-      "sector": "Wholesale",
+      "sector": "Consumer Defensive",
       "cap": "kr",
       "market": "kosdaq"
     },
     "052790.KQ": {
       "name": "액토즈소프트",
-      "sector": "Other",
+      "sector": "Communication Services",
       "cap": "kr",
       "market": "kosdaq"
     },
     "026040.KQ": {
       "name": "제이에스티나",
-      "sector": "Other",
+      "sector": "Consumer Cyclical",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -6422,13 +6422,13 @@
     },
     "205100.KQ": {
       "name": "엑셈",
-      "sector": "Other",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "402340.KS": {
       "name": "SK스퀘어",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kospi"
     },
@@ -7142,7 +7142,7 @@
     },
     "440110.KQ": {
       "name": "파두",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7154,7 +7154,7 @@
     },
     "240810.KQ": {
       "name": "원익IPS",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7178,7 +7178,7 @@
     },
     "222800.KQ": {
       "name": "심텍",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7202,7 +7202,7 @@
     },
     "403870.KQ": {
       "name": "HPSP",
-      "sector": "Industrials",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7238,7 +7238,7 @@
     },
     "319660.KQ": {
       "name": "피에스케이",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7364,13 +7364,13 @@
     },
     "089030.KQ": {
       "name": "테크윙",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "420770.KQ": {
       "name": "기가비스",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7442,7 +7442,7 @@
     },
     "089970.KQ": {
       "name": "브이엠",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7472,13 +7472,13 @@
     },
     "490470.KQ": {
       "name": "세미파이브",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "232140.KQ": {
       "name": "와이씨",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7502,7 +7502,7 @@
     },
     "166090.KQ": {
       "name": "하나머티리얼즈",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7562,7 +7562,7 @@
     },
     "356860.KQ": {
       "name": "티엘비",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7616,7 +7616,7 @@
     },
     "388210.KQ": {
       "name": "씨엠티엑스",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7646,7 +7646,7 @@
     },
     "183300.KQ": {
       "name": "코미코",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7694,7 +7694,7 @@
     },
     "074600.KQ": {
       "name": "원익QnC",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7712,7 +7712,7 @@
     },
     "094170.KQ": {
       "name": "동운아나텍",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7724,7 +7724,7 @@
     },
     "171090.KQ": {
       "name": "선익시스템",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7742,7 +7742,7 @@
     },
     "052400.KQ": {
       "name": "코나아이",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7766,7 +7766,7 @@
     },
     "033640.KQ": {
       "name": "네패스",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7790,13 +7790,13 @@
     },
     "046890.KQ": {
       "name": "서울반도체",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "252990.KQ": {
       "name": "샘씨엔에스",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
@@ -7832,811 +7832,811 @@
     },
     "053610.KQ": {
       "name": "프로텍",
-      "sector": "Semiconductors",
+      "sector": "Technology",
       "cap": "kr",
       "market": "kosdaq"
     },
     "AES": {
-      "name": "AES Corporation",
-      "sector": "Independent Power Producers & Energy Traders",
+      "name": "The AES Corporation",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "AKAM": {
-      "name": "Akamai Technologies",
-      "sector": "Information Technology",
+      "name": "Akamai Technologies, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "AMCR": {
-      "name": "Amcor",
-      "sector": "Paper & Plastic Packaging Products & Materials",
+      "name": "Amcor plc",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "AMP": {
-      "name": "Ameriprise Financial",
-      "sector": "financials",
+      "name": "Ameriprise Financial, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "APH": {
-      "name": "Amphenol",
-      "sector": "Information Technology",
+      "name": "Amphenol Corporation",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "APO": {
-      "name": "Apollo Global Management",
-      "sector": "financials",
+      "name": "Apollo Global Management, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "APTV": {
-      "name": "Aptiv",
-      "sector": "consumer-discretionary",
+      "name": "Aptiv PLC",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "ACGL": {
-      "name": "Arch Capital Group",
-      "sector": "financials",
+      "name": "Arch Capital Group Ltd.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "ADM": {
-      "name": "Archer Daniels Midland",
-      "sector": "consumer-staples",
+      "name": "Archer-Daniels-Midland Company",
+      "sector": "Consumer Defensive",
       "cap": "large",
       "sp500": true
     },
     "ARES": {
-      "name": "Ares Management",
-      "sector": "financials",
+      "name": "Ares Management Corporation",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "AJG": {
       "name": "Arthur J. Gallagher & Co.",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "AIZ": {
-      "name": "Assurant",
-      "sector": "financials",
+      "name": "Assurant, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "ADSK": {
-      "name": "Autodesk",
-      "sector": "Information Technology",
+      "name": "Autodesk, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "BAX": {
-      "name": "Baxter International",
-      "sector": "healthcare",
+      "name": "Baxter International Inc.",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "BX": {
       "name": "Blackstone Inc.",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "BNY": {
-      "name": "BNY Mellon",
-      "sector": "financials",
+      "name": "The Bank of New York Mellon Corporation",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "BR": {
-      "name": "Broadridge Financial Solutions",
-      "sector": "technology",
+      "name": "Broadridge Financial Solutions, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "BRO": {
-      "name": "Brown & Brown",
-      "sector": "financials",
+      "name": "Brown & Brown, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "BF-B": {
-      "name": "Brown–Forman",
-      "sector": "consumer-staples",
+      "name": "Brown-Forman Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large",
       "sp500": true
     },
     "BLDR": {
-      "name": "Builders FirstSource",
-      "sector": "industrials",
+      "name": "Builders FirstSource, Inc.",
+      "sector": "Industrials",
       "cap": "mid",
       "sp500": true
     },
     "BG": {
-      "name": "Bunge Global",
-      "sector": "consumer-staples",
+      "name": "Bunge Global SA",
+      "sector": "Consumer Defensive",
       "cap": "large",
       "sp500": true
     },
     "CPB": {
-      "name": "Campbell's Company (The)",
-      "sector": "consumer-staples",
+      "name": "The Campbell's Company",
+      "sector": "Consumer Defensive",
       "cap": "mid",
       "sp500": true
     },
     "CVNA": {
-      "name": "Carvana",
-      "sector": "consumer-discretionary",
+      "name": "Carvana Co.",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "CASY": {
-      "name": "Casey's",
-      "sector": "consumer-discretionary",
+      "name": "Casey's General Stores, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "CBRE": {
-      "name": "CBRE Group",
-      "sector": "real-estate",
+      "name": "CBRE Group, Inc.",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "CNP": {
-      "name": "CenterPoint Energy",
-      "sector": "Multi-Utilities",
+      "name": "CenterPoint Energy, Inc.",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "CRL": {
-      "name": "Charles River Laboratories",
-      "sector": "healthcare",
+      "name": "Charles River Laboratories International, Inc.",
+      "sector": "Healthcare",
       "cap": "mid",
       "sp500": true
     },
     "CIEN": {
-      "name": "Ciena",
-      "sector": "Information Technology",
+      "name": "Ciena Corporation",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "CINF": {
-      "name": "Cincinnati Financial",
-      "sector": "financials",
+      "name": "Cincinnati Financial Corporation",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "CFG": {
-      "name": "Citizens Financial Group",
-      "sector": "financials",
+      "name": "Citizens Financial Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "FIX": {
-      "name": "Comfort Systems USA",
-      "sector": "industrials",
+      "name": "Comfort Systems USA, Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "CAG": {
-      "name": "Conagra Brands",
-      "sector": "consumer-staples",
+      "name": "Conagra Brands, Inc.",
+      "sector": "Consumer Defensive",
       "cap": "mid",
       "sp500": true
     },
     "CEG": {
-      "name": "Constellation Energy",
-      "sector": "Electric Utilities",
+      "name": "Constellation Energy Corporation",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "GLW": {
-      "name": "Corning Inc.",
-      "sector": "Information Technology",
+      "name": "Corning Incorporated",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "CPAY": {
-      "name": "Corpay",
-      "sector": "technology",
+      "name": "Corpay, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "CTVA": {
-      "name": "Corteva",
-      "sector": "materials",
+      "name": "Corteva, Inc.",
+      "sector": "Basic Materials",
       "cap": "large",
       "sp500": true
     },
     "CSGP": {
-      "name": "CoStar Group",
-      "sector": "real-estate",
+      "name": "CoStar Group, Inc.",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "CRH": {
       "name": "CRH plc",
-      "sector": "Construction Materials",
+      "sector": "Basic Materials",
       "cap": "large",
       "sp500": true
     },
     "CMI": {
-      "name": "Cummins",
-      "sector": "industrials",
+      "name": "Cummins Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "DVA": {
-      "name": "DaVita",
-      "sector": "healthcare",
+      "name": "DaVita Inc.",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "SATS": {
-      "name": "EchoStar",
+      "name": "EchoStar Corporation",
       "sector": "Wireless Telecommunication Services",
       "cap": "large",
       "sp500": true
     },
     "EIX": {
       "name": "Edison International",
-      "sector": "Electric Utilities",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "EME": {
-      "name": "Emcor",
-      "sector": "industrials",
+      "name": "EMCOR Group, Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "ETR": {
-      "name": "Entergy",
-      "sector": "Electric Utilities",
+      "name": "Entergy Corporation",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "EFX": {
-      "name": "Equifax",
-      "sector": "industrials",
+      "name": "Equifax Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "ERIE": {
-      "name": "Erie Indemnity",
-      "sector": "financials",
+      "name": "Erie Indemnity Company",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "EXE": {
-      "name": "Expand Energy",
-      "sector": "energy",
+      "name": "Expand Energy Corporation",
+      "sector": "Energy",
       "cap": "large",
       "sp500": true
     },
     "EXPE": {
-      "name": "Expedia Group",
-      "sector": "consumer-discretionary",
+      "name": "Expedia Group, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "EXPD": {
-      "name": "Expeditors International",
-      "sector": "industrials",
+      "name": "Expeditors International of Washington, Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "EXR": {
-      "name": "Extra Space Storage",
-      "sector": "real-estate",
+      "name": "Extra Space Storage Inc.",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "FFIV": {
       "name": "F5, Inc.",
-      "sector": "Information Technology",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "FDS": {
-      "name": "FactSet",
-      "sector": "financials",
+      "name": "FactSet Research Systems Inc.",
+      "sector": "Financial Services",
       "cap": "mid",
       "sp500": true
     },
     "FICO": {
-      "name": "Fair Isaac",
-      "sector": "Information Technology",
+      "name": "Fair Isaac Corporation",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "FRT": {
       "name": "Federal Realty Investment Trust",
-      "sector": "real-estate",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "FIS": {
-      "name": "Fidelity National Information Services",
-      "sector": "technology",
+      "name": "Fidelity National Information Services, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "FITB": {
       "name": "Fifth Third Bancorp",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "IT": {
-      "name": "Gartner",
-      "sector": "Information Technology",
+      "name": "Gartner, Inc.",
+      "sector": "Technology",
       "cap": "mid",
       "sp500": true
     },
     "GEHC": {
-      "name": "GE HealthCare",
-      "sector": "healthcare",
+      "name": "GE HealthCare Technologies Inc.",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "GEV": {
-      "name": "GE Vernova",
-      "sector": "industrials",
+      "name": "GE Vernova Inc.",
+      "sector": "Industrials",
       "cap": "mega",
       "sp500": true
     },
     "GL": {
-      "name": "Globe Life",
-      "sector": "financials",
+      "name": "Globe Life Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "GDDY": {
-      "name": "GoDaddy",
-      "sector": "Information Technology",
+      "name": "GoDaddy Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "HAS": {
-      "name": "Hasbro",
-      "sector": "consumer-discretionary",
+      "name": "Hasbro, Inc.",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "DOC": {
-      "name": "Healthpeak Properties",
-      "sector": "real-estate",
+      "name": "Healthpeak Properties, Inc.",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "HRL": {
-      "name": "Hormel Foods",
-      "sector": "consumer-staples",
+      "name": "Hormel Foods Corporation",
+      "sector": "Consumer Defensive",
       "cap": "large",
       "sp500": true
     },
     "HBAN": {
-      "name": "Huntington Bancshares",
-      "sector": "financials",
+      "name": "Huntington Bancshares Incorporated",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "IEX": {
       "name": "IDEX Corporation",
-      "sector": "industrials",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "IBKR": {
-      "name": "Interactive Brokers",
-      "sector": "financials",
+      "name": "Interactive Brokers Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "IRM": {
-      "name": "Iron Mountain",
-      "sector": "real-estate",
+      "name": "Iron Mountain Incorporated",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "JBL": {
-      "name": "Jabil",
-      "sector": "Information Technology",
+      "name": "Jabil Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "JKHY": {
-      "name": "Jack Henry & Associates",
-      "sector": "technology",
+      "name": "Jack Henry & Associates, Inc.",
+      "sector": "Technology",
       "cap": "mid",
       "sp500": true
     },
     "J": {
-      "name": "Jacobs Solutions",
-      "sector": "industrials",
+      "name": "Jacobs Solutions Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "JCI": {
-      "name": "Johnson Controls",
-      "sector": "industrials",
+      "name": "Johnson Controls International plc",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "KVUE": {
-      "name": "Kenvue",
-      "sector": "consumer-staples",
+      "name": "Kenvue Inc.",
+      "sector": "Consumer Defensive",
       "cap": "large",
       "sp500": true
     },
     "KEY": {
       "name": "KeyCorp",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "KKR": {
-      "name": "KKR & Co.",
-      "sector": "financials",
+      "name": "KKR & Co. Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "LH": {
-      "name": "Labcorp",
-      "sector": "healthcare",
+      "name": "Labcorp Holdings Inc.",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "L": {
       "name": "Loews Corporation",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "LITE": {
-      "name": "Lumentum",
-      "sector": "Information Technology",
+      "name": "Lumentum Holdings Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "LYB": {
-      "name": "LyondellBasell",
-      "sector": "materials",
+      "name": "LyondellBasell Industries N.V.",
+      "sector": "Basic Materials",
       "cap": "large",
       "sp500": true
     },
     "MTB": {
-      "name": "M&T Bank",
-      "sector": "financials",
+      "name": "M&T Bank Corporation",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "MRSH": {
-      "name": "Marsh McLennan",
-      "sector": "financials",
+      "name": "Marsh & McLennan Companies, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "MAS": {
-      "name": "Masco",
-      "sector": "industrials",
+      "name": "Masco Corporation",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "MKC": {
-      "name": "McCormick & Company",
-      "sector": "consumer-staples",
+      "name": "McCormick & Company, Incorporated",
+      "sector": "Consumer Defensive",
       "cap": "large",
       "sp500": true
     },
     "MCHP": {
-      "name": "Microchip Technology",
-      "sector": "Information Technology",
+      "name": "Microchip Technology Incorporated",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "MCO": {
       "name": "Moody's Corporation",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "MSI": {
-      "name": "Motorola Solutions",
-      "sector": "Information Technology",
+      "name": "Motorola Solutions, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "NTAP": {
-      "name": "NetApp",
-      "sector": "Information Technology",
+      "name": "NetApp, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "NWSA": {
-      "name": "NWSA",
-      "sector": "communication-services",
+      "name": "News Corporation",
+      "sector": "Communication Services",
       "cap": "large",
       "sp500": true
     },
     "NWS": {
-      "name": "NWS",
-      "sector": "communication-services",
+      "name": "News Corporation",
+      "sector": "Communication Services",
       "cap": "large",
       "sp500": true
     },
     "NTRS": {
-      "name": "Northern Trust",
-      "sector": "financials",
+      "name": "Northern Trust Corporation",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "NRG": {
-      "name": "NRG Energy",
-      "sector": "Independent Power Producers & Energy Traders",
+      "name": "NRG Energy, Inc.",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "NXPI": {
-      "name": "NXP Semiconductors",
-      "sector": "Information Technology",
+      "name": "NXP Semiconductors N.V.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "PSKY": {
       "name": "Paramount Skydance Corporation",
-      "sector": "communication-services",
+      "sector": "Communication Services",
       "cap": "large",
       "sp500": true
     },
     "PNR": {
-      "name": "Pentair",
-      "sector": "industrials",
+      "name": "Pentair plc",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "PCG": {
       "name": "PG&E Corporation",
-      "sector": "Multi-Utilities",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "PFG": {
-      "name": "Principal Financial Group",
-      "sector": "financials",
+      "name": "Principal Financial Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "PGR": {
-      "name": "Progressive Corporation",
-      "sector": "financials",
+      "name": "The Progressive Corporation",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "PEG": {
-      "name": "Public Service Enterprise Group",
-      "sector": "Electric Utilities",
+      "name": "Public Service Enterprise Group Incorporated",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "DGX": {
-      "name": "Quest Diagnostics",
-      "sector": "healthcare",
+      "name": "Quest Diagnostics Incorporated",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "Q": {
-      "name": "Qnity Electronics",
-      "sector": "Information Technology",
+      "name": "Qnity Electronics, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "RL": {
       "name": "Ralph Lauren Corporation",
-      "sector": "consumer-discretionary",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "RF": {
       "name": "Regions Financial Corporation",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "RVTY": {
-      "name": "Revvity",
-      "sector": "healthcare",
+      "name": "Revvity, Inc.",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "ROL": {
       "name": "Rollins, Inc.",
-      "sector": "consumer-discretionary",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "ROP": {
-      "name": "Roper Technologies",
-      "sector": "Information Technology",
+      "name": "Roper Technologies, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "SNDK": {
-      "name": "Sandisk",
-      "sector": "Information Technology",
+      "name": "Sandisk Corporation",
+      "sector": "Technology",
       "cap": "mega",
       "sp500": true
     },
     "SBAC": {
-      "name": "SBA Communications",
-      "sector": "real-estate",
+      "name": "SBA Communications Corporation",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "SW": {
-      "name": "Smurfit Westrock",
-      "sector": "Paper & Plastic Packaging Products & Materials",
+      "name": "Smurfit Westrock Plc",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "SOLV": {
-      "name": "Solventum",
-      "sector": "Health Care Technology",
+      "name": "Solventum Corporation",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "STT": {
       "name": "State Street Corporation",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "STE": {
-      "name": "Steris",
-      "sector": "healthcare",
+      "name": "STERIS plc",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     },
     "SYF": {
       "name": "Synchrony Financial",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "TROW": {
-      "name": "T. Rowe Price",
-      "sector": "financials",
+      "name": "T. Rowe Price Group, Inc.",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "TPR": {
       "name": "Tapestry, Inc.",
-      "sector": "consumer-discretionary",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "TEL": {
-      "name": "TE Connectivity",
-      "sector": "Information Technology",
+      "name": "TE Connectivity plc",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "TPL": {
       "name": "Texas Pacific Land Corporation",
-      "sector": "energy",
+      "sector": "Energy",
       "cap": "large",
       "sp500": true
     },
     "TKO": {
-      "name": "TKO Group Holdings",
-      "sector": "communication-services",
+      "name": "TKO Group Holdings, Inc.",
+      "sector": "Communication Services",
       "cap": "large",
       "sp500": true
     },
     "TSCO": {
-      "name": "Tractor Supply",
-      "sector": "consumer-discretionary",
+      "name": "Tractor Supply Company",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "TYL": {
-      "name": "Tyler Technologies",
-      "sector": "Information Technology",
+      "name": "Tyler Technologies, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "URI": {
-      "name": "United Rentals",
-      "sector": "industrials",
+      "name": "United Rentals, Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "UHS": {
-      "name": "Universal Health Services",
-      "sector": "healthcare",
+      "name": "Universal Health Services, Inc.",
+      "sector": "Healthcare",
       "cap": "mid",
       "sp500": true
     },
     "VLTO": {
-      "name": "Veralto",
-      "sector": "industrials",
+      "name": "Veralto Corporation",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "VRSN": {
-      "name": "Verisign",
-      "sector": "Information Technology",
+      "name": "VeriSign, Inc.",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "VRT": {
-      "name": "Vertiv",
-      "sector": "industrials",
+      "name": "Vertiv Holdings Co",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "VST": {
-      "name": "Irving, Texas",
-      "sector": "Electric Utilities",
+      "name": "Vistra Corp.",
+      "sector": "Utilities",
       "cap": "large",
       "sp500": true
     },
     "WRB": {
       "name": "W. R. Berkley Corporation",
-      "sector": "financials",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "GWW": {
-      "name": "W. W. Grainger",
-      "sector": "industrials",
+      "name": "W.W. Grainger, Inc.",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "WAB": {
-      "name": "Wabtec",
-      "sector": "industrials",
+      "name": "Westinghouse Air Brake Technologies Corporation",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "WY": {
-      "name": "Weyerhaeuser",
-      "sector": "real-estate",
+      "name": "Weyerhaeuser Company",
+      "sector": "Real Estate",
       "cap": "large",
       "sp500": true
     },
     "WSM": {
       "name": "Williams-Sonoma, Inc.",
-      "sector": "consumer-discretionary",
+      "sector": "Consumer Cyclical",
       "cap": "large",
       "sp500": true
     },
     "WTW": {
-      "name": "Willis Towers Watson",
-      "sector": "financials",
+      "name": "Willis Towers Watson Public Limited Company",
+      "sector": "Financial Services",
       "cap": "large",
       "sp500": true
     },
     "WDAY": {
       "name": "Workday, Inc.",
-      "sector": "Information Technology",
+      "sector": "Technology",
       "cap": "large",
       "sp500": true
     },
     "XYL": {
       "name": "Xylem Inc.",
-      "sector": "industrials",
+      "sector": "Industrials",
       "cap": "large",
       "sp500": true
     },
     "ZBH": {
-      "name": "Zimmer Biomet",
-      "sector": "healthcare",
+      "name": "Zimmer Biomet Holdings, Inc.",
+      "sector": "Healthcare",
       "cap": "large",
       "sp500": true
     }
@@ -9117,5 +9117,6 @@
     "241710.KQ": "코스메카코리아",
     "037460.KQ": "삼지전자",
     "053610.KQ": "프로텍"
-  }
+  },
+  "metaRepairedAt": "2026-09-15T05:08:01.078Z"
 }

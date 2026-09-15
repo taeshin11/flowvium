@@ -234,6 +234,25 @@ CREATE TABLE IF NOT EXISTS short_squeeze_archive (
 CREATE INDEX IF NOT EXISTS idx_squeeze_ticker ON short_squeeze_archive(ticker, captured_at);
 CREATE INDEX IF NOT EXISTS idx_squeeze_score ON short_squeeze_archive(score DESC);
 
+-- 2026-09-15: 종목 섹터 — 회사의 상태이지 회차 산출물이 아니다.
+--   종전에는 candidate-tickers.json 의 meta 를 썼는데 그게 **정규식 긁기**로 만들어져 있었다.
+--   티커 뒤 3000자에서 첫 name·sector 를 집는 방식이라 내부 제품 배열이나 다음 회사 항목을
+--   집어 왔다. 실측 — 이름은 872종 중 700종(80%)이 어긋났고, 섹터는
+--   META·GOOG·AMZN·MSFT 가 전부 'semiconductors' 였다.
+--   섹터는 분산·회전룰·튜너 섹터분석에 쓰인다. 저 상태면 포트폴리오는 분산됐다고 믿는데 아니다.
+--   야후 assetProfile 이 정확한 값을 준다(GOOGL=Communication Services, AMZN=Consumer Cyclical).
+CREATE TABLE IF NOT EXISTS ticker_sectors (
+  ticker       TEXT PRIMARY KEY,
+  sector       TEXT,                    -- 야후 assetProfile.sector (GICS 계열)
+  industry     TEXT,
+  name         TEXT,                    -- 야후 price.longName. company-names.json 에 없는 466종을 메운다
+  updated_at   TEXT NOT NULL,
+  attempted_at TEXT,
+  fail_streak  INTEGER DEFAULT 0,
+  last_error   TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ticker_sectors_attempted ON ticker_sectors(attempted_at);
+
 -- 2026-09-13: 공매도 잔고 — 종목 풀 전체. 회차 산출물이 아니라 **종목의 상태**다.
 --   종전에는 /api/short-interest 의 TRACKED_TICKERS 33종이 전부였다(코드에 박힌 목록).
 --   1,338종 풀 중 33종만 재고 있으니 "숏스퀴즈를 찾는다" 는 말이 성립하지 않았다 —
@@ -2206,4 +2225,72 @@ export function shortInterestCoverage() {
     FROM short_interest
   `).get();
   return r;
+}
+
+
+// ── 종목 섹터 (2026-09-15) ─────────────────────────────────────────────────────
+
+/** 다음에 받아올 티커들. 공매도 적재와 같은 순환 방식 — 미수집 먼저, 그다음 오래된 순. */
+export function pickSectorQueue(universe, { limit = 200, staleDays = 90, maxFailStreak = 4 } = {}) {
+  const db = openDb();
+  const known = new Map(
+    db.prepare(`SELECT ticker, attempted_at, fail_streak FROM ticker_sectors`).all().map((r) => [r.ticker, r]),
+  );
+  const cutoff = Date.now() - staleDays * 86400e3;   // 섹터는 거의 안 바뀐다 — 자주 받을 이유가 없다
+  const out = [];
+  for (const t of universe) {
+    const k = known.get(t);
+    if (!k) { out.push({ ticker: t, at: 0, fail: 0 }); continue; }
+    const at = Date.parse(k.attempted_at ?? '') || 0;
+    if (at > cutoff) continue;
+    if ((k.fail_streak ?? 0) >= maxFailStreak) continue;
+    out.push({ ticker: t, at, fail: k.fail_streak ?? 0 });
+  }
+  out.sort((a, b) => (a.fail - b.fail) || (a.at - b.at));
+  return out.slice(0, limit).map((x) => x.ticker);
+}
+
+/** 받아온 섹터를 기록한다. 실패도 기록한다. */
+export function saveTickerSector({ ticker, sector = null, industry = null, name = null, error = null }) {
+  const db = openDb();
+  const now = new Date().toISOString();
+  if (error) {
+    db.prepare(`
+      INSERT INTO ticker_sectors (ticker, updated_at, attempted_at, fail_streak, last_error)
+      VALUES (?, ?, ?, 1, ?)
+      ON CONFLICT(ticker) DO UPDATE SET
+        attempted_at = excluded.attempted_at,
+        fail_streak  = ticker_sectors.fail_streak + 1,
+        last_error   = excluded.last_error
+    `).run(ticker, now, now, String(error).slice(0, 200));
+    return { ok: false };
+  }
+  db.prepare(`
+    INSERT INTO ticker_sectors (ticker, updated_at, attempted_at, sector, industry, name, fail_streak, last_error)
+    VALUES (?, ?, ?, ?, ?, ?, 0, NULL)
+    ON CONFLICT(ticker) DO UPDATE SET
+      updated_at = excluded.updated_at, attempted_at = excluded.attempted_at,
+      sector = excluded.sector, industry = excluded.industry,
+      name = COALESCE(excluded.name, ticker_sectors.name),
+      fail_streak = 0, last_error = NULL
+  `).run(ticker, now, now, sector, industry, name);
+  return { ok: true };
+}
+
+/** 티커 → 섹터. 값이 있는 것만. */
+export function getTickerSectors() {
+  return Object.fromEntries(
+    openDb().prepare(`SELECT ticker, sector, industry, name FROM ticker_sectors WHERE sector IS NOT NULL OR name IS NOT NULL`)
+      .all().map((r) => [r.ticker, { sector: r.sector, industry: r.industry, name: r.name }]),
+  );
+}
+
+/** 적재 상태 한 줄. */
+export function sectorCoverage() {
+  return openDb().prepare(`
+    SELECT COUNT(*) attempted,
+           SUM(CASE WHEN sector IS NOT NULL THEN 1 ELSE 0 END) withData,
+           SUM(CASE WHEN fail_streak >= 4 THEN 1 ELSE 0 END) givenUp
+    FROM ticker_sectors
+  `).get();
 }

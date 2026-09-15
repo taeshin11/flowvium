@@ -598,6 +598,9 @@ const MAINT_JOBS = [
   // 2026-09-13: 공매도 잔고 순환 적재. FINRA 결제일 기준 월 2회 갱신이라 하루 한 번이면 넉넉하고,
   //   한 회차 150종이면 715종 풀이 5일에 한 바퀴 돈다. 08:40 UTC = 17:40 KST —
   //   보고서 다섯 회차(13:30·20:30·01:30·05:30·11:00 UTC)와 옆 세션 새벽 배치(15:20~20:15 UTC) 사이.
+  // 2026-09-15: 종목 섹터·이름 순환 적재. 섹터는 거의 안 바뀌어 90일 주기라 한 회차 200종이면 넉넉하다.
+  //   09:20 UTC = 18:20 KST — 보고서 다섯 회차와 공매도 적재(08:40 UTC) 사이.
+  { label: 'ticker-sectors',      script: 'scripts/ingest-ticker-sectors.mjs --limit=200', timeoutMs: 900000, commitPaths: [],          schedules: ['20 9 * * *'],                 maxAgeH: 30 },
   { label: 'short-interest',       script: 'scripts/ingest-short-interest.mjs --limit=150', timeoutMs: 900000, commitPaths: [],           schedules: ['40 8 * * *'],                 maxAgeH: 30 },
   { label: 'eval-shadow-rules',    script: 'scripts/eval-shadow-rules.mjs',          timeoutMs: 600000,  commitPaths: [],                                     schedules: ['50 19 * * 6'],                maxAgeH: 9 * 24 },
   // 2026-07-04: 전 종목(1,338) 회사페이지 *렌더* 전수검증 주간 — API 전수(audit-company-*)와 별개로
