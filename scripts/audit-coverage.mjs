@@ -35,6 +35,10 @@ const STRUCTURAL_NULLS = {
   // 2026-09-13: 성공한 행에는 오류가 없다. 실패한 행에만 값이 있는 게 정상이다
   //   (적재 715종 중 실패 11종 = 98% NULL). 값이 차면 그때가 이상한 것.
   'short_interest.last_error': '성공 행에는 오류 문구가 없다 — 실패한 종목에만 채워진다',
+  // 2026-09-15: 같은 모양인데 등록을 빠뜨려 push 가 막혔다. 실측으로 확인하고 적는다 —
+  //   1,338행 중 값이 찬 13행은 **전부** sector·name 이 NULL 인 실패 행이다(오류+섹터 동시 0건).
+  //   내용도 HTTP 404 뿐 — 상장폐지·개명 종목이다. 성공 행에 오류가 찍히면 그때가 이상한 것.
+  'ticker_sectors.last_error': '성공 행에는 오류 문구가 없다 — 수집 실패한 종목에만 채워진다(13/1338, 전부 sector NULL)',
   // 2026-08-26 실측: signal_type/direction 은 *분석* 필드다. source 별 NULL 비율 —
   //   company-change 0% / news-cascade·Yahoo·Seeking Alpha·연합뉴스 100%.
   //   원시 뉴스 피드 행은 분석 전이라 비는 게 정상이고, 한 테이블에 원시+분석이 섞여 85% 가 된다.
