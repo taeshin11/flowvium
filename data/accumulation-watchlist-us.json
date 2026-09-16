@@ -1,44 +1,26 @@
 {
-  "generatedAt": "2026-09-15T10:21:03.956Z",
+  "generatedAt": "2026-09-16T07:01:28.616Z",
   "universe": "US",
   "scanned": 324,
-  "count": 10,
+  "count": 14,
   "strongCount": 1,
-  "watchCount": 9,
+  "watchCount": 13,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "GNK",
-      "name": "Genco Shipping & Trading Limite",
+      "ticker": "HEPS",
+      "name": "D-Market Electronic Services & ",
       "tier": "strong",
-      "score": 37,
+      "score": 38,
       "coFire": 3,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 4.3× 상승(지속 매집)",
+        "거래량 5.1× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": 2.5,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 9047790,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GOLD",
-      "name": "Gold.com, Inc.",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.5,
-      "runup5dPct": 2.6,
-      "medDollarVolUsd": 18396144,
+      "runup20dPct": -2.2,
+      "runup5dPct": 1.5,
+      "medDollarVolUsd": 294451,
       "smartAccum": false,
       "official": null
     },
@@ -49,12 +31,12 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 추세 3.2× 상승(지속 매집)",
         "거래량 3.7× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -0.9,
-      "runup5dPct": -12.5,
+      "runup20dPct": -3,
+      "runup5dPct": -4.9,
       "medDollarVolUsd": 18381400,
       "smartAccum": false,
       "official": null
@@ -66,12 +48,12 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)",
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -3.4,
-      "runup5dPct": -10.7,
+      "runup20dPct": -4.6,
+      "runup5dPct": -12.5,
       "medDollarVolUsd": 931468,
       "smartAccum": false,
       "official": null
@@ -83,13 +65,47 @@
       "score": 30,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 6.3,
+      "runup5dPct": -3.6,
+      "medDollarVolUsd": 6217452,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GOLD",
+      "name": "Gold.com, Inc.",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.7,
-      "runup5dPct": -8.9,
-      "medDollarVolUsd": 6205216,
+      "runup20dPct": 5.3,
+      "runup5dPct": 0.7,
+      "medDollarVolUsd": 18871020,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MG",
+      "name": "Mistras Group Inc",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 8.4,
+      "runup5dPct": 1.2,
+      "medDollarVolUsd": 3265526,
       "smartAccum": false,
       "official": null
     },
@@ -101,28 +117,46 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 5.8,
-      "runup5dPct": 2.6,
+      "runup20dPct": 11.9,
+      "runup5dPct": 2.7,
       "medDollarVolUsd": 877760,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "GLAS",
-      "name": "Glass House Brands Inc. Subordi",
+      "ticker": "GNK",
+      "name": "Genco Shipping & Trading Limite",
       "tier": "watch",
-      "score": 25,
+      "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -13.9,
-      "runup5dPct": -8.8,
-      "medDollarVolUsd": 3588033,
+      "runup20dPct": 7.2,
+      "runup5dPct": 4.9,
+      "medDollarVolUsd": 10022568,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "FTK",
+      "name": "Flotek Industries, Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -5.9,
+      "runup5dPct": 10.7,
+      "medDollarVolUsd": 8631840,
       "smartAccum": false,
       "official": null
     },
@@ -137,41 +171,74 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
+      "runup20dPct": -7.8,
+      "runup5dPct": -7.5,
+      "medDollarVolUsd": 5607471,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MQY",
+      "name": "Blackrock MuniYield Quality Fun",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
+      ],
       "runup20dPct": -8.2,
-      "runup5dPct": -7,
-      "medDollarVolUsd": 5938614,
+      "runup5dPct": -4.7,
+      "medDollarVolUsd": 4152357,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MG",
-      "name": "Mistras Group Inc",
+      "ticker": "ACP",
+      "name": "Aberdeen Income Credit Strategi",
       "tier": "watch",
-      "score": 20,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": 7.9,
-      "runup5dPct": 2.1,
-      "medDollarVolUsd": 3221288,
+      "runup20dPct": -10.5,
+      "runup5dPct": -7.8,
+      "medDollarVolUsd": 2229382,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "HEPS",
-      "name": "D-Market Electronic Services & ",
+      "ticker": "SWBI",
+      "name": "Smith & Wesson Brands, Inc.",
       "tier": "watch",
-      "score": 19,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "변동성 수축(coiling) — 돌파 압축"
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -6.5,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 294336,
+      "runup20dPct": -7.4,
+      "runup5dPct": -1,
+      "medDollarVolUsd": 7017600,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PERI",
+      "name": "Perion Network Ltd",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.0× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.6,
+      "runup5dPct": 1.1,
+      "medDollarVolUsd": 2892181,
       "smartAccum": false,
       "official": null
     }
