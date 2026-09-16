@@ -34,6 +34,7 @@ import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
 import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '../lib/youtube-cc.mjs';
+import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -1771,10 +1772,13 @@ for (let i = 0; i < scenes.length; i++) {
 //   "영상마다 맨 마지막에 aisvi 홍보 멘트랑 장면 넣어줘" · "고정 영상 하나 만들어놓고 계속 붙이면될듯"
 //   회차마다 합성하면 같은 문장인데도 소리가 미묘하게 달라지고 매번 TTS 시간을 쓴다.
 //   한 번 만들어 둔 것을 붙인다 — scripts/video/make-outro-clip.mjs 가 만든다.
-//   **본편과 같은 규격(1080x1920 · 30fps · AAC 24kHz 모노)** 이라 다시 인코딩하지 않는다.
+//   **본편과 같은 규격(1080x1920 · 30fps · AUDIO_SPEC 의 AAC 44.1kHz 모노)** 이라 다시 인코딩하지 않는다.
 //   없으면 그냥 넘어간다 — 홍보 컷 때문에 회차를 잃지 않는다.
 {
   const promo = resolve(ROOT, 'assets/outro/aisvi.mp4');
+  // 2026-09-17: 광고만 따로 재면 -17.3 LUFS 라 본편(-22)보다 크게 튈 줄 알았다. 실제 쇼츠를 재 보니
+  //   안에 든 광고는 -23.0 · 본편 -22.5 로 차이 0.5dB — 뒤의 배경음 단계(amix)가 둘을 같이 낮춘다.
+  //   파일 하나만 잰 오판이었다. 그래서 여기서 크기를 따로 맞추지 않는다(맨 끝의 최종 음량만 맞춘다).
   if (existsSync(promo)) { parts.push(promo); log('[화면] 고정 홍보 클립을 끝에 붙인다 (aisviagent.com)'); }
   else log('[화면] 고정 홍보 클립이 없다 — 없이 간다 (node scripts/video/make-outro-clip.mjs 로 만든다)');
 }
@@ -1853,6 +1857,27 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
       //   2026-09-11: 여기서 12시간 18분 멈춰 렌더 체인이 통째로 물렸다(입력이 구글드라이브 경로).
       log(`[음악] 배경음 입히기 실패 — 음악 없이 간다: ${describeFfmpegResult(r) ?? '사유 불명'}`);
     }
+  }
+}
+
+// ── 최종 음량 (2026-09-17) ─────────────────────────────────────────────────────
+//   유튜브는 기준(-14 LUFS)보다 **큰 소리만 줄이고 작은 소리는 키워 주지 않는다.**
+//   실측으로 우리 쇼츠가 -22.3 LUFS 로 8dB 작게 나가고 있었다(옆 세션은 -35 였다).
+//   배경음까지 섞은 뒤 맨 끝에서 한 번 맞춘다.
+//   선형으로 맞추고 싶지만 실제로는 동적으로 된다 — 배경음 단계의 alimiter 가 피크를 이미 채워서
+//   +8dB 를 선형으로 올릴 자리가 없다. 실측(09-16 발행분): -22.8 → -14.2 LUFS, 피크 -1.5 dBTP,
+//   본편·광고 차이 0.5 → 0.0dB. 결과가 기준 안이면 받아들인다 — 모드는 로그에 남긴다.
+//   맞췄다고 믿지 않고 다시 잰다. 실패하면 원본으로 간다(소리 크기 때문에 회차를 잃지 않는다).
+{
+  const target = Number(process.env.SHORTS_LUFS ?? -14);
+  const tmp = `${WORK}/final-loud.mp4`;
+  const r = normalizeLoudness(OUT, tmp, target, { extraOut: ['-map', '0:v:0', '-map', '0:a:0', '-c:v', 'copy', ...audioArgs()] });
+  const after = r.ok ? measureLoudness(['-i', tmp]) : null;
+  if (r.ok && after && Math.abs(after.I - target) <= 1.5) {
+    copyFileSync(tmp, OUT);
+    log(`[소리] 최종 음량 ${r.before.toFixed(1)} → ${after.I.toFixed(1)} LUFS (${r.mode}, 피크 ${after.TP.toFixed(1)} dBTP)`);
+  } else {
+    log(`[소리] ⚠ 최종 음량 맞추기 실패 — 원래 크기로 간다: ${r.reason ?? `결과 ${after?.I}`}`);
   }
 }
 

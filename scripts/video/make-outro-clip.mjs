@@ -20,13 +20,14 @@
  */
 import { chromium } from 'playwright';
 import { spawnSync } from 'child_process';
-import { mkdirSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync, copyFileSync } from 'fs';
+import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { ROOT } from '../lib/project-root.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
-import { audioArgs } from '../lib/shorts-layout.mjs';
+import { audioArgs, AUDIO_SPEC } from '../lib/shorts-layout.mjs';
 
 const ffmpeg = createRequire(import.meta.url)('ffmpeg-static');
 const W = 1080; const H = 1920;
@@ -104,6 +105,9 @@ const OUT = resolve(ROOT, argOf('out', `assets/outro/aisvi${LOCALE === 'ko' ? ''
 //   쇼츠에 붙는 assets/outro/aisvi.mp4 는 AUDIO_SPEC(44.1kHz)을 따라야 concat 이 안전하다 —
 //   그래서 그 파일로 나가는데 이 옵션이 오면 멈춘다.
 const AUDIO_RATE = Number(argOf('ar', process.env.AISVI_AR || '')) || null;
+// 필터 안에서 먼저 이 값으로 맞춘다. 2026-09-17 까지 aresample=24000 이 남아 있었다(옛 24kHz 규격의 흔적) —
+//   출력이 44.1/48kHz 여도 중간에 24kHz 를 거쳐 **12kHz 위가 잘려 나갔다.**
+const OUT_RATE = AUDIO_RATE ?? AUDIO_SPEC.rate;
 if (AUDIO_RATE && ![44100, 48000].includes(AUDIO_RATE)) {
   console.error(`❌ --ar 는 44100 또는 48000 만 받는다: ${AUDIO_RATE}`); process.exit(2);
 }
@@ -290,12 +294,12 @@ const vArgs = bandFile
     '-i', voice.path,
     '-filter_complex',
     `[0:v][1:v]overlay=0:0[bg];[bg][2:v]overlay=0:0,fps=30,format=yuv420p[v];`
-      + `[3:a]aresample=24000,apad=whole_dur=${sec}[a]`,
+      + `[3:a]aresample=${OUT_RATE},apad=whole_dur=${sec}[a]`,
   ]
   : [
     '-loop', '1', '-t', String(sec), '-i', `${WORK}/bg.png`,
     '-i', voice.path,
-    '-filter_complex', `[0:v]scale=${W}:${H},fps=30,format=yuv420p[v];[1:a]aresample=24000,apad=whole_dur=${sec}[a]`,
+    '-filter_complex', `[0:v]scale=${W}:${H},fps=30,format=yuv420p[v];[1:a]aresample=${OUT_RATE},apad=whole_dur=${sec}[a]`,
   ];
 console.log(bandFile ? `  띠 배경: 영상 ${bgVideo.split('/').pop()}` : '  띠 배경: 사진');
 const r = spawnSync(ffmpeg, [
@@ -308,4 +312,23 @@ const r = spawnSync(ffmpeg, [
   '-shortest', '-y', OUT,
 ], { stdio: ['ignore', 'ignore', 'pipe'] });
 if (r.status !== 0) { console.error(`❌ 만들기 실패:\n${String(r.stderr).slice(0, 400)}`); process.exit(1); }
+
+// 2026-09-17: 광고 파일 전체를 유튜브 기준 -14 LUFS 로 맞춘다.
+//   이 파일은 다른 채널이 **가공 없이** 본편 끝에 붙인다(노트북 세션 · 맥미니 사무실2).
+//   사무실2 가 본편을 -14 로 올리면서 광고도 -14 로 달라고 했다. 우리 쇼츠는 맨 끝에서 전체를
+//   다시 맞추므로 이 값과 무관하다. AISVI_LUFS 로 바꿀 수 있다. 맞췄는지 다시 잰다.
+{
+  const target = Number(process.env.AISVI_LUFS ?? -14);
+  const tmp = join(WORK, 'outro-loud.mp4');
+  const n = normalizeLoudness(OUT, tmp, target, {
+    ff: ffmpeg, extraOut: ['-map', '0:v:0', '-map', '0:a:0', '-c:v', 'copy', ...audioArgs({ rate: OUT_RATE })] });
+  const m = n.ok ? measureLoudness(['-i', tmp], { ff: ffmpeg }) : null;
+  if (n.ok && m && Math.abs(m.I - target) <= 1) {
+    copyFileSync(tmp, OUT);
+    console.log(`  음량 ${n.before.toFixed(1)} → ${m.I.toFixed(1)} LUFS (${n.mode}, 피크 ${m.TP.toFixed(1)} dBTP)`);
+  } else {
+    console.error(`❌ 음량을 ${target} LUFS 로 맞추지 못했다: ${n.reason ?? `결과 ${m?.I}`}`);
+    process.exit(1);   // 광고 파일은 한 번 만들어 계속 쓴다 — 틀린 채로 남기지 않는다
+  }
+}
 console.log(`✅ ${OUT} · ${sec.toFixed(1)}초`);
