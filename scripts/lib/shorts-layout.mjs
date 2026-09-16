@@ -248,7 +248,13 @@ export function mediaFilter(inLabel, outLabel) {
  */
 export const AUDIO_SPEC = { rate: 44100, channels: 1, bitrate: '160k' };
 
-/** ffmpeg 인자로. 모든 조각이 이걸 쓰면 concat -c copy 가 안전하다. */
-export function audioArgs() {
-  return ['-c:a', 'aac', '-b:a', AUDIO_SPEC.bitrate, '-ac', String(AUDIO_SPEC.channels), '-ar', String(AUDIO_SPEC.rate)];
+/**
+ * ffmpeg 인자로. 모든 조각이 이걸 쓰면 concat -c copy 가 안전하다.
+ *
+ * 2026-09-17: 바깥에 넘기는 파일만 규격을 바꿀 수 있게 rate 를 받는다.
+ *   일본 채널(맥미니 사무실2)의 본편이 48kHz 라, 그쪽에 줄 광고는 48kHz 로 뽑는다.
+ *   **우리 쇼츠에 붙는 조각은 기본값을 그대로 써야 한다** — 기본값이 한 군데라서 안전한 것이다.
+ */
+export function audioArgs({ rate = AUDIO_SPEC.rate } = {}) {
+  return ['-c:a', 'aac', '-b:a', AUDIO_SPEC.bitrate, '-ac', String(AUDIO_SPEC.channels), '-ar', String(rate)];
 }

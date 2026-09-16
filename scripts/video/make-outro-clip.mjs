@@ -100,6 +100,17 @@ if (!T) {
 // 한국어판은 종전 경로 그대로다 — make-shorts 가 assets/outro/aisvi.mp4 를 본다.
 //   다른 로케일은 파일을 나눈다(aisvi-ja.mp4). --out 으로 덮어쓸 수 있다.
 const OUT = resolve(ROOT, argOf('out', `assets/outro/aisvi${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
+// 2026-09-17: 바깥에 넘기는 파일만 샘플레이트를 바꾼다(일본 채널 본편이 48kHz).
+//   쇼츠에 붙는 assets/outro/aisvi.mp4 는 AUDIO_SPEC(44.1kHz)을 따라야 concat 이 안전하다 —
+//   그래서 그 파일로 나가는데 이 옵션이 오면 멈춘다.
+const AUDIO_RATE = Number(argOf('ar', process.env.AISVI_AR || '')) || null;
+if (AUDIO_RATE && ![44100, 48000].includes(AUDIO_RATE)) {
+  console.error(`❌ --ar 는 44100 또는 48000 만 받는다: ${AUDIO_RATE}`); process.exit(2);
+}
+if (AUDIO_RATE && AUDIO_RATE !== 44100 && OUT === resolve(ROOT, 'assets/outro/aisvi.mp4')) {
+  console.error('❌ 쇼츠에 붙는 광고(assets/outro/aisvi.mp4)는 44.1kHz 여야 한다 — --out 을 따로 주십시오.');
+  process.exit(2);
+}
 
 const SPOKEN = process.env.AISVI_SPOKEN || T.spoken;
 const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || T.siteSpoken;
@@ -278,7 +289,7 @@ const r = spawnSync(ffmpeg, [
   '-map', '[v]', '-map', '[a]',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
   // 본편 조각과 **같은 규격**이어야 concat -c copy 가 안전하다(2026-09-14: 어긋나서 클립이 사라졌다).
-  ...audioArgs(),
+  ...audioArgs(AUDIO_RATE ? { rate: AUDIO_RATE } : {}),
   '-shortest', '-y', OUT,
 ], { stdio: ['ignore', 'ignore', 'pipe'] });
 if (r.status !== 0) { console.error(`❌ 만들기 실패:\n${String(r.stderr).slice(0, 400)}`); process.exit(1); }
