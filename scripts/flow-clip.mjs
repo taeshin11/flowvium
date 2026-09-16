@@ -40,7 +40,9 @@ const OUT = resolve(arg('--out', 'assets/broll/flow-clip.mp4'));
 // 2026-09-16: 기본 대기를 늘린다. 0 크레딧 모델이 `Veo 3.1 - Lite [Lower Priority]` 로,
 //   이름 그대로 뒤로 밀린다 — 실측으로 420초 안에 안 끝난 경우가 세 번 연속 있었다
 //   (셋 다 나중에 보면 멀쩡히 만들어져 있었다). 공짜인 대신 느린 것이므로 기다리는 쪽이 맞다.
-const WAIT_S = Number(arg('--wait', 1200));
+//   2026-09-16 실측으로 확정: 900초 동안 루프가 [8] 을 **정확히 16번** 읽었고(읽는 쪽은 정상),
+//   그 뒤에 9번째 카드가 생겼다. 즉 감지가 아니라 **대기 부족**이었다. 15분을 넘긴다.
+const WAIT_S = Number(arg('--wait', 1800));
 const SHOTS = arg('--shots', null);
 const MODEL = arg('--model', process.env.FLOW_VIDEO_MODEL ?? FREE_VIDEO_MODEL);
 // 유료 등급은 **명시적으로 허용해야** 쓴다. 기본 가드는 0 크레딧 모델이 아니면 생성을 막는다 —
@@ -136,8 +138,15 @@ while (Date.now() < deadline) {
     await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.waitForTimeout(4000);
     await dismissDialogs(page);
+    // 2026-09-16: 새로고침만 하면 **프로젝트 밖으로 나간다**. 그 화면엔 카드가 없어
+    //   개수가 늘어난 적이 없는 것처럼 보였다(실측: 카드가 7→8 이 됐는데 900초를 못 봤다).
+    //   되돌아가야 갤러리를 다시 본다.
+    if (!(await inProject(page))) await openProject(page).catch(() => {});
+    await page.waitForTimeout(3000);
   }
   const nowCards = await mediaCardTitles(page);
+  // 무엇을 보고 있는지 남긴다 — 못 보고 끝났을 때 원인을 가르려면 이 숫자가 필요하다.
+  if (pollN % 6 === 0) process.stdout.write(`[${nowCards.length}]`);
   if (nowCards.length > beforeCards.length) {
     const url = await videoUrlForCard(page, nowCards[0], { nth: 0 });   // 맨 앞이 가장 새것
     if (url) { fresh = url; console.log(`\n  [생성] 새 카드 "${nowCards[0].slice(0, 40)}" (${beforeCards.length}→${nowCards.length})`); break; }
