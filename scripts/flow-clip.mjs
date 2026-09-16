@@ -16,6 +16,7 @@
  */
 import {
   openFlow, sessionCookiesPresent, setVideoModel, openProject, inProject,
+  mediaCardTitles, videoUrlForCard,
   composerVisible, defaultsPanelOpen, typePrompt, dismissDialogs,
   videoUrls, downloadMedia, freshMedia, FREE_VIDEO_MODEL, PROFILE_DIR,
   isFreeModel, MODEL_RESULT,
@@ -36,7 +37,10 @@ const VIDEO_DIRECTIVE = 'Create an 8 second VIDEO clip (not an image). ';
 const PROMPT = VIDEO_DIRECTIVE + arg('--prompt',
   'documentary news b-roll, slow cinematic push-in, natural daylight, no on-screen text');
 const OUT = resolve(arg('--out', 'assets/broll/flow-clip.mp4'));
-const WAIT_S = Number(arg('--wait', 600));
+// 2026-09-16: 기본 대기를 늘린다. 0 크레딧 모델이 `Veo 3.1 - Lite [Lower Priority]` 로,
+//   이름 그대로 뒤로 밀린다 — 실측으로 420초 안에 안 끝난 경우가 세 번 연속 있었다
+//   (셋 다 나중에 보면 멀쩡히 만들어져 있었다). 공짜인 대신 느린 것이므로 기다리는 쪽이 맞다.
+const WAIT_S = Number(arg('--wait', 1200));
 const SHOTS = arg('--shots', null);
 const MODEL = arg('--model', process.env.FLOW_VIDEO_MODEL ?? FREE_VIDEO_MODEL);
 // 유료 등급은 **명시적으로 허용해야** 쓴다. 기본 가드는 0 크레딧 모델이 아니면 생성을 막는다 —
@@ -94,6 +98,10 @@ if (!r.ok) console.log(`  ⚠ 0 크레딧 확인 없이 생성한다 — 크레�
 // 생성 전에 이미 있는 결과를 기억해 둔다. "영상이 보인다" 만으로는 방금 시킨 것인지 알 수 없다.
 const before = new Set(await videoUrls(page));
 console.log(`  [기존] 결과 영상 ${before.size}개`);
+// 2026-09-16: `<video>` 만으로는 생성을 못 본다 — 새 갤러리는 카드에 썸네일만 두고
+//   눌러야 `<video>` 를 붙인다. **카드 제목**을 같이 기억해 둔다. 늘어난 제목이 방금 만든 것이다.
+const beforeCards = new Set(await mediaCardTitles(page));
+console.log(`  [기존] 카드 ${beforeCards.size}개`);
 
 // ── 프롬프트 → 제출 ────────────────────────────────────────────────────────
 await dismissDialogs(page);
@@ -115,6 +123,13 @@ while (Date.now() < deadline) {
   //   **기존 클립을 내려받는다**(실측 2026-08-28).
   fresh = freshMedia([...before], now);
   if (fresh) break;
+  // `<video>` 가 안 붙는 배치에서는 **새로 생긴 카드 제목**으로 찾는다.
+  //   제목을 눌러야 그때 `<video>` 가 생기므로, 눌러서 주소를 받아 온다.
+  const nowCards = (await mediaCardTitles(page)).filter((t) => !beforeCards.has(t));
+  if (nowCards.length) {
+    const url = await videoUrlForCard(page, nowCards[0]);
+    if (url) { fresh = url; console.log(`\n  [생성] 새 카드 "${nowCards[0].slice(0, 40)}"`); break; }
+  }
   await dismissDialogs(page);                 // 생성 전 확인 모달이 뜰 수 있다
   await page.waitForTimeout(8000);
   process.stdout.write('.');

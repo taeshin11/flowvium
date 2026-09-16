@@ -485,8 +485,23 @@ async function closeDefaults(page, { tries = 5 } = {}) {
 
 /** 생성 기본값(에이전트 설정) 패널이 열려 있는가. 이게 열려 있으면 작성기를 덮는다. */
 export async function defaultsPanelOpen(page) {
-  return (await page.getByText(/에이전트 설정|생성하기 전에 확인|Agent settings/i).first()
-    .count().catch(() => 0)) > 0;
+  // 2026-09-16: count() 는 **DOM 에 있는가**만 본다. 새 UI 는 패널을 닫아도 DOM 에 남겨 둬서
+  //   닫혀 있는데도 "열림" 으로 읽혔고, 그 뒤 composerVisible 이 false 를 돌려
+  //   `작성기를 쓸 수 없다 (설정 패널 열림=true)` 로 생성이 막혔다.
+  //   **보이는가**로 판정한다 — 화면을 덮고 있어야 열린 것이다.
+  return page.evaluate(() => {
+    const re = /에이전트 설정|생성하기 전에 확인|Agent settings/i;
+    for (const el of document.querySelectorAll('*')) {
+      if (el.children.length !== 0) continue;
+      if (!re.test((el.textContent ?? '').replace(/\s+/g, ' ').trim())) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width > 2 && r.height > 2) {
+        const cs = getComputedStyle(el);
+        if (cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) !== 0) return true;
+      }
+    }
+    return false;
+  }).catch(() => false);
 }
 
 /**
@@ -781,4 +796,65 @@ export function freshMedia(before, after) {
 export async function videoUrls(page) {
   return page.evaluate(() => [...document.querySelectorAll('video')]
     .map((e) => e.currentSrc || e.src).filter(Boolean)).catch(() => []);
+}
+
+/**
+ * 갤러리에 있는 **동영상 카드의 제목들**. 생성 결과를 알아내는 새 기준이다.
+ *
+ * 2026-09-16: videoUrls 만으로는 생성을 감지하지 못한다. 새 갤러리는 카드에 `<video>` 를
+ *   붙이지 않고 썸네일만 둔다 — 눌러야 그때 `<video>` 가 생긴다. 그래서 생성이 멀쩡히
+ *   끝났는데도 "420초 안에 새 동영상이 없다" 로 실패했다(한국인·일본인 클립 둘 다 실제로는
+ *   만들어져 있었다. 눈으로 확인했다).
+ *   카드 제목은 Flow 가 프롬프트에서 뽑아 붙인다. 제목이 하나 늘어난 것이 생성이다.
+ *
+ * 재생 아이콘(play_arrow · play_circle)을 가진 타일만 센다 — 이미지 카드와 섞이지 않게.
+ */
+export async function mediaCardTitles(page) {
+  return page.evaluate(() => {
+    const txt = (el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const out = [];
+    for (const m of document.querySelectorAll('*')) {
+      if (m.children.length !== 0) continue;
+      if (!/^(play_arrow|play_circle)$/.test(txt(m))) continue;
+      let n = m;
+      for (let i = 0; i < 8 && n; i++) { if (n.getBoundingClientRect().width > 220) break; n = n.parentElement; }
+      if (!n) continue;
+      const t = txt(n).replace(/play_arrow|play_circle|favorite|more_vert/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+      if (t) out.push(t);
+    }
+    return [...new Set(out)];
+  }).catch(() => []);
+}
+
+/**
+ * 제목이 **정확히** 같은 카드를 눌러 `<video>` 를 띄우고 그 주소를 돌려준다.
+ *
+ * ⚠ 부분일치를 쓰지 않는다. 실측으로 "Man speaking to smartphone"(한국인)이
+ *   "Man speaking to smartphone office"(서양인)의 **접두사**였다 — 모델 이름에서 겪은 것과
+ *   같은 사고가 카드 제목에서도 난다.
+ */
+export async function videoUrlForCard(page, title, { waitMs = 6000 } = {}) {
+  const hit = await page.evaluate((want) => {
+    const txt = (el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    for (const m of document.querySelectorAll('*')) {
+      if (m.children.length !== 0) continue;
+      if (!/^(play_arrow|play_circle)$/.test(txt(m))) continue;
+      let n = m;
+      for (let i = 0; i < 8 && n; i++) { if (n.getBoundingClientRect().width > 220) break; n = n.parentElement; }
+      if (!n) continue;
+      const t = txt(n).replace(/play_arrow|play_circle|favorite|more_vert/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+      if (t !== want) continue;
+      n.scrollIntoView({ block: 'center' });
+      n.click();
+      return true;
+    }
+    return false;
+  }, title).catch(() => false);
+  if (!hit) return null;
+  await page.waitForTimeout(waitMs);
+  const urls = await page.evaluate(() => [...document.querySelectorAll('video')]
+    .map((v) => v.currentSrc || v.src).filter((u) => u && !u.startsWith('blob:'))).catch(() => []);
+  return urls.length ? urls[urls.length - 1] : null;
 }
