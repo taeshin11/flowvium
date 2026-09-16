@@ -112,7 +112,7 @@ for (const list of Object.values(Object.fromEntries([...new Set(g.map((r) => r.d
   sorted.forEach((r, i) => { r.pct = list.length > 1 ? i / (list.length - 1) * 100 : 50; });
 }
 console.log(`\n② 날짜 안에서 갈린 이유 — 48시간 자료 ${g.length}편만 (9시간 표본을 섞으면 없는 효과가 생긴다)\n`);
-cmp('🇰🇷 국뽕 제목', (r) => r.gukppong);
+cmp('🇰🇷 한국 성과 제목', (r) => r.gukppong);
 cmp('[속보] 로 시작', (r) => r.breaking);
 cmp('따옴표로 시작', (r) => r.quoted);
 cmp('숫자 포함', (r) => r.hasNumber);
