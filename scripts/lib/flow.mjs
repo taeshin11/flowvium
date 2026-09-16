@@ -688,18 +688,52 @@ export async function setVideoModel(page, model = FREE_VIDEO_MODEL) {
   //   openDefaults 가 패널을 열고 **동영상 구획의** 드롭다운을 돌려준다. 그걸 쓴다.
   const chip = await openDefaults(page);
   if (!(await chip.count().catch(() => 0))) return modelResult(MODEL_RESULT.PANEL_CLOSED);
-  await chip.click({ timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(1300);
-  if (!(await switchMode(page, '동영상'))) {
+
+  // 2026-09-16: **크레딧 표시가 화면에서 사라졌다.** 종전엔 모델 팝오버가
+  //   "생성 시 0 크레딧이 사용됩니다" 를 적어 줘서 이름 대신 그 값을 읽었다(그게 옳았다).
+  //   새 '에이전트 설정' 패널에는 모델 목록만 있고 비용이 어디에도 없다 —
+  //   드롭다운을 열어도, 생성 직전에도, 잔액 배너에도 없다(셋 다 스크린샷으로 확인).
+  //   읽을 값이 없어지면 "읽어서 판정한다" 는 규칙은 지킬 수가 없다. 그래서 물러서되,
+  //   물러선 만큼 좁힌다 — **정확히 일치하는 이름으로만** 고르고, 고른 뒤 표시를 다시
+  //   정확히 일치로 확인한다. 부분일치는 쓰지 않는다("Veo 3.1 - Lite" 는
+  //   "Veo 3.1 - Lite [Lower Priority]" 의 접두사라 유료판이 잡힌다).
+  const shownNow = (await chip.innerText().catch(() => '')).replace(/\s+/g, ' ')
+    .replace('arrow_drop_down', '').trim();
+  if (shownNow === model) {
     await closeDefaults(page);
-    return modelResult(MODEL_RESULT.PANEL_CLOSED, '동영상 탭 없음');
+    return modelResult(MODEL_RESULT.OK, `${shownNow} · 이미 선택돼 있음`);
   }
-  const cost = await readCreditCost(page);
-  const shown = (await chip.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
+
+  await chip.click({ timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  // 목록에서 **정확히 같은 글자**인 항목만 고른다.
+  const picked = await page.evaluate((want) => {
+    const txt = (el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const opts = [...document.querySelectorAll('[role=option],[role=menuitem],[role=menuitemradio],li')]
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2; });
+    const hit = opts.find((el) => txt(el) === want);
+    if (!hit) return false;
+    hit.click();
+    return true;
+  }, model).catch(() => false);
+  if (!picked) {
+    await closeDefaults(page);
+    return modelResult(MODEL_RESULT.NOT_APPLIED, `목록에 "${model}" 이 정확히 일치하는 항목이 없다`);
+  }
+  await page.waitForTimeout(1200);
+
+  // 저장 버튼이 있으면 눌러야 반영된다(새 패널에 생겼다).
+  await page.locator('button:has-text("저장"), button:has-text("Save")').last()
+    .click({ timeout: 5000 }).catch(() => { /* 저장 버튼이 없는 배치도 있다 */ });
+  await page.waitForTimeout(1500);
+
+  // 반영됐는가 — 다시 열어 표시를 정확히 확인한다. 눌렀다고 믿지 않는다.
+  const after = await openDefaults(page);
+  const shown = (await after.innerText().catch(() => '')).replace(/\s+/g, ' ')
+    .replace('arrow_drop_down', '').trim();
   await closeDefaults(page);
-  if (cost === null) return modelResult(MODEL_RESULT.NOT_APPLIED, `${shown} (크레딧 표시를 못 읽음)`);
-  if (cost > 0) return modelResult(MODEL_RESULT.NOT_APPLIED, `${shown} — ${cost} 크레딧`);
-  return modelResult(MODEL_RESULT.OK, `${shown} · 0 크레딧`);
+  if (shown !== model) return modelResult(MODEL_RESULT.NOT_APPLIED, `표시가 "${shown}" 로 남아 있다`);
+  return modelResult(MODEL_RESULT.OK, `${shown} · 정확 일치로 선택됨`);
 }
 
 /**

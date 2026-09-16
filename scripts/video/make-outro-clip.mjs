@@ -139,7 +139,12 @@ const PHOTO = resolve(ROOT, process.env.AISVI_PHOTO || 'assets/outro/jarvis.jpg'
 // 2026-09-15 사용자 "사진 한장으로 쭉가니까 너무심심하다 … 영상으로 바꿔".
 //   띠에 영상을 깐다. 영상이 있으면 글자판을 **투명 배경**으로 뽑아 영상 위에 얹는다.
 //   없으면 종전대로 사진 한 장 — 영상이 없다고 광고를 못 만들면 안 된다.
-const BGVID = argOf('bg-video', process.env.AISVI_BG_VIDEO || 'assets/outro/aisvi-bg.mp4');
+// 2026-09-16 사용자 "가급적 그 한국인이랑 일본인으로 만들어가지고. 일본인 광고에는 일본인을,
+//   한국 광고에는 한국인을". 띠 영상을 로케일별로 둔다 — 출력 파일과 같은 이름 규칙이라
+//   새 로케일이 생겨도 규칙 하나만 지키면 된다(ko 는 접미사 없음).
+//   Flow(Veo 3.1 - Lite [Lower Priority], 0 크레딧)로 만들었다.
+const BGVID = argOf('bg-video', process.env.AISVI_BG_VIDEO
+  || `assets/outro/aisvi-bg${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`);
 const bgVideo = existsSync(resolve(ROOT, BGVID)) ? resolve(ROOT, BGVID) : null;
 const hasPhoto = existsSync(PHOTO);
 const photoB64 = hasPhoto ? readFileSync(PHOTO).toString('base64') : '';
