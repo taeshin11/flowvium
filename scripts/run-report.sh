@@ -53,7 +53,10 @@ NODE_BIN="${NODE_BIN:-$(command -v node || true)}"
 LLM_HEALTH="${LLM_HEALTH:-http://127.0.0.1:8000/v1/models}"
 LLM_WAIT_S="${LLM_WAIT_S:-900}"
 LOG_DIR="${LOG_DIR:-$APP_DIR/logs}"
-LOG_FILE="$LOG_DIR/report.log"
+# 2026-09-16: 로그 파일을 바꿀 수 있게 한다. selfcopy 테스트가 **진짜 이 스크립트를** 돌리는데
+#   그 출력이 운영 report.log 에 섞여 `[ERROR] LLM 포트 무응답 … 중단` 이 남는다.
+#   오늘 그걸 진짜 보고서 실패로 읽고 한참 헤맸다 — 가짜 실패가 진짜를 가린다.
+LOG_FILE="${LOG_FILE:-$LOG_DIR/report.log}"
 LOCK_DIR="${LOCK_DIR:-$LOG_DIR/report-pipeline.lock}"
 
 mkdir -p "$LOG_DIR"

@@ -18,6 +18,7 @@
 import { spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
 import { ROOT } from './project-root.mjs';
 
 let fail = 0;
@@ -43,7 +44,13 @@ if (!existsSync(script)) { bad('run-report.sh 없음'); process.exit(1); }
 {
   const r = spawnSync('bash', [script, '--session=__selftest__'], {
     encoding: 'utf8', timeout: 45_000,
-    env: { ...process.env, LLM_WAIT_S: '1', SKIP_PREFLIGHT: '1', SKIP_INGEST: '1', SKIP_LLM_PROBE: '1' },
+    // 2026-09-16: REPORT_LLM_KEEP=1 **필수**. 이 테스트는 진짜 run-report.sh 를 돌리는데,
+    //   같은 날 모델 내려놓기를 cleanup() 으로 옮기면서(어떻게 끝나든 반납) 이 테스트가
+    //   돌 때마다 **운영 모델 28GB 를 내려놓게** 됐다. test:lib 는 pre-push 훅에도 걸려 있어
+    //   푸시할 때마다 반납되고, 다음 회차가 28GB 를 다시 올린다.
+    //   REPORT_LLM_KEEP 은 그러라고 있는 탈출구다. 테스트가 운영을 건드리면 안 된다.
+    env: { ...process.env, LLM_WAIT_S: '1', SKIP_PREFLIGHT: '1', SKIP_INGEST: '1', SKIP_LLM_PROBE: '1',
+      REPORT_LLM_KEEP: '1', LOG_FILE: join(tmpdir(), 'selftest-report.log') },
   });
   const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
   /MODULE_NOT_FOUND|Cannot find module/.test(out)
@@ -57,7 +64,8 @@ if (!existsSync(script)) { bad('run-report.sh 없음'); process.exit(1); }
   // APP_DIR 검증 관문이 실제로 작동하는가 — 틀린 값을 주면 즉시 멈춰야 한다
   const badRun = spawnSync('bash', [script, '--session=__selftest__'], {
     encoding: 'utf8', timeout: 20_000,
-    env: { ...process.env, APP_DIR: '/tmp', LLM_WAIT_S: '1' },
+    env: { ...process.env, APP_DIR: '/tmp', LLM_WAIT_S: '1', REPORT_LLM_KEEP: '1',
+      LOG_FILE: join(tmpdir(), 'selftest-report.log') },
   });
   const bo = `${badRun.stdout ?? ''}${badRun.stderr ?? ''}`;
   badRun.status === 4 && /저장소가 아니다/.test(bo)
