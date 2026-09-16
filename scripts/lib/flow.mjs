@@ -448,6 +448,14 @@ async function closeDefaults(page, { tries = 5 } = {}) {
     await page.keyboard.press('Escape').catch(() => {});
     await page.waitForTimeout(700);
     if (!(await defaultsPanelOpen(page))) return true;
+    // 2026-09-16: 새 '에이전트 설정' 패널에는 **저장** 버튼이 생겼고, 그게 패널을 닫는다.
+    //   Escape 와 X 만으로는 간헐적으로 안 닫혔고, 그때마다
+    //   `작성기를 쓸 수 없다 (설정 패널 열림=true)` 로 생성이 통째로 막혔다.
+    //   바꾼 게 없으면 저장은 지금 값을 그대로 쓴다 — 남의 설정을 건드리지 않는다.
+    await page.locator('button:has-text("저장"), button:has-text("Save")').last()
+      .click({ timeout: 4000 }).catch(() => { /* 저장 버튼이 없는 배치도 있다 */ });
+    await page.waitForTimeout(900);
+    if (!(await defaultsPanelOpen(page))) return true;
     const closers = page.locator('button:has-text("close"), button[aria-label*="닫기"], button[aria-label*="Close"]');
     const n = await closers.count().catch(() => 0);
     for (let i = 0; i < n; i++) {
@@ -808,6 +816,13 @@ export async function videoUrls(page) {
  *   카드 제목은 Flow 가 프롬프트에서 뽑아 붙인다. 제목이 하나 늘어난 것이 생성이다.
  *
  * 재생 아이콘(play_arrow · play_circle)을 가진 타일만 센다 — 이미지 카드와 섞이지 않게.
+ *
+ * ⚠ 제목으로 **중복을 지우면 안 된다.** 처음엔 Set 으로 지웠다가 다시 당했다 —
+ *   Flow 는 비슷한 프롬프트에 같은 제목을 붙인다. 실측: 새 클립 둘이 기존 것과 똑같이
+ *   "Man speaking into smartphone" 으로 나와서, 카드가 6개가 됐는데도 개수가 4 로 그대로였고
+ *   "1200초 안에 새 동영상이 없다" 로 또 끝났다(영상은 멀쩡히 만들어져 있었다. 눈으로 봤다).
+ *   제목은 **고유하지 않다.** 개수로 센다 — 늘어났으면 생긴 것이다.
+ *   DOM 순서가 최신순이다(화면으로 확인) — 새로 생긴 것은 맨 앞이다.
  */
 export async function mediaCardTitles(page) {
   return page.evaluate(() => {
@@ -823,7 +838,7 @@ export async function mediaCardTitles(page) {
         .replace(/\s+/g, ' ').trim();
       if (t) out.push(t);
     }
-    return [...new Set(out)];
+    return out;   // **중복을 지우지 않는다** — 아래 주석 참고
   }).catch(() => []);
 }
 
@@ -834,8 +849,9 @@ export async function mediaCardTitles(page) {
  *   "Man speaking to smartphone office"(서양인)의 **접두사**였다 — 모델 이름에서 겪은 것과
  *   같은 사고가 카드 제목에서도 난다.
  */
-export async function videoUrlForCard(page, title, { waitMs = 6000 } = {}) {
-  const hit = await page.evaluate((want) => {
+export async function videoUrlForCard(page, title, { waitMs = 6000, nth = 0 } = {}) {
+  const hit = await page.evaluate(({ want, nth: want_nth }) => {
+    let seen = -1;
     const txt = (el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
     for (const m of document.querySelectorAll('*')) {
       if (m.children.length !== 0) continue;
@@ -846,12 +862,14 @@ export async function videoUrlForCard(page, title, { waitMs = 6000 } = {}) {
       const t = txt(n).replace(/play_arrow|play_circle|favorite|more_vert/g, ' ')
         .replace(/\s+/g, ' ').trim();
       if (t !== want) continue;
+      seen += 1;
+      if (seen !== want_nth) continue;   // 같은 제목이 여럿이다 — 몇 번째인지로 가른다
       n.scrollIntoView({ block: 'center' });
       n.click();
       return true;
     }
     return false;
-  }, title).catch(() => false);
+  }, { want: title, nth }).catch(() => false);
   if (!hit) return null;
   await page.waitForTimeout(waitMs);
   const urls = await page.evaluate(() => [...document.querySelectorAll('video')]
