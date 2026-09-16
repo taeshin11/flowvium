@@ -171,7 +171,12 @@ console.log(hasPhoto ? `  배경 사진: ${PHOTO}` : '  배경 사진 없음 —
 // 사진 띠 높이. 원본은 16:9(607px)인데 그대로 얹으면 사진과 문구 사이가 400px 비어 허전하다.
 //   세로로 조금 더 키워 채운다 — center/cover 라 위아래가 8%쯤 잘리지만 인물과 홀로그램은 가운데라 남는다.
 //   9:16 로 통째로 자르면 폭의 2/3이 날아가 구도가 무너지므로 거기까지는 가지 않는다.
-const BAND = Math.round(H * 0.42);
+// 2026-09-16: 띠를 줄이고 문구를 위로 올린다.
+//   쇼츠 앱이 **화면 아래 약 1/3**(제목·설명·공유 버튼)을 덮는데, 실측으로 주소가
+//   y 1434~1555 = **75~81%** 에 있었다. 그 자리는 통째로 가려진다 —
+//   광고에서 제일 중요한 한 줄이 안 보이고 있었다(옆 세션이 지적, 재서 확인).
+//   중요한 문구는 67% 위에 둔다.
+const BAND = Math.round(H * Number(process.env.AISVI_BAND ?? 0.34));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.setContent(`<!doctype html><meta charset="utf-8"><style>
@@ -200,7 +205,7 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
   box-shadow:0 0 0 8px rgba(127,212,255,.22)}
 /* 남은 아래 공간 전체를 쓰고 그 안에서 가운데 정렬 — 아래가 휑하게 비지 않는다. */
 .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:30px;text-align:center;padding:0 70px 150px}
+  gap:26px;text-align:center;padding:0 70px ${Math.round(H * 0.32)}px}
 .t{font-size:64px;font-weight:800;color:#7fd4ff;letter-spacing:.04em}
 .w{font-size:112px;font-weight:900;letter-spacing:.20em;text-indent:.20em;color:#fff}
 .r{width:150px;height:8px;background:linear-gradient(90deg,#38bdf8,#2563eb)}
