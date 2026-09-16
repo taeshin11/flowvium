@@ -59,10 +59,19 @@ function main() {
 
   const targets = [];
 
-  // ── 자동화 크롬: --user-data-dir 이 .pni-chrome-* 인 최상위 인스턴스 ────────────
+  // ── 자동화 크롬 ───────────────────────────────────────────────────────────────
+  // 2026-09-17: `.pni-chrome-*` **하나만** 보고 있었다. 그 뒤에 Flow(secrets/flow-profile)와
+  //   Suno(secrets/suno-profile) 자동화가 늘었는데 거두는 쪽은 안 늘어서, suno 크롬이
+  //   **8일째 1.5GB** 를 물고 있는데도 "거둘 것 없음" 이 나왔다(실측).
+  //   프로필 이름을 하나씩 적으면 새 자동화가 생길 때마다 같은 구멍이 난다.
+  //   자동화의 진짜 표식은 **--remote-debugging-port** 다 — 사람이 쓰는 크롬에는 없다.
+  //   그 포트가 있고 전용 --user-data-dir 을 쓰는 최상위 인스턴스를 본다.
+  //   판정은 종전 그대로다: 붙어 있는 조종자가 없을 때만 거둔다.
   for (const r of rows) {
-    const m = r.args.match(/--user-data-dir=(\S*\.pni-chrome-[\w-]+)/);
-    if (!m || !/Google Chrome\.app\/Contents\/MacOS\/Google Chrome/.test(r.args)) continue;
+    if (!/Google Chrome\.app\/Contents\/MacOS\/Google Chrome/.test(r.args)) continue;
+    if (!/--remote-debugging-port=\d+/.test(r.args)) continue;   // 사람이 쓰는 크롬은 여기서 빠진다
+    const m = r.args.match(/--user-data-dir=(\S+)/);
+    if (!m) continue;
     const port = (r.args.match(/--remote-debugging-port=(\d+)/) || [])[1];
     const kids = rows.filter((x) => x.ppid === r.pid);
     const mem = ([r, ...kids].reduce((s, x) => s + x.rss, 0) / 1048576);
