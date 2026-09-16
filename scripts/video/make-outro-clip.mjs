@@ -41,6 +41,10 @@ mkdirSync(resolve(ROOT, 'assets/outro'), { recursive: true });
 //   주소를 라틴 문자로 읽히지 않는 원칙은 로케일과 무관하게 지킨다 —
 //   2026-09-05 실측: flowvium.net → "플로우 비오모 소삼드톤 네트".
 //   소리는 그 나라 글자로 음을 박고, 주소 자체는 화면에 크게 띄워 눈으로 전달한다.
+// MeloTTS 로 소리를 만들 수 있는 로케일. 한국어는 위쪽 전용 경로(Qwen/Melo 자동 선택)를 쓴다.
+// 여기 있어도 COPY 에 문구가 없으면 위(93행)에서 먼저 막힌다 — 문구가 진짜 관문이다.
+const MELO_LANGS = new Set(['ja', 'en', 'zh', 'es', 'fr']);
+
 const COPY = {
   ko: {
     spoken: '에이스비 에이전트',
@@ -120,8 +124,22 @@ if (AUDIO_IN) {
   console.log(`  소리: 받아온 파일 ${AUDIO_IN} (${secs.toFixed(1)}초)`);
 } else if (LOCALE === 'ko') {
   [voice] = synthesizeKoreanAuto([SAY], { outPrefix: `${WORK}/v` });
+} else if (MELO_LANGS.has(LOCALE)) {
+  // 2026-09-16 사용자 "일본어판은 왜 발행용이 안되?" — 맞는 물음이었다.
+  //   "수단이 없다" 고 적어 둔 건 사실이 아니라 **배선이 없었다**는 뜻이었다.
+  //   MeloTTS 는 japanese/japanese_bert 를 갖고 있는데 파이썬 쪽이 language="KR" 로
+  //   못박혀 있어서 쓰지 못했다. 이제 언어를 넘긴다 — 로컬이라 비용도 없다.
+  const { synthesizeKoreanMelo, meloTtsReady } = await import('../lib/tts-korean.mjs');
+  const ready = meloTtsReady();
+  if (!ready.ok) {
+    console.error(`❌ ${LOCALE} 음성을 만들 수 없다 — MeloTTS 준비 안 됨: ${ready.reason}`);
+    console.error('   그 언어로 만든 wav 를 --audio <파일> 로 주십시오.');
+    process.exit(2);
+  }
+  [voice] = synthesizeKoreanMelo([SAY], { outPrefix: `${WORK}/v`, lang: LOCALE });
+  console.log(`  소리: MeloTTS ${LOCALE}`);
 } else {
-  console.error(`❌ ${LOCALE} 로케일에는 소리를 만들 수단이 없다 — 우리 TTS 는 한국어 전용이다.`);
+  console.error(`❌ ${LOCALE} 로케일에는 소리를 만들 수단이 없다 (아는 언어: ${[...MELO_LANGS].join(', ')}).`);
   console.error('   그 언어로 만든 wav 를 --audio <파일> 로 주십시오. 한국어 발음으로 읽히지 않게 막는다.');
   process.exit(2);
 }

@@ -185,7 +185,9 @@ export function meloTtsReady() {
  * 반환 계약은 Qwen·Piper 와 같다 — 호출부가 엔진을 몰라도 된다.
  */
 export function synthesizeKoreanMelo(texts, opts = {}) {
-  const { outPrefix, speed = MELO_SPEED, timeoutMs = 30 * 60_000, display = null } = opts;
+  // 2026-09-16: lang 을 받는다. MeloTTS 는 일본어도 하는데 파이썬 쪽이 "KR" 로 못박혀 있어
+  //   쓰지 못하고 있었다. 기본값은 그대로 한국어라 기존 호출부는 달라지지 않는다.
+  const { outPrefix, speed = MELO_SPEED, timeoutMs = 30 * 60_000, display = null, lang = 'ko' } = opts;
   if (!outPrefix) throw new Error('outPrefix 가 필요하다');
   const ready = meloTtsReady();
   if (!ready.ok) throw new Error(`MeloTTS 준비 안 됨 — ${ready.reason}`);
@@ -204,7 +206,7 @@ export function synthesizeKoreanMelo(texts, opts = {}) {
     }
     execFileSync(ready.python, [
       ready.script, '--texts-file', tf, '--out-prefix', outPrefix, '--json-out', jf,
-      '--speed', String(speed),
+      '--speed', String(speed), '--lang', String(lang),
       ...(df ? ['--display-texts-file', df] : []),
     ], {
       timeout: timeoutMs,

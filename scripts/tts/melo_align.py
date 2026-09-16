@@ -63,7 +63,14 @@ def main():
 
     from melo.api import TTS
 
-    tts = TTS(language="KR", device=a.device)
+    # 2026-09-16: 여기가 "KR" 로 못박혀 있었다. --lang 은 받아 놓고 **정렬(whisper)에만** 쓰고
+    #   합성에는 안 넘겼다. 그래서 일본어 광고를 만들 수단이 없다고 판단했는데,
+    #   MeloTTS 는 japanese/japanese_bert 를 갖고 있다(모듈 확인). 배선이 없었을 뿐이다.
+    #   모르는 언어는 KR 로 떨어뜨리지 않는다 — 조용히 한국어로 읽으면 그게 더 나쁘다.
+    MELO_LANG = {"ko": "KR", "ja": "JP", "en": "EN", "zh": "ZH", "es": "ES", "fr": "FR"}
+    if a.lang not in MELO_LANG:
+        raise SystemExit(f"MeloTTS 가 모르는 언어다: {a.lang} (아는 것: {sorted(MELO_LANG)})")
+    tts = TTS(language=MELO_LANG[a.lang], device=a.device)
     spk = tts.hps.data.spk2id
     sid = spk.get(a.speaker) if a.speaker else None
     if sid is None:
