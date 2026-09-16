@@ -61,5 +61,17 @@ const run = (args) => spawnSync(process.execPath, [script, ...args], { encoding:
     : bad('한국어 출력 경로가 바뀌었다 — make-shorts 가 못 찾는다');
 }
 
+// [신설 2026-09-17] 받아 온 소리는 크기를 맞춘다
+//   사무실2 의 VoxCPM2 음성이 -34.7 LUFS 였고(우리 한국어 광고 -17.3), 종전엔 손대지 않고 썼다.
+//   그대로 나가면 광고가 거의 안 들린다. loudnorm 으로 맞춘 결과 -17.0 LUFS 였다(실측).
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(script, 'utf8');
+  const branch = src.slice(src.indexOf('if (AUDIO_IN) {'), src.indexOf("} else if (LOCALE === 'ko')"));
+  (/loudnorm=I=/.test(branch) && /voice = \{ path: normed/.test(branch))
+    ? ok('받아 온 음성은 loudnorm 을 거친 파일을 쓴다')
+    : bad('받아 온 음성을 크기 맞춤 없이 그대로 쓴다');
+}
+
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

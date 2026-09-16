@@ -117,8 +117,8 @@ const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || T.siteSpoken;
 const SAY = T.say(SPOKEN, SITE_SPOKEN);
 
 console.log(`  대사: ${SAY}`);
-// 소리. 우리 TTS 는 **한국어 전용**이다(MeloTTS 한국어 g2p).
-//   다른 로케일에서 이걸 그대로 부르면 한국어 발음으로 일본어를 읽는다 —
+// 소리. 세 갈래다 — 받아 온 파일(--audio) · 한국어 전용 경로 · MeloTTS 다국어(ja 등).
+//   모르는 로케일에서 한국어 경로를 그대로 부르면 한국어 발음으로 그 말을 읽는다 —
 //   조용히 그렇게 나가는 게 제일 나쁘다. 그래서 막고, 대신 만들어 온 소리를 받는다.
 let voice;
 const AUDIO_IN = argOf('audio', process.env.AISVI_AUDIO || '');
@@ -131,8 +131,23 @@ if (AUDIO_IN) {
   const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(err) || /time=(\d+):(\d+):([\d.]+)/.exec(err);
   const secs = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
   if (!(secs > 0)) { console.error(`❌ 음성 길이를 못 잰다: ${AUDIO_IN}`); process.exit(2); }
-  voice = { path: AUDIO_IN, durationSec: secs };
-  console.log(`  소리: 받아온 파일 ${AUDIO_IN} (${secs.toFixed(1)}초)`);
+  // 2026-09-17: 받아 온 소리의 **크기를 맞춘다.** 사무실2 가 준 VoxCPM2 음성이 -34.7 LUFS 였다 —
+  //   지금 쇼츠에 붙는 한국어 광고(-17.3 LUFS)보다 17dB 작아서, 그대로 쓰면 거의 안 들린다.
+  //   종전엔 받아 온 파일을 손대지 않고 썼다(우리 TTS 출력은 원래 그 근처라 문제가 안 드러났다).
+  //   곱하기(volume=)가 아니라 loudnorm 으로 맞춘다 — 목소리마다 기준 크기가 달라서
+  //   배수를 정하면 다음 목소리에서 또 틀린다(배경음에서 이미 겪었다).
+  //   loudnorm 은 내부에서 192kHz 로 올리므로 끝에 -ar 로 원래대로 내린다.
+  const LUFS = Number(process.env.AISVI_VOICE_LUFS ?? -17);
+  mkdirSync(WORK, { recursive: true });
+  const normed = join(WORK, 'voice-norm.wav');
+  const rateOf = (/(\d{4,6}) Hz/.exec(err) || [])[1] || '48000';
+  const ln = spawnSync(ffmpeg, ['-y', '-v', 'error', '-i', AUDIO_IN,
+    '-af', `loudnorm=I=${LUFS}:TP=-1.5:LRA=11`, '-ar', rateOf, '-ac', '1', normed], { encoding: 'utf8' });
+  if (ln.status !== 0 || !existsSync(normed)) {
+    console.error(`❌ 음량 맞춤 실패: ${String(ln.stderr ?? '').slice(0, 160)}`); process.exit(2);
+  }
+  voice = { path: normed, durationSec: secs };
+  console.log(`  소리: 받아온 파일 ${AUDIO_IN} (${secs.toFixed(1)}초) → ${LUFS} LUFS 로 맞춤`);
 } else if (LOCALE === 'ko') {
   [voice] = synthesizeKoreanAuto([SAY], { outPrefix: `${WORK}/v` });
 } else if (MELO_LANGS.has(LOCALE)) {
