@@ -95,6 +95,21 @@ fi
 #   PEER_NOTIFIED 가 설정된 뒤에만 해제한다(알리기 전에 죽으면 지울 것도 없다).
 cleanup() {
   rmdir "$LOCK_DIR" 2>/dev/null || true
+  # 2026-09-16: 모델 내려놓기가 **정상 종료 경로에만** 있었다. 바로 위 알림 해제와 똑같은 결함인데
+  #   그때 이쪽은 안 옮겼다. 실측 — 11:50 회차가 `[FATAL] 치명 데이터 소스 실패(rc=2)` 로
+  #   177행에서 exit 2 하자 내려놓기(236행)를 건너뛰었고, **28GB 가 1시간 40분 동안 그대로**
+  #   남았다(스왑 3.2GB/4GB). 생성이 죽은 회차일수록 다음 회차까지 시간이 남는데,
+  #   하필 그때 28GB 를 쥔 채로 있는다.
+  #   LLM 점검 실패(141·156행)도 같다 — 그건 모델이 이상하다는 뜻이라 더더욱 내려야 한다.
+  #   '이미 다른 회차가 돈다' 는 SKIP 경로들(78~90행)은 이 trap 이 걸리기 **전에** 끝나므로
+  #   남의 보고서 모델을 내리지 않는다.
+  if [ "${REPORT_LLM_KEEP:-0}" != "1" ]; then
+    if launchctl unload "$HOME/Library/LaunchAgents/com.spinai.flowvium-llm.plist" 2>/dev/null; then
+      log "[INFO] 보고서 모델(:8000) 내려놓음 — 다음 회차 사전점검이 다시 올린다"
+    else
+      log "[WARN] 보고서 모델 내려놓기 실패 — 떠 있는 채로 둔다"
+    fi
+  fi
   [ -n "${REPORT_SELF_COPY:-}" ] && rm -f "$REPORT_SELF_COPY" 2>/dev/null
   if [ -n "${PEER_NOTIFIED:-}" ]; then
     "$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-end >/dev/null 2>&1 || true
@@ -232,11 +247,4 @@ fi
 #   내려간 plist 를 다시 올린다 — 그 경로는 이미 있다.
 #
 #   REPORT_LLM_KEEP=1 이면 내려놓지 않는다(디버깅용).
-if [ "${REPORT_LLM_KEEP:-0}" != "1" ]; then
-  if launchctl unload "$HOME/Library/LaunchAgents/com.spinai.flowvium-llm.plist" 2>/dev/null; then
-    log "[INFO] 보고서 모델(:8000) 내려놓음 — 다음 회차 사전점검이 다시 올린다"
-  else
-    log "[WARN] 보고서 모델 내려놓기 실패 — 떠 있는 채로 둔다"
-  fi
-fi
 exit "$rc"
