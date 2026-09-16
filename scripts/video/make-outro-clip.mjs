@@ -52,6 +52,11 @@ const COPY = {
     //   2026-09-05 건과 같은 종류다. 소리는 한글로 음을 박고, 글자는 화면으로 전달한다.
     say: (b, site) => `말하는 대로 내 컴퓨터를 조종하는 ${b}. 나만의 에이아이 비서입니다. ${site}에서 지금 받으세요.`,
     tagline: '나만의 AI비서',
+    // 2026-09-16 사용자 "핸드폰 들고 뭐라고 말하는지, 통화를 하는 건지 전혀 모르겠으니까".
+    //   맞는 지적이다 — 사진만으로는 통화·음성 메모·AI 지시가 구분되지 않는다.
+    //   무엇을 시키는 중인지 대사로 못박는다. 제품이 하는 일을 말로 설명하는 것보다
+    //   실제로 시키는 한마디가 빠르다.
+    line: '어제 온 메일 정리해서 요약해 줘',
     desc: '말하는 대로<br>내 컴퓨터를 조종합니다',
     cta: '에서 다운로드',
     note: '화면을 보고 프로그램을 열고 눌러 줍니다',
@@ -67,6 +72,7 @@ const COPY = {
     //   소리 나는 대로 적고, 화면(tagline)에는 글자 그대로 AI 를 쓴다.
     say: (b, site) => `話すだけでパソコンを操作する、${b}。自分だけのエーアイ秘書です。${site}で今すぐ手に入れてください。`,
     tagline: '自分だけのAI秘書',
+    line: '昨日のメール、整理して要約して',
     desc: '話すだけで<br>パソコンを操作します',
     cta: 'からダウンロード',
     note: '画面を見てアプリを開き、クリックします',
@@ -154,6 +160,18 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
   background:${bgVideo ? 'transparent' : `url(data:image/jpeg;base64,${photoB64}) center/cover no-repeat`}}
 .p::after{content:'';position:absolute;inset:0;
   background:linear-gradient(180deg,rgba(5,7,15,.15) 0%,rgba(5,7,15,0) 40%,#05070f 100%)}
+/* 대사 자막 — 2026-09-16 첫 시안은 말풍선이었는데 **얼굴과 폰을 덮었다**.
+   띠 배경이 정지 사진이 아니라 영상(aisvi-bg.mp4)이라 인물이 화면 안에서 움직인다 —
+   고정 위치 말풍선은 언젠가 반드시 인물을 가린다. 그래서 위치를 사람에 맞추지 않고
+   **띠 맨 아래**에 자막으로 깐다. 그 자리는 ::after 페이드가 이미 어둡게 깔아 두어
+   어떤 프레임에서도 글자가 읽히고, 인물은 가운데 위에 있으므로 겹치지 않는다. */
+.say{position:absolute;left:0;right:0;bottom:4%;z-index:2;
+  display:flex;align-items:center;justify-content:center;gap:16px;padding:0 60px;
+  font-size:40px;font-weight:800;line-height:1.3;color:#eaf4ff;text-align:center;
+  text-shadow:0 3px 14px rgba(0,0,0,.85)}
+/* 마이크 표시 — 통화가 아니라 말로 시키는 중임을 알린다 */
+.say i{flex:none;width:20px;height:20px;border-radius:50%;background:#7fd4ff;
+  box-shadow:0 0 0 8px rgba(127,212,255,.22)}
 /* 남은 아래 공간 전체를 쓰고 그 안에서 가운데 정렬 — 아래가 휑하게 비지 않는다. */
 .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:30px;text-align:center;padding:0 70px 150px}
@@ -166,7 +184,7 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 .c{font-size:38px;font-weight:700;color:#ffd400;letter-spacing:.04em;margin-top:-14px}
 .c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
 </style>
-${hasPhoto ? '<div class="p"></div>' : ''}
+${hasPhoto ? `<div class="p">${T.line ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
 <div class="body">
 <div class="t">${T.tagline}</div>
 <div class="w">AISVI</div><div class="r"></div>
