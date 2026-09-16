@@ -272,7 +272,29 @@ async function openDefaults(page, { tries = 3 } = {}) {
     await page.waitForTimeout(2000);
     if (await defaultsPanelOpen(page)) break;
   }
-  return page.locator('button:has-text("Omni Flash"), button:has-text("Veo 3.1")').last();
+  // 2026-09-16: 모델 **이름으로 찾지 않는다.** "Omni Flash" 로 잡고 있었는데 실제 이름이
+  //   `Omni 1.1 Flash` 로 바뀌면서(버전 번호가 붙었다) 선택자가 빗나갔고, 이미지 쪽
+  //   드롭다운을 대신 집었다. 이름은 Flow 가 바꾸면 바로 낡는다 —
+  //   바로 아래 readCreditCost 가 이름 대신 크레딧을 읽는 것과 같은 이유다.
+  //   **구획 제목 뒤에 처음 오는 드롭다운**을 문서 순서로 잡는다. 이름이 또 바뀌어도 산다.
+  //   찾은 것에 표시를 남겨 Locator 로 돌려준다 — 호출부가 Locator 를 기대한다.
+  const marked = await page.evaluate((headSrc) => {
+    const re = new RegExp(headSrc);
+    const txt = (el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    for (const el of document.querySelectorAll('[data-fv-vdrop]')) el.removeAttribute('data-fv-vdrop');
+    const heads = [...document.querySelectorAll('*')]
+      .filter((el) => el.children.length === 0 && re.test(txt(el)));
+    if (!heads.length) return false;
+    const drops = [...document.querySelectorAll('button')].filter((b) => /arrow_drop_down/.test(txt(b)));
+    for (const h of heads) {
+      const after = drops.find((d) => h.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (after) { after.setAttribute('data-fv-vdrop', '1'); return true; }
+    }
+    return false;
+  }, sectionHeadRe('동영상').source).catch(() => false);
+  if (marked) return page.locator('[data-fv-vdrop="1"]').first();
+  // 제목을 못 찾으면 예전 방식으로 — 이름은 접두사로만 본다(버전 번호가 붙어도 걸리게).
+  return page.locator('button:has-text("Omni"), button:has-text("Veo")').last();
 }
 
 /**
@@ -323,12 +345,21 @@ async function composerChip(page) {
 }
 
 /** 팝오버의 `이미지 | 동영상` 탭. DOM 실측: button[role=radio] "videocam 동영상". */
+/** '이미지 생성 기본값' · '동영상 생성 기본값' 구획 제목. 새 배치에서 둘이 동시에 보인다. */
+const sectionHeadRe = (want) => new RegExp(`${want}\\s*생성 기본값|${want === '동영상' ? 'Video' : 'Image'} generation defaults`);
+
 async function switchMode(page, want /* '이미지' | '동영상' */) {
   const tab = page.locator(`button[role=radio]:has-text("${want}")`).first();
-  if (!(await tab.count().catch(() => 0))) return false;
-  await tab.click({ timeout: 6000 }).catch(() => {});
-  await page.waitForTimeout(1200);
-  return true;
+  if (await tab.count().catch(() => 0)) {
+    await tab.click({ timeout: 6000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+    return true;
+  }
+  // 2026-09-16: 탭이 사라졌다. 설정 패널이 '에이전트 설정' 하나로 합쳐지면서
+  //   이미지·동영상 기본값이 **탭 없이 위아래로 나란히** 놓였다(스크린샷으로 확인).
+  //   전환할 게 없으므로 그 구획이 보이면 통과다. 없으면 진짜로 못 찾은 것이다.
+  //   여기서 false 를 돌려주던 탓에 "동영상 탭 없음" 으로 생성이 통째로 막혀 있었다.
+  return (await page.getByText(sectionHeadRe(want)).count().catch(() => 0)) > 0;
 }
 
 /**
@@ -652,7 +683,10 @@ export async function readVideoModel(page) {
  * 못 읽으면 실패로 둔다. 모르면 막는다 — 크레딧은 잘못 쓰면 되돌릴 수 없다.
  */
 export async function setVideoModel(page, model = FREE_VIDEO_MODEL) {
-  const chip = await composerChip(page);
+  // 2026-09-16: composerChip 을 읽고 있었는데, 설정 패널이 하나로 합쳐지면서 그게
+  //   **이미지 모델 칩**을 가리키게 됐다(실측: "🍌 Nano Banana 2 Lite" 를 동영상 모델로 읽었다).
+  //   openDefaults 가 패널을 열고 **동영상 구획의** 드롭다운을 돌려준다. 그걸 쓴다.
+  const chip = await openDefaults(page);
   if (!(await chip.count().catch(() => 0))) return modelResult(MODEL_RESULT.PANEL_CLOSED);
   await chip.click({ timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(1300);

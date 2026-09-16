@@ -41,7 +41,7 @@ await page.waitForTimeout(2500);
 await page.screenshot({ path: `${SHOTS}/1-defaults.png` }).catch(() => {});
 
 // 모델 드롭다운은 이름으로 직접 잡는다. 이미지=Nano Banana, 동영상=Omni Flash(기본값).
-const known = ['Omni Flash', 'Veo', 'Nano Banana'];
+const known = ['Omni', 'Veo', 'Nano Banana'];
 let opened = false;
 for (const name of known) {
   const d = page.locator(`button:has-text("${name}")`).last();
