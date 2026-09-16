@@ -105,7 +105,8 @@ console.log(`  [기존] 결과 영상 ${before.size}개`);
 //   제목은 고유하지 않다 — Set 으로 지우면 같은 제목의 새 클립이 안 보인다(실측으로 당했다).
 //   개수로 센다. DOM 순서가 최신순이라 새로 생긴 것은 맨 앞이다.
 const beforeCards = await mediaCardTitles(page);
-console.log(`  [기존] 카드 ${beforeCards.length}개`);
+const beforeTop = beforeCards[0] ?? null;
+console.log(`  [기존] 카드 ${beforeCards.length}개 · 맨앞 "${String(beforeTop ?? '(없음)').slice(0, 34)}"`);
 
 // ── 프롬프트 → 제출 ────────────────────────────────────────────────────────
 await dismissDialogs(page);
@@ -147,9 +148,20 @@ while (Date.now() < deadline) {
   const nowCards = await mediaCardTitles(page);
   // 무엇을 보고 있는지 남긴다 — 못 보고 끝났을 때 원인을 가르려면 이 숫자가 필요하다.
   if (pollN % 6 === 0) process.stdout.write(`[${nowCards.length}]`);
-  if (nowCards.length > beforeCards.length) {
+  // 2026-09-16: **개수로는 못 잡는다.** 갤러리가 보이는 타일만 렌더해서, 새 카드가 위에 끼면
+  //   아래 하나가 빠진다 — 실제로 9개인데 30분 내내 8 을 읽었고 숫자가 한 번도 안 변했다.
+  //   맨 앞 카드가 바뀌는 것으로 본다. Flow 는 프롬프트에서 제목을 뽑아 붙이고, 실측 네 회차가
+  //   전부 다른 제목이었다(Man / Woman / Person / Office worker speaking into smartphone).
+  //   개수도 같이 본다 — 둘 중 하나만 걸려도 생성이다(느슨해지는 쪽 실수가 낫다, 규격 검사가 뒤에 있다).
+  const topChanged = nowCards.length > 0 && beforeTop && nowCards[0] !== beforeTop;
+  if (topChanged || nowCards.length > beforeCards.length) {
     const url = await videoUrlForCard(page, nowCards[0], { nth: 0 });   // 맨 앞이 가장 새것
-    if (url) { fresh = url; console.log(`\n  [생성] 새 카드 "${nowCards[0].slice(0, 40)}" (${beforeCards.length}→${nowCards.length})`); break; }
+    if (url) {
+      fresh = url;
+      console.log(`\n  [생성] 새 카드 "${nowCards[0].slice(0, 40)}"`
+        + (topChanged ? ` (맨앞 바뀜: "${beforeTop.slice(0, 26)}" →)` : ` (${beforeCards.length}→${nowCards.length})`));
+      break;
+    }
   }
   await dismissDialogs(page);                 // 생성 전 확인 모달이 뜰 수 있다
   await page.waitForTimeout(8000);
