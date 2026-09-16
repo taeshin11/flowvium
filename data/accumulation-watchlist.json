@@ -1,29 +1,10 @@
 {
-  "generatedAt": "2026-09-16T07:20:30.095Z",
+  "generatedAt": "2026-09-16T22:20:36.781Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 0,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "417200.KQ",
-      "name": "LS머트리얼즈",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 11.1,
-      "runup5dPct": 11.5,
-      "medDollarVolUsd": 4904849,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
