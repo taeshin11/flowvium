@@ -100,8 +100,10 @@ const before = new Set(await videoUrls(page));
 console.log(`  [기존] 결과 영상 ${before.size}개`);
 // 2026-09-16: `<video>` 만으로는 생성을 못 본다 — 새 갤러리는 카드에 썸네일만 두고
 //   눌러야 `<video>` 를 붙인다. **카드 제목**을 같이 기억해 둔다. 늘어난 제목이 방금 만든 것이다.
-const beforeCards = new Set(await mediaCardTitles(page));
-console.log(`  [기존] 카드 ${beforeCards.size}개`);
+//   제목은 고유하지 않다 — Set 으로 지우면 같은 제목의 새 클립이 안 보인다(실측으로 당했다).
+//   개수로 센다. DOM 순서가 최신순이라 새로 생긴 것은 맨 앞이다.
+const beforeCards = await mediaCardTitles(page);
+console.log(`  [기존] 카드 ${beforeCards.length}개`);
 
 // ── 프롬프트 → 제출 ────────────────────────────────────────────────────────
 await dismissDialogs(page);
@@ -117,6 +119,7 @@ console.log('  [생성] 제출');
 // ── 결과 대기. **새로 생긴** 영상만 인정한다 ────────────────────────────────
 const deadline = Date.now() + WAIT_S * 1000;
 let fresh = null;
+let pollN = 0;
 while (Date.now() < deadline) {
   const now = await videoUrls(page);
   // 개수가 늘어야 생성이다. 화면 전환으로 붙은 <video> 를 결과로 오인하면
@@ -125,10 +128,19 @@ while (Date.now() < deadline) {
   if (fresh) break;
   // `<video>` 가 안 붙는 배치에서는 **새로 생긴 카드 제목**으로 찾는다.
   //   제목을 눌러야 그때 `<video>` 가 생기므로, 눌러서 주소를 받아 온다.
-  const nowCards = (await mediaCardTitles(page)).filter((t) => !beforeCards.has(t));
-  if (nowCards.length) {
-    const url = await videoUrlForCard(page, nowCards[0]);
-    if (url) { fresh = url; console.log(`\n  [생성] 새 카드 "${nowCards[0].slice(0, 40)}"`); break; }
+  // 2026-09-16: 갤러리가 **스스로 갱신되지 않는다.** 제출 뒤 20분을 기다려도 DOM 은 그대로였는데,
+  //   같은 순간 새로고침해서 보면 카드가 늘어 있었다(6→7, "Woman speaking into smartphone").
+  //   생성도 됐고 세는 것도 맞았는데 **보고 있는 화면이 낡아서** 못 봤다.
+  //   주기적으로 다시 읽는다. 새로고침은 싸고, 못 보는 것보다 낫다.
+  if (++pollN % 6 === 0) {                     // 8초 × 6 ≈ 48초마다
+    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+    await page.waitForTimeout(4000);
+    await dismissDialogs(page);
+  }
+  const nowCards = await mediaCardTitles(page);
+  if (nowCards.length > beforeCards.length) {
+    const url = await videoUrlForCard(page, nowCards[0], { nth: 0 });   // 맨 앞이 가장 새것
+    if (url) { fresh = url; console.log(`\n  [생성] 새 카드 "${nowCards[0].slice(0, 40)}" (${beforeCards.length}→${nowCards.length})`); break; }
   }
   await dismissDialogs(page);                 // 생성 전 확인 모달이 뜰 수 있다
   await page.waitForTimeout(8000);

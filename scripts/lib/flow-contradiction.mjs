@@ -21,6 +21,14 @@ const SELL_CLAIM = String.raw`(외국인|기관)[^.]{0,16}(순유출|자금\s*�
 
 // '둔화/감소' 수식이 붙으면 정상 서술이다 — "순매수 둔화가 이어진다"는 매수 주장이 아니다.
 const SLOWDOWN = /(순매수|순매도|유입|유출)[^.]{0,6}(둔화|감소|축소|위축|약화)/;
+// 유입/매수가 **막히고 있다**는 서술도 주장이 아니다 — 방향은 오히려 실측과 같다.
+//   2026-09-16 실측: 09-16 회차가 이 문장으로 발간이 막혔다 —
+//     "원달러 환율이 1365원까지 치솟아 외국인 자금 유입에 부담이 되고 있다."
+//   입력은 "이탈" 이었고 이 문장도 유입이 어렵다는 뜻이라 방향이 같다. 모순이 아닌데 막았다.
+//   SLOWDOWN 이 둔화 계열만 보고 '부담·제약' 계열을 안 봤다 — 같은 종류의 서술이다.
+//   장애물이 **뒤에** 오는 형태만 본다("유입에 부담") — "부담에도 유입이 확대" 처럼
+//   앞에 오면 그건 진짜 유입 주장이므로 그대로 잡혀야 한다.
+const HINDRANCE = /(순매수|매수세|유입)[을를이가에]?\s*[^.]{0,6}(부담|제약|걸림돌|제한|지장|압박|발목|가로막)/;
 // 과거→현재 전환 서술은 정상 — "유입이 있었으나 지금은 이탈".
 // 과거형 전체를 잡으면 안 된다: 종전 /(있었|였|…)/ 는 "강세를 보였다"의 '였'에 걸려
 // 진짜 모순("외국인 매수세 지속으로 … 보였다")을 정상으로 흘려보냈다(실측).
@@ -73,6 +81,7 @@ export function sentenceContradicts(sentence, measuredDir) {
   const s = String(sentence ?? '');
   if (!s) return false;
   if (SLOWDOWN.test(s)) return false;      // "순매수 둔화" — 매수 주장이 아니다
+  if (HINDRANCE.test(s)) return false;     // "유입에 부담" — 유입이 막힌다는 뜻이다
   if (PAST_SHIFT.test(s)) return false;    // "유입이 있었으나 지금은 이탈" — 전환 서술
   const claimRe = new RegExp(measuredDir === 'sell' ? BUY_CLAIM : SELL_CLAIM);
   if (!claimRe.test(s)) return false;
