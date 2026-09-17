@@ -84,6 +84,8 @@ const COPY = {
     say: (b, site) => `話すだけでパソコンを操作する、${b}。自分だけのエーアイ秘書です。${site}で今すぐ手に入れてください。`,
     tagline: '自分だけのAI秘書',
     line: '取引先にメール送っておいて',
+    // 말풍선은 좁아서 두 줄이 된다. 브라우저가 단어 중간(送/っておいて)에서 끊었다 — 끊을 자리를 준다.
+    lineBubble: '取引先に<br>メール送っておいて',
     demoHead: 'スマホに話すだけでPCが動く',
     demoSteps: ['声で指示', 'メール作成中…', '送信完了 ✓'],
     desc: '話すだけで<br>パソコンを操作します',
@@ -214,6 +216,17 @@ const PHOTO_DEFAULT = resolve(ROOT, 'assets/outro/jarvis.jpg');
 const DEMO_IN = argOf('demo', process.env.AISVI_DEMO || '');
 const DEMO = DEMO_IN ? resolve(ROOT, DEMO_IN) : null;
 if (DEMO && !existsSync(DEMO)) { console.error(`❌ 시연 영상이 없다: ${DEMO}`); process.exit(2); }
+// 시연 영상마다 편집이 다르다(사람 위치·단계 시각). 영상 옆 같은 이름의 .json 에 둔다.
+//   2026-09-17: 한국 시연은 사람이 오른쪽, 일본 시연은 왼쪽이라 말풍선 자리가 반대였다 —
+//   코드에 좌표를 박아 두면 영상을 바꿀 때마다 틀린다.
+let DEMO_CFG = { steps: [2.4, 4.7], bubble: { x: 120, y: 12, maxW: 600, base: [[500, 82], [590, 72]], tip: [668, 196] } };
+if (DEMO) {
+  const cf = DEMO.replace(/\.[a-z0-9]+$/i, '.json');
+  if (existsSync(cf)) {
+    try { DEMO_CFG = { ...DEMO_CFG, ...JSON.parse(readFileSync(cf, 'utf8')) }; console.log(`  시연 설정: ${cf.split('/').pop()}`); }
+    catch (e) { console.error(`❌ 시연 설정을 못 읽는다: ${cf} — ${e.message}`); process.exit(2); }
+  } else console.log('  시연 설정 파일 없음 — 기본값(aisvi-demo.mp4 기준)을 쓴다');
+}
 let DEMO_SEC = 0;
 if (DEMO) {
   const pr = spawnSync(ffmpeg, ['-i', DEMO], { encoding: 'utf8' });
@@ -316,7 +329,8 @@ const STEP_H = 110;
 const STEP_Y = VID_Y + VID_H + 40 + 70 + 14 + 105 + 14;
 // 시연 편집의 단계 경계(초). assets/outro/aisvi-demo.mp4 는 0~2.4 말함 · 2.4~ 메일 작성 ·
 //   4.7~ 체크(크로스페이드 끝)로 편집했다. 다른 시연을 쓰면 AISVI_DEMO_STEPS="a,b" 로 준다.
-const DEMO_STEPS_AT = String(process.env.AISVI_DEMO_STEPS ?? '2.4,4.7').split(',').map(Number);
+const DEMO_STEPS_AT = process.env.AISVI_DEMO_STEPS
+  ? String(process.env.AISVI_DEMO_STEPS).split(',').map(Number) : DEMO_CFG.steps;
 if (DEMO) {
   await page.setContent(`<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -366,20 +380,20 @@ html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
   //   자리는 모니터 위쪽 빈 벽(영상 좌표 x120~, y12~), 꼬리는 입(약 700,215)을 가리킨다 —
   //   영상 좌표는 첫 장면 프레임에 격자를 그려 재서 정했다. 얼굴(x690~)은 덮지 않는다.
   //   예전에 띠 전체에 고정 말풍선을 얹었다가 움직이는 얼굴을 덮은 적이 있어, 시간을 짧게 묶는다.
-  const bx = 120, by = VID_Y + 12;
-  const tipX = 668, tipY = VID_Y + 196;
+  const B = DEMO_CFG.bubble;
+  const bx = B.x, by = VID_Y + B.y;
+  const pts = [...B.base, B.tip].map(([px, py]) => `${px},${VID_Y + py}`).join(' ');
   await page.setContent(`<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
   font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
-.b{position:absolute;left:${bx}px;top:${by}px;max-width:600px;background:#fff;color:#111;
+.b{position:absolute;left:${bx}px;top:${by}px;max-width:${B.maxW}px;background:#fff;color:#111;
   border-radius:40px;padding:20px 38px;font-size:46px;font-weight:900;line-height:1.25;
   box-shadow:0 10px 30px rgba(0,0,0,.35)}
 svg{position:absolute;left:0;top:0}
 </style>
-<svg width="${W}" height="${H}"><polygon points="${bx + 380},${by + 70} ${bx + 470},${by + 60} ${tipX},${tipY}"
-  fill="#fff"/></svg>
-<div class="b">${T.line}</div>`);
+<svg width="${W}" height="${H}"><polygon points="${pts}" fill="#fff"/></svg>
+<div class="b">${T.lineBubble ?? T.line}</div>`);
   await page.screenshot({ path: `${WORK}/bubble.png`, omitBackground: true });
 }
 await browser.close();
@@ -442,7 +456,7 @@ const vArgs = DEMO && bandFile
     // 시연: 폭에 맞춰 늘리고, 짧으면 마지막 프레임을 물린다. Veo 소리는 버린다.
     `[1:v]scale=${W}:${VID_H}:force_original_aspect_ratio=increase,crop=${W}:${VID_H},`
       + `tpad=stop_mode=clone:stop_duration=${PHASE_A},trim=0:${PHASE_A},setpts=PTS-STARTPTS,fps=30[d];`
-      + `[7:v]format=rgba,fade=t=in:st=0.15:d=0.18:alpha=1,fade=t=out:st=2.1:d=0.2:alpha=1[bub];`
+      + `[7:v]format=rgba,fade=t=in:st=0.15:d=0.18:alpha=1,fade=t=out:st=${Math.max(0.5, DEMO_STEPS_AT[0] - 0.3)}:d=0.2:alpha=1[bub];`
       + `[0:v][d]overlay=0:${VID_Y}[a0];[a0][2:v]overlay=0:0[a1];`
       + `[a1][bub]overlay=0:0[a2];`
       + stepChain('a2', 'A')
