@@ -1,10 +1,29 @@
 {
-  "generatedAt": "2026-09-16T22:20:36.781Z",
+  "generatedAt": "2026-09-17T07:20:29.270Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "171090.KQ",
+      "name": "선익시스템",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 6.3,
+      "runup5dPct": 4.5,
+      "medDollarVolUsd": 2399245,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }
