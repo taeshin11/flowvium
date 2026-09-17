@@ -26,7 +26,7 @@ if (!ic.length) { console.log('IC 표본 부족 — 기록 생략(지어내지 �
 const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
 const rows = db.prepare(`
   SELECT bc.ticker, bc.total_score, bc.matched_rules, bc.report_id,
-         o.outcome, o.price_at_eval, o.spy_return,
+         o.outcome, o.price_at_eval, COALESCE(o.bench_return, o.spy_return) AS spy_return,
          r.entry_low, r.price_at_gen, r.target, r.stop_loss, r.generated_at
   FROM buy_candidates bc
   JOIN recommendations r ON r.ticker = bc.ticker AND r.report_id = bc.report_id

@@ -5128,14 +5128,16 @@ function getPortfolioFeedback() {
     tickerAvg.sort((a, b) => b.avg - a.avg);
     const top3 = tickerAvg.slice(0, 3);
     const bottom3 = tickerAvg.slice(-3).reverse();
-    // SPY alpha (recommendation_outcomes.spy_return 대비)
+    // 시장 대비 알파. 2026-09-18: 벤치마크를 시장에 맞췄다(미국 SPY · 한국 코스피).
+    //   종전엔 한국 종목도 SPY 와 비교해 9월 한국이 -4.55%p 로 보였는데, 코스피 기준으로는
+    //   +0.75%p(이김)였다. 옛 행(bench_return 없음)은 spy_return 으로 떨어진다.
     const dbA = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
     const alphaRow = dbA.prepare(`
-      SELECT ROUND(AVG(o.pnl_pct - o.spy_return), 1) alpha,
-             SUM(CASE WHEN o.pnl_pct > o.spy_return THEN 1 ELSE 0 END) beat,
+      SELECT ROUND(AVG(o.pnl_pct - COALESCE(o.bench_return, o.spy_return)), 1) alpha,
+             SUM(CASE WHEN o.pnl_pct > COALESCE(o.bench_return, o.spy_return) THEN 1 ELSE 0 END) beat,
              COUNT(*) n
       FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
-      WHERE r.action='buy' AND r.generated_at >= date('now','-30 days') AND o.spy_return IS NOT NULL
+      WHERE r.action='buy' AND r.generated_at >= date('now','-30 days') AND COALESCE(o.bench_return, o.spy_return) IS NOT NULL
     `).get();
       // 2026-08-22: 판정 관용(evaluate-recommendations: high >= target*0.98)이 2% 일찍 발동한다.
       //   실측 — hit_target 94건 중 실제 목표가 도달은 31건(33%), 나머지는 98~100% 구간이다.

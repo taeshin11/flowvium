@@ -39,10 +39,10 @@ const alpha = db.prepare(`
   SELECT
     COUNT(*) n,
     ROUND(AVG(o.pnl_pct),2) ticker_avg,
-    ROUND(AVG(o.spy_return),2) spy_avg,
-    ROUND(AVG(o.pnl_pct - o.spy_return),2) alpha,
-    SUM(CASE WHEN o.pnl_pct > o.spy_return THEN 1 ELSE 0 END) beat_spy,
-    SUM(CASE WHEN o.pnl_pct < o.spy_return THEN 1 ELSE 0 END) lose_spy
+    ROUND(AVG(COALESCE(o.bench_return, o.spy_return)),2) spy_avg,
+    ROUND(AVG(o.pnl_pct - COALESCE(o.bench_return, o.spy_return)),2) alpha,
+    SUM(CASE WHEN o.pnl_pct > COALESCE(o.bench_return, o.spy_return) THEN 1 ELSE 0 END) beat_spy,
+    SUM(CASE WHEN o.pnl_pct < COALESCE(o.bench_return, o.spy_return) THEN 1 ELSE 0 END) lose_spy
   FROM recommendation_outcomes o JOIN recommendations r ON r.id=o.recommendation_id
   WHERE r.action='buy' AND o.outcome ${sqlIn(REALIZED)} AND o.spy_return IS NOT NULL
 `).get();

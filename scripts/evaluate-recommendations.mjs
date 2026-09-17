@@ -203,7 +203,26 @@ async function main() {
     return [];
   });
   const spyFor = (genAt) => spyReturnBetween(spySeries, Date.parse(genAt), Date.parse(nowIso));
-  console.log(`SPY 시계열 ${spySeries.length}일 — 벤치마크는 추천 건별 보유구간으로 계산\n`);
+
+  // 2026-09-18: 벤치마크를 **그 종목이 속한 시장**에 맞춘다.
+  //   종전에는 한국 종목도 SPY 와 비교했다. 9월처럼 미국이 오르고 한국이 빠진 달에는
+  //   한국 추천이 실제보다 훨씬 나쁘게 보인다 — 실측: 9월 한국 평균 -3.94% 를
+  //   SPY 기준 -4.55%p 로 읽었지만 코스피(-2.2%) 기준으로는 -1.7%p 다. 3배 가까이 과장됐다.
+  //   기존 spy_return 은 그대로 채운다(과거 분석과 대조하려면 같은 값이 있어야 한다).
+  const kospiSeries = await fetchSpySeries(span.minMs, span.maxMs, { symbol: '^KS11' }).catch((e) => {
+    console.log(`⚠️ 코스피 시계열 실패 (${e.message}) — 한국 종목 벤치마크는 비워 둔다`);
+    return [];
+  });
+  const isKR = (t) => /\.(KS|KQ)$/i.test(String(t ?? ''));
+  const benchFor = (ticker, genAt) => {
+    const series = isKR(ticker) ? kospiSeries : spySeries;
+    if (!series.length) return { symbol: null, value: null };
+    return {
+      symbol: isKR(ticker) ? '^KS11' : 'SPY',
+      value: spyReturnBetween(series, Date.parse(genAt), Date.parse(nowIso)),
+    };
+  };
+  console.log(`SPY ${spySeries.length}일 · 코스피 ${kospiSeries.length}일 — 벤치마크는 시장별·추천 건별 보유구간으로 계산\n`);
 
   let counts = { hit_target: 0, stop_loss: 0, not_entered: 0, still_holding: 0, unknown: 0, skipped_watch: 0 };
   const neClasses = { NE_WINNER_MISSED: 0, NE_UP_DRIFT: 0, NE_NO_FILL: 0 };  // 2026-06-14 NE 세분
@@ -235,6 +254,8 @@ async function main() {
         high_seen: judge.highSeen ?? null,
         low_seen: judge.lowSeen ?? null,
         spy_return: spyFor(rec.generated_at),
+        bench_symbol: benchFor(rec.ticker, rec.generated_at).symbol,
+        bench_return: benchFor(rec.ticker, rec.generated_at).value,
         details: { ...judge, pnlBasis: 'realized', mtmPnlPct: mtm },
       });
     }

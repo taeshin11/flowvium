@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
   high_seen         REAL,
   low_seen          REAL,
   spy_return        REAL,
+  bench_symbol      TEXT,          -- 2026-09-18: 시장에 맞춘 벤치마크(미국 SPY · 한국 ^KS11)
+  bench_return      REAL,
   quality_score     INTEGER,
   details_json      TEXT,
   FOREIGN KEY (recommendation_id) REFERENCES recommendations(id) ON DELETE CASCADE
@@ -597,6 +599,15 @@ export function openDb() {
       db.exec("UPDATE reports SET model = REPLACE(source, 'local-', '') WHERE model IS NULL AND source LIKE 'local-%'");
     }
   } catch (e) { console.warn('[db] reports.model 마이그레이션 skip:', e.message); }
+  // 2026-09-18: 벤치마크를 시장에 맞춘다. 종전에는 한국 종목도 SPY 와 비교했다 —
+  //   9월처럼 미국이 오르고 한국이 빠진 달에는 한국 추천이 실제보다 훨씬 나쁘게 보인다
+  //   (실측: 9월 한국 -3.94% 를 SPY 기준 -4.55%p 로 읽었지만 코스피 기준으로는 -1.7%p).
+  //   기존 spy_return 은 그대로 둔다(과거 분석과의 대조용). 새 칼럼에 시장에 맞춘 값을 쓴다.
+  try {
+    const cols = db.prepare('PRAGMA table_info(recommendation_outcomes)').all().map((c) => c.name);
+    if (!cols.includes('bench_symbol')) db.exec('ALTER TABLE recommendation_outcomes ADD COLUMN bench_symbol TEXT');
+    if (!cols.includes('bench_return')) db.exec('ALTER TABLE recommendation_outcomes ADD COLUMN bench_return REAL');
+  } catch (e) { console.warn('[db] recommendation_outcomes.bench 마이그레이션 skip:', e.message); }
   _dbInstance = db;
   return db;
 }
@@ -1342,9 +1353,10 @@ export function saveRecommendations(report, reportId) {
  *   기존엔 보고서 전체 quality_score 만 복사(추천별 변별 0) → outcome 학습이 무의미했음.
  *   alpha 1%p = 2점, hit_target +15, stop_loss −15, sold/expired 중립. 50 중심 clamp.
  */
-export function computeOutcomeQuality({ pnl_pct, spy_return, outcome }) {
+export function computeOutcomeQuality({ pnl_pct, spy_return, bench_return, outcome }) {
   if (pnl_pct == null) return null;
-  const alpha = pnl_pct - (spy_return ?? 0);
+  // 시장에 맞춘 값이 있으면 그걸 쓴다(한국은 코스피). 없으면 예전대로 SPY.
+  const alpha = pnl_pct - (bench_return ?? spy_return ?? 0);
   let score = 50 + alpha * 2;
   if (outcome === 'hit_target') score += 15;
   else if (outcome === 'stop_loss') score -= 15;
@@ -1363,10 +1375,10 @@ export function saveOutcome(rec) {
   db.prepare(`
     INSERT INTO recommendation_outcomes
       (recommendation_id, evaluated_at, price_at_eval, outcome, pnl_pct,
-       ohlc_days, high_seen, low_seen, spy_return, quality_score, details_json)
+       ohlc_days, high_seen, low_seen, spy_return, bench_symbol, bench_return, quality_score, details_json)
     VALUES
       (@recommendation_id, @evaluated_at, @price_at_eval, @outcome, @pnl_pct,
-       @ohlc_days, @high_seen, @low_seen, @spy_return, @quality_score, @details_json)
+       @ohlc_days, @high_seen, @low_seen, @spy_return, @bench_symbol, @bench_return, @quality_score, @details_json)
     ON CONFLICT(recommendation_id, evaluated_at) DO UPDATE SET
       price_at_eval = excluded.price_at_eval,
       outcome       = excluded.outcome,
@@ -1375,6 +1387,8 @@ export function saveOutcome(rec) {
       high_seen     = excluded.high_seen,
       low_seen      = excluded.low_seen,
       spy_return    = excluded.spy_return,
+      bench_symbol  = excluded.bench_symbol,
+      bench_return  = excluded.bench_return,
       quality_score = excluded.quality_score,
       details_json  = excluded.details_json
   `).run({
@@ -1387,6 +1401,8 @@ export function saveOutcome(rec) {
     high_seen: rec.high_seen ?? null,
     low_seen: rec.low_seen ?? null,
     spy_return: rec.spy_return ?? null,
+    bench_symbol: rec.bench_symbol ?? null,
+    bench_return: rec.bench_return ?? null,
     quality_score: qs,
     details_json: rec.details ? JSON.stringify(rec.details) : null,
   });
