@@ -888,7 +888,13 @@ function qualityCheck(report) {
   //   리포트(포트폴리오·verdict·계약상세 정상, verify 0결함)를 hard-fail 시켜 더 나쁜 옛 리포트가
   //   라이브 잔존하던 사건 fix. 핵심(thesis/portfolio/narrative/regionStances) 아니므로 warning 으로
   //   강등 — 점수 페널티는 받되 발간 차단은 안 함. 소스 복구 시 자동 재출현.
-  if (!report.shortSqueeze?.length) warnings.push('shortSqueeze MISSING (외부 소스 일시 down — 비차단)');
+  // 2026-09-18: 빈 이유가 둘이 됐다. 첫 등재만 싣게 바꾼 뒤로는 **새로 잡힌 종목이 없어서** 비는 회차가
+  //   대부분이다(과거 기록으로 모의하니 64%). 그걸 "소스 down" 이라고 적으면 멀쩡한 동작을 고장으로 읽는다.
+  if (!report.shortSqueeze?.length) {
+    warnings.push(report._squeezeNoFresh
+      ? 'shortSqueeze 비어 있음 (신규 종목 없음 — 첫 등재만 싣는 규칙, 정상)'
+      : 'shortSqueeze MISSING (외부 소스 일시 down — 비차단)');
+  }
 
   // Ticker duplicate check — catches NVDA + NVIDIA both surviving dedup
   if (Array.isArray(report.portfolio) && report.portfolio.length > 0) {
@@ -9004,6 +9010,30 @@ async function generateViaOllama() {
     }
   }
   finalReport.shortSqueeze = await enrichSqueezePostEarnings(finalReport.shortSqueeze, rawEarnings, livePrices, localeArg);
+
+  // 2026-09-18: **첫 등재만 싣는다.** 같은 종목이 매일 다시 실리고 있었다(COIN 226회·MRNA 186회).
+  //   5/5~9/17 기록 895건을 등재 시점별로 갈라 이후 20거래일을 재니 —
+  //     첫 등재 +27.3%p(이긴비율 85%) · 1~7일차 +4.6%p(52%) · 8~30일 +5.3%p(53%) · 30일 초과 **-11.0%p(11%)**
+  //   "스퀴즈 임박" 은 며칠짜리 주장인데 두 달째 같은 말을 하면 그건 예측이 아니다.
+  //   오래 빠졌다 다시 잡히면(7일 이상 공백) 새 주장으로 보고 다시 싣는다.
+  //   새 종목이 없는 회차에는 이 항목이 빈다 — 없는 주장을 만들어 내는 것보다 낫다.
+  try {
+    const { keepFreshOnly } = await import('./lib/squeeze-staleness.mjs');
+    const sdb = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
+    const hist = sdb.prepare('SELECT captured_at FROM short_squeeze_archive WHERE ticker = ?');
+    const historyOf = (t) => hist.all(t).map((r) => Date.parse(r.captured_at)).filter(Number.isFinite);
+    const { kept, dropped } = keepFreshOnly(finalReport.shortSqueeze, historyOf);
+    sdb.close();
+    if (dropped.length) {
+      console.log(`  [squeeze] 오래 눌러앉은 ${dropped.length}건 제외: ${dropped.map((d) => `${d.ticker}(${d.days}일)`).join(' · ')}`);
+    }
+    finalReport.shortSqueeze = kept;
+    if (!kept.length) {
+      finalReport._squeezeNoFresh = dropped.length > 0;   // 소스가 죽은 것과 구분한다
+      console.log('  [squeeze] 이번 회차엔 새로 잡힌 종목이 없다 — 항목을 비운다');
+    }
+  } catch (e) { console.warn('  ⚠️ squeeze 신규 판정 skip:', e.message); }
+
   // topOpportunity가 제거된 ticker를 가리키면 비움
   const removedTickers = squeezeBefore.filter(t => !finalReport.shortSqueeze.find(s => s.ticker === t));
   if (removedTickers.some(t => (finalReport.topOpportunity ?? '').includes(t))) {
