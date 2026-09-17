@@ -59,6 +59,11 @@ const tickers = US
   ? (cand.tickers ?? []).filter(t => !/\.(KS|KQ)$/.test(t))   // 소형주 유니버스는 이미 US-only
   : (cand.tickers ?? []).filter(t => ALL ? /\.(KS|KQ)$/.test(t) : /\.KQ$/.test(t));
 const MARKET = US ? 'US' : ALL ? 'KR' : 'KOSDAQ';
+// 2026-09-18 검증(규칙은 아직 안 바꿨다): 깃 기록으로 첫 등장일을 복원해 이후 20거래일을 쟀다.
+//   미국 n=97 — 지수 대비 중앙 -0.9%p · 이긴비율 44% (효과 없음)
+//   한국 n=17 — 코스피 대비 중앙 +4.4%p · 이긴비율 71% (표본 부족, Wilson 90% 구간 51~85% 로 판정 보류)
+//   등급이 거꾸로다: strong(n=5) -9.3%p·이긴비율 0% vs watch(n=92) +0.9%p.
+//   n=5 로 규칙을 바꾸면 그게 더 큰 실수다 — 표본이 30 건 넘으면 다시 재고 그때 정한다.
 console.log(`작전주 매집 스캔: ${tickers.length}종 (${MARKET}) — 오르기 前 선행조짐`);
 
 // 거래소 공식 시장경보 — '소수계좌 거래집중'(투자주의) = 작전주 선행 surveillance flag. 매집 탐지와

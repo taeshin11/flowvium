@@ -1134,7 +1134,12 @@ export default function ReportPage() {
                     {data.shortSqueeze.map((s, i) => (
                       <div key={i} className="mb-2 text-xs">
                         <span className="font-bold text-orange-800">{displayName(s.ticker)}</span>
-                        <span className="text-orange-600 ml-1">{tShort('colSqueezeScore')} {s.score}</span>
+                        {/* 2026-09-18: 점수 표시를 뺀다. 실제 성과와 대조해 보니 **변별력이 없다** —
+                            첫 등재 14건 중 12건이 똑같이 45점이었고(범위 40~55), 점수와 이후 20거래일
+                            섹터 대비 성과의 순위상관은 0.15 였다. 구간별로는 오히려 거꾸로다
+                            (60점 이상 -3.5%p vs 50~60점 +13.8%p).
+                            변하지 않는 숫자를 확신처럼 보여주면 읽는 사람을 잘못 이끈다.
+                            대신 아래 실측값(공매도 유통비율·거래비중·상환일수)만 남긴다. */}
                         {/* 2026-08-21: score 만 보여주면 독자가 검증할 수 없다. 점수를 만든 실측값을 함께 싣는다.
                             (api/short-interest 의 calcSqueezeScore 입력 — 공매도 유통비율·FINRA 공매도 거래비중·상환일수)
                             실측이 없는 항목은 아무것도 붙이지 않는다 — 없는 근거를 지어내지 않는다. */}
