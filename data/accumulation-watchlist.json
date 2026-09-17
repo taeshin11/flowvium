@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-09-17T07:20:29.270Z",
+  "generatedAt": "2026-09-17T22:20:26.907Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "445680.KQ",
+      "name": "큐리옥스바이오시스템즈",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 6.6,
+      "runup5dPct": -1.8,
+      "medDollarVolUsd": 2739252,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "171090.KQ",
       "name": "선익시스템",
@@ -21,7 +39,7 @@
       ],
       "runup20dPct": 6.3,
       "runup5dPct": 4.5,
-      "medDollarVolUsd": 2399245,
+      "medDollarVolUsd": 2460212,
       "smartAccum": true,
       "official": null
     }
