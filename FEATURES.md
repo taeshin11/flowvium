@@ -1197,7 +1197,7 @@ Copernicus 자격증명(.env.local)은 보존(추후 재활용 대비).
 | `scan-accumulation --us` (cron-runner 로컬, 2026-06-17) | 06:30 · 22:00 KST | US 소형주 작전주 매집(거래량) → `data/accumulation-watchlist-us.json` (자동 커밋+푸시) |
 | `build-us-smallcap` (cron-runner 로컬, 2026-06-17) | 월 04:00 KST | Yahoo screener `aggressive_small_caps` → US 소형주 유니버스 `data/us-smallcap-universe.json` (주 1회) |
 | `scan-insider-kr` (cron-runner 로컬, 2026-06-17) | 16:30 · 07:30 KST | KR 임원·주요주주 지분공시 피드(DART, 로컬 라우트 순회) → `data/insider-kr-feed.json` (자동 커밋+푸시) |
-| `blog-post` (cron-runner 로컬, 2026-09-18) | 07:10 · 16:10 · 21:40 KST | 발간 직후 보고서를 블로그 글로 정리 → `reports/blog/YYYY-MM-DD-session.md` (제목 후보 + 본문 + flowvium.net·유튜브 안내 + 투자 고지). 문장은 web 레인(:8001)이 존댓말로 고쳐 쓰되 **원문에 없는 숫자나 바뀐 단위가 있으면 버리고 원문 유지**(`scripts/lib/blog-voice.mjs`). **게시는 사람이 한다** — 네이버는 글쓰기 API 를 2020-05, 티스토리는 오픈 API 를 2024-02 종료했고 자동 게재는 약관 위반 |
+| `blog-post` (cron-runner 로컬, 2026-09-18) | 07:10 KST (하루 1회) | 발간 직후 보고서를 블로그 글로 정리 → `reports/blog/YYYY-MM-DD-session.md` (제목 후보 + 본문 + flowvium.net·유튜브 안내 + 투자 고지). 문장은 web 레인(:8001)이 존댓말로 고쳐 쓰되 **원문에 없는 숫자나 바뀐 단위가 있으면 버리고 원문 유지**(`scripts/lib/blog-voice.mjs`). **게시는 사람이 한다** — 네이버는 글쓰기 API 를 2020-05, 티스토리는 오픈 API 를 2024-02 종료했고 자동 게재는 약관 위반 |
 
 ---
 
