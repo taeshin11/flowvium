@@ -17,6 +17,19 @@ import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { allCompanies } from '@/data/companies';
+import candidateTickers from '../../../../data/candidate-tickers.json';
+
+// 2026-09-17: 단일 종목 조회에서 미국 종목 절반이 빈 bands 를 받았다(audit-coverage market-caps 6/12 —
+//   실패 12개가 전부 미국, CEG·GLW·CBRE 같은 S&P500 종목). 밴드가 allCompanies(정적 목록)에서만
+//   나오고, 실시간 시총도 SHARES_B(약 30종목)에만 있어서 나머지는 빈 값이 24시간 캐시됐다.
+//   종목 풀(data/candidate-tickers.json)의 meta.cap 이 같은 등급 체계라 그걸 대체값으로 쓴다.
+//   믿을 만한지 먼저 쟀다 — 실시간 시총(Yahoo v7)과 59종목 대조: 일치 57 · 한 칸 차이 2 · 두 칸 이상 0.
+const POOL_BANDS = new Set<MarketCapBand>(['titan', 'mega', 'large', 'mid', 'small']);
+function poolBand(ticker: string): MarketCapBand | null {
+  const meta = (candidateTickers as { meta?: Record<string, { cap?: string }> }).meta?.[ticker];
+  const cap = meta?.cap as MarketCapBand | undefined;
+  return cap && POOL_BANDS.has(cap) ? cap : null;
+}
 import { type MarketCapBand, YAHOO_HEADERS } from '@/lib/yahoo-finance';
 export const dynamic = 'force-dynamic';
 
@@ -178,7 +191,7 @@ export async function GET(req: Request) {
       if (cached) {
         logger.info('api.market-caps', 'cache_hit', { count: cached.count });
         if (filterTicker) {
-          const band = cached.bands[filterTicker] ?? null;
+          const band = cached.bands[filterTicker] ?? poolBand(filterTicker);
           const liveCap = await fetchYahooCap(filterTicker);
           const caps = liveCap != null ? { [filterTicker]: liveCap } : {};
           return NextResponse.json({
@@ -245,7 +258,7 @@ export async function GET(req: Request) {
   logger.info('api.market-caps', 'served', { tickers: seen.size, durationMs: Date.now() - reqStart });
 
   if (filterTicker) {
-    const band = payload.bands[filterTicker] ?? null;
+    const band = payload.bands[filterTicker] ?? poolBand(filterTicker);
     const liveCap = await fetchYahooCap(filterTicker);
     const caps = liveCap != null ? { [filterTicker]: liveCap } : {};
     return NextResponse.json({
