@@ -76,46 +76,63 @@ async function fetchYahooNews(ticker: string): Promise<NewsItem[]> {
   })).filter(n => n.title);
 }
 
-// 2026-05-31: KR 종목 (.KS / .KQ) news — Yahoo search 가 .KS 미지원 → Naver finance HTML scraping.
-//   1,210 종목 페이지 audit 에서 KR news 100% unavailable 결함 fix.
-//   ticker → 6자리 코드 → Naver 종목별 뉴스 page (EUC-KR HTML) → title/link/pubDate 추출.
+// 2026-05-31: KR 종목 (.KS / .KQ) news — Yahoo search 가 .KS 미지원 → Naver 에서 가져온다.
+//
+// 2026-09-17: 종전 HTML 페이지(finance.naver.com/item/news_news.naver)가 **HTTP 410 Gone** 이다.
+//   네이버가 페이지를 없앴다. 그래서 캐시가 없는 한국 종목은 전부 `error: unavailable` 로
+//   뉴스가 비었다 — 삼성전자처럼 전에 캐시된 종목만 나와서 겉으로는 멀쩡해 보였다.
+//   (audit-coverage 의 company-news 6/12 가 정확히 "미국 6 성공 · 한국 6 실패" 였다.)
+//   네이버 증권 모바일이 쓰는 JSON 을 쓴다. 기사 시각(datetime, KST)도 들어 있어,
+//   종전에 "지금 시각" 을 넣던 pubDate 도 실제 값이 된다.
+const NAVER_ENTITIES: Array<[RegExp, string]> = [
+  [/&quot;/g, '"'], [/&#39;|&apos;/g, "'"], [/&hellip;/g, '…'], [/&middot;/g, '·'],
+  [/&lsquo;/g, '‘'], [/&rsquo;/g, '’'], [/&ldquo;/g, '“'], [/&rdquo;/g, '”'],
+  [/&uarr;/g, '↑'], [/&darr;/g, '↓'], [/&lt;/g, '<'], [/&gt;/g, '>'], [/&amp;/g, '&'],
+];
+function decodeNaver(t: string): string {
+  let s = String(t ?? '');
+  for (const [re, v] of NAVER_ENTITIES) s = s.replace(re, v);
+  return s.replace(/<[^>]+>/g, '').trim();
+}
+// "202609171734"(KST) → ISO. 못 읽으면 null — 없는 시각을 지어내지 않는다.
+function naverDatetime(dt: string): string | null {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(String(dt ?? ''));
+  if (!m) return null;
+  const d = new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00+09:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+type NaverNewsGroup = { total?: number; items?: Array<{
+  officeId?: string; articleId?: string; officeName?: string; datetime?: string;
+  title?: string; titleFull?: string; mobileNewsUrl?: string;
+}> };
+
 async function fetchNaverNews(ticker: string): Promise<NewsItem[]> {
   const code = ticker.replace(/\.(KS|KQ)$/i, '');
   if (!/^\d{6}$/.test(code)) return [];
-  const url = `https://finance.naver.com/item/news_news.naver?code=${code}&page=1&sm=title_entity_id.basic&clusterId=`;
+  const url = `https://m.stock.naver.com/api/news/stock/${code}?pageSize=10&page=1`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', Referer: 'https://finance.naver.com/' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15', Referer: 'https://m.stock.naver.com/' },
     signal: AbortSignal.timeout(10000),
     cache: 'no-store',
   });
-  if (!res.ok) throw new Error(`Naver finance news HTTP ${res.status}`);
-  // EUC-KR 응답 → UTF-8 decode. TextDecoder 가 euc-kr 지원.
-  const buffer = await res.arrayBuffer();
-  const html = new TextDecoder('euc-kr', { fatal: false }).decode(buffer);
-  // pattern: <a href="/item/news_read.naver?article_id=...&office_id=...&code=...&..." class="tit" ...>제목</a>
-  const re = /<a\s+href="(\/item\/news_read\.naver\?article_id=[^"]+)"[^>]*class="tit"[^>]*>([^<]+)<\/a>/g;
+  if (!res.ok) throw new Error(`Naver stock news HTTP ${res.status}`);
+  const groups = await res.json() as NaverNewsGroup[];
+  if (!Array.isArray(groups)) throw new Error(`Naver stock news: unexpected shape (${typeof groups})`);
   const seen = new Set<string>();
   const items: NewsItem[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    const link = `https://finance.naver.com${m[1]}`;
-    const titleRaw = m[2]
-      .replace(/&hellip;/g, '…')
-      .replace(/&middot;/g, '·')
-      .replace(/&lsquo;/g, '‘').replace(/&rsquo;/g, '’')
-      .replace(/&ldquo;/g, '“').replace(/&rdquo;/g, '”')
-      .replace(/&uarr;/g, '↑').replace(/&darr;/g, '↓')
-      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-      .trim();
-    if (!titleRaw || seen.has(titleRaw)) continue;
-    seen.add(titleRaw);
-    items.push({
-      title: titleRaw,
-      description: '',
-      link,
-      pubDate: new Date().toISOString(), // Naver 페이지에서 정확한 pubDate 추출은 row 마다 별도 td (생략, 오늘 자정 기준)
-      source: 'Naver 금융',
-    });
+  for (const g of groups) {
+    // 묶음의 첫 기사가 대표다(나머지는 같은 사건의 다른 매체).
+    const x = g?.items?.[0];
+    if (!x) continue;
+    const title = decodeNaver(x.titleFull || x.title || '');
+    if (!title || seen.has(title)) continue;
+    seen.add(title);
+    const link = x.mobileNewsUrl
+      || (x.officeId && x.articleId ? `https://n.news.naver.com/mnews/article/${x.officeId}/${x.articleId}` : '');
+    const pubDate = naverDatetime(x.datetime ?? '');
+    if (!link || !pubDate) continue;
+    items.push({ title, description: '', link, pubDate, source: x.officeName ? `${x.officeName} (Naver)` : 'Naver 금융' });
     if (items.length >= 8) break;
   }
   return items;
