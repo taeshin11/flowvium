@@ -65,6 +65,9 @@ const COPY = {
     //   요약은 읽어 주는 것이고 발송은 **대신 해 주는** 것이다. 아래 note("화면을 보고
     //   프로그램을 열고 눌러 줍니다")가 말하는 동작과 같은 것을 대사가 보여 줘야 한다.
     line: '거래처에 메일 보내줘',
+    // 두 단계 구성의 앞단계 문구(2026-09-17). 위: 한 줄 요약 / 아래: 시연과 맞춰 바뀌는 상태
+    demoHead: '폰에 말하면 컴퓨터가 알아서',
+    demoSteps: ['말로 지시', '메일 작성 중…', '전송 완료 ✓'],
     desc: '말하는 대로<br>내 컴퓨터를 조종합니다',
     cta: '에서 다운로드',
     note: '화면을 보고 프로그램을 열고 눌러 줍니다',
@@ -81,6 +84,8 @@ const COPY = {
     say: (b, site) => `話すだけでパソコンを操作する、${b}。自分だけのエーアイ秘書です。${site}で今すぐ手に入れてください。`,
     tagline: '自分だけのAI秘書',
     line: '取引先にメール送っておいて',
+    demoHead: 'スマホに話すだけでPCが動く',
+    demoSteps: ['声で指示', 'メール作成中…', '送信完了 ✓'],
     desc: '話すだけで<br>パソコンを操作します',
     cta: 'からダウンロード',
     note: '画面を見てアプリを開き、クリックします',
@@ -205,6 +210,7 @@ const BGVID = argOf('bg-video', process.env.AISVI_BG_VIDEO
 //   그래서 시간으로 나눈다 — 앞은 시연 영상을 화면 폭 가득, 뒤는 브랜드 카드.
 //   뒤쪽 띠는 시연의 **마지막 프레임**(보낸 뒤 체크)으로 멈춰 둔다.
 //   --demo 가 없으면 종전과 똑같다.
+const PHOTO_DEFAULT = resolve(ROOT, 'assets/outro/jarvis.jpg');
 const DEMO_IN = argOf('demo', process.env.AISVI_DEMO || '');
 const DEMO = DEMO_IN ? resolve(ROOT, DEMO_IN) : null;
 if (DEMO && !existsSync(DEMO)) { console.error(`❌ 시연 영상이 없다: ${DEMO}`); process.exit(2); }
@@ -214,16 +220,26 @@ if (DEMO) {
   const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(String(pr.stderr ?? ''));
   DEMO_SEC = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
   if (!(DEMO_SEC > 0)) { console.error(`❌ 시연 영상 길이를 못 잰다: ${DEMO}`); process.exit(2); }
-  // 마지막 프레임을 1초짜리 영상으로 — 아래 띠 렌더가 그대로 받아 늘린다(tpad=clone).
+  // 뒷단계(브랜드 카드) 사진 — 2026-09-17 사용자 "맨 마지막엔 자비스 사진 넣어야지".
+  //   처음엔 시연의 마지막 프레임(체크)을 멈춰 뒀다. 자비스 사진은 폰에 대고 말하는 사람이다.
+  //   원래의 jarvis.jpg 는 서양인이라, 로케일별 인물 영상(한국인/일본인)에서 한 장을 뽑는다 —
+  //   1.5초 장면이 얼굴·폰·모니터가 함께 잡혔다(후보 프레임을 뽑아 보고 골랐다).
+  //   AISVI_END_PHOTO 로 사진 파일을 직접 줄 수 있다.
   mkdirSync(WORK, { recursive: true });
-  const still = join(WORK, 'demo-last.mp4');
-  const x = spawnSync(ffmpeg, ['-y', '-v', 'error', '-sseof', '-0.2', '-i', DEMO, '-frames:v', '1',
-    '-f', 'image2', join(WORK, 'demo-last.png')], { encoding: 'utf8' });
+  const still = join(WORK, 'end-photo.mp4');
+  const endPng = join(WORK, 'end-photo.png');
+  const given = process.env.AISVI_END_PHOTO ? resolve(ROOT, process.env.AISVI_END_PHOTO) : null;
+  const src = given ?? resolve(ROOT, BGVID);
+  let x;
+  if (given) x = spawnSync(ffmpeg, ['-y', '-v', 'error', '-i', given, '-frames:v', '1', endPng], { encoding: 'utf8' });
+  else if (existsSync(src)) x = spawnSync(ffmpeg, ['-y', '-v', 'error', '-ss', '1.5', '-i', src, '-frames:v', '1', endPng], { encoding: 'utf8' });
+  else x = spawnSync(ffmpeg, ['-y', '-v', 'error', '-i', PHOTO_DEFAULT, '-frames:v', '1', endPng], { encoding: 'utf8' });
   const y = x.status === 0 && spawnSync(ffmpeg, ['-y', '-v', 'error', '-loop', '1', '-t', '1',
-    '-i', join(WORK, 'demo-last.png'), '-vf', 'fps=30,format=yuv420p', '-c:v', 'libx264', still], { encoding: 'utf8' });
-  if (!y || y.status !== 0 || !existsSync(still)) { console.error('❌ 시연 영상의 마지막 프레임을 못 뽑았다'); process.exit(2); }
+    '-i', endPng, '-vf', 'fps=30,format=yuv420p', '-c:v', 'libx264', still], { encoding: 'utf8' });
+  if (!y || y.status !== 0 || !existsSync(still)) { console.error(`❌ 마지막 사진을 못 만들었다: ${src}`); process.exit(2); }
+  console.log(`  마지막 사진: ${given ? given : `${src.split('/').pop()} 의 1.5초`}`);
 }
-const bgVideo = DEMO ? join(WORK, 'demo-last.mp4')
+const bgVideo = DEMO ? join(WORK, 'end-photo.mp4')
   : (existsSync(resolve(ROOT, BGVID)) ? resolve(ROOT, BGVID) : null);
 const hasPhoto = existsSync(PHOTO);
 const photoB64 = hasPhoto ? readFileSync(PHOTO).toString('base64') : '';
@@ -237,7 +253,10 @@ console.log(hasPhoto ? `  배경 사진: ${PHOTO}` : '  배경 사진 없음 —
 //   y 1434~1555 = **75~81%** 에 있었다. 그 자리는 통째로 가려진다 —
 //   광고에서 제일 중요한 한 줄이 안 보이고 있었다(옆 세션이 지적, 재서 확인).
 //   중요한 문구는 67% 위에 둔다.
-const BAND = Math.round(H * Number(process.env.AISVI_BAND ?? 0.34));
+// 2026-09-17: 사용자가 보낸 실제 쇼츠 화면을 재니 채널 이름이 86%, 제목이 90% 에 있었다.
+//   67% 기준은 지나치게 보수적이라 브랜드 카드 아래가 비었다. 두 단계 구성에서는 마지막 사진을
+//   크게(42%) 잡는다 — 주소는 약 70% 로 내려가지만 가려지는 선보다 한참 위다.
+const BAND = Math.round(H * Number(process.env.AISVI_BAND ?? (argOf('demo', process.env.AISVI_DEMO || '') ? 0.42 : 0.34)));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.setContent(`<!doctype html><meta charset="utf-8"><style>
@@ -276,7 +295,7 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 .c{font-size:38px;font-weight:700;color:#ffd400;letter-spacing:.04em;margin-top:-14px}
 .c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
 </style>
-${hasPhoto ? `<div class="p">${T.line ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
+${hasPhoto ? `<div class="p">${T.line && !DEMO ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
 <div class="body">
 <div class="t">${T.tagline}</div>
 <div class="w">AISVI</div><div class="r"></div>
@@ -292,6 +311,12 @@ await page.screenshot({ path: `${WORK}/bg.png`, omitBackground: !!bgVideo });
 //   중요한 글자는 전부 67% 위에 둔다(쇼츠 UI).
 const VID_H = Math.round(W * 9 / 16);           // 1080 → 608
 const VID_Y = Math.round(H * 0.24);
+// 상태 표시 자리 — bot 영역 안: padding 40 + 태그라인(≈70) + gap 14 + AISVI(≈105) + gap 14
+const STEP_H = 110;
+const STEP_Y = VID_Y + VID_H + 40 + 70 + 14 + 105 + 14;
+// 시연 편집의 단계 경계(초). assets/outro/aisvi-demo.mp4 는 0~2.4 말함 · 2.4~ 메일 작성 ·
+//   4.7~ 체크(크로스페이드 끝)로 편집했다. 다른 시연을 쓰면 AISVI_DEMO_STEPS="a,b" 로 준다.
+const DEMO_STEPS_AT = String(process.env.AISVI_DEMO_STEPS ?? '2.4,4.7').split(',').map(Number);
 if (DEMO) {
   await page.setContent(`<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -307,10 +332,34 @@ html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
 .say i{flex:none;width:26px;height:26px;border-radius:50%;background:#7fd4ff;box-shadow:0 0 0 10px rgba(127,212,255,.22)}
 .t{font-size:54px;font-weight:800;color:#7fd4ff}
 .w{font-size:88px;font-weight:900;letter-spacing:.2em;text-indent:.2em;color:#fff}
+.h{font-size:62px;font-weight:900;color:#fff;text-align:center;padding:0 50px;line-height:1.25}
+.gap{height:${STEP_H}px}
+.u{font-size:64px;font-weight:900;color:#ffd400;-webkit-text-stroke:4px #0a0a0a;paint-order:stroke fill}
 </style>
-<div class="top"></div>
-<div class="bot"><div class="t">${T.tagline}</div><div class="w">AISVI</div></div>`);
+<div class="top"><div class="h">${T.demoHead ?? ''}</div></div>
+<div class="bot"><div class="t">${T.tagline}</div><div class="w">AISVI</div>
+<div class="gap"></div><div class="u">aisviagent.com</div></div>`);
   await page.screenshot({ path: `${WORK}/bgA.png`, omitBackground: true });
+
+  // 상태 표시 — 2026-09-17 사용자 "여기 왜 아무 문구가 없냐"(AISVI 아래 빈자리).
+  //   빈자리를 비워 둔 건 "쇼츠 UI 가 아래 1/3 을 덮는다" 는 가정 때문이었는데, 사용자가 보낸
+  //   실제 화면을 재 보니 채널 이름 86% · 제목 90% 에 있었다. 67% 는 지나치게 보수적이었다.
+  //   그 자리에 시연과 맞춰 바뀌는 상태를 둔다 — 기능이 글자로도 보이게.
+  //   (bot 영역 안의 .gap 자리. 위치는 아래 STEP_Y 로 정확히 맞춘다.)
+  for (const [k, txt] of (T.demoSteps ?? []).entries()) {
+    await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
+.s{position:absolute;left:0;right:0;top:${STEP_Y}px;height:${STEP_H}px;display:flex;align-items:center;justify-content:center}
+.p{display:flex;align-items:center;gap:20px;padding:14px 40px;border-radius:999px;
+  background:${k === (T.demoSteps.length - 1) ? '#16a34a' : '#1e293b'};border:3px solid ${k === (T.demoSteps.length - 1) ? '#4ade80' : '#7fd4ff'};
+  color:#fff;font-size:50px;font-weight:900}
+.d{width:22px;height:22px;border-radius:50%;background:${k === (T.demoSteps.length - 1) ? '#bbf7d0' : '#7fd4ff'}}
+.n{color:#93a7cc;font-size:40px;font-weight:800}
+</style><div class="s"><div class="p"><span class="d"></span><span class="n">${k + 1}/${T.demoSteps.length}</span>${txt}</div></div>`);
+    await page.screenshot({ path: `${WORK}/step${k}.png`, omitBackground: true });
+  }
 
   // 말풍선 — 2026-09-17 사용자 "대사가 사람이 말을 할때 말풍선으로 나오면 좋겠는데".
   //   시연 첫 장면(0~2.4초, 폰에 대고 말하는 전체 화면)에만 톡 떴다 사라진다.
@@ -364,6 +413,19 @@ if (bgVideo) {
 
 // 앞단계 길이: 시연을 다 보여 주되, 브랜드 카드가 최소 4초는 남게 한다.
 const PHASE_A = DEMO ? Math.max(3, Math.min(DEMO_SEC + 0.4, sec - 4)) : 0;
+// 상태 PNG 들을 시간 창으로 얹는 필터 조각. 입력 번호는 8 부터(0~7 은 위에서 쓴다).
+function stepChain(inp, out) {
+  const n = (T.demoSteps ?? []).length;
+  if (!n) return `[${inp}]fps=30,format=yuv420p,setsar=1[${out}];`;
+  const edges = [0, ...DEMO_STEPS_AT.slice(0, n - 1), PHASE_A];
+  let f = ''; let cur = inp;
+  for (let k = 0; k < n; k++) {
+    const nx = k === n - 1 ? `${out}pre` : `st${k}`;
+    f += `[${cur}][${8 + k}:v]overlay=0:0:enable='between(t,${edges[k]},${edges[k + 1]})'[${nx}];`;
+    cur = nx;
+  }
+  return f + `[${cur}]fps=30,format=yuv420p,setsar=1[${out}];`;
+}
 if (DEMO) console.log(`  구성: 시연 ${PHASE_A.toFixed(1)}초 → 브랜드 카드 ${(sec - PHASE_A).toFixed(1)}초`);
 const vArgs = DEMO && bandFile
   ? [
@@ -375,13 +437,15 @@ const vArgs = DEMO && bandFile
     '-loop', '1', '-t', String(sec - PHASE_A), '-i', `${WORK}/bg.png`,
     '-i', voice.path,
     '-loop', '1', '-t', String(PHASE_A), '-i', `${WORK}/bubble.png`,
+    ...(T.demoSteps ?? []).flatMap((_, k) => ['-loop', '1', '-t', String(PHASE_A), '-i', `${WORK}/step${k}.png`]),
     '-filter_complex',
     // 시연: 폭에 맞춰 늘리고, 짧으면 마지막 프레임을 물린다. Veo 소리는 버린다.
     `[1:v]scale=${W}:${VID_H}:force_original_aspect_ratio=increase,crop=${W}:${VID_H},`
       + `tpad=stop_mode=clone:stop_duration=${PHASE_A},trim=0:${PHASE_A},setpts=PTS-STARTPTS,fps=30[d];`
       + `[7:v]format=rgba,fade=t=in:st=0.15:d=0.18:alpha=1,fade=t=out:st=2.1:d=0.2:alpha=1[bub];`
       + `[0:v][d]overlay=0:${VID_Y}[a0];[a0][2:v]overlay=0:0[a1];`
-      + `[a1][bub]overlay=0:0,fps=30,format=yuv420p,setsar=1[A];`
+      + `[a1][bub]overlay=0:0[a2];`
+      + stepChain('a2', 'A')
       + `[4:v]trim=0:${sec - PHASE_A},setpts=PTS-STARTPTS[bb];`
       + `[3:v][bb]overlay=0:0[b0];[b0][5:v]overlay=0:0,fps=30,format=yuv420p,setsar=1,fade=t=in:st=0:d=0.25[B];`
       + `[A][B]concat=n=2:v=1:a=0[v];`
