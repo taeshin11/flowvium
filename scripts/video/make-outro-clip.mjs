@@ -108,6 +108,11 @@ const AUDIO_RATE = Number(argOf('ar', process.env.AISVI_AR || '')) || null;
 // 필터 안에서 먼저 이 값으로 맞춘다. 2026-09-17 까지 aresample=24000 이 남아 있었다(옛 24kHz 규격의 흔적) —
 //   출력이 44.1/48kHz 여도 중간에 24kHz 를 거쳐 **12kHz 위가 잘려 나갔다.**
 const OUT_RATE = AUDIO_RATE ?? AUDIO_SPEC.rate;
+// 시연 영상은 음성을 만들기 **전에** 확인한다 — 틀린 경로로 TTS 를 몇십 초 돌리고 나서 멈추지 않게.
+{
+  const d = argOf('demo', process.env.AISVI_DEMO || '');
+  if (d && !existsSync(resolve(ROOT, d))) { console.error(`❌ 시연 영상이 없다: ${resolve(ROOT, d)}`); process.exit(2); }
+}
 if (AUDIO_RATE && ![44100, 48000].includes(AUDIO_RATE)) {
   console.error(`❌ --ar 는 44100 또는 48000 만 받는다: ${AUDIO_RATE}`); process.exit(2);
 }
@@ -193,7 +198,33 @@ const PHOTO = resolve(ROOT, process.env.AISVI_PHOTO || 'assets/outro/jarvis.jpg'
 //   Flow(Veo 3.1 - Lite [Lower Priority], 0 크레딧)로 만들었다.
 const BGVID = argOf('bg-video', process.env.AISVI_BG_VIDEO
   || `assets/outro/aisvi-bg${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`);
-const bgVideo = existsSync(resolve(ROOT, BGVID)) ? resolve(ROOT, BGVID) : null;
+// ── 두 단계 구성 (2026-09-17) ───────────────────────────────────────────────────
+//   사용자 "화면에 좀 창이 팍 떠서 기능하는것도 잘 보여져야되".
+//   띠가 화면의 34% 뿐이라 폰에서는 모니터 속 메일 창이 작아 기능이 안 보였다.
+//   그렇다고 띠를 키우면 주소가 쇼츠 UI 가 덮는 67% 아래로 밀린다(실측으로 겪었다).
+//   그래서 시간으로 나눈다 — 앞은 시연 영상을 화면 폭 가득, 뒤는 브랜드 카드.
+//   뒤쪽 띠는 시연의 **마지막 프레임**(보낸 뒤 체크)으로 멈춰 둔다.
+//   --demo 가 없으면 종전과 똑같다.
+const DEMO_IN = argOf('demo', process.env.AISVI_DEMO || '');
+const DEMO = DEMO_IN ? resolve(ROOT, DEMO_IN) : null;
+if (DEMO && !existsSync(DEMO)) { console.error(`❌ 시연 영상이 없다: ${DEMO}`); process.exit(2); }
+let DEMO_SEC = 0;
+if (DEMO) {
+  const pr = spawnSync(ffmpeg, ['-i', DEMO], { encoding: 'utf8' });
+  const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(String(pr.stderr ?? ''));
+  DEMO_SEC = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
+  if (!(DEMO_SEC > 0)) { console.error(`❌ 시연 영상 길이를 못 잰다: ${DEMO}`); process.exit(2); }
+  // 마지막 프레임을 1초짜리 영상으로 — 아래 띠 렌더가 그대로 받아 늘린다(tpad=clone).
+  mkdirSync(WORK, { recursive: true });
+  const still = join(WORK, 'demo-last.mp4');
+  const x = spawnSync(ffmpeg, ['-y', '-v', 'error', '-sseof', '-0.2', '-i', DEMO, '-frames:v', '1',
+    '-f', 'image2', join(WORK, 'demo-last.png')], { encoding: 'utf8' });
+  const y = x.status === 0 && spawnSync(ffmpeg, ['-y', '-v', 'error', '-loop', '1', '-t', '1',
+    '-i', join(WORK, 'demo-last.png'), '-vf', 'fps=30,format=yuv420p', '-c:v', 'libx264', still], { encoding: 'utf8' });
+  if (!y || y.status !== 0 || !existsSync(still)) { console.error('❌ 시연 영상의 마지막 프레임을 못 뽑았다'); process.exit(2); }
+}
+const bgVideo = DEMO ? join(WORK, 'demo-last.mp4')
+  : (existsSync(resolve(ROOT, BGVID)) ? resolve(ROOT, BGVID) : null);
 const hasPhoto = existsSync(PHOTO);
 const photoB64 = hasPhoto ? readFileSync(PHOTO).toString('base64') : '';
 console.log(hasPhoto ? `  배경 사진: ${PHOTO}` : '  배경 사진 없음 — 문구만으로 만든다');
@@ -257,6 +288,30 @@ ${hasPhoto ? `<div class="p">${T.line ? `<div class="say"><i></i>“${T.line}”
 </div>`);
 // 영상이면 알파를 살려 찍는다 — 띠 자리가 뚫려야 아래 영상이 보인다.
 await page.screenshot({ path: `${WORK}/bg.png`, omitBackground: !!bgVideo });
+// 앞단계 글자판. 영상 자리(VID_Y ~ VID_Y+VID_H)만 비워 둔다 — 그 아래로 영상이 보인다.
+//   중요한 글자는 전부 67% 위에 둔다(쇼츠 UI).
+const VID_H = Math.round(W * 9 / 16);           // 1080 → 608
+const VID_Y = Math.round(H * 0.24);
+if (DEMO) {
+  await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#eef3ff}
+.top{position:absolute;left:0;top:0;width:${W}px;height:${VID_Y}px;background:#05070f;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:34px;gap:22px}
+.bot{position:absolute;left:0;top:${VID_Y + VID_H}px;width:${W}px;height:${H - VID_Y - VID_H}px;background:#05070f;
+  display:flex;flex-direction:column;align-items:center;padding-top:40px;gap:14px}
+.k{font-size:40px;font-weight:800;color:#7fd4ff;letter-spacing:.06em}
+.say{display:flex;align-items:center;gap:18px;font-size:58px;font-weight:900;color:#fff;line-height:1.25;
+  text-align:center;padding:0 60px}
+.say i{flex:none;width:26px;height:26px;border-radius:50%;background:#7fd4ff;box-shadow:0 0 0 10px rgba(127,212,255,.22)}
+.t{font-size:54px;font-weight:800;color:#7fd4ff}
+.w{font-size:88px;font-weight:900;letter-spacing:.2em;text-indent:.2em;color:#fff}
+</style>
+<div class="top"><div class="k">${T.demoLead ?? ''}</div><div class="say"><i></i>“${T.line}”</div></div>
+<div class="bot"><div class="t">${T.tagline}</div><div class="w">AISVI</div></div>`);
+  await page.screenshot({ path: `${WORK}/bgA.png`, omitBackground: true });
+}
 await browser.close();
 
 // 음성 길이에 맞추되 최소 4초 — 너무 짧으면 읽히기 전에 지나간다.
@@ -286,7 +341,29 @@ if (bgVideo) {
   }
 }
 
-const vArgs = bandFile
+// 앞단계 길이: 시연을 다 보여 주되, 브랜드 카드가 최소 4초는 남게 한다.
+const PHASE_A = DEMO ? Math.max(3, Math.min(DEMO_SEC + 0.4, sec - 4)) : 0;
+if (DEMO) console.log(`  구성: 시연 ${PHASE_A.toFixed(1)}초 → 브랜드 카드 ${(sec - PHASE_A).toFixed(1)}초`);
+const vArgs = DEMO && bandFile
+  ? [
+    '-f', 'lavfi', '-t', String(PHASE_A), '-i', `color=c=0x05070f:s=${W}x${H}:r=30`,
+    '-i', DEMO,
+    '-loop', '1', '-t', String(PHASE_A), '-i', `${WORK}/bgA.png`,
+    '-f', 'lavfi', '-t', String(sec - PHASE_A), '-i', `color=c=0x05070f:s=${W}x${H}:r=30`,
+    '-i', bandFile,
+    '-loop', '1', '-t', String(sec - PHASE_A), '-i', `${WORK}/bg.png`,
+    '-i', voice.path,
+    '-filter_complex',
+    // 시연: 폭에 맞춰 늘리고, 짧으면 마지막 프레임을 물린다. Veo 소리는 버린다.
+    `[1:v]scale=${W}:${VID_H}:force_original_aspect_ratio=increase,crop=${W}:${VID_H},`
+      + `tpad=stop_mode=clone:stop_duration=${PHASE_A},trim=0:${PHASE_A},setpts=PTS-STARTPTS,fps=30[d];`
+      + `[0:v][d]overlay=0:${VID_Y}[a0];[a0][2:v]overlay=0:0,fps=30,format=yuv420p,setsar=1[A];`
+      + `[4:v]trim=0:${sec - PHASE_A},setpts=PTS-STARTPTS[bb];`
+      + `[3:v][bb]overlay=0:0[b0];[b0][5:v]overlay=0:0,fps=30,format=yuv420p,setsar=1,fade=t=in:st=0:d=0.25[B];`
+      + `[A][B]concat=n=2:v=1:a=0[v];`
+      + `[6:a]aresample=${OUT_RATE},apad=whole_dur=${sec}[a]`,
+  ]
+  : bandFile
   ? [
     '-f', 'lavfi', '-t', String(sec), '-i', `color=c=0x05070f:s=${W}x${H}:r=30`,
     '-i', bandFile,

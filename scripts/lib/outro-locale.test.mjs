@@ -73,5 +73,13 @@ const run = (args) => spawnSync(process.execPath, [script, ...args], { encoding:
     : bad('받아 온 음성을 크기 맞춤 없이 그대로 쓴다');
 }
 
+// [신설 2026-09-17] 시연 영상 옵션 — 없는 파일이면 조용히 옛 구성으로 가지 않고 멈춘다
+{
+  const r = run(['--demo', '/nonexistent/demo.mp4']);
+  (r.status === 2 && /시연 영상이 없다/.test(`${r.stdout}${r.stderr}`))
+    ? ok('--demo 에 없는 파일을 주면 멈춘다')
+    : bad(`없는 시연 영상으로 진행했다 (exit ${r.status})`);
+}
+
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

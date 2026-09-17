@@ -136,13 +136,15 @@ while (Date.now() < deadline) {
   //   생성도 됐고 세는 것도 맞았는데 **보고 있는 화면이 낡아서** 못 봤다.
   //   주기적으로 다시 읽는다. 새로고침은 싸고, 못 보는 것보다 낫다.
   if (++pollN % 6 === 0) {                     // 8초 × 6 ≈ 48초마다
-    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+    // 2026-09-17: reload 는 **지금 화면**을 다시 부를 뿐이다. 제출 뒤엔 프로젝트 안의 다른 화면
+    //   (생성 진행·편집 뷰)에 머물러 카드가 1개만 보였다 — 실측 [1] 16번, 그동안 새 영상은 만들어져 있었다.
+    //   따로 확인할 때 쓰는 경로(openProject = 프로젝트 주소로 goto)를 그대로 쓴다.
+    await openProject(page).catch(() => {});
     await page.waitForTimeout(4000);
     await dismissDialogs(page);
     // 2026-09-16: 새로고침만 하면 **프로젝트 밖으로 나간다**. 그 화면엔 카드가 없어
     //   개수가 늘어난 적이 없는 것처럼 보였다(실측: 카드가 7→8 이 됐는데 900초를 못 봤다).
     //   되돌아가야 갤러리를 다시 본다.
-    if (!(await inProject(page))) await openProject(page).catch(() => {});
     // 2026-09-17: 3초로는 갤러리가 덜 그려져 맨앞 카드를 못 읽었다(루프는 1500초 동안 못 봤는데,
     //   따로 8초 기다려 읽으니 새 카드가 맨앞에 있었다). 따로 읽을 때와 같게 기다린다.
     await page.waitForTimeout(8000);
