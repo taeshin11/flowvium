@@ -13,6 +13,7 @@
  * 사용: node scripts/sft/gen-buffett-sft.mjs [MAX=400] [CONC=4]
  *   (RAG 임베딩 ingest 완료 후 실행 — corpus.ndjson 필요)
  */
+import { SAMPLING_DEFAULTS } from './../lib/llm-config.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -66,7 +67,7 @@ ${text.slice(0, 1400)}
 async function vllm(messages, maxTokens = 400) {
   const r = await fetch(`${VLLM}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, messages, max_tokens: maxTokens, temperature: 0.4 }),
+    body: JSON.stringify({ ...SAMPLING_DEFAULTS, model: MODEL, messages, max_tokens: maxTokens, temperature: 0.4 }),
     signal: AbortSignal.timeout(60000),
   });
   if (!r.ok) throw new Error(`vllm ${r.status}`);

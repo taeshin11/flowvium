@@ -19,6 +19,7 @@
  *   대신 backlog 에 소진 판정을 두고 여기서 그걸 본다(translation-backlog.mjs 참조).
  * 사용: node scripts/seed-translation-memory.mjs [--locales=ko,ja] [--limit=N] [--dry]
  */
+import { SAMPLING_DEFAULTS } from './lib/llm-config.mjs';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
@@ -51,6 +52,7 @@ async function translate(text, locale) {
   const res = await fetch(`${REPORT_LANE}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      ...SAMPLING_DEFAULTS,
       model: MODEL, max_tokens: 256, temperature: 0.2,
       chat_template_kwargs: { enable_thinking: false },   // thinking 켜두면 예산을 사고에 소진해 본문이 안 나온다(실측)
       messages: [{ role: 'user', content: buildTranslatePrompt({ text, langName: LANG_NAME[locale] ?? locale }) }],

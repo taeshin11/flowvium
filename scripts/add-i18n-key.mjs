@@ -13,6 +13,7 @@
  * 사용: node scripts/add-i18n-key.mjs <키경로> "<영문 원문>" [--dry]
  *   예: node scripts/add-i18n-key.mjs home.breadth "Breadth"
  */
+import { SAMPLING_DEFAULTS } from './lib/llm-config.mjs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { listLocales, setKey, missingLocales, getKey } from './lib/i18n-keys.mjs';
@@ -41,6 +42,7 @@ async function translate(text, locale) {
   const r = await fetch(`${REPORT_LANE}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      ...SAMPLING_DEFAULTS,
       model: process.env.VLLM_MODEL || 'default_model', max_tokens: 200, temperature: 0.2,
       chat_template_kwargs: { enable_thinking: false },   // thinking 켜두면 예산을 사고에 소진해 본문이 안 나온다(실측)
       messages: [{ role: 'user', content: buildTranslatePrompt({

@@ -29,7 +29,7 @@ import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
 import { ffmpegOpts, describeFfmpegResult } from '../lib/ffmpeg-timeout.mjs';
 import { stripByline, cleanHeadline, textLeftovers, unsourcedAffiliation } from '../lib/wire-text.mjs';
-import { loadEnvLocal } from '../lib/llm-config.mjs';
+import { loadEnvLocal , SAMPLING_DEFAULTS } from '../lib/llm-config.mjs';
 import { topDistinctIssues } from '../lib/issue-cluster.mjs';
 import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
@@ -747,6 +747,7 @@ async function askLLM() {
   const r = await fetch(`${llm.url}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      ...SAMPLING_DEFAULTS,
       model: llm.model, messages: [{ role: 'user', content: activePrompt }],
       // 2026-09-06: 온도 0.5 는 뉴스 대본에 높다. 사실 오류가 이어져 0.3 으로 내린다 —
       //   문장이 조금 밋밋해지는 대신 없는 말을 덜 만든다.

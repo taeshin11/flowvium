@@ -3,6 +3,7 @@
 // 완전 로컬 주권: 프롬프트/응답이 네트워크 밖으로 안 나감. 결과 = AISVI v2 QLoRA 학습 데이터.
 // teacher-agnostic: TEACHER_URL 만 바꾸면 클러스터 llama.cpp / 단일 vLLM 모두 동작.
 // env: TEACHER_URL(기본 http://localhost:8080/v1), TEACHER_MODEL, SEEDS(jsonl), OUT, MAX(0=all), CONC, TEMP
+import { SAMPLING_DEFAULTS } from './../lib/llm-config.mjs';
 import fs from 'node:fs';
 
 const TEACHER_URL   = process.env.TEACHER_URL   || 'http://localhost:8080/v1';
@@ -46,6 +47,7 @@ async function callTeacher(system, user) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        ...SAMPLING_DEFAULTS,
         model: TEACHER_MODEL,
         messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
         temperature: TEMP, max_tokens: MAXTOK,

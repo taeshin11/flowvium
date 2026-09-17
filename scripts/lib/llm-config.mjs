@@ -57,6 +57,28 @@ const readConcurrency = (lane, ...keys) => {
 };
 
 /**
+ * 생성 요청에 **반드시** 얹는 표본 추출 설정.
+ *
+ * 왜 상수로 묶는가 (2026-09-18 실측, mlx_lm 0.31.3 상류 버그):
+ *   mlx_lm 은 배치에 요청을 붙일 때 로짓 처리기가 없는 자리에 None 을 넣는다
+ *     generate.py:1065  if not any(self.logits_processors): self.logits_processors = [None] * len(...)
+ *   그리고 한 스텝을 돌 때 **하나라도** 처리기가 있으면 전 항목을 순회한다
+ *     generate.py:1337  if any(self.logits_processors):
+ *     generate.py:1346      for processor in self.logits_processors[e]:   ← None 이면 TypeError
+ *   처리기는 logit_bias 나 0 아닌 페널티가 있을 때만 생긴다(sample_utils.make_logits_processors).
+ *   즉 **페널티를 보내는 요청과 안 보내는 요청이 한 배치에 섞이면** 생성 스레드가 통째로 죽는다.
+ *   죽어도 /v1/models 는 200 을 주므로 포트만 보는 감시는 못 잡는다.
+ *
+ *   src/lib/llm-local.ts(사이트 번역·챗)는 예전부터 repetition_penalty 1.05 를 보내는데
+ *   scripts 쪽 호출자들은 아무것도 안 보내고 있었다. 2026-09-18 하루에만 :8001 이 세 번 죽었고
+ *   세 번 다 scripts 호출과 사이트 요청이 겹친 순간이었다.
+ *
+ *   그래서 모든 호출자가 같은 모양을 보내게 한다 — 섞이지 않으면 None 자리가 생기지 않는다.
+ *   값 1.05 는 llm-local.ts·ai-providers.ts·generate-report-local.mjs 가 이미 쓰던 값이다.
+ */
+export const SAMPLING_DEFAULTS = Object.freeze({ repetition_penalty: 1.05 });
+
+/**
  * 레인별 접속 정보.
  *   'report' — 보고서/무거운 추출용 (기본 :8000, 27B)
  *   'web'    — 웹 대면 번역·챗 (기본 :8001, 소형). 미설정이면 report 레인으로 폴백.

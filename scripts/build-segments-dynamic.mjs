@@ -16,7 +16,7 @@
 import { readFileSync } from 'fs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
 import { saveSegments, getSegmentedTickers } from './lib/db.mjs';
-import { resolveLlm } from './lib/llm-config.mjs';
+import { resolveLlm, SAMPLING_DEFAULTS } from './lib/llm-config.mjs';
 import { cikMapSane, resolvableTickers, secTicker, openRotation } from './lib/segment-rotation.mjs';
 const rotation = openRotation(new URL('../data/flowvium.db', import.meta.url).pathname);
 
@@ -186,7 +186,7 @@ async function exaoneExtract(region) {
     const { url: base, model } = resolveLlm('report');
     const r = await fetch(`${base}/chat/completions`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400, chat_template_kwargs: { enable_thinking: false } }),
+      body: JSON.stringify({ ...SAMPLING_DEFAULTS, model, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 400, chat_template_kwargs: { enable_thinking: false } }),
       signal: AbortSignal.timeout(90000),
     });
     // HTTP 오류를 빈 배열로 뭉개지 않는다 — 그게 이번 사고를 90회 동안 안 보이게 만들었다.

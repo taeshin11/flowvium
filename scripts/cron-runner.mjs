@@ -558,6 +558,13 @@ const MAINT_JOBS = [
   { label: 'scan-accumulation-us', script: 'scripts/scan-accumulation.mjs --us',     timeoutMs: 900000,  commitPaths: ['data/accumulation-watchlist-us.json'], schedules: ['30 21 * * *', '0 13 * * *'],  maxAgeH: 20 },
   { label: 'scan-insider-kr',      script: 'scripts/scan-insider-kr.mjs',            timeoutMs: 900000,  commitPaths: ['data/insider-kr-feed.json'],          schedules: ['30 7 * * *', '30 22 * * *'],  maxAgeH: 20 },
   { label: 'dart-prefetch',        script: 'scripts/prefetch-dart-financials.mjs',   timeoutMs: 900000,  commitPaths: [],                                     schedules: ['5 18 * * *'],                 maxAgeH: 30 },
+  // 2026-09-18 사용자 "보고서 쓴 후에 이거를 정리해서 네이버 블로그에서도 써주면 좋겠네".
+  //   발간 직후에 블로그용 글을 만들어 둔다(제목 후보 + 본문 + 사이트·유튜브 안내 + 투자 고지).
+  //   **올리는 것은 사람이 한다** — 네이버는 2020-05 글쓰기 API 를 종료했고(광고성 글 대량 게재 차단),
+  //   남은 자동 게시 수단은 브라우저 자동화뿐인데 그건 계정이 제재될 수 있는 방식이다.
+  //   2026-09-18 사용자 "하루 3번만 올리자. 아침보고서 쓴후, 한국장 보고서 쓴 후, 미장 시작전 보고서 쓴 후".
+  //   아침 발간 07:00 · 한국장 마감 뒤 16:00 · 미장 개장 전 21:30 (KST) 직후. 크론은 UTC 로 적는다.
+  { label: 'blog-post',            script: 'scripts/make-blog-post.mjs',             timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['10 22 * * *', '10 7 * * *', '40 12 * * *'], maxAgeH: 30 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
   //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고

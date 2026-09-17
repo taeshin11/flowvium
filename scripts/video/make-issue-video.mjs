@@ -18,6 +18,7 @@
  *
  * 사용: node scripts/video/make-issue-video.mjs --locale en [--seconds 90] [--out <mp4>]
  */
+import { SAMPLING_DEFAULTS } from './../lib/llm-config.mjs';
 import Database from 'better-sqlite3';
 import ffmpegPath from 'ffmpeg-static';
 import { chromium } from 'playwright';
@@ -317,7 +318,7 @@ const llm = { url: process.env.VIDEO_LLM_URL ?? 'http://127.0.0.1:8001/v1',
 async function askLLM(nudge) {
   const res = await fetch(`${llm.url}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: llm.model, messages: [{ role: 'user', content: buildPrompt(nudge) }],
+    body: JSON.stringify({ ...SAMPLING_DEFAULTS, model: llm.model, messages: [{ role: 'user', content: buildPrompt(nudge) }],
                            // 장면 수에 맞춰 늘린다. 2400 고정이면 장면이 많아질 때 JSON 이
                            //   **중간에서 잘려** 파싱이 실패한다(2026-08-28: 이슈 12개·장면 20개에서 발생).
                            //   한 장면당 대략 320 토큰(say 275자 + 메타) + 여유.

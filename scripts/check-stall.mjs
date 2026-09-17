@@ -27,7 +27,7 @@ import { checkResourcePressure } from './lib/resource-pressure.mjs';
 import { thrashing, lanes, THRASH_MB_PER_SEC } from './lib/memory-health.mjs';
 import { findReportProcesses } from './lib/report-running.mjs';
 import { DEFAULT_COLD_TIMEOUT_MS as COLD_PROBE_MS, probeWithColdRetry } from './lib/llm-health.mjs';
-import { resolveLlm } from './lib/llm-config.mjs';
+import { resolveLlm , SAMPLING_DEFAULTS } from './lib/llm-config.mjs';
 import { backupStatus } from './lib/backup-health.mjs';
 import { findStaleJobs, listProcesses, loadJobPolicy } from './lib/stale-jobs.mjs';
 import { dbHealth } from './lib/db-health.mjs';
@@ -63,7 +63,7 @@ async function probeCompletion(url, model, timeoutMs = 20000) {
   try {
     res = await fetch(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1, temperature: 0 }),
+      body: JSON.stringify({ ...SAMPLING_DEFAULTS, model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1, temperature: 0 }),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (e) { return { down: true, error: String(e.message).slice(0, 80) }; }

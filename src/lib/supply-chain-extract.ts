@@ -153,7 +153,8 @@ ${excerpt}`;
   try {
     const res = await fetch(OLLAMA_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: OLLAMA_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 2500, chat_template_kwargs: { enable_thinking: false } }),
+      // 페널티를 보내는 요청과 섞이면 mlx_lm 생성 스레드가 죽는다 — llm-local.ts 와 같은 값으로 맞춘다.
+      body: JSON.stringify({ repetition_penalty: 1.05, model: OLLAMA_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 2500, chat_template_kwargs: { enable_thinking: false } }),
       signal: AbortSignal.timeout(90000),
     });
     if (!res.ok) return [];

@@ -30,6 +30,7 @@
  *   서버 기동 인자가 바뀔 때 프로브가 404 를 받고 "죽었다" 고 오판한다. served-model.mjs 가
  *   이미 *적재본만 절대경로로 나온다* 는 규약으로 해석해 주므로 그것을 쓴다.
  */
+import { SAMPLING_DEFAULTS } from './llm-config.mjs';
 import { resolveServedModelId } from './served-model.mjs';
 
 /** 프로브가 스스로 매달리지 않도록 하는 상한. 환경에서 조정 가능(코드에 정책을 박지 않는다). */
@@ -79,7 +80,7 @@ export async function probeGeneration(opt) {
     const r = await fetchImpl(`${base}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1, temperature: 0 }),
+      body: JSON.stringify({ ...SAMPLING_DEFAULTS, model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 1, temperature: 0 }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!r.ok) return { ok: false, stage: 'generate', detail: `HTTP ${r.status}`, ms: since(), model };

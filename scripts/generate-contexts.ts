@@ -123,6 +123,7 @@ async function callVllm(prompt: string): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      repetition_penalty: 1.05, // mlx_lm 은 한 배치에 페널티 있는 요청과 없는 요청이 섞이면 생성 스레드가 죽는다(llm-config.mjs SAMPLING_DEFAULTS).
       model: VLLM_MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
