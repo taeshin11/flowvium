@@ -143,7 +143,9 @@ while (Date.now() < deadline) {
     //   개수가 늘어난 적이 없는 것처럼 보였다(실측: 카드가 7→8 이 됐는데 900초를 못 봤다).
     //   되돌아가야 갤러리를 다시 본다.
     if (!(await inProject(page))) await openProject(page).catch(() => {});
-    await page.waitForTimeout(3000);
+    // 2026-09-17: 3초로는 갤러리가 덜 그려져 맨앞 카드를 못 읽었다(루프는 1500초 동안 못 봤는데,
+    //   따로 8초 기다려 읽으니 새 카드가 맨앞에 있었다). 따로 읽을 때와 같게 기다린다.
+    await page.waitForTimeout(8000);
   }
   const nowCards = await mediaCardTitles(page);
   // 무엇을 보고 있는지 남긴다 — 못 보고 끝났을 때 원인을 가르려면 이 숫자가 필요하다.
