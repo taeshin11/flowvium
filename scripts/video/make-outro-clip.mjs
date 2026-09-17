@@ -308,9 +308,30 @@ html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
 .t{font-size:54px;font-weight:800;color:#7fd4ff}
 .w{font-size:88px;font-weight:900;letter-spacing:.2em;text-indent:.2em;color:#fff}
 </style>
-<div class="top"><div class="k">${T.demoLead ?? ''}</div><div class="say"><i></i>“${T.line}”</div></div>
+<div class="top"></div>
 <div class="bot"><div class="t">${T.tagline}</div><div class="w">AISVI</div></div>`);
   await page.screenshot({ path: `${WORK}/bgA.png`, omitBackground: true });
+
+  // 말풍선 — 2026-09-17 사용자 "대사가 사람이 말을 할때 말풍선으로 나오면 좋겠는데".
+  //   시연 첫 장면(0~2.4초, 폰에 대고 말하는 전체 화면)에만 톡 떴다 사라진다.
+  //   자리는 모니터 위쪽 빈 벽(영상 좌표 x120~, y12~), 꼬리는 입(약 700,215)을 가리킨다 —
+  //   영상 좌표는 첫 장면 프레임에 격자를 그려 재서 정했다. 얼굴(x690~)은 덮지 않는다.
+  //   예전에 띠 전체에 고정 말풍선을 얹었다가 움직이는 얼굴을 덮은 적이 있어, 시간을 짧게 묶는다.
+  const bx = 120, by = VID_Y + 12;
+  const tipX = 668, tipY = VID_Y + 196;
+  await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
+.b{position:absolute;left:${bx}px;top:${by}px;max-width:600px;background:#fff;color:#111;
+  border-radius:40px;padding:20px 38px;font-size:46px;font-weight:900;line-height:1.25;
+  box-shadow:0 10px 30px rgba(0,0,0,.35)}
+svg{position:absolute;left:0;top:0}
+</style>
+<svg width="${W}" height="${H}"><polygon points="${bx + 380},${by + 70} ${bx + 470},${by + 60} ${tipX},${tipY}"
+  fill="#fff"/></svg>
+<div class="b">${T.line}</div>`);
+  await page.screenshot({ path: `${WORK}/bubble.png`, omitBackground: true });
 }
 await browser.close();
 
@@ -353,11 +374,14 @@ const vArgs = DEMO && bandFile
     '-i', bandFile,
     '-loop', '1', '-t', String(sec - PHASE_A), '-i', `${WORK}/bg.png`,
     '-i', voice.path,
+    '-loop', '1', '-t', String(PHASE_A), '-i', `${WORK}/bubble.png`,
     '-filter_complex',
     // 시연: 폭에 맞춰 늘리고, 짧으면 마지막 프레임을 물린다. Veo 소리는 버린다.
     `[1:v]scale=${W}:${VID_H}:force_original_aspect_ratio=increase,crop=${W}:${VID_H},`
       + `tpad=stop_mode=clone:stop_duration=${PHASE_A},trim=0:${PHASE_A},setpts=PTS-STARTPTS,fps=30[d];`
-      + `[0:v][d]overlay=0:${VID_Y}[a0];[a0][2:v]overlay=0:0,fps=30,format=yuv420p,setsar=1[A];`
+      + `[7:v]format=rgba,fade=t=in:st=0.15:d=0.18:alpha=1,fade=t=out:st=2.1:d=0.2:alpha=1[bub];`
+      + `[0:v][d]overlay=0:${VID_Y}[a0];[a0][2:v]overlay=0:0[a1];`
+      + `[a1][bub]overlay=0:0,fps=30,format=yuv420p,setsar=1[A];`
       + `[4:v]trim=0:${sec - PHASE_A},setpts=PTS-STARTPTS[bb];`
       + `[3:v][bb]overlay=0:0[b0];[b0][5:v]overlay=0:0,fps=30,format=yuv420p,setsar=1,fade=t=in:st=0:d=0.25[B];`
       + `[A][B]concat=n=2:v=1:a=0[v];`
