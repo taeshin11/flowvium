@@ -1479,13 +1479,13 @@ function isInternal(req: NextRequest): boolean {
   return h === `Bearer ${sec}` || req.headers.get('x-cron-secret') === sec;
 }
 
-/**
- * 응답을 받아 비회원이면 게이트 뒤 필드를 지운다.
- *
- * **왜 경계에서 하나로 하나**: 처음엔 반환 지점을 하나씩 감쌌는데 이 라우트에는 반환이 열한 곳이고
- *   **일곱 곳을 놓쳤다**(메모리 캐시·Redis 캐시·로케일 폴백 등). 배포하고 비회원으로 찔러 보니
- *   그대로 다 나왔다. 오늘 보고서 빈 카드에서 배운 것과 같다 — 가지마다 막으면 반드시 하나를 빠뜨린다.
- */
+// 응답을 받아 비회원이면 게이트 뒤 필드를 지운다.
+//
+// 왜 경계에서 하나로 하나: 처음엔 반환 지점을 하나씩 감쌌는데 이 라우트에는 반환이 열한 곳이고
+//   일곱 곳을 놓쳤다(메모리 캐시·Redis 캐시·로케일 폴백 등). 배포하고 비회원으로 찔러 보니
+//   그대로 다 나왔다. 오늘 보고서 빈 카드에서 배운 것과 같다 — 가지마다 막으면 반드시 하나를 빠뜨린다.
+//
+// (JSDoc /** */ 안의 한국어는 i18n 래칫이 하드코딩 문자열로 센다 — // 주석으로 둔다.)
 async function gateResponse(req: NextRequest, res: Response): Promise<Response> {
   const ct = res.headers.get('content-type') ?? '';
   if (!ct.includes('application/json')) return res;
