@@ -76,6 +76,11 @@ const COPY = {
     //   ⚠ 사이트에서 가격을 확인하지 못했다(자바스크립트로 그려져 본문을 못 읽음).
     //     유료 구간이 생기면 이 줄부터 고쳐야 한다 — 광고에서 가장 먼저 문제가 되는 문장이다.
     freeCta: '무료로 내 AI 비서를 만들어 보세요',
+    // 2026-09-18 실측: 영상 어디에도 "구독" 이 없었다(대본 0회·화면 0회). 설명란에만 있는데
+    //   쇼츠 시청자는 설명란을 거의 안 본다. 그런데 이 광고가 시작될 때 54%가 아직 보고 있고
+    //   끝까지 35% 가 남는다 — 구독을 권할 가장 좋은 자리를 아무 말 없이 흘려보내고 있었다.
+    //   광고 문구를 밀어내지 않게 맨 아래 작은 줄로 둔다.
+    subCta: '구독하면 매일 받아보실 수 있습니다',
     note: '화면을 보고 프로그램을 열고 눌러 줍니다',
   },
   ja: {
@@ -98,6 +103,7 @@ const COPY = {
     cta: 'からダウンロード',
     // 한국어판과 같은 문구. 화면 폭에 맞게 짧게 끊는다.
     freeCta: '無料で自分だけのAI秘書を作ろう',
+    subCta: 'チャンネル登録で毎日お届けします',
     note: '画面を見てアプリを開き、クリックします',
   },
 };
@@ -318,6 +324,10 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 .f{font-size:44px;font-weight:900;color:#fff;background:#16a34a;border-radius:999px;
   padding:10px 34px;margin-top:14px;letter-spacing:.01em}
 .c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
+/* 구독 안내. 첫 판에서 이 규칙을 넣는 치환이 두 번 조용히 실패해 브라우저 기본 크기(16px)로
+   나갔다 — 프레임을 눈으로 봤기에 잡았다. 문자열 치환은 실패해도 아무 말이 없다. */
+.s{font-size:46px;font-weight:900;color:#fff;letter-spacing:.01em;margin-top:22px;
+  border:3px solid rgba(207,227,255,.55);border-radius:999px;padding:10px 30px}
 </style>
 ${hasPhoto ? `<div class="p">${T.line && !DEMO ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
 <div class="body">
@@ -330,6 +340,7 @@ ${hasPhoto ? `<div class="p">${T.line && !DEMO ? `<div class="say"><i></i>“${T
 <div class="c">${T.cta}</div>
 ${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}
 <div class="c2">${T.note}</div>
+${T.subCta ? `<div class="s">${T.subCta}</div>` : ''}
 </div>`);
 // 영상이면 알파를 살려 찍는다 — 띠 자리가 뚫려야 아래 영상이 보인다.
 await page.screenshot({ path: `${WORK}/bg.png`, omitBackground: !!bgVideo });
@@ -363,11 +374,13 @@ html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
 .gap{height:${STEP_H}px}
 .u{font-size:64px;font-weight:900;color:#ffd400;-webkit-text-stroke:4px #0a0a0a;paint-order:stroke fill}
 .f{font-size:42px;font-weight:900;color:#fff;background:#16a34a;border-radius:999px;padding:9px 30px;margin-top:4px}
+.s{font-size:40px;font-weight:900;color:#fff;margin-top:12px;border:3px solid rgba(207,227,255,.5);border-radius:999px;padding:8px 24px}
 </style>
 <div class="top"><div class="h">${T.demoHead ?? ''}</div></div>
 <div class="bot"><div class="t">${T.tagline}</div><div class="w">AISVI</div>
 <div class="gap"></div><div class="u">aisviagent.com</div>
-${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}</div>`);
+${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}
+${T.subCta ? `<div class="s">${T.subCta}</div>` : ''}</div>`);
   await page.screenshot({ path: `${WORK}/bgA.png`, omitBackground: true });
 
   // 상태 표시 — 2026-09-17 사용자 "여기 왜 아무 문구가 없냐"(AISVI 아래 빈자리).

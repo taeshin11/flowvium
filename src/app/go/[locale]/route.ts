@@ -18,8 +18,26 @@
 //   **유튜브 설명란 링크를 누른 사람이 전부 로컬호스트로 떨어졌다** — 유입이 통째로 사라진다.
 //   프록시 뒤에서 req.url 로 공개 주소를 알 방법은 없다. x-forwarded-host 를 믿는 방법도
 //   있지만, 상대 경로는 믿을 것이 없다 — 브라우저가 현재 origin 기준으로 푼다(RFC 7231 §7.1.2).
+//
+// 2026-09-18: **클릭을 센다.** 이 주소는 유튜브 설명란의 유일한 유입 경로인데 그동안
+//   아무도 세지 않았다. 그래서 "어떤 소재가 사이트 방문을 만드는가" 를 물어도 답할 수가 없었고,
+//   편성을 조회수라는 대리 지표로만 정하고 있었다.
+//   날짜별·로케일별 카운터 하나면 충분하다 — 개인을 식별하지 않는다.
 import { NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
+import { createRedis } from '@/lib/redis';
+
+/** 유입 1건 기록. 실패해도 이동은 막지 않는다 — 통계 때문에 사람을 붙잡아 두지 않는다. */
+async function countHit(locale: string, ref: string | null) {
+  try {
+    const redis = createRedis();
+    if (!redis) return;
+    const day = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);   // KST 기준
+    const src = ref && /youtu/.test(ref) ? 'youtube' : ref ? 'other' : 'direct';
+    await redis.incr(`flowvium:go:${day}:${locale}:${src}`);
+    await redis.expire(`flowvium:go:${day}:${locale}:${src}`, 60 * 60 * 24 * 400);
+  } catch { /* 통계는 비치명 */ }
+}
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -29,6 +47,8 @@ export async function GET(
 ) {
   const { locale } = await params;
   const url = new URL(req.url);
+  // await 하지 않는다 — 리다이렉트가 통계를 기다릴 이유가 없다.
+  void countHit(locale, req.headers.get('referer'));
 
   // 모르는 로케일이면 조용히 홈으로. 임의 값으로 쿠키를 심게 두지 않는다.
   if (!(routing.locales as readonly string[]).includes(locale)) {

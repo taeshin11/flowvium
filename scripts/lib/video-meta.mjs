@@ -255,17 +255,22 @@ function donationLines(isKo) {
   if (!acct) return [];
   // 2026-09-03 사용자: "채널 유지를 위해서 부탁한다고 좀 애절하게".
   //   다만 없는 사실은 쓰지 않는다 — "밤새 만든다" 같은 건 자동으로 도는 파이프라인이라 거짓이 된다.
-  //   사실인 것만 쓴다: 광고가 없고, 서버·데이터 비용이 들고, 그게 끊기면 채널이 멈춘다.
+  //
+  // 2026-09-18 정정: "광고 하나 없이 운영됩니다" 를 쓰고 있었는데, 2026-09-09 부터 영상 끝에
+  //   우리 제품(AISVI) 소개 클립 11초가 붙는다. **후원을 부탁하는 문단 바로 위에서 사실이 아닌
+  //   말을 하고 있었다.** 시청자가 알아채면 그 문단 전체의 신뢰가 무너진다.
+  //   사실만 남긴다 — 유튜브 수익 창출을 하지 않는 것은 맞고(구독자 요건 미달), 끝 클립이
+  //   우리 것이라는 사실도 그대로 밝힌다. 숨길 이유가 없다.
   return isKo
     ? ['',
-      '🙏 이 채널은 광고 하나 없이 운영됩니다.',
+      '🙏 이 채널은 유튜브 수익 창출을 하지 않습니다. (끝에 붙는 짧은 소개는 저희가 만든 프로그램입니다)',
       '매일 다섯 편을 만드는 데 서버비와 데이터 비용이 들어갑니다.',
       '솔직히 혼자 감당하기가 버겁습니다. 커피 한 잔 값이라도 보태 주시면',
       '이 채널을 멈추지 않고 계속 이어갈 수 있습니다. 간절히 부탁드립니다.',
       acct,
       '작은 후원 하나가 내일 영상을 만듭니다. 정말 감사합니다.']
     : ['',
-      '🙏 This channel runs with no ads at all.',
+      '🙏 This channel is not monetized on YouTube. (The short clip at the end is our own tool.)',
       'Server and data costs add up for five briefings a day.',
       'Even the price of a coffee helps keep it going. Thank you sincerely.',
       acct];
