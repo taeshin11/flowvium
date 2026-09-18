@@ -70,6 +70,12 @@ const COPY = {
     demoSteps: ['말로 지시', '메일 작성 중…', '전송 완료 ✓'],
     desc: '말하는 대로<br>내 컴퓨터를 조종합니다',
     cta: '에서 다운로드',
+    // 2026-09-18 사용자 "무료로 내 AI 비서를 만들어 보세요. 이렇게 좀 붙여 봐".
+    //   **화면 문구로만 넣는다.** 소리로 넣으면 "AI" 가 "아이" 로 읽히고(위 say 주석 참고),
+    //   무엇보다 가격 주장은 눈으로 확인되는 자리에 두는 편이 낫다.
+    //   ⚠ 사이트에서 가격을 확인하지 못했다(자바스크립트로 그려져 본문을 못 읽음).
+    //     유료 구간이 생기면 이 줄부터 고쳐야 한다 — 광고에서 가장 먼저 문제가 되는 문장이다.
+    freeCta: '무료로 내 AI 비서를 만들어 보세요',
     note: '화면을 보고 프로그램을 열고 눌러 줍니다',
   },
   ja: {
@@ -90,6 +96,8 @@ const COPY = {
     demoSteps: ['声で指示', 'メール作成中…', '送信完了 ✓'],
     desc: '話すだけで<br>パソコンを操作します',
     cta: 'からダウンロード',
+    // 한국어판과 같은 문구. 화면 폭에 맞게 짧게 끊는다.
+    freeCta: '無料で自分だけのAI秘書を作ろう',
     note: '画面を見てアプリを開き、クリックします',
   },
 };
@@ -306,6 +314,9 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 .u{font-size:66px;font-weight:900;color:#ffd400;letter-spacing:.01em;
   -webkit-text-stroke:5px #0a0a0a;paint-order:stroke fill;margin-top:6px}
 .c{font-size:38px;font-weight:700;color:#ffd400;letter-spacing:.04em;margin-top:-14px}
+/* 무료 안내 — 주소 바로 아래. 주소(노랑)와 구분되게 흰 글씨에 초록 테두리를 준다. */
+.f{font-size:44px;font-weight:900;color:#fff;background:#16a34a;border-radius:999px;
+  padding:10px 34px;margin-top:14px;letter-spacing:.01em}
 .c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
 </style>
 ${hasPhoto ? `<div class="p">${T.line && !DEMO ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
@@ -314,8 +325,10 @@ ${hasPhoto ? `<div class="p">${T.line && !DEMO ? `<div class="say"><i></i>“${T
 <div class="w">AISVI</div><div class="r"></div>
 <div class="d">${T.desc}</div>
 <div class="u">aisviagent.com</div>
-<!-- 가격은 확인된 바 없어 적지 않는다. 광고에 확인 안 된 사실을 넣지 않는다. -->
+<!-- cta 는 주소에 이어 읽히는 꼬리다("aisviagent.com 에서 다운로드").
+     무료 안내를 그 사이에 끼웠더니 "에서 다운로드" 만 떨어져 나와 붕 떴다(2026-09-18 눈검증). -->
 <div class="c">${T.cta}</div>
+${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}
 <div class="c2">${T.note}</div>
 </div>`);
 // 영상이면 알파를 살려 찍는다 — 띠 자리가 뚫려야 아래 영상이 보인다.
@@ -349,10 +362,12 @@ html,body{width:${W}px;height:${H}px;background:transparent;overflow:hidden;
 .h{font-size:62px;font-weight:900;color:#fff;text-align:center;padding:0 50px;line-height:1.25}
 .gap{height:${STEP_H}px}
 .u{font-size:64px;font-weight:900;color:#ffd400;-webkit-text-stroke:4px #0a0a0a;paint-order:stroke fill}
+.f{font-size:42px;font-weight:900;color:#fff;background:#16a34a;border-radius:999px;padding:9px 30px;margin-top:4px}
 </style>
 <div class="top"><div class="h">${T.demoHead ?? ''}</div></div>
 <div class="bot"><div class="t">${T.tagline}</div><div class="w">AISVI</div>
-<div class="gap"></div><div class="u">aisviagent.com</div></div>`);
+<div class="gap"></div><div class="u">aisviagent.com</div>
+${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}</div>`);
   await page.screenshot({ path: `${WORK}/bgA.png`, omitBackground: true });
 
   // 상태 표시 — 2026-09-17 사용자 "여기 왜 아무 문구가 없냐"(AISVI 아래 빈자리).
