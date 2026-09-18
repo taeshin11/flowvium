@@ -1757,12 +1757,17 @@ try {
     const sp = cut.lastIndexOf(' ');
     head = `${(sp > 10 ? cut.slice(0, sp) : cut.slice(0, 24)).replace(/[,·…]$/, '')}…`;
   }
+  // 그림은 **데이터로 박아 넣는다**. setContent 로 만든 문서는 about:blank 라서
+  //   크롬이 file:// 하위 자원을 막는다 — 2026-09-18 첫 회차가 새까만 썸네일로 올라갔다.
+  const ext = (bg.match(/\.(\w+)$/) || [])[1]?.toLowerCase() ?? 'png';
+  const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'image/png';
+  const dataUrl = `data:${mime};base64,${readFileSync(bg).toString('base64')}`;
   const thumbPage = await (await chromium.launch()).newPage({ viewport: { width: 1080, height: 1920 } });
   await thumbPage.setContent(`<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;
   font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
-.bg{position:absolute;inset:0;background:url('file://${bg}') center/cover no-repeat}
+.bg{position:absolute;inset:0;background:url('${dataUrl}') center/cover no-repeat}
 /* 위아래를 어둡게 깔아 글자가 뜨게 한다. 가운데(얼굴·현장)는 남긴다. */
 .sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 34%,
   rgba(0,0,0,.20) 62%,rgba(0,0,0,.88) 100%)}
@@ -1946,11 +1951,23 @@ console.log(`   ${totalSec.toFixed(1)}초 · ${size}MB · 장면 ${scenes.length
 
 // 썸네일을 발행이 찾는 자리에 jpg 로 둔다. png 는 2MB 를 넘기 쉬워 jpg 로 굽는다.
 if (existsSync(`${WORK}/thumb.png`)) {
+  // 밝기 관문 — 배경이 안 붙으면 글자만 뜬 새까만 그림이 된다(2026-09-18 실제로 그렇게 올라갔다).
+  //   그 경우엔 **안 올리는 편이 낫다**. 유튜브가 고른 프레임이 검은 카드보다 낫다.
+  //   1x1 회색조로 줄여 평균 밝기를 바이트로 읽는다(ffprobe 는 이 저장소에 없다).
+  const lum = spawnSync(ffmpegPath,
+    ['-v', 'error', '-i', `${WORK}/thumb.png`, '-vf', 'scale=1:1', '-pix_fmt', 'gray', '-f', 'rawvideo', '-'],
+    ffmpegOpts({ timeoutMs: 20000 }));
+  const avg = lum.status === 0 && lum.stdout?.length ? lum.stdout[0] : 0;
   const tj = join(MEDIA.root, 'shorts-ko-thumb.jpg');
-  const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', `${WORK}/thumb.png`, '-q:v', '3', tj],
-    ffmpegOpts({ timeoutMs: 30000 }));
-  if (r.status === 0 && existsSync(tj)) console.log(`   썸네일 ${(readFileSync(tj).length / 1024).toFixed(0)}KB → ${tj}`);
-  else console.log(`   ⚠ 썸네일 굽기 실패 — 유튜브가 자동으로 고른다`);
+  if (avg < 26) {
+    if (existsSync(tj)) unlinkSync(tj);          // 지난 회차 것이 남아 붙는 사고를 막는다
+    console.log(`   ⚠ 썸네일이 너무 어둡다(평균 밝기 ${avg}/255) — 올리지 않는다. 유튜브가 자동으로 고른다`);
+  } else {
+    const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', `${WORK}/thumb.png`, '-q:v', '3', tj],
+      ffmpegOpts({ timeoutMs: 30000 }));
+    if (r.status === 0 && existsSync(tj)) console.log(`   썸네일 ${(readFileSync(tj).length / 1024).toFixed(0)}KB · 밝기 ${avg}/255 → ${tj}`);
+    else console.log(`   ⚠ 썸네일 굽기 실패 — 유튜브가 자동으로 고른다`);
+  }
 }
 
 // 표기 의무. 라이선스가 요구하면 설명란에 넣어야 한다.
