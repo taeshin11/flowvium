@@ -1722,6 +1722,64 @@ body{background:radial-gradient(760px 560px at 50% 45%,#25406e 0%,rgba(0,0,0,0) 
   text-indent:.32em;text-align:center}
 </style><div class="k">FLOWVIUM</div>`);
 await page.screenshot({ path: `${WORK}/card.png` });
+
+// ── 세로 썸네일 (2026-09-18) ────────────────────────────────────────────────
+//
+// 왜 필요한가: video-publish.mjs 는 `isShorts ? null` 로 **쇼츠에 썸네일을 아예 안 붙이고**
+//   있었다. 이유는 "가로(16:9) 썸네일을 붙이면 쇼츠 선반에서 잘린다" 였는데, 그 답은
+//   안 붙이는 게 아니라 **세로로 붙이는 것**이다. 안 붙이면 유튜브가 아무 프레임이나 고른다 —
+//   어두운 도입부나 광고 끝이 걸리면 검색·채널에서 그 회차는 아무것도 안 보인다.
+//   (사용자 2026-09-18: "쇼츠가 썸네일 때문에 조회수가 빵인 게 생겼어")
+//
+// 실측으로 확인한 것: thumbnails.set 에 1080x1920 을 넣으니 이 채널에서 ok=true 가 왔다.
+//   쇼츠 맞춤 썸네일은 2026-07-24 부터 열렸고 채널마다 순차 적용이라, 되는지는 해 봐야 안다.
+//   실패해도 setThumbnail 은 던지지 않으므로 발행은 그대로 진행된다.
+//
+// 배경은 **이 회차가 실제로 쓴 첫 사진**이다. 없는 그림을 새로 만들지 않는다 —
+//   뉴스 썸네일이 그 사건의 사진이 아니게 되는 순간 낚시가 된다.
+try {
+  const first = scenes.find((x) => !x.isOutro && x.media);
+  let bg = first?.media ?? `${WORK}/card.png`;
+  if (/\.mp4$/i.test(bg)) {
+    const f = `${WORK}/thumbbg.png`;
+    const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-ss', '0.5', '-i', bg, '-frames:v', '1', f],
+      ffmpegOpts({ timeoutMs: 30000 }));
+    bg = r.status === 0 && existsSync(f) ? f : `${WORK}/card.png`;
+  }
+  // 제목은 짧아야 읽힌다. **헤드라인**을 쓴다 — 훅은 말하려고 쓴 문장이라 잘리면 토막이 된다.
+  //   자를 때는 낱말 경계에서 자른다. 글자 수로 뚝 자르면 "한화시스템 UA" 같은 게 나온다.
+  const raw = String(headlines[0] || first?.hook || '')
+    .replace(/^\[[^\]]*\]\s*/, '')            // [속보] [특징주] 같은 말머리는 뺀다 — 자리만 먹는다
+    .replace(/\s+/g, ' ').trim();
+  let head = raw;
+  if (head.length > 24) {
+    const cut = head.slice(0, 25);
+    const sp = cut.lastIndexOf(' ');
+    head = `${(sp > 10 ? cut.slice(0, sp) : cut.slice(0, 24)).replace(/[,·…]$/, '')}…`;
+  }
+  const thumbPage = await (await chromium.launch()).newPage({ viewport: { width: 1080, height: 1920 } });
+  await thumbPage.setContent(`<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
+.bg{position:absolute;inset:0;background:url('file://${bg}') center/cover no-repeat}
+/* 위아래를 어둡게 깔아 글자가 뜨게 한다. 가운데(얼굴·현장)는 남긴다. */
+.sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 34%,
+  rgba(0,0,0,.20) 62%,rgba(0,0,0,.88) 100%)}
+.h{position:absolute;left:54px;right:54px;top:130px;font-size:118px;font-weight:900;line-height:1.16;
+  color:#ffd400;-webkit-text-stroke:14px #0a0a0a;paint-order:stroke fill;letter-spacing:-.01em}
+.m{position:absolute;left:0;right:0;bottom:120px;text-align:center;font-size:44px;font-weight:900;
+  color:#fff;letter-spacing:.3em;text-indent:.3em;opacity:.92;-webkit-text-stroke:6px #0a0a0a;paint-order:stroke fill}
+</style><div class="bg"></div><div class="sh"></div>
+<div class="h">${head.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>
+<div class="m">FLOWVIUM</div>`);
+  await thumbPage.screenshot({ path: `${WORK}/thumb.png` });
+  await thumbPage.context().browser()?.close();
+  log(`[썸네일] 만들었다 — "${head}"`);
+} catch (e) {
+  log(`[썸네일] ⚠ 못 만들었다(발행은 계속한다): ${String(e?.message).slice(0, 80)}`);
+}
+
 await browser.close();
 
 // ── 6. 합성 ─────────────────────────────────────────────────────────────────────
@@ -1885,6 +1943,15 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
 const size = (readFileSync(OUT).length / 1048576).toFixed(1);
 console.log(`\n✅ ${OUT}`);
 console.log(`   ${totalSec.toFixed(1)}초 · ${size}MB · 장면 ${scenes.length}개 · ${G.W}×${G.H}`);
+
+// 썸네일을 발행이 찾는 자리에 jpg 로 둔다. png 는 2MB 를 넘기 쉬워 jpg 로 굽는다.
+if (existsSync(`${WORK}/thumb.png`)) {
+  const tj = join(MEDIA.root, 'shorts-ko-thumb.jpg');
+  const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', `${WORK}/thumb.png`, '-q:v', '3', tj],
+    ffmpegOpts({ timeoutMs: 30000 }));
+  if (r.status === 0 && existsSync(tj)) console.log(`   썸네일 ${(readFileSync(tj).length / 1024).toFixed(0)}KB → ${tj}`);
+  else console.log(`   ⚠ 썸네일 굽기 실패 — 유튜브가 자동으로 고른다`);
+}
 
 // 표기 의무. 라이선스가 요구하면 설명란에 넣어야 한다.
 const credits = scenes.map((s) => (s.pick ? creditLine(s.pick) : null)).filter(Boolean);

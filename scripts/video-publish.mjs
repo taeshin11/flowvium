@@ -203,10 +203,14 @@ const MEDIA = resolveMediaRoot({
   allowLocal: argv.includes('--local-media'),
 });
 const VIDEO = join(MEDIA.root, isShorts ? `shorts-${LOCALE}.mp4` : `issue-${LOCALE}.mp4`);
-// 쇼츠는 썸네일을 붙이지 않는다. 유튜브가 세로 영상에서 자동으로 뽑고,
-//   여기서 가로(16:9) 썸네일을 붙이면 쇼츠 선반에서 잘려 보인다.
-//   옛 가로 회차의 issue-ko-thumb.jpg 가 남아 있으면 그게 붙는다 — 경로 자체를 비운다.
-const THUMB = isShorts ? null : join(MEDIA.root, `issue-${LOCALE}-thumb.jpg`);
+// 썸네일은 **세로 회차는 세로 것**을 붙인다(2026-09-18).
+//   종전에는 쇼츠에 아무것도 안 붙였다. 이유는 "가로(16:9)를 붙이면 쇼츠 선반에서 잘린다" 였는데,
+//   답은 안 붙이는 게 아니라 세로로 붙이는 것이었다. 안 붙이면 유튜브가 아무 프레임이나 고르고,
+//   어두운 도입부나 광고 끝이 걸린 회차는 검색·채널에서 아무것도 안 보인다
+//   (사용자 2026-09-18: "쇼츠가 썸네일 때문에 조회수가 빵인 게 생겼어").
+//   make-shorts.mjs 가 shorts-{locale}-thumb.jpg(1080x1920)를 같이 굽는다.
+//   ⚠ 옛 가로 회차의 issue-*-thumb.jpg 를 쇼츠에 붙이면 안 된다 — 파일 이름을 나눠 둔 이유다.
+const THUMB = join(MEDIA.root, isShorts ? `shorts-${LOCALE}-thumb.jpg` : `issue-${LOCALE}-thumb.jpg`);
 if (!existsSync(VIDEO)) throw new Error(`영상이 없다: ${VIDEO}`);
 log(`렌더 완료 · ${(statSync(VIDEO).size / 1048576).toFixed(1)}MB`);
 
