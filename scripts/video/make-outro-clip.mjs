@@ -55,7 +55,10 @@ const COPY = {
     //   실측(g2pkk): "나만의 AI비서입니다" → "나마늬 **아이**비서임니다". 한국에서 AI 는
     //   "에이아이" 로 읽지 "아이" 가 아니다. 주소가 "플로우 비오모 소삼드톤 네트" 로 읽힌
     //   2026-09-05 건과 같은 종류다. 소리는 한글로 음을 박고, 글자는 화면으로 전달한다.
-    say: (b, site) => `말하는 대로 내 컴퓨터를 조종하는 ${b}. 나만의 에이아이 비서입니다. ${site}에서 지금 받으세요.`,
+    // 2026-09-19 사용자 "광고를 6초 이하로 줄일수있나". 전체 길이는 나레이션이 정한다
+    //   (sec = 음성 + 0.6). 종전 대본은 10.5초라 11.1초짜리 광고가 됐다.
+    //   브랜드 이름을 두 번 부르던 것을 한 번으로, 권유 문장을 없앴다 — 화면에 다 쓰여 있다.
+    say: (b, site) => `말하는 대로 컴퓨터를 조종합니다. ${site}`,
     tagline: '나만의 AI비서',
     // 2026-09-16 사용자 "핸드폰 들고 뭐라고 말하는지, 통화를 하는 건지 전혀 모르겠으니까".
     //   맞는 지적이다 — 사진만으로는 통화·음성 메모·AI 지시가 구분되지 않는다.
@@ -92,7 +95,7 @@ const COPY = {
     // 한국어판과 같이 바꾼다 — 같은 광고이고, 바꾼 이유(자비스는 남의 이름이다)도 같다.
     //   일본어도 AI 는 "エーアイ" 로 읽는다. 여기 say 는 사람이 읽거나 다른 TTS 에 줄 대본이므로
     //   소리 나는 대로 적고, 화면(tagline)에는 글자 그대로 AI 를 쓴다.
-    say: (b, site) => `話すだけでパソコンを操作する、${b}。自分だけのエーアイ秘書です。${site}で今すぐ手に入れてください。`,
+    say: (b, site) => `話すだけでパソコンを操作します。${site}`,
     tagline: '自分だけのAI秘書',
     line: '取引先にメール送っておいて',
     // 말풍선은 좁아서 두 줄이 된다. 브라우저가 단어 중간(送/っておいて)에서 끊었다 — 끊을 자리를 준다.
@@ -228,7 +231,13 @@ const BGVID = argOf('bg-video', process.env.AISVI_BG_VIDEO
 //   --demo 가 없으면 종전과 똑같다.
 const PHOTO_DEFAULT = resolve(ROOT, 'assets/outro/jarvis.jpg');
 const DEMO_IN = argOf('demo', process.env.AISVI_DEMO || '');
-const DEMO = DEMO_IN ? resolve(ROOT, DEMO_IN) : null;
+// `--demo` 를 값 없이 주면 관례 경로를 쓴다.
+//   2026-09-19 사고: `--demo` 만 주고 파일을 안 줬더니 argOf 가 빈 문자열을 돌려 DEMO=null 이 됐고,
+//   **시연 단계가 통째로 빠진 광고**가 조용히 만들어져 나갔다. 로그에 '구성' 줄이 없는 게
+//   유일한 단서였는데 그걸 못 봤다. 끄려면 --demo 를 아예 주지 않으면 된다 — 실수로 꺼지지는 않게.
+const DEMO_PATH = DEMO_IN || (process.argv.includes('--demo')
+  ? `assets/outro/aisvi-demo${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4` : '');
+const DEMO = DEMO_PATH ? resolve(ROOT, DEMO_PATH) : null;
 if (DEMO && !existsSync(DEMO)) { console.error(`❌ 시연 영상이 없다: ${DEMO}`); process.exit(2); }
 // 시연 영상마다 편집이 다르다(사람 위치·단계 시각). 영상 옆 같은 이름의 .json 에 둔다.
 //   2026-09-17: 한국 시연은 사람이 오른쪽, 일본 시연은 왼쪽이라 말풍선 자리가 반대였다 —
@@ -427,7 +436,10 @@ svg{position:absolute;left:0;top:0}
 await browser.close();
 
 // 음성 길이에 맞추되 최소 4초 — 너무 짧으면 읽히기 전에 지나간다.
-const sec = Math.max(4, voice.durationSec + 0.6);
+//   꼬리 여백(TAIL)은 말이 끝난 뒤 화면이 숨 쉬는 시간이다. 소리는 apad 로 sec 까지 채우므로
+//   여기서 줄여도 말이 잘리지는 않는다. 2026-09-19 사용자 "6초 이하" 요청에 0.6 → 0.45.
+const TAIL = Number(process.env.AISVI_TAIL ?? 0.45);
+const sec = Math.max(4, voice.durationSec + TAIL);
 // 영상이 있으면 **두 단계**로 만든다. 한 그래프에 다 넣었더니 필터가 깨졌다
 //   ("Error reinitializing filters" — tpad·trim·overlay 를 한 번에 물리면 불안정하다).
 //   ① 띠 영상을 광고 길이에 맞춰 따로 렌더  ② 그 위에 글자판(알파)을 얹는다.
@@ -459,7 +471,14 @@ const PHASE_A = DEMO ? Math.max(3, Math.min(DEMO_SEC + 0.4, sec - 4)) : 0;
 function stepChain(inp, out) {
   const n = (T.demoSteps ?? []).length;
   if (!n) return `[${inp}]fps=30,format=yuv420p,setsar=1[${out}];`;
-  const edges = [0, ...DEMO_STEPS_AT.slice(0, n - 1), PHASE_A];
+  // 단계 시각은 **영상과 같은 배속**으로 줄인다. 설정값(2.4·4.7)은 원본 1배속 기준이므로,
+  //   영상을 DEMO_SEC → PHASE_A 로 빠르게 돌리면 배지도 같은 비율로 당겨야 장면과 맞는다.
+  //   2026-09-19: 처음엔 '마지막 단계+0.3' 을 기준으로 줄였더니 배지가 장면보다 늦어,
+  //   화면에서 Send 를 누르는데 배지는 아직 '메일 작성 중' 이었다. 기준이 달랐던 탓이다.
+  //   (절대 초를 그대로 쓰면 edges 가 [0, 2.4, 4.7, 3] 처럼 뒤집혀 필터가 깨진다.)
+  const scale = PHASE_A / Math.max(DEMO_SEC, PHASE_A);
+  const at = DEMO_STEPS_AT.slice(0, n - 1).map((t) => Number((t * scale).toFixed(2)));
+  const edges = [0, ...at, PHASE_A];
   let f = ''; let cur = inp;
   for (let k = 0; k < n; k++) {
     const nx = k === n - 1 ? `${out}pre` : `st${k}`;
@@ -483,7 +502,12 @@ const vArgs = DEMO && bandFile
     '-filter_complex',
     // 시연: 폭에 맞춰 늘리고, 짧으면 마지막 프레임을 물린다. Veo 소리는 버린다.
     `[1:v]scale=${W}:${VID_H}:force_original_aspect_ratio=increase,crop=${W}:${VID_H},`
-      + `tpad=stop_mode=clone:stop_duration=${PHASE_A},trim=0:${PHASE_A},setpts=PTS-STARTPTS,fps=30[d];`
+      // 시연이 광고보다 길면 **자르지 말고 빠르게 돌린다**.
+      //   2026-09-19: trim=0:PHASE_A 로 앞부분만 쓰다 보니, 광고를 6초로 줄이자 3초만 남아
+      //   정작 보여줘야 할 '전송 완료' 장면(원본 뒤쪽)이 통째로 잘렸다 — 결론이 없는 시연이 됐다.
+      //   배속하면 전 과정이 다 보이고, 빨리 처리된다는 인상도 메시지와 맞는다.
+      + `tpad=stop_mode=clone:stop_duration=${PHASE_A},setpts=PTS/${(Math.max(DEMO_SEC, PHASE_A) / PHASE_A).toFixed(4)},`
+      + `trim=0:${PHASE_A},setpts=PTS-STARTPTS,fps=30[d];`
       + `[7:v]format=rgba,fade=t=in:st=0.15:d=0.18:alpha=1,fade=t=out:st=${Math.max(0.5, DEMO_STEPS_AT[0] - 0.3)}:d=0.2:alpha=1[bub];`
       + `[0:v][d]overlay=0:${VID_Y}[a0];[a0][2:v]overlay=0:0[a1];`
       + `[a1][bub]overlay=0:0[a2];`
