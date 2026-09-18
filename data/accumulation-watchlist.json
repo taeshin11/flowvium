@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-09-17T22:20:26.907Z",
+  "generatedAt": "2026-09-18T07:20:34.648Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "222080.KQ",
+      "name": "씨아이에스",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 3.2,
+      "runup5dPct": 3.1,
+      "medDollarVolUsd": 2794978,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "445680.KQ",
       "name": "큐리옥스바이오시스템즈",
@@ -19,15 +37,15 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 6.6,
-      "runup5dPct": -1.8,
+      "runup20dPct": 6,
+      "runup5dPct": -4.5,
       "medDollarVolUsd": 2739252,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "171090.KQ",
-      "name": "선익시스템",
+      "ticker": "397030.KQ",
+      "name": "에이프릴바이오",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
@@ -37,9 +55,26 @@
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 6.3,
-      "runup5dPct": 4.5,
-      "medDollarVolUsd": 2460212,
+      "runup20dPct": -7.9,
+      "runup5dPct": 6.7,
+      "medDollarVolUsd": 3705203,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "127120.KQ",
+      "name": "제이에스링크",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.7× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -4.4,
+      "runup5dPct": 3.3,
+      "medDollarVolUsd": 3313186,
       "smartAccum": true,
       "official": null
     }
