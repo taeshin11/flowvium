@@ -16,7 +16,7 @@ import { resolve, join, basename } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
 import { mdToHtml, extractTitle, stripFrontComment } from './lib/blog-html.mjs';
-import { insertPost, listBlogs, tokenPresent } from './lib/blogger.mjs';
+import { insertPost, updatePost, listBlogs, tokenPresent } from './lib/blogger.mjs';
 
 loadEnvLocal?.();
 const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : null; };
@@ -38,9 +38,10 @@ if (!file || !existsSync(file)) { console.error(`❌ 올릴 글이 없다 — �
 const LEDGER = resolve(dir, '.published.json');
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
 const key = basename(file);
-if (ledger[key] && !process.argv.includes('--force')) {
+const force = process.argv.includes('--force');
+if (ledger[key] && !force) {
   console.log(`이미 올렸다: ${key} → ${ledger[key].url}`);
-  console.log('  다시 올리려면 --force');
+  console.log('  내용을 고쳐 반영하려면 --force (새 글을 만들지 않고 그 글을 수정한다)');
   process.exit(0);
 }
 
@@ -70,8 +71,12 @@ console.log(`글: ${file}`);
 console.log(`제목: ${title}`);
 console.log(`본문: ${html.length}자 · 라벨 ${labels.join(', ')}${draft ? ' · **초안**' : ''}`);
 
-const r = await insertPost({ blogId, title, html, labels, draft });
-console.log(`✅ ${r.status} — ${r.url}`);
+// 이미 올린 글이면 **수정**한다. 같은 내용의 글을 또 만들지 않는다.
+const prev = ledger[key]?.id;
+const r = prev
+  ? await updatePost({ blogId, postId: prev, title, html, labels })
+  : await insertPost({ blogId, title, html, labels, draft });
+console.log(`✅ ${prev ? '수정' : r.status} — ${r.url}`);
 
 ledger[key] = { id: r.id, url: r.url, status: r.status, at: new Date().toISOString() };
 writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));

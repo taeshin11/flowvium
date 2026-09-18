@@ -567,6 +567,11 @@ const MAINT_JOBS = [
   //   하루 한 편이면 --session morning 으로 고정해도 되지만, 그날 아침 회차가 밀리면 빈손이 된다.
   //   최신 ko 보고서를 집게 두어 회차가 밀려도 그날 글은 나오게 한다.
   { label: 'blog-post',            script: 'scripts/make-blog-post.mjs',             timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['10 22 * * *'],                maxAgeH: 30 },
+  //   만든 글을 Blogger 에 올린다(정식 API). 만들기 5분 뒤에 둔다 — 같은 잡으로 묶으면
+  //   글 만들기가 느려졌을 때 게시까지 통째로 시간 초과가 된다.
+  //   네이버가 아니라 Blogger 인 이유: 네이버는 자동 게재가 약관 위반이고 글쓰기 API 도 없다.
+  //   중복 게시는 reports/blog/.published.json 이 막는다(이미 올린 글이면 수정만 한다).
+  { label: 'blog-publish',         script: 'scripts/blog-publish.mjs',               timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['15 22 * * *'],                maxAgeH: 30 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
   //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고

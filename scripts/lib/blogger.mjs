@@ -6,11 +6,17 @@
  *   지금 **정식 API 로 글을 올릴 수 있는 곳**은 Blogger v3 와 워드프레스뿐이다.
  *   Blogger 는 폐지 공지가 없고 OAuth 2.0 으로 posts.insert 를 그대로 받는다.
  *
- * 자격증명은 유튜브와 **같은 OAuth 클라이언트**(secrets/youtube-oauth.json)를 쓴다.
- *   같은 구글 클라우드 프로젝트이므로 클라이언트를 또 만들 이유가 없다. 대신 토큰 파일은
- *   따로 둔다(secrets/blogger-token.json) — 하나로 합치면 한쪽 재동의가 다른 쪽을 날린다.
- *   (실제로 youtube.mjs 는 스코프가 하나라도 빠지면 저장을 거부한다. 파일을 공유하면
- *    blogger 만 동의한 토큰이 유튜브 업로드를 멈추게 만든다.)
+ * 자격증명은 **blogger 전용 클라이언트**(secrets/blogger-oauth.json)를 먼저 본다.
+ *   처음엔 유튜브와 같은 클라이언트를 재사용하려 했으나 막혔다(2026-09-18 실측):
+ *   유튜브 클라이언트가 속한 프로젝트의 동의 화면에 blogger 범위가 없어서 "액세스 차단됨" 이 났고,
+ *   그 프로젝트는 다른 구글 계정 소유라 이 기계에서 범위를 더할 수 없었다.
+ *   그래서 블로그 주인 계정(taeshinkim11)이 가진 별도 프로젝트에 클라이언트를 따로 냈다.
+ *   **부수 효과가 오히려 낫다** — 유튜브 프로젝트를 건드리지 않으므로 쇼츠 업로드 권한이 안전하다.
+ *   없으면 유튜브 클라이언트로 폴백한다(같은 프로젝트를 쓰게 되는 환경도 있을 수 있다).
+ *
+ *   토큰 파일은 유튜브와 따로 둔다(secrets/blogger-token.json) — 하나로 합치면 한쪽 재동의가
+ *   다른 쪽을 날린다. youtube.mjs 는 스코프가 하나라도 빠지면 저장을 거부하므로,
+ *   파일을 공유하면 blogger 만 동의한 토큰이 유튜브 업로드를 멈추게 만든다.
  *
  * 두 파일 모두 .gitignore 의 secrets/ 아래라 커밋되지 않는다. 값을 로그에 찍지 않는다.
  */
@@ -22,15 +28,18 @@ import { ROOT } from './project-root.mjs';
 // 글을 쓰려면 읽기 전용(blogger.readonly)으로는 안 된다. 목록 조회도 이 스코프로 같이 된다.
 export const SCOPES = ['https://www.googleapis.com/auth/blogger'];
 
-const CRED = resolve(ROOT, 'secrets/youtube-oauth.json');
+const CRED_OWN = resolve(ROOT, 'secrets/blogger-oauth.json');
+const CRED_FALLBACK = resolve(ROOT, 'secrets/youtube-oauth.json');
+const credPath = () => (existsSync(CRED_OWN) ? CRED_OWN : CRED_FALLBACK);
 export const TOKEN = resolve(ROOT, 'secrets/blogger-token.json');
 
-export function credentialsPresent() { return existsSync(CRED); }
+export function credentialsPresent() { return existsSync(credPath()); }
 export function tokenPresent() { return existsSync(TOKEN); }
 
 export function loadClient(redirect) {
+  const CRED = credPath();
   if (!existsSync(CRED)) {
-    throw new Error(`OAuth 자격증명 없음 — ${CRED} (유튜브와 같은 '데스크톱 앱' 클라이언트를 쓴다)`);
+    throw new Error(`OAuth 자격증명 없음 — ${CRED_OWN} 에 '데스크톱 앱' 클라이언트를 두어라`);
   }
   const raw = JSON.parse(readFileSync(CRED, 'utf8'));
   const c = raw.installed ?? raw.web;
@@ -88,4 +97,18 @@ export async function insertPost({ blogId, title, html, labels = [], draft = fal
     requestBody: { kind: 'blogger#post', title: title.trim(), content: html, labels },
   });
   return { id: r.data.id, url: r.data.url, status: r.data.status ?? (draft ? 'DRAFT' : 'LIVE') };
+}
+
+/**
+ * 이미 올린 글을 고쳐 쓴다. 새로 올리지 않는다 — 같은 내용의 글이 두 개 생기면 검색에서
+ *   서로를 갉아먹고, 읽는 사람도 어느 것이 최신인지 모른다.
+ * @param {{blogId:string, postId:string, title:string, html:string, labels?:string[]}} o
+ */
+export async function updatePost({ blogId, postId, title, html, labels = [] }) {
+  if (!blogId || !postId) throw new Error(`blogId 와 postId 가 모두 필요하다`);
+  const r = await api().posts.update({
+    blogId, postId,
+    requestBody: { kind: 'blogger#post', id: postId, title: title.trim(), content: html, labels },
+  });
+  return { id: r.data.id, url: r.data.url, status: r.data.status ?? 'LIVE' };
 }

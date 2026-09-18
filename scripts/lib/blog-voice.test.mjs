@@ -89,5 +89,26 @@ changedUnits('채권(109억달러) 유입', '채권(109억 달러)이 들어왔�
 polishTypography('KOSPI 가 보합세, ROE 를 바탕으로, ETF 도입 논의') === 'KOSPI가 보합세, ROE를 바탕으로, ETF 도입 논의'
   ? ok('[13d] 영문 약어 뒤 조사를 붙이되 낱말은 건드리지 않는다') : bad(`[13d] ${polishTypography('KOSPI 가 보합세, ROE 를 바탕으로, ETF 도입 논의')}`);
 
+// [14] 원문에 없는 한자·가나가 섞이면 버린다 — 2026-09-18 실측: 4B 가 "한국两地 모두" 를 냈고
+//      그 글이 실제로 블로그에 올라갔다. 숫자·단위 관문은 이걸 못 잡는다.
+import { addedForeignChars } from './blog-voice.mjs';
+JSON.stringify(addedForeignChars('오늘 시장은 미국과 한국 모두 올랐다', '미국과 한국两地 모두 올랐습니다')) === '["两","地"]'
+  ? ok('[14] 원문에 없는 한자를 잡는다') : bad(`[14] ${JSON.stringify(addedForeignChars('오늘 시장은 미국과 한국 모두 올랐다', '미국과 한국两地 모두 올랐습니다'))}`);
+addedForeignChars('美 연준이 금리를 올렸다', '美 연준이 금리를 올렸습니다').length === 0
+  ? ok('[14b] 원문에 있던 한자는 통과시킨다') : bad('[14b] 원문 한자를 막았다');
+addedForeignChars('나스닥이 올랐다', 'S&P500 지수가 올랐습니다').length === 0
+  ? ok('[14c] 라틴 문자는 외국문자로 보지 않는다') : bad('[14c] 영문을 막았다');
+
+// [15] 고쳐 쓴 문장이 문어체로 돌아오면 존댓말로 마무리한다
+const r15 = await rewriteBlock('시장은 상승했다.', { call: async () => '시장은 상승 흐름을 이어갔다.' });
+/니다\.?$/.test(r15.text.trim()) ? ok('[15] 문어체로 와도 존댓말로 마무리된다') : bad(`[15] ${r15.text}`);
+
+// [16] 과거형은 목록이 아니라 규칙으로 — 받침 ㅆ + 다
+[['각기 달랐다.', '달랐습니다'], ['빨랐다.', '빨랐습니다'], ['몰랐다.', '몰랐습니다'],
+ ['흐름을 이어갔다.', '이어갔습니다'], ['상승했다.', '상승했습니다'],
+].forEach(([src, want]) => toPolite(src).includes(want)
+  ? ok(`[16] ${src.trim()} → ${want}`) : bad(`[16] ${src} → ${toPolite(src)}`));
+toPolite('오늘은 좋다.').includes('좋다') ? ok('[16b] 받침이 ㅆ 이 아니면 건드리지 않는다') : bad(`[16b] ${toPolite('오늘은 좋다.')}`);
+
 console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ blog-voice 통과');
 process.exit(fail ? 1 : 0);

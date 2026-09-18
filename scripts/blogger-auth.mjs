@@ -72,6 +72,11 @@ server.listen(PORT, () => {
   console.log(`  루프백 대기: ${redirect}`);
   console.log(`  ⚠️  구글 콘솔의 이 클라이언트에 ${redirect} 가 승인된 리디렉션 URI 로 등록돼 있어야 한다(유튜브와 같은 값).`);
   if (ACC) console.log(`  계정 지정: ${ACC}`);
-  console.log('  브라우저를 엽니다 — 로그인과 동의는 직접 해 주세요.');
-  spawnSync('open', [url]);
+  if (process.argv.includes('--no-open')) {
+    // 다른 브라우저(이미 그 계정으로 로그인된 창)에서 동의를 진행할 때 쓴다.
+    console.log(`AUTH_URL ${url}`);
+  } else {
+    console.log('  브라우저를 엽니다 — 로그인과 동의는 직접 해 주세요.');
+    spawnSync('open', [url]);
+  }
 });

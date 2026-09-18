@@ -114,6 +114,26 @@ export function polishTypography(text) {
     .replace(/[ \t]{2,}/g, ' ');
 }
 
+// 한자와 가나. 라틴 문자(S&P500, ROE)는 우리말 글에 정상적으로 들어오므로 보지 않는다.
+const FOREIGN = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g;
+
+/**
+ * 고쳐 쓴 글에만 있고 원문에 없는 한자·가나를 돌려준다.
+ *
+ * 2026-09-18 실측: 4B 가 "오늘 시장은 미국과 한국两地 모두" 를 냈고, 그 문장이 그대로
+ *   블로그에 올라갔다(flowvium.blogspot.com 첫 글). 보고서 원문에는 한자가 없었다.
+ *   숫자 관문도 단위 관문도 이걸 못 잡는다 — 숫자가 아니고 단위도 아니기 때문이다.
+ *   원문에 있던 한자(美·中 같은 머리기사 표기)는 막지 않는다. 판단 기준은 **원문에 있었는가** 다.
+ */
+export function addedForeignChars(src, out) {
+  const have = new Set(String(src ?? '').match(FOREIGN) ?? []);
+  const added = [];
+  for (const ch of String(out ?? '').match(FOREIGN) ?? []) {
+    if (!have.has(ch) && !added.includes(ch)) added.push(ch);
+  }
+  return added;
+}
+
 // 문장 끝의 문어체 종결. 긴 것부터 본다 — '했다' 를 '다' 규칙이 먼저 먹으면 안 된다.
 const ENDINGS = [
   ['했다', '했습니다'], ['였다', '였습니다'], ['웠다', '웠습니다'], ['났다', '났습니다'],
@@ -123,10 +143,22 @@ const ENDINGS = [
   ['짓다', '짓습니다'], ['크다', '큽니다'], ['높다', '높습니다'], ['낮다', '낮습니다'],
 ];
 
-/** LLM 없이 쓰는 바닥 — 문장 끝 종결만 존댓말로 바꾼다. 문장 중간은 건드리지 않는다. */
+/**
+ * LLM 없이 쓰는 바닥 — 문장 끝 종결만 존댓말로 바꾼다. 문장 중간은 건드리지 않는다.
+ *
+ * 과거형은 목록이 아니라 **규칙**으로 본다(2026-09-18): 처음엔 았다/었다만 적어 두었더니
+ *   "각기 달랐다." 가 그대로 블로그에 나갔다. 랐다·몰랐다·빨랐다처럼 어간이 불규칙이면
+ *   목록이 계속 새는 것이다. 한국어 과거형은 앞 음절 받침이 ㅆ 이라는 공통점이 있으므로
+ *   **받침이 ㅆ 인 글자 + 다** 를 한 규칙으로 처리한다.
+ */
+const JONG_SS = 20;   // 한글 종성 인덱스에서 ㅆ
 export function toPolite(text) {
-  return String(text ?? '').replace(/([가-힣]{1,4})(?=[.!?]|\s*$)/g, (seg) => {
+  return String(text ?? '').replace(/([가-힣]{1,5})(?=[.!?]|\s*$)/g, (seg) => {
     for (const [from, to] of ENDINGS) if (seg.endsWith(from)) return seg.slice(0, -from.length) + to;
+    if (seg.endsWith('다') && seg.length >= 2) {
+      const prev = seg.charCodeAt(seg.length - 2) - 0xac00;
+      if (prev >= 0 && prev < 11172 && prev % 28 === JONG_SS) return `${seg.slice(0, -1)}습니다`;
+    }
     return seg;
   });
 }
@@ -192,7 +224,11 @@ export async function rewriteBlock(src, opt = {}) {
   const moved = changedUnits(base, out);
   if (moved.length) return { ...fallback, why: `changed-units:${moved.join(',')}` };
 
-  return { text: polishTypography(out), used: 'llm' };
+  const foreign = addedForeignChars(base, out);
+  if (foreign.length) return { ...fallback, why: `foreign:${foreign.join('')}` };
+
+  // 모델이 지시를 무시하고 문어체로 돌려줄 때가 있다. 버리기엔 아까우니 종결만 존댓말로 맞춘다.
+  return { text: polishTypography(toPolite(out)), used: 'llm' };
 }
 
 /**
