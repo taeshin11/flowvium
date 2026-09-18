@@ -1,3 +1,4 @@
+import { routing } from '@/i18n/routing';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import Navbar from '@/components/Navbar';
@@ -57,7 +58,7 @@ const jsonLd = {
         'Track where smart money flows through the supply chain. Free institutional flow tracker, supply chain maps, and leader-to-midcap cascade analysis.',
       applicationCategory: 'FinanceApplication',
       operatingSystem: 'Web',
-      inLanguage: ['en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr'],
+      inLanguage: [...routing.locales],
       offers: {
         '@type': 'Offer',
         price: '0',
@@ -73,7 +74,7 @@ const jsonLd = {
       '@id': `${BASE_URL}/#website`,
       url: BASE_URL,
       name: 'Flowvium',
-      inLanguage: ['en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr'],
+      inLanguage: [...routing.locales],
       publisher: {
         '@id': `${BASE_URL}/#organization`,
       },

@@ -1,3 +1,4 @@
+import { routing } from '@/i18n/routing';
 import { MetadataRoute } from 'next';
 import { allCompanies } from '@/data/companies';
 import { sectors } from '@/data/sectors';
@@ -5,7 +6,7 @@ import { blogPosts } from '@/data/blog-posts';
 import { glossaryTerms } from '@/data/glossary';
 
 const BASE_URL = 'https://flowvium.net';
-const locales = ['en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr', 'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr'];
+const locales = routing.locales;   // 목록은 i18n/routing 하나에서만 정한다
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: MetadataRoute.Sitemap = [];

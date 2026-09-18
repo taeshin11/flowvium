@@ -1,3 +1,4 @@
+import { routing } from '@/i18n/routing';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -7,7 +8,7 @@ import { glossaryTerms, getGlossaryTermBySlug } from '@/data/glossary';
 
 export function generateStaticParams() {
   const params: { locale: string; term: string }[] = [];
-  for (const locale of ["ko","en","ja","zh-CN","zh-TW","es","fr","de","pt","ru","ar","hi","id","th","tr","vi"]) {
+  for (const locale of routing.locales) {
     for (const gt of glossaryTerms) {
       params.push({ locale, term: gt.slug });
     }

@@ -1,10 +1,11 @@
+import { routing } from '@/i18n/routing';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { generateSeoMetadata } from '@/lib/seo';
 import FearGreedMarketClient from './FearGreedMarketClient';
 
 const MARKETS = ["us","korea","japan","china","europe","uk","india","brazil","taiwan","australia"];
-const LOCALES = ["ko","en","ja","zh-CN","zh-TW","es","fr","de","pt","ru","ar","hi","id","th","tr","vi"];
+const LOCALES = routing.locales;
 
 const MARKET_LABELS: Record<string, string> = {"us":"US","korea":"Korea","japan":"Japan","china":"China","europe":"Europe","uk":"UK","india":"India","brazil":"Brazil","taiwan":"Taiwan","australia":"Australia"};
 
