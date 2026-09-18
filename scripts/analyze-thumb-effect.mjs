@@ -11,14 +11,18 @@
  *
  * 성숙도: 이 채널 쇼츠는 48시간이면 최종의 94%가 찬다(실측). 그래서 48시간 지난 편만 센다.
  *
+ * 발행량 실험(2026-09-18~)도 같은 도구로 본다. 그때는 **편당이 아니라 하루 총합**이 지표다 —
+ *   편수를 줄이는 실험이라 편당이 오르는 건 당연하고, 총합이 유지·상승해야 성공이다.
+ *
  * 사용: node scripts/analyze-thumb-effect.mjs [--mature-hours 48] [--before-days 14]
+ *       [--cutoff 2026-09-18T09:22:40Z]
  */
 import { openDb } from './lib/db.mjs';
 
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? Number(process.argv[i + 1]) : d; };
 const MATURE = arg('mature-hours', 48);
 const BEFORE_DAYS = arg('before-days', 14);
-const CUTOFF = '2026-09-18T09:22:40Z';
+const CUTOFF = (() => { const i = process.argv.indexOf('--cutoff'); return i > 0 ? process.argv[i + 1] : '2026-09-18T09:22:40Z'; })();
 const BLACK = '6xK91VKWR5Q';   // 썸네일이 새까맸던 회차 — 양쪽 어디에도 안 넣는다
 
 const db = openDb();
@@ -43,7 +47,7 @@ const med = (a) => { if (!a.length) return null; const s = [...a].sort((x, y) =>
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
 const fmt = (n) => (n == null ? '—' : n.toLocaleString('ko-KR'));
 
-console.log(`세로 썸네일 전후 비교 (${MATURE}시간 이상 묵은 편만, 최근 ${BEFORE_DAYS}일)`);
+console.log(`전후 비교 (${MATURE}시간 이상 묵은 편만, 최근 ${BEFORE_DAYS}일)`);
 console.log(`  경계: ${CUTOFF}  ·  제외: ${BLACK}(썸네일이 검게 나간 회차)\n`);
 console.log('  구분      편수   조회수 중앙값');
 console.log(`  이전      ${String(before.length).padStart(4)}   ${fmt(med(before))}`);
@@ -53,6 +57,24 @@ if (!after.length) {
   console.log('\n아직 이후 표본이 없다 — 48시간 묵은 새 회차가 생기면 다시 돌려라.');
   process.exit(0);
 }
+// 하루 총합 — 발행량 실험은 이 값으로 판정한다(편당은 편수를 줄이면 자동으로 오른다).
+{
+  const byDay = {};
+  for (const r of mature) {
+    const d = new Date(Date.parse(r.published_at) + 9 * 3600000).toISOString().slice(0, 10);
+    (byDay[d] ??= { n: 0, v: 0, after: r.published_at >= CUTOFF })
+    ;byDay[d].n += 1; byDay[d].v += r.views;
+  }
+  const days = Object.entries(byDay).sort(([x], [y]) => x < y ? -1 : 1);
+  const pre = days.filter(([, x]) => !x.after); const post = days.filter(([, x]) => x.after);
+  const dmed = (g) => med(g.map(([, x]) => x.v));
+  const nmed = (g) => med(g.map(([, x]) => x.n));
+  console.log('\n  구분   일수  하루 편수(중앙)  하루 총조회(중앙)');
+  console.log(`  이전   ${String(pre.length).padStart(3)}      ${String(nmed(pre) ?? '—').padStart(4)}          ${fmt(dmed(pre))}`);
+  console.log(`  이후   ${String(post.length).padStart(3)}      ${String(nmed(post) ?? '—').padStart(4)}          ${fmt(dmed(post))}`);
+  if (post.length < 4) console.log('  ⚠ 이후 표본이 4일 미만 — 요일 효과와 구분되지 않는다. 최소 한 주는 봐야 한다.');
+}
+
 const b = med(before); const a = med(after);
 if (b && a) {
   const pct = ((a - b) / b) * 100;

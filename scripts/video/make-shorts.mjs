@@ -620,9 +620,17 @@ if (!FORCE_ISSUE) {
             // 2026-09-07: 1번 장면이 **쇼츠 썸네일**이 된다. 사용자가 "저자극 부분이 나온듯" 이라 했다.
             //   갈래 평균 반응률(rate)보다 **그 헤드라인 자체의 자극도**가 앞이다 —
             //   같은 갈래여도 "폭발음 여러번" 과 "협약 체결" 은 첫 화면에서 하늘과 땅이다.
+            // 2026-09-18 실측: **따옴표 인용** 헤드라인이 조회수 중앙값 996 vs 567(89편/33편).
+            //   1번 장면이 제목과 썸네일을 정하므로 여기서 앞세운다.
+            //   배수는 매번 데이터에서 다시 계산한다 — 효과가 사라지면 1 이 되어 순서를 안 바꾼다.
+            const { isQuoted, quoteLift } = await import('../lib/topic-score.mjs');
+            const LIFT = quoteLift(await import('../lib/db.mjs').then((m) => m.shortsPerformance({ minAgeHours: 8 })));
+            const qBonus = (p) => (LIFT > 1.2 && isQuoted((p.it.headlines ?? [])[0]) ? 1 : 0);
             BRIEF.sort((a, b) => (UNSAFE_THUMB(a.it) ? 1 : 0) - (UNSAFE_THUMB(b.it) ? 1 : 0)
               || (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0)
+              || qBonus(b) - qBonus(a)
               || AROUSAL(b.it) - AROUSAL(a.it) || rate(b) - rate(a));
+            if (LIFT > 1.2) log(`[편성] 인용 헤드라인을 앞세운다 (조회수 ${LIFT.toFixed(2)}배 — 실측)`);
             log(`[편성] 브리핑 순서를 성적으로 정한다 — 1번 "${((BRIEF[0].it.headlines ?? [])[0] ?? '').slice(0, 34)}" (${(rate(BRIEF[0]) * 100).toFixed(2)}%)`);
           }
         } catch (e) { log(`[편성] 브리핑 순서 조정 건너뜀: ${String(e.message).slice(0, 40)}`); }

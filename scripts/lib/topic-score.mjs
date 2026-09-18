@@ -122,6 +122,77 @@ export function weakByViews(rows, { minSamples = 5, floor = 0.75 } = {}) {
 }
 
 /**
+ * 갈래별 **구독 전환**(1,000뷰당 구독자 수).
+ *
+ * 2026-09-18 실측(30일, 100뷰 이상 98편):
+ *   상위 8편 중 7편이 정치·갈등 — 1,000뷰당 2.1~5.4명.
+ *   반면 **98편 중 57편은 구독을 한 명도 못 만들었다**(조회수 1,300~1,500짜리 포함).
+ *   같은 기간 소재별 조회수 차이는 작았다(1,110 ~ 656). 즉 **소재가 가르는 건 조회수가 아니라 구독**이다.
+ *
+ * 구독자는 한 번 얻으면 남는다. 조회수는 그날로 끝난다.
+ * 사이트 유입을 늘리는 게 목표라면, 그날 조회수보다 쌓이는 구독자가 목표에 가깝다.
+ */
+export function categorySubs(rows, { minSamples = 3 } = {}) {
+  const acc = new Map();
+  for (const r of rows ?? []) {
+    if (r.subs == null) continue;              // 아직 안 쌓인 편은 세지 않는다
+    const c = categoryOf(r.headline ?? '');
+    const a = acc.get(c) ?? { n: 0, subs: 0, views: 0 };
+    a.n += 1; a.subs += Number(r.subs ?? 0); a.views += Number(r.views ?? 0);
+    acc.set(c, a);
+  }
+  const out = new Map();
+  for (const [c, a] of acc) {
+    if (a.n < minSamples || a.views <= 0) continue;
+    out.set(c, { n: a.n, per1000: (a.subs / a.views) * 1000, subs: a.subs });
+  }
+  return out;
+}
+
+/**
+ * 구독을 **눈에 띄게 많이** 만드는 갈래. 이 갈래를 편성에서 앞으로 당긴다.
+ * 전체 평균의 1.5배를 넘는 갈래만 본다 — 조금 나은 정도로는 순서를 바꾸지 않는다.
+ */
+export function strongCategories(rows, { minSamples = 3, ratio = 1.5 } = {}) {
+  const per = categorySubs(rows, { minSamples });
+  if (per.size < 2) return new Set();
+  let subs = 0; let views = 0;
+  for (const r of rows ?? []) { if (r.subs == null) continue; subs += Number(r.subs ?? 0); views += Number(r.views ?? 0); }
+  const avg = views > 0 ? (subs / views) * 1000 : 0;
+  const out = new Set();
+  for (const [c, v] of per) if (avg > 0 && v.per1000 >= avg * ratio) out.add(c);
+  return out;
+}
+
+/** 따옴표 인용이 있는 헤드라인인가 — 사람이 한 말을 제목으로 단 편. */
+export const isQuoted = (headline) => /["“”'']/.test(String(headline ?? ''));
+
+/**
+ * 인용 헤드라인이 조회수에서 얼마나 앞서는가(배수). 근거가 얇으면 1 을 돌려준다(효과 없음).
+ *
+ * 2026-09-18 실측(8시간 이상 묵은 122편): 인용 89편 중앙값 996 · 비인용 33편 567 → 1.76배.
+ *   좋아요율은 1.01% vs 0.77% 로 차이가 작고, 1,000뷰당 구독은 1.17 vs 1.28 로 **차이가 없다**
+ *   (표본 18/7 로 얇다). 즉 이 특징이 미는 것은 **조회수**다.
+ *
+ * ⚠ 상관이지 인과가 아니다. 인용 헤드라인은 대체로 사람의 발언이라 소재와 얽혀 있다.
+ *   그래도 갈래 분류보다 표본이 두텁고(89/33) 판정이 명확해 편성 순서의 보조 기준으로 쓴다.
+ *   매번 데이터에서 다시 계산하므로, 효과가 사라지면 자동으로 1 이 되어 순서를 안 바꾼다.
+ */
+export function quoteLift(rows, { minEach = 10 } = {}) {
+  const med = (a) => { const x = [...a].sort((p, q) => p - q); return x.length ? x[Math.floor(x.length / 2)] : 0; };
+  const q = []; const n = [];
+  for (const r of rows ?? []) {
+    const v = Number(r.views ?? 0);
+    if (!v) continue;
+    (isQuoted(r.headline) ? q : n).push(v);
+  }
+  if (q.length < minEach || n.length < minEach) return 1;
+  const a = med(q); const b = med(n);
+  if (!b) return 1;
+  return Math.min(2, Math.max(1, a / b));   // 2배 넘게는 믿지 않는다
+}
+
+/**
  * 이 갈래를 뒤로 미룰 것인가.
  *
  * 전체 평균의 절반에도 못 미치면 약한 갈래로 본다. **버리지는 않는다** —

@@ -41,10 +41,26 @@ for (const r of rows) {
   console.log(`${(r.privacy === 'public' ? '공개' : '비공개').padEnd(4)} ${String(r.views).padStart(5)} ${String(r.likes).padStart(6)}  ${hours(r.at).toFixed(1).padStart(5)}h  ${r.title.slice(0, 46)}`);
 }
 
+// 영상별 구독 유입. videos.list 로는 안 나오고 분석 API 로만 나온다.
+//   2026-09-18 실측: 소재별로 조회수는 거의 안 갈리는데 구독은 크게 갈린다(정치갈등 5.4/1000 vs 다수 0).
+//   편성이 그걸 보려면 DB 에 있어야 한다. 실패해도 나머지 기록은 그대로 남긴다.
+const subsById = new Map();
+try {
+  const ya = google.youtubeAnalytics({ version: 'v2', auth: authorizedClient() });
+  const endD = new Date().toISOString().slice(0, 10);
+  const startD = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+  const a = await ya.reports.query({
+    ids: 'channel==MINE', startDate: startD, endDate: endD,
+    metrics: 'subscribersGained', dimensions: 'video', sort: '-subscribersGained', maxResults: 200,
+  });
+  for (const x of a.data.rows ?? []) subsById.set(x[0], Number(x[1] ?? 0));
+  console.log(`\n구독 유입: ${subsById.size}편분 수집`);
+} catch (e) { console.log(`\n구독 유입 수집 실패(기록은 계속): ${String(e.message).slice(0, 80)}`); }
+
 // 볼 때마다 저장한다. 조회수는 시간이 지나며 오르므로 한 시점만 봐서는 판단할 수 없다.
 {
   const { recordShortsStats } = await import('./lib/db.mjs');
-  const n = recordShortsStats(rows.map((r) => ({ id: r.id, views: r.views, likes: r.likes, ageHours: hours(r.at), title: r.title, privacy: r.privacy })));
+  const n = recordShortsStats(rows.map((r) => ({ id: r.id, views: r.views, likes: r.likes, ageHours: hours(r.at), title: r.title, privacy: r.privacy, subs: subsById.get(r.id) })));
   console.log(`\n성적 ${n}건 기록`);
 }
 

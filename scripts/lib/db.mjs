@@ -1953,15 +1953,29 @@ export function normalizeIssueKey(k) {
  * 지금까지 발행만 기록하고 성적은 한 번도 되읽지 않았다 — 그러면 "어떤 주제가 낫다" 는 말이
  * 전부 짐작이 된다. 조회수는 시간이 지나며 오르므로 **볼 때마다 한 줄씩** 쌓아 둔다.
  */
+/**
+ * subs_gained 컬럼 보장. 2026-09-18 신설.
+ *   왜 필요한가(실측): 소재별로 **조회수는 거의 안 갈리는데 구독은 크게 갈린다**.
+ *   정치갈등 상위편이 1,000뷰당 5.4명인데, 98편 중 57편은 1,000회를 넘겨도 구독 0명이다.
+ *   조회수만 보고 편성하면 구독을 만드는 소재를 밀어내게 된다.
+ *   구독은 한 번 얻으면 남는 자산이라 사이트 유입 관점에서도 조회수보다 낫다.
+ */
+function ensureSubsColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_stats)').all().map((c) => c.name);
+  if (!cols.includes('subs_gained')) db.exec('ALTER TABLE shorts_stats ADD COLUMN subs_gained INTEGER');
+}
+
 export function recordShortsStats(rows) {
   const db = openDb();
   ensureStatsTable(db);
+  ensureSubsColumn(db);
   const ins = db.prepare(
-    `INSERT OR REPLACE INTO shorts_stats (video_id, checked_at, views, likes, age_hours, title, privacy)
-     VALUES (?,?,?,?,?,?,?)`);
+    `INSERT OR REPLACE INTO shorts_stats (video_id, checked_at, views, likes, age_hours, title, privacy, subs_gained)
+     VALUES (?,?,?,?,?,?,?,?)`);
   const now = new Date().toISOString();
   const tx = db.transaction((list) => {
-    for (const r of list) ins.run(r.id, now, r.views, r.likes, r.ageHours, r.title ?? null, r.privacy ?? null);
+    for (const r of list) ins.run(r.id, now, r.views, r.likes, r.ageHours, r.title ?? null, r.privacy ?? null,
+      Number.isFinite(r.subs) ? r.subs : null);
   });
   tx(rows ?? []);
   return (rows ?? []).length;
@@ -1989,10 +2003,11 @@ function ensureStatsTable(db) {
 export function shortsPerformance({ minAgeHours = 8 } = {}) {
   const db = openDb();
   ensureStatsTable(db);
+  ensureSubsColumn(db);
   // 원장(shorts_published)에 기대지 않는다 — 그게 생기기 전 편들이 통째로 빠졌다.
   //   공개 상태인 것만 본다(내린 편은 성적을 볼 이유가 없다).
   return db.prepare(`
-    SELECT s.video_id, s.title AS headline, s.views, s.likes, s.age_hours
+    SELECT s.video_id, s.title AS headline, s.views, s.likes, s.age_hours, s.subs_gained AS subs
       FROM (SELECT video_id, MAX(checked_at) AS mx FROM shorts_stats GROUP BY video_id) t
       JOIN shorts_stats s ON s.video_id = t.video_id AND s.checked_at = t.mx
      WHERE s.age_hours >= ? AND s.views > 0 AND s.title IS NOT NULL
