@@ -40,7 +40,9 @@ const segs = readdirSync(resolve(ROOT, 'src/app/[locale]'))
   .filter((d) => !INTERNAL.has(d));
 const camel = (s) => s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 
-const LOCALES = ['ko', 'en', 'ja', 'zh-CN', 'zh-TW', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'th', 'tr', 'vi'];
+// 로케일 목록을 여기서 따로 들면 messages/ 와 어긋난다 — 2026-09-18 로케일을 3개로 줄이자
+// 이 목록만 16개를 고집해 24건이 거짓 실패했다. 진짜 출처는 messages/ 디렉터리다.
+const LOCALES = readdirSync(resolve(ROOT, 'messages')).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
 const nav = {};
 for (const l of LOCALES) {
   try { nav[l] = JSON.parse(readFileSync(resolve(ROOT, `messages/${l}.json`), 'utf8')).nav ?? {}; } catch { nav[l] = {}; }
@@ -51,7 +53,7 @@ for (const s of segs) {
   const lack = LOCALES.filter((l) => nav[l][key] === undefined);
   if (lack.length) { bad(`세그먼트 '${s}' → nav.${key} 키 없음 (${lack.length}개 로케일)`); miss++; }
 }
-if (!miss) ok(`사용자 대면 세그먼트 ${segs.length}종 전부 16개 로케일에 nav 키 존재`);
+if (!miss) ok(`사용자 대면 세그먼트 ${segs.length}종 전부 ${LOCALES.length}개 로케일에 nav 키 존재`);
 
 console.log(fail === 0 ? '\n✅ breadcrumb-i18n 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

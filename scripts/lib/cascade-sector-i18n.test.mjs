@@ -29,7 +29,13 @@ const cascades = readFileSync(resolve(ROOT, 'src/data/cascades.ts'), 'utf8');
 const names = [...new Set([...cascades.matchAll(/sectorName:\s*"([^"]+)"/g)].map(m => m[1]))].sort();
 if (!names.length) bad('cascades.ts 에서 sectorName 을 못 찾음 — 테스트 앵커가 낡았다');
 
-const LOCALES = ['ko', 'en', 'ja', 'zh-CN', 'zh-TW', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'th', 'tr', 'vi'];
+const LOCALES = await (async () => {
+  // 로케일 목록을 테스트가 따로 들고 있으면 messages/ 와 어긋난다 — 실제로 어긋났다
+  // (2026-09-18 로케일을 3개로 줄이자 여기만 16개를 고집해 24건이 거짓 실패).
+  // 진짜 출처는 messages/ 디렉터리다.
+  const { readdirSync } = await import('fs');
+  return readdirSync(new URL('../../messages', import.meta.url)).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
+})();
 const cat = {};
 for (const l of LOCALES) {
   try { cat[l] = JSON.parse(readFileSync(resolve(ROOT, `messages/${l}.json`), 'utf8'))?.explore?.sectors ?? {}; }

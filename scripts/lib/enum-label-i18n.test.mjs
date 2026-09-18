@@ -91,7 +91,13 @@ for (const f of ['src/components/pages/CompanyPage.tsx', 'src/components/pages/C
 }
 
 // [4] 번역 키 — 전 16 로케일
-const LOCALES = ['ko','en','ja','zh-CN','zh-TW','es','fr','de','pt','ru','ar','hi','id','th','tr','vi'];
+const LOCALES = await (async () => {
+  // 로케일 목록을 테스트가 따로 들고 있으면 messages/ 와 어긋난다 — 실제로 어긋났다
+  // (2026-09-18 로케일을 3개로 줄이자 여기만 16개를 고집해 24건이 거짓 실패).
+  // 진짜 출처는 messages/ 디렉터리다.
+  const { readdirSync } = await import('fs');
+  return readdirSync(new URL('../../messages', import.meta.url)).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
+})();
 // 2026-08-22: 필요한 섹터 키를 손으로 나열하지 않는다 — 나열하면 새 값이 생길 때마다 샌다.
 //   실제 데이터가 쓰는 값에서 유도한다. blog 배지에 'general' 이 영문으로 남은 걸
 //   눈검증에서 발견하고 전수 유도로 바꿨다(같이 'macro' 도 빠져 있었다).

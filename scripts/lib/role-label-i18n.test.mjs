@@ -53,7 +53,13 @@ hits.length ? bad(`capitalize 로 라벨을 만드는 자리 ${hits.length}곳: 
 
 // 데이터의 모든 role/type 값에 키가 있어야 한다
 const VALUES = ['leader', 'intermediary', 'supplier', 'customer', 'partner', 'competitor', 'mid_cap', 'first_follower', 'late_mover'];
-const LOCALES = ['ko', 'en', 'ja', 'zh-CN', 'zh-TW', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'hi', 'id', 'th', 'tr', 'vi'];
+const LOCALES = await (async () => {
+  // 로케일 목록을 테스트가 따로 들고 있으면 messages/ 와 어긋난다 — 실제로 어긋났다
+  // (2026-09-18 로케일을 3개로 줄이자 여기만 16개를 고집해 24건이 거짓 실패).
+  // 진짜 출처는 messages/ 디렉터리다.
+  const { readdirSync } = await import('fs');
+  return readdirSync(new URL('../../messages', import.meta.url)).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
+})();
 let miss = 0;
 for (const v of VALUES) {
   const lack = LOCALES.filter((l) => {
