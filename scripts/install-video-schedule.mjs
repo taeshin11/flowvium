@@ -11,7 +11,12 @@
  * 왜 하루 5번인가: 유튜브 API 할당량이 10,000/일이고 videos.insert 가 1,600 이라 6편이 상한이다.
  *   5편이면 여유가 한 편 남아 재시도가 가능하다.
  *
- * 사용: node scripts/install-video-schedule.mjs [--times 6,10,14,18,22] [--uninstall] [--dry-run]
+ * 시각은 **분까지** 받는다(8:30). 2026-09-18 실측으로 8시·13시 회차가 다른 시각의 절반도
+ *   안 나온다는 게 확인돼 자리를 옮겨야 했는데, 정시만 받던 탓에 손으로 plist 를 고쳐야 했다.
+ *   손으로 고치면 다음 설치가 그걸 덮어쓴다 — 받는 쪽을 고치는 게 맞다.
+ *
+ * 사용: node scripts/install-video-schedule.mjs [--times 10:15,11:10,...] [--format shorts]
+ *       [--locale ko] [--gpu-wait 25] [--uninstall] [--dry-run]
  */
 import { writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,9 +31,12 @@ const PLIST = join(homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
 const LOGDIR = join(homedir(), 'flowvium_runtime');
 const LOG = join(LOGDIR, 'video.log');
 
-const times = String(arg('--times', '6,10,14,18,22')).split(',')
-  .map((t) => Number(String(t).trim())).filter((h) => Number.isInteger(h) && h >= 0 && h < 24);
-if (!times.length) { console.error('❌ --times 가 비었다 (예: 6,10,14,18,22)'); process.exit(1); }
+// "8:30" 과 "8" 을 모두 받는다. 분을 못 받아 손으로 plist 를 고치던 것을 막는다.
+const times = String(arg('--times', '6,10,14,18,22')).split(',').map((t) => {
+  const [h, m = '0'] = String(t).trim().split(':');
+  return { h: Number(h), m: Number(m) };
+}).filter(({ h, m }) => Number.isInteger(h) && h >= 0 && h < 24 && Number.isInteger(m) && m >= 0 && m < 60);
+if (!times.length) { console.error('❌ --times 가 비었다 (예: 10:15,12:10,15:10)'); process.exit(1); }
 
 if (argv.includes('--uninstall')) {
   spawnSync('launchctl', ['bootout', `gui/${process.getuid()}/${LABEL}`], { encoding: 'utf8' });
@@ -39,7 +47,10 @@ if (argv.includes('--uninstall')) {
 
 const nodeBin = process.execPath;
 const script = join(ROOT, 'scripts', 'video-publish.mjs');
-const cal = times.map((h) => `    <dict><key>Hour</key><integer>${h}</integer><key>Minute</key><integer>0</integer></dict>`).join('\n');
+const cal = times.map(({ h, m }) => `    <dict><key>Hour</key><integer>${h}</integer><key>Minute</key><integer>${m}</integer></dict>`).join('\n');
+// 라이브 plist 가 쓰던 값들. 여기서 안 만들면 재설치 때 조용히 사라진다(2026-09-18 확인).
+const FORMAT = arg('--format', 'shorts');
+const GPU_WAIT = arg('--gpu-wait', '25');
 
 // RunAtLoad 는 **끄다**. 설치하자마자 한 편이 올라가면 의도치 않은 발행이 된다.
 const plist = `<?xml version="1.0" encoding="UTF-8"?>
@@ -51,7 +62,8 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
   <array>
     <string>${nodeBin}</string>
     <string>${script}</string>
-    <string>--locale</string><string>${arg('--locale', 'en')}</string>
+    <string>--locale</string><string>${arg('--locale', 'ko')}</string>
+    <string>--format</string><string>${FORMAT}</string>
   </array>
   <key>WorkingDirectory</key><string>${ROOT}</string>
   <key>EnvironmentVariables</key>
@@ -59,6 +71,7 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
     <key>HOME</key><string>${homedir()}</string>
     <key>PATH</key><string>${join(homedir(), '.local/node/bin')}:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>NODE_ENV</key><string>production</string>
+    <key>VIDEO_GPU_WAIT_MIN</key><string>${GPU_WAIT}</string>
   </dict>
   <key>StartCalendarInterval</key>
   <array>
@@ -83,7 +96,7 @@ if (r.status !== 0) {
   process.exit(1);
 }
 console.log(`✅ 설치됨 — ${LABEL}`);
-console.log(`   시각: ${times.map((h) => `${String(h).padStart(2, '0')}:00`).join(', ')} (기계 로컬시각)`);
+console.log(`   시각: ${times.map(({ h, m }) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`).join(', ')} (기계 로컬시각)`);
 console.log(`   로그: ${LOG}`);
 console.log('   ⚠ 설치만으로는 발행하지 않는다(RunAtLoad 꺼짐). 다음 예정 시각부터 돈다.');
 console.log(`   지금 한 번 돌리려면: launchctl kickstart gui/${process.getuid()}/${LABEL}`);

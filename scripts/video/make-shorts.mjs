@@ -388,8 +388,11 @@ if (FORCE_ISSUE) {
   //   실측(2026-09-06): 응집도까지 걸면 후보 3개, 안 걸면 15개 — 브리핑 성사 여부가 갈렸다.
   try {
     const { shortsPerformance } = await import('../lib/db.mjs');
-    const { weakCategories, categoryOf } = await import('../lib/topic-score.mjs');
-    const weak = weakCategories(shortsPerformance({ minAgeHours: 8 }));
+    const { weakCategories, weakByViews, categoryOf } = await import('../lib/topic-score.mjs');
+    // 좋아요율이 약한 갈래 + **조회수가 약한 갈래** 를 함께 본다.
+    //   목표가 사이트 유입이므로 조회수 쪽이 목표에 더 가깝다(topic-score.weakByViews 주석).
+    const perf = shortsPerformance({ minAgeHours: 8 });
+    const weak = new Set([...weakCategories(perf), ...weakByViews(perf)]);
     if (weak.size) {
       const isWeak = (c) => weak.has(categoryOf((c.headlines ?? [])[0] ?? ''));
       IS_WEAK = isWeak;   // 아래 소재 기준 재선택에서도 같은 판단을 쓴다

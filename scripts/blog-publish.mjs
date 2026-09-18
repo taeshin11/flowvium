@@ -17,6 +17,7 @@ import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
 import { mdToHtml, extractTitle, stripFrontComment } from './lib/blog-html.mjs';
 import { insertPost, updatePost, listBlogs, tokenPresent } from './lib/blogger.mjs';
+import { checkQuality } from './lib/blog-quality.mjs';
 
 loadEnvLocal?.();
 const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : null; };
@@ -56,10 +57,20 @@ for (const file of files) {
   const title = extractTitle(md);
   if (!title) { console.error(`  ⚠ 제목(# ...)이 없어 건너뛴다: ${key}`); continue; }
   const html = mdToHtml(stripFrontComment(md));
-  // 광고와 고지가 빠진 글은 올리지 않는다 — 사용자 지시("블로그글에 flowvium.net 광고붙어야").
-  if (html.length < 200) { console.error(`  ⚠ 본문이 너무 짧아 건너뛴다(${html.length}자): ${key}`); continue; }
-  if (!/flowvium\.net/.test(md)) { console.error(`  ⚠ flowvium.net 광고가 없어 건너뛴다: ${key}`); continue; }
-  if (!/매매 권유가 아닙니다/.test(md)) { console.error(`  ⚠ 투자 고지가 없어 건너뛴다: ${key}`); continue; }
+
+  // 저품질 관문 (사용자 "블로그도 저품질 블로그로 걸리면 안 된다").
+  //   얇음·중복·광고과다를 발행 **전에** 잡는다. 이미 올린 글과 비교해야 하므로 원문을 읽어 준다.
+  //   광고 블록은 매 편 같으니 길이를 잴 때 빼고 잰다 — 안 그러면 두 줄짜리도 통과한다.
+  const prevTexts = Object.keys(ledger).filter((k) => k !== key && ledger[k]?.status !== 'DRAFT')
+    .map((k) => { try { return readFileSync(join(dir, k), 'utf8'); } catch { return ''; } })
+    .filter(Boolean);
+  const q = checkQuality(md, prevTexts);
+  if (!q.ok) {
+    console.error(`  ⚠ 저품질로 판단해 올리지 않는다: ${key}`);
+    for (const i of q.issues) console.error(`     · ${i}`);
+    continue;
+  }
+  console.log(`  품질: 알맹이 ${q.stats.original}자 · 정형구 ${Math.round(q.stats.boilerRatio * 100)}% · 기존글 겹침 ${Math.round(q.stats.overlap * 100)}%`);
   // 같은 날 시장 브리핑은 하루 한 편만. 회차가 달라도 같은 날 장 이야기라 내용이 겹치고,
   //   겹치는 글이 둘이면 검색에서 서로를 갉아먹는다(2026-09-18 실제로 3편이 올라가 되돌렸다).
   const sameDay = key.match(/^(\d{4}-\d{2}-\d{2})-(morning|noon|afternoon|evening|midnight)\.md$/);

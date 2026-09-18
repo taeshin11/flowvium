@@ -94,6 +94,34 @@ export function expectedRate(headline, rows) {
 }
 
 /**
+ * **조회수**가 약한 갈래. weakCategories 는 좋아요율을 보는데, 그건 목표가 다르다.
+ *
+ * 2026-09-18 사용자: "본업이 증시라도 다른 게 조회수를 더 높일 수 있으면 그쪽으로 해야지.
+ *   어차피 유입을 늘리면 되는 거 아니야? 우리 사이트로."
+ *   목표가 사이트 유입이면 지표는 좋아요율이 아니라 조회수에 가깝다.
+ *
+ * 실측(2026-09-18, 48시간 이상 묵은 102편): 증시 소재 중앙값 519 · 나머지 1,001.
+ *   9월 7일 측정(20편)에서 "조회수 폭은 33%뿐" 이라고 적었던 것은 그때 표본에
+ *   증시 갈래가 거의 없었기 때문이다. 표본이 다섯 배가 되자 갈래 간 격차가 드러났다.
+ *
+ * ⚠ 조회수는 사이트 유입의 **대리 지표**다. 정치 영상을 본 사람이 증시 사이트에 올 확률은
+ *   증시 영상을 본 사람보다 낮다. 그 전환율은 아직 못 재고 있다 — 재게 되면 이 기준을
+ *   전환율로 바꿔야 한다. 지금은 잴 수 있는 것 중 목표에 가장 가까운 것을 쓴다.
+ *
+ * @param {Array<{headline:string, views:number, likes:number}>} rows shortsPerformance() 결과
+ */
+export function weakByViews(rows, { minSamples = 5, floor = 0.75 } = {}) {
+  const rates = categoryRates(rows, { minSamples });
+  if (rates.size < 2) return new Set();
+  let views = 0; let n = 0;
+  for (const r of rows ?? []) { views += Number(r.views ?? 0); n += 1; }
+  const avg = n > 0 ? views / n : 0;
+  const weak = new Set();
+  for (const [c, v] of rates) if (avg > 0 && v.views < avg * floor) weak.add(c);
+  return weak;
+}
+
+/**
  * 이 갈래를 뒤로 미룰 것인가.
  *
  * 전체 평균의 절반에도 못 미치면 약한 갈래로 본다. **버리지는 않는다** —
