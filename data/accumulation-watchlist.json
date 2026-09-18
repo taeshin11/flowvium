@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-18T07:20:34.648Z",
+  "generatedAt": "2026-09-18T22:20:26.549Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 4,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -22,24 +22,6 @@
       "runup20dPct": 3.2,
       "runup5dPct": 3.1,
       "medDollarVolUsd": 2794978,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "445680.KQ",
-      "name": "큐리옥스바이오시스템즈",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 6,
-      "runup5dPct": -4.5,
-      "medDollarVolUsd": 2739252,
       "smartAccum": true,
       "official": null
     },
@@ -62,19 +44,19 @@
       "official": null
     },
     {
-      "ticker": "127120.KQ",
-      "name": "제이에스링크",
+      "ticker": "050890.KQ",
+      "name": "쏠리드",
       "tier": "watch",
-      "score": 26,
+      "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.7× 급증(가격 평탄)",
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -4.4,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 3313186,
+      "runup20dPct": 8,
+      "runup5dPct": 13.5,
+      "medDollarVolUsd": 5531378,
       "smartAccum": true,
       "official": null
     }
