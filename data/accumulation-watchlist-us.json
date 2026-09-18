@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-17T13:00:31.087Z",
+  "generatedAt": "2026-09-18T09:21:53.835Z",
   "universe": "US",
   "scanned": 324,
-  "count": 10,
+  "count": 11,
   "strongCount": 1,
-  "watchCount": 9,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -15,12 +15,12 @@
       "coFire": 3,
       "lead": [
         "거래량 추세 4.3× 상승(지속 매집)",
-        "거래량 4.1× 급증(가격 평탄)",
+        "거래량 4.9× 급증(가격 평탄)",
         "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": 4.4,
-      "runup5dPct": -2.3,
-      "medDollarVolUsd": 348254,
+      "runup20dPct": 3.5,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 294451,
       "smartAccum": false,
       "official": null
     },
@@ -31,63 +31,13 @@
       "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 추세 2.4× 상승(지속 매집)",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": 4.7,
-      "medDollarVolUsd": 6271421,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GOLD",
-      "name": "Gold.com, Inc.",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 11.9,
-      "runup5dPct": -5.1,
-      "medDollarVolUsd": 19077080,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ACP",
-      "name": "Aberdeen Income Credit Strategi",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -10.6,
-      "runup5dPct": -5.5,
-      "medDollarVolUsd": 2239758,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MG",
-      "name": "Mistras Group Inc",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.4,
-      "runup5dPct": -3.1,
-      "medDollarVolUsd": 3283290,
+      "runup20dPct": 10.3,
+      "runup5dPct": 7.5,
+      "medDollarVolUsd": 6546388,
       "smartAccum": false,
       "official": null
     },
@@ -98,19 +48,19 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.5× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 5.3,
-      "runup5dPct": 1,
-      "medDollarVolUsd": 10058130,
+      "runup20dPct": 7.3,
+      "runup5dPct": 5,
+      "medDollarVolUsd": 10316909,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "FTK",
-      "name": "Flotek Industries, Inc.",
+      "ticker": "ATLC",
+      "name": "Atlanticus Holdings Corporation",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
@@ -119,9 +69,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 4.1,
-      "runup5dPct": 0.9,
-      "medDollarVolUsd": 8665044,
+      "runup20dPct": -4,
+      "runup5dPct": 2,
+      "medDollarVolUsd": 15047124,
       "smartAccum": false,
       "official": null
     },
@@ -132,12 +82,45 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.1,
-      "runup5dPct": -3.2,
+      "runup20dPct": -6.2,
+      "runup5dPct": -0.3,
       "medDollarVolUsd": 4295480,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ACP",
+      "name": "Aberdeen Income Credit Strategi",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -9.8,
+      "runup5dPct": -3.5,
+      "medDollarVolUsd": 2239758,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SWBI",
+      "name": "Smith & Wesson Brands, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -5.6,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 6944091,
       "smartAccum": false,
       "official": null
     },
@@ -148,11 +131,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)"
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.8,
-      "runup5dPct": -15.3,
+      "runup20dPct": -8.2,
+      "runup5dPct": -3.5,
       "medDollarVolUsd": 931468,
       "smartAccum": false,
       "official": null
@@ -164,12 +147,44 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.6,
-      "runup5dPct": -1.4,
+      "runup20dPct": -9.2,
+      "runup5dPct": -2.8,
       "medDollarVolUsd": 2892181,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MG",
+      "name": "Mistras Group Inc",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 2,
+      "runup5dPct": 2.5,
+      "medDollarVolUsd": 3283290,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ANGX",
+      "name": "Angel Studios, Inc.",
+      "tier": "watch",
+      "score": 15,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 6.5,
+      "runup5dPct": -8.9,
+      "medDollarVolUsd": 5239080,
       "smartAccum": false,
       "official": null
     }
