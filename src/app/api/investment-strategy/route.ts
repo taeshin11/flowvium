@@ -1479,24 +1479,41 @@ function isInternal(req: NextRequest): boolean {
   return h === `Bearer ${sec}` || req.headers.get('x-cron-secret') === sec;
 }
 
-/** 비회원이면 게이트 뒤 필드를 지운다. 회원·내부 호출이면 그대로 둔다. */
-function applyGate(req: NextRequest, payload: unknown, headers: Record<string, string>) {
-  const member = getMemberEmail(req);
-  if (member || isInternal(req)) {
+/**
+ * 응답을 받아 비회원이면 게이트 뒤 필드를 지운다.
+ *
+ * **왜 경계에서 하나로 하나**: 처음엔 반환 지점을 하나씩 감쌌는데 이 라우트에는 반환이 열한 곳이고
+ *   **일곱 곳을 놓쳤다**(메모리 캐시·Redis 캐시·로케일 폴백 등). 배포하고 비회원으로 찔러 보니
+ *   그대로 다 나왔다. 오늘 보고서 빈 카드에서 배운 것과 같다 — 가지마다 막으면 반드시 하나를 빠뜨린다.
+ */
+async function gateResponse(req: NextRequest, res: Response): Promise<Response> {
+  const ct = res.headers.get('content-type') ?? '';
+  if (!ct.includes('application/json')) return res;
+  const headers = new Headers(res.headers);
+  if (getMemberEmail(req) || isInternal(req)) {
     // 회원 응답은 공유 캐시에 올리지 않는다 — 올리면 비회원이 그 캐시를 받는다.
-    return NextResponse.json(payload as object, { headers: { ...headers, 'Cache-Control': 'private, no-store' } });
+    headers.set('Cache-Control', 'private, no-store');
+    return new Response(res.body, { status: res.status, headers });
   }
-  const out: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  let data: Record<string, unknown>;
+  try { data = await res.clone().json() as Record<string, unknown>; } catch { return res; }
   let removed = 0;
-  for (const f of GATED_FIELDS) if (f in out) { delete out[f]; removed += 1; }
-  out.gated = true;
-  out.gatedFields = removed;
-  return NextResponse.json(out, { headers });
+  for (const f of GATED_FIELDS) if (f in data) { delete data[f]; removed += 1; }
+  if (!removed) return res;
+  data.gated = true;
+  data.gatedFields = removed;
+  const body = JSON.stringify(data);
+  headers.delete('content-length');
+  return new Response(body, { status: res.status, headers });
 }
 
 // NextRequest 로 받는다 — 쿠키(fv_member)를 읽어야 한다. NextRequest 는 Request 를 상속하므로
 //   기존 사용부는 그대로 동작한다. Next.js 가 라우트 핸들러에 넘기는 실제 객체도 NextRequest 다.
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
+  return gateResponse(request, await handleGET(request));
+}
+
+async function handleGET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const locale = searchParams.get('locale') ?? 'en';
   // probe=1: used by verify-metrics — always return quickly
@@ -1554,7 +1571,7 @@ export async function GET(request: NextRequest) {
         const stale = await redis.get(staleKey(locale));
         if (stale && isSchemaCompatible(stale as Record<string, unknown>)) {
           logger.info('api.investment-strategy', 'stale_hit', { locale });
-          return applyGate(request, { ...(stale as object), cached: true, stale: true }, CDN_HEADERS);
+          return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
         }
         if (stale && !isSchemaCompatible(stale as Record<string, unknown>)) {
           logger.warn('api.investment-strategy', 'stale_schema_mismatch', { locale, missing: REQUIRED_SCHEMA_FIELDS.filter(f => !(stale as Record<string,unknown>)[f]) });
@@ -1592,14 +1609,14 @@ export async function GET(request: NextRequest) {
       // 2026-06-13: Redis read 실패 시 generic 대신 last-good 서빙 (있으면) — blip 으로 리포트가
       //   '중립/분산ETF' fallback 으로 깜빡이던 사건 fix.
       const lg = lastGood(locale);
-      if (lg) { logger.info('api.investment-strategy', 'served_last_good_on_redis_error', { locale }); return applyGate(request, { ...lg, cached: true, lastGood: true }, { 'Cache-Control': 'public, s-maxage=30' }); }
+      if (lg) { logger.info('api.investment-strategy', 'served_last_good_on_redis_error', { locale }); return NextResponse.json({ ...lg, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
     }
   }
 
   // generic fallback 직전 — last-good 있으면 우선 (세션경계 미스/Redis 실패 공통 안전망)
   {
     const lg = lastGood(locale);
-    if (lg && !force) { logger.info('api.investment-strategy', 'served_last_good_prefallback', { locale }); return applyGate(request, { ...lg, cached: true, lastGood: true }, { 'Cache-Control': 'public, s-maxage=30' }); }
+    if (lg && !force) { logger.info('api.investment-strategy', 'served_last_good_prefallback', { locale }); return NextResponse.json({ ...lg, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
   }
 
   if (probe) {
@@ -2310,5 +2327,5 @@ export async function GET(request: NextRequest) {
   const responseHeaders = isFallback
     ? { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' }
     : CDN_HEADERS;
-  return applyGate(request, strategy, responseHeaders);
+  return NextResponse.json(strategy, { headers: responseHeaders });
 }
