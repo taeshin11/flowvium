@@ -28,28 +28,46 @@ if (!tokenPresent()) {
 }
 
 const dir = resolve(ROOT, 'reports/blog');
-const file = arg('file') ?? (() => {
-  if (!existsSync(dir)) return null;
-  const f = readdirSync(dir).filter((x) => x.endsWith('.md')).sort();
-  return f.length ? join(dir, f[f.length - 1]) : null;
-})();
-if (!file || !existsSync(file)) { console.error(`❌ 올릴 글이 없다 — 먼저 node scripts/make-blog-post.mjs`); process.exit(2); }
-
 const LEDGER = resolve(dir, '.published.json');
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
-const key = basename(file);
 const force = process.argv.includes('--force');
-if (ledger[key] && !force) {
-  console.log(`이미 올렸다: ${key} → ${ledger[key].url}`);
-  console.log('  내용을 고쳐 반영하려면 --force (새 글을 만들지 않고 그 글을 수정한다)');
+const MAX = Number(arg('max') ?? 3);
+
+// 올릴 글을 **여러 개** 고른다. 종전에는 최신 한 개만 봤는데, 쇼츠 글이 생기면서
+//   파일 이름 정렬상 쇼츠 글이 보고서 글을 가로채는 일이 생겼다(2026-09-18).
+//   아직 안 올린 글을 오래된 것부터 올린다 — 시간 순서가 뒤집히면 읽는 사람이 헷갈린다.
+const files = arg('file')
+  ? [arg('file')]
+  : (existsSync(dir) ? readdirSync(dir).filter((x) => x.endsWith('.md')).sort() : [])
+      .map((x) => join(dir, x))
+      .filter((f) => force || !ledger[basename(f)])
+      .slice(0, MAX);
+
+if (!files.length) {
+  console.log(existsSync(dir) ? '올릴 새 글이 없다(전부 올렸다)' : '올릴 글이 없다 — 먼저 node scripts/make-blog-post.mjs');
   process.exit(0);
 }
 
-const md = readFileSync(file, 'utf8');
-const title = extractTitle(md);
-if (!title) { console.error(`❌ 제목(# ...)이 없다: ${file}`); process.exit(2); }
-const html = mdToHtml(stripFrontComment(md));
-if (html.length < 200) { console.error(`❌ 본문이 너무 짧다(${html.length}자) — 올리지 않는다`); process.exit(2); }
+
+let posted = 0;
+for (const file of files) {
+  const key = basename(file);
+    const md = readFileSync(file, 'utf8');
+  const title = extractTitle(md);
+  if (!title) { console.error(`  ⚠ 제목(# ...)이 없어 건너뛴다: ${key}`); continue; }
+  const html = mdToHtml(stripFrontComment(md));
+  // 광고와 고지가 빠진 글은 올리지 않는다 — 사용자 지시("블로그글에 flowvium.net 광고붙어야").
+  if (html.length < 200) { console.error(`  ⚠ 본문이 너무 짧아 건너뛴다(${html.length}자): ${key}`); continue; }
+  if (!/flowvium\.net/.test(md)) { console.error(`  ⚠ flowvium.net 광고가 없어 건너뛴다: ${key}`); continue; }
+  if (!/매매 권유가 아닙니다/.test(md)) { console.error(`  ⚠ 투자 고지가 없어 건너뛴다: ${key}`); continue; }
+  // 같은 날 시장 브리핑은 하루 한 편만. 회차가 달라도 같은 날 장 이야기라 내용이 겹치고,
+  //   겹치는 글이 둘이면 검색에서 서로를 갉아먹는다(2026-09-18 실제로 3편이 올라가 되돌렸다).
+  const sameDay = key.match(/^(\d{4}-\d{2}-\d{2})-(morning|noon|afternoon|evening|midnight)\.md$/);
+  if (sameDay && !force) {
+    const dup = Object.entries(ledger).find(([k, v]) => k !== key && v.status !== 'DRAFT'
+      && k.startsWith(`${sameDay[1]}-`) && /-(morning|noon|afternoon|evening|midnight)\.md$/.test(k));
+    if (dup) { console.log(`  · 같은 날 브리핑이 이미 올라가 있어 건너뛴다: ${key} (기존 ${dup[0]})`); continue; }
+  }
 
 let blogId = arg('blog') ?? process.env.BLOGGER_BLOG_ID;
 if (!blogId) {
@@ -64,19 +82,18 @@ if (!blogId) {
   }
 }
 
-// 라벨은 검색이 아니라 블로그 안 분류용이다. 날짜가 아니라 주제로 붙인다.
-const labels = ['증시브리핑', '주식', ...(/코스피|코스닥/.test(md) ? ['국내증시'] : []), ...(/나스닥|S&P500/.test(md) ? ['미국증시'] : [])];
+  // 라벨은 검색이 아니라 블로그 안 분류용이다. 날짜가 아니라 주제로 붙인다.
+  const labels = ['증시브리핑', '주식', ...(/코스피|코스닥/.test(md) ? ['국내증시'] : []), ...(/나스닥|S&P500/.test(md) ? ['미국증시'] : [])];
+  console.log(`\n글: ${key}\n제목: ${title}\n본문: ${html.length}자 · 라벨 ${labels.join(', ')}${draft ? ' · **초안**' : ''}`);
 
-console.log(`글: ${file}`);
-console.log(`제목: ${title}`);
-console.log(`본문: ${html.length}자 · 라벨 ${labels.join(', ')}${draft ? ' · **초안**' : ''}`);
-
-// 이미 올린 글이면 **수정**한다. 같은 내용의 글을 또 만들지 않는다.
-const prev = ledger[key]?.id;
-const r = prev
-  ? await updatePost({ blogId, postId: prev, title, html, labels })
-  : await insertPost({ blogId, title, html, labels, draft });
-console.log(`✅ ${prev ? '수정' : r.status} — ${r.url}`);
-
-ledger[key] = { id: r.id, url: r.url, status: r.status, at: new Date().toISOString() };
-writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
+  // 이미 올린 글이면 **수정**한다. 같은 내용의 글이 둘이면 검색에서 서로를 갉아먹는다.
+  const prev = ledger[key]?.id;
+  const r = prev
+    ? await updatePost({ blogId, postId: prev, title, html, labels })
+    : await insertPost({ blogId, title, html, labels, draft });
+  console.log(`✅ ${prev ? '수정' : r.status} — ${r.url}`);
+  ledger[key] = { id: r.id, url: r.url, status: r.status, at: new Date().toISOString() };
+  writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
+  posted += 1;
+}
+console.log(`\n올린 글 ${posted}편`);

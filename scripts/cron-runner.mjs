@@ -571,7 +571,12 @@ const MAINT_JOBS = [
   //   글 만들기가 느려졌을 때 게시까지 통째로 시간 초과가 된다.
   //   네이버가 아니라 Blogger 인 이유: 네이버는 자동 게재가 약관 위반이고 글쓰기 API 도 없다.
   //   중복 게시는 reports/blog/.published.json 이 막는다(이미 올린 글이면 수정만 한다).
-  { label: 'blog-publish',         script: 'scripts/blog-publish.mjs',               timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['15 22 * * *'],                maxAgeH: 30 },
+  { label: 'blog-publish',         script: 'scripts/blog-publish.mjs',               timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['15 22 * * *', '45 3 * * *', '45 12 * * *'], maxAgeH: 30 },
+  //   쇼츠를 글로 푼다. 2026-09-18 사용자 "쇼츠영상 올릴 때에도 계속 같이 올리고 그거 주제로".
+  //   **하루 전편(9편)을 쓰지 않는다** — 구글이 2024년부터 대량 생성 콘텐츠를 강등하고,
+  //   자동 생성 뉴스 요약 9편/일이 정확히 그 모양이다. 하루 2편(회당 1편)으로 나눠 올린다.
+  //   대본(hooks)이 남은 편만 쓴다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다.
+  { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --limit 1',  timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
   //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고
