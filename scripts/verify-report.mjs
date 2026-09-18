@@ -3,6 +3,7 @@
 //
 // 2026-05-30 Karpathy closed loop: 결함을 defects 배열로 모아 caller 가 DB 적재 가능.
 // CLI 호환 유지 (console.log) + verifyReport(file, opts) 함수 export.
+import { emptyCards } from './lib/report-cards.mjs';
 import fs from 'node:fs';
 import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';
 import { latinGarbleFragments } from './lib/latin-garble.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
@@ -362,11 +363,9 @@ export async function verifyReport(file, { silent = false } = {}) {
     //   가 라이브에 빈 카드로 노출). LLM 이 macro 프롬프트에서 필드를 누락하면 생성기가 '' 기본값 → 발간되던 사각지대.
     //   품질 게이트는 "있으면 +점"만 하고 빈 값을 안 막았음. 홈/리포트가 카드로 렌더하는 3필드는 최소 길이 강제.
     {
-      const CARD_MIN = { macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
-      for (const [f, min] of Object.entries(CARD_MIN)) {
-        const v = r[f];
-        const len = typeof v === 'string' ? v.trim().length : 0;
-        if (len < min) {
+      // 기준값은 lib/report-cards.mjs 하나만 본다 — 생성기와 다른 값을 적으면 사각지대가 생긴다.
+      for (const { field: f, len, min } of emptyCards(r)) {
+        {
           log(`  ❌ 빈/부실 서사 카드 (${f}): ${len}자 (최소 ${min}) — LLM 필드 누락이 빈 카드로 발간`);
           defects.push({ ticker: f, defect_type: 'narrative_card_empty', llm_value: `${len}자`, correct_value: `${f} 는 홈/리포트 카드로 렌더 — 최소 ${min}자. LLM 누락 시 생성기 백필/재시도 확인`, severity: 'high' });
         }

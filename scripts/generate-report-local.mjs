@@ -78,6 +78,7 @@ import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '.
 import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-company.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
+import { emptyCards } from './lib/report-cards.mjs';
 import { openDb, saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
 import { filterConflicts, filterAveragingDown } from './lib/buy-sell-conflict.mjs';
 
@@ -7255,9 +7256,7 @@ async function generateViaOllama() {
   //   (morning 발간본 fundamentalAnalysis="" → 빈 카드) 그 필드만 표적 재요청. 전체 재생성보다 싸고,
   //   verify 의 narrative_card_empty 게이트에 걸려 발간 차단되기 전에 선제 백필. 실패 시 게이트가 최종 방어.
   if (macroData) {
-    const CARD_MIN = { macroAnalysis: 30, technicalAnalysis: 15, fundamentalAnalysis: 15 };
-    for (const [f, min] of Object.entries(CARD_MIN)) {
-      if ((String(macroData[f] ?? '').trim().length) >= min) continue;
+    for (const { field: f, min } of emptyCards(macroData)) {
       console.log(`  [card-backfill] ${f} 누락/부실 → 표적 재요청`);
       try {
         const sys = `너는 금융 애널리스트다. 아래 거시/시장 데이터로 "${f}" 한 필드만 ${TARGET_LANG} 서술형 2문장(${min}~260자)으로 작성하라. 수치를 지어내지 말고 주어진 데이터만 인용. JSON 만 출력: {"${f}":"..."}`;
@@ -9606,6 +9605,38 @@ async function generateViaOllama() {
   // 2026-06-14 (ChatGPT P0-1 차용): 7624 의 ok 는 *최종 변형 전* 값 — 이후 완전성 fill·whitelist strip·
   //   business/IV 주입·overlap gate 가 보고서를 계속 변형하므로 stale. DB/학습/업로드 직전 **최종 게이트
   //   재계산** → 최종 산출물 기준으로 차단 판정(늦은 변형이 만든 hard issue 도 반영).
+  // ── 발간 직전 카드 관문 (2026-09-18) ──────────────────────────────────────
+  //   위쪽 card-backfill 은 macroData 를 볼 때 돈다. 그런데 2026-09-18 오후 회차는
+  //   **그 백필이 한 번도 안 찍혔는데** 발간본의 fundamentalAnalysis 가 0자였다
+  //   (로그 실측: card-backfill 0회 · macro=true). 즉 백필 뒤 어딘가에서 비워졌고,
+  //   나는 그 지점을 특정하지 못했다. 그래서 **모든 변형이 끝난 경계**에 관문을 둔다 —
+  //   원인이 어디에 있든 여기서는 잡힌다. 사각지대를 쫓는 것보다 경계를 막는 편이 확실하다.
+  for (const { field: f, len, min } of emptyCards(finalReport)) {
+    console.warn(`  [card-gate] ${f} 가 발간 직전에 비어 있다 (${len}자 < ${min}) — 마지막 재요청`);
+    try {
+      const ground = [
+        finalReport.macroAnalysis && `[거시] ${finalReport.macroAnalysis}`,
+        finalReport.technicalAnalysis && `[기술] ${finalReport.technicalAnalysis}`,
+        (finalReport.portfolio ?? []).slice(0, 6)
+          .map((p) => `${p.name ?? p.ticker}(${p.ticker}) ${String(p.rationale ?? '').slice(0, 120)}`).join('\n'),
+      ].filter(Boolean).join('\n');
+      const raw = await callOllama(
+        `아래 자료만 근거로 "${f}" 한 필드를 ${TARGET_LANG} 서술형 2문장(${min}~260자)으로 써라.`
+        + ' 자료에 없는 수치를 지어내지 마라. JSON 만 출력: {"' + f + '":"..."}'
+        + `\n\n[자료]\n${ground.slice(0, 3000)}`,
+        modelArg, 300000, `card-gate-${f}`);
+      const got = parseJson(raw, `card-gate-${f}`)?.[f];
+      if (got && String(got).trim().length >= min) {
+        finalReport[f] = String(got).trim();
+        console.log(`  [card-gate] ${f} ✓ (${finalReport[f].length}자)`);
+      } else {
+        console.error(`  [card-gate] ${f} 재요청 실패 — 빈 카드로 발간된다. verify 가 결함으로 남긴다`);
+      }
+    } catch (e) {
+      console.error(`  [card-gate] ${f} 재요청 오류: ${String(e?.message).slice(0, 80)}`);
+    }
+  }
+
   const finalGate = qualityCheck(finalReport);
   finalReport.qualityScore = finalGate.score;
   if (finalGate.ok !== ok) console.log(`  [최종게이트] 중간 ok=${ok}(score ${score}) → 최종 ok=${finalGate.ok}(score ${finalGate.score}) — 변형 후 재평가`);
