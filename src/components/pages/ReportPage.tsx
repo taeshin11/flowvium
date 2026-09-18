@@ -558,7 +558,10 @@ export default function ReportPage() {
   useEffect(() => {
     fetch('/api/member').then(r => r.json()).then(d => setMember(!!d.member)).catch(() => setMember(false));
   }, []);
-  const GATED_SESSIONS = ['noon', 'afternoon', 'evening', 'midnight'];
+  // 2026-09-18 사용자 "다 잠궈" — 아침(07:00)까지 포함해 전 회차를 회원 전용으로.
+  //   종전엔 아침만 전체 무료(맛보기)였다(2026-06-13 "장중 보고서는 회원가입 해야").
+  //   비회원도 게이트 **위쪽**(지수·스탠스·종합판단)은 그대로 본다 — 완전한 벽이 아니라 맛보기가 남는다.
+  const GATED_SESSIONS = ['morning', 'noon', 'afternoon', 'evening', 'midnight'];
   const dataSession = (data as unknown as { session?: string } | null)?.session;
   const gated = member === false && !!dataSession && GATED_SESSIONS.includes(dataSession);
 
@@ -970,10 +973,12 @@ export default function ReportPage() {
           })()}
 
           {/* ── 2026-06-13: 장중 보고서 회원 게이트 (사용자 "장중 보고서는 회원가입 해야") ──
-              noon/afternoon/evening/midnight = 비회원에게 stance·종합판단까지만 + 가입 카드.
-              morning(07:00)은 전체 무료(맛보기). 이메일 등록 즉시 해제 (쿠키 1년). */}
+              2026-09-18 사용자 "다 잠궈" — 아침 포함 전 회차. 비회원은 stance·종합판단까지만 본다.
+              같은 날 게이트를 **서버로 옮겼다**(/api/investment-strategy) — 종전엔 API 가 다 줘서
+              개발자도구만 열면 누구나 봤다. 이제 비회원에게는 필드가 오지 않으므로
+              가입 직후 fetchStrategy(true) 로 **다시 받아와야** 한다. 이메일 등록 즉시 해제(쿠키 1년). */}
           {gated ? (
-            <MemberGate onUnlock={() => setMember(true)} t={t} />
+            <MemberGate onUnlock={() => { setMember(true); void fetchStrategy(true); }} t={t} />
           ) : (
           <>
           {/* ── S6: 시장 내러티브 (Why + Watch + Story) ─────────────────────── */}

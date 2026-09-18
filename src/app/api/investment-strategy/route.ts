@@ -4,6 +4,8 @@ import { memSetReport, memSetArray, memGetArray } from '@/lib/investment-strateg
 import { isGarbage as isGarbageText, isKnownSource, GARBAGE_MIN_LEN } from '@/lib/strategy-quality';
 import { preValidateFix, validateStrategy } from '@/lib/strategy-schema';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getMemberEmail } from '@/lib/member-auth';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider, llmTimeoutMs } from '@/lib/ai-providers';
@@ -1446,7 +1448,55 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
 // ── GET handler — READ-ONLY (캐시만 읽음, AI 생성 없음) ──────────────────────
 // AI 생성은 크론(/api/cron/investment-strategy)이 하루 3회 담당.
 // 사용자 요청: 캐시 히트 → 즉시 반환 / 미스 → stale 반환 / 없으면 빈 응답.
-export async function GET(request: Request) {
+
+// ── 회원 게이트 (2026-09-18) ─────────────────────────────────────────────────
+//
+// 실측으로 확인한 문제: 화면은 비회원에게 보고서를 가렸지만 **이 API 는 그대로 다 줬다.**
+//   curl https://flowvium.net/api/investment-strategy?locale=ko (쿠키 없음)
+//   → 200 · portfolio 5종목 · WAT 진입 $429.72-$448.23 · 손절 $395.00
+//   즉 잠금이 겉모습뿐이었다. 개발자도구를 열거나 주소를 직접 치면 누구나 전부 봤다.
+//   서버에서 회원을 보는 라우트가 하나도 없었다.
+//
+// 무엇을 남기나: 게이트 **위쪽**에 보이는 것(스탠스·종합판단·지수)은 그대로 둔다.
+//   맛보기가 없으면 검색 유입도 유튜브 유입도 첫 화면에서 튕긴다.
+//
+// 내부 호출(크론·검증)은 CRON_SECRET 으로 통과시킨다 — 그쪽까지 가리면 검증이 눈을 잃는다.
+//
+// ⚠ 캐시: 이 라우트는 s-maxage 로 CDN 에 실린다. 회원 응답이 캐시되면 비회원에게 새어 나간다.
+//   그래서 **회원에게 주는 응답만** private·no-store 로 바꾼다. 비회원용(가린 것)은 캐시해도 안전하다.
+const GATED_FIELDS = [
+  'portfolio', 'portfolioByMarket', 'sellRecommendations', 'buyCandidateScoring',
+  'shortSqueeze', 'insiderSignals', 'topOpportunity', 'conditionalEntryWatch',
+  'fundamentalAnalysis', 'technicalAnalysis', 'macroAnalysis', 'marketNarrative',
+  'sectorAllocation', 'riskEvents', 'hedgingSuggestion', 'stopLossRationale',
+  'portfolioOutcomes', 'companyChanges', 'supplyChainChanges', 'manipulationWatch',
+];
+
+function isInternal(req: NextRequest): boolean {
+  const sec = process.env.CRON_SECRET;
+  if (!sec) return false;
+  const h = req.headers.get('authorization') ?? '';
+  return h === `Bearer ${sec}` || req.headers.get('x-cron-secret') === sec;
+}
+
+/** 비회원이면 게이트 뒤 필드를 지운다. 회원·내부 호출이면 그대로 둔다. */
+function applyGate(req: NextRequest, payload: unknown, headers: Record<string, string>) {
+  const member = getMemberEmail(req);
+  if (member || isInternal(req)) {
+    // 회원 응답은 공유 캐시에 올리지 않는다 — 올리면 비회원이 그 캐시를 받는다.
+    return NextResponse.json(payload as object, { headers: { ...headers, 'Cache-Control': 'private, no-store' } });
+  }
+  const out: Record<string, unknown> = { ...(payload as Record<string, unknown>) };
+  let removed = 0;
+  for (const f of GATED_FIELDS) if (f in out) { delete out[f]; removed += 1; }
+  out.gated = true;
+  out.gatedFields = removed;
+  return NextResponse.json(out, { headers });
+}
+
+// NextRequest 로 받는다 — 쿠키(fv_member)를 읽어야 한다. NextRequest 는 Request 를 상속하므로
+//   기존 사용부는 그대로 동작한다. Next.js 가 라우트 핸들러에 넘기는 실제 객체도 NextRequest 다.
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const locale = searchParams.get('locale') ?? 'en';
   // probe=1: used by verify-metrics — always return quickly
@@ -1504,7 +1554,7 @@ export async function GET(request: Request) {
         const stale = await redis.get(staleKey(locale));
         if (stale && isSchemaCompatible(stale as Record<string, unknown>)) {
           logger.info('api.investment-strategy', 'stale_hit', { locale });
-          return NextResponse.json({ ...(stale as object), cached: true, stale: true }, { headers: CDN_HEADERS });
+          return applyGate(request, { ...(stale as object), cached: true, stale: true }, CDN_HEADERS);
         }
         if (stale && !isSchemaCompatible(stale as Record<string, unknown>)) {
           logger.warn('api.investment-strategy', 'stale_schema_mismatch', { locale, missing: REQUIRED_SCHEMA_FIELDS.filter(f => !(stale as Record<string,unknown>)[f]) });
@@ -1542,14 +1592,14 @@ export async function GET(request: Request) {
       // 2026-06-13: Redis read 실패 시 generic 대신 last-good 서빙 (있으면) — blip 으로 리포트가
       //   '중립/분산ETF' fallback 으로 깜빡이던 사건 fix.
       const lg = lastGood(locale);
-      if (lg) { logger.info('api.investment-strategy', 'served_last_good_on_redis_error', { locale }); return NextResponse.json({ ...lg, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
+      if (lg) { logger.info('api.investment-strategy', 'served_last_good_on_redis_error', { locale }); return applyGate(request, { ...lg, cached: true, lastGood: true }, { 'Cache-Control': 'public, s-maxage=30' }); }
     }
   }
 
   // generic fallback 직전 — last-good 있으면 우선 (세션경계 미스/Redis 실패 공통 안전망)
   {
     const lg = lastGood(locale);
-    if (lg && !force) { logger.info('api.investment-strategy', 'served_last_good_prefallback', { locale }); return NextResponse.json({ ...lg, cached: true, lastGood: true }, { headers: { 'Cache-Control': 'public, s-maxage=30' } }); }
+    if (lg && !force) { logger.info('api.investment-strategy', 'served_last_good_prefallback', { locale }); return applyGate(request, { ...lg, cached: true, lastGood: true }, { 'Cache-Control': 'public, s-maxage=30' }); }
   }
 
   if (probe) {
@@ -2260,5 +2310,5 @@ export async function GET(request: Request) {
   const responseHeaders = isFallback
     ? { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' }
     : CDN_HEADERS;
-  return NextResponse.json(strategy, { headers: responseHeaders });
+  return applyGate(request, strategy, responseHeaders);
 }
