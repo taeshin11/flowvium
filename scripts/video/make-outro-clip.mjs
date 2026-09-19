@@ -478,6 +478,16 @@ function stepChain(inp, out) {
   //   (절대 초를 그대로 쓰면 edges 가 [0, 2.4, 4.7, 3] 처럼 뒤집혀 필터가 깨진다.)
   const scale = PHASE_A / Math.max(DEMO_SEC, PHASE_A);
   const at = DEMO_STEPS_AT.slice(0, n - 1).map((t) => Number((t * scale).toFixed(2)));
+  // 마지막 단계(결론: '전송 완료')에 최소 시간을 보장한다.
+  //   2026-09-19 실측: 설정값이 5초짜리 시연의 4.7초라 마지막 배지가 **0.2초**만 떴다.
+  //   11초짜리 옛 광고에서도 0.32초였다 — 짧아져서 생긴 게 아니라 원래 있던 결함이다.
+  //   검수 모델이 "전송 완료가 안 보인다" 고 한 것이 단서였다(그 모델이 본 프레임에는 정말 없었다).
+  //   결론을 못 보여주면 시연을 넣은 뜻이 없다.
+  const MIN_LAST = 0.8;
+  if (at.length && PHASE_A - at[at.length - 1] < MIN_LAST) {
+    at[at.length - 1] = Number(Math.max(0.1, PHASE_A - MIN_LAST).toFixed(2));
+    for (let i = at.length - 2; i >= 0; i -= 1) at[i] = Math.min(at[i], at[i + 1] - 0.3);
+  }
   const edges = [0, ...at, PHASE_A];
   let f = ''; let cur = inp;
   for (let k = 0; k < n; k++) {

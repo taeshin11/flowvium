@@ -313,6 +313,30 @@ if (isKoUpload && !/[가-힣]/.test(title)) {
 log(`제목: ${title}`);
 if (DRY) { log('--dry-run — 업로드하지 않는다'); process.exit(0); }
 
+// ── 2.5 눈검증 (2026-09-19, 사용자 "영상 다 만들고 gemini한테 눈검증 시켜서 문제없는지 확인해") ──
+//
+// 왜 다른 모델인가: 만든 쪽이 스스로 보면 자기가 의도한 것을 읽는다. 오늘만 해도 썸네일이
+//   새까만 채로 발행됐고(스크린샷·업로드 모두 성공), 광고 배지가 0.2초만 뜨는 것도 며칠 못 봤다.
+//   결과를 모르는 눈이 봐야 잡힌다.
+//
+// **막지는 않는다.** 판정이 틀릴 수 있고(표본이 성글면 "안 보인다"고 한다 — 실제로 겪었다),
+//   영상 한 편을 잃는 것보다 사람이 보고 내리는 편이 낫다. 로그에 남기고 계속 간다.
+//   판정이 쌓이면 그때 막을지 정한다.
+try {
+  const { inspectVideo } = await import('./lib/video-eye.mjs');
+  const eye = await inspectVideo(VIDEO, { kind: 'shorts', timeoutMs: 120000 });
+  if (!eye.checked) log(`[눈검증] 판정 없음 — ${eye.notes}`);   // 못 본 것을 '이상 없음' 으로 적지 않는다
+  else if (!eye.ok || eye.issues.length) {
+    log(`[눈검증] ⚠ ${eye.model} 이 문제를 봤다 (${eye.frames.join('s·')}s)`);
+    for (const i of eye.issues) log(`   · ${i}`);
+    log('   → 막지 않는다. 사람이 확인할 것.');
+  } else log(`[눈검증] ✅ ${eye.model} 이상 없음 (프레임 ${eye.frames.length}장)`);
+  if (THUMB && existsSync(THUMB)) {
+    const t = await inspectVideo(THUMB, { kind: 'thumb', frames: 1, durationSec: 1, timeoutMs: 90000 }).catch(() => null);
+    if (t?.checked && (!t.ok || t.issues.length)) { log('[눈검증] ⚠ 썸네일:'); for (const i of t.issues) log(`   · ${i}`); }
+  }
+} catch (e) { log(`[눈검증] 건너뜀(오류): ${String(e?.message).slice(0, 80)}`); }
+
 // ── 3. 업로드 ──────────────────────────────────────────────────────────────
 const upArgs = [resolve(ROOT, 'scripts/youtube-upload.mjs'),
   '--file', VIDEO, '--title', title, '--desc', desc,
