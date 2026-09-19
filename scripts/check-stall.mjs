@@ -737,6 +737,59 @@ async function checkOnce() {
     info.push(`메모리 점검 건너뜀: ${String(e?.message).slice(0, 50)}`);
   }
 
+  // ── [8] 쇼츠 발행 정체 (2026-09-19 신설) ──────────────────────────────────────
+  //   왜: 유튜브 리프레시 토큰이 취소돼 10:15·11:10 두 회차가 업로드에서 죽었다.
+  //   렌더도 눈검증도 통과했고 로그엔 `❌ invalid_grant` 한 줄뿐이었다. **아무도 안 알려줬다** —
+  //   사용자가 "왜 영상을 안 올리니" 하고 물어서야 알았고 반나절을 날렸다.
+  //   launchd 는 exit code 를 남기지만 보는 사람이 없다. 그래서 여기서 본다.
+  try {
+    const { recentFailures, missedSlots } = await import('./lib/publish-health.mjs');
+    const { readFileSync: rf, existsSync: ex } = await import('fs');
+    const { homedir } = await import('os');
+    const { join: j } = await import('path');
+
+    // 편성 시각은 plist 가 단일 출처다 — 여기에 또 적으면 어긋난다.
+    const plist = j(homedir(), 'Library/LaunchAgents/com.spinai.flowvium-video.plist');
+    let slots = [];
+    if (ex(plist)) {
+      const x = rf(plist, 'utf8');
+      const block = /<key>StartCalendarInterval<\/key>([\s\S]*?)<\/array>/.exec(x)?.[1] ?? '';
+      for (const d of block.matchAll(/<dict>([\s\S]*?)<\/dict>/g)) {
+        const h = Number(/<key>Hour<\/key>\s*<integer>(\d+)/.exec(d[1])?.[1]);
+        const m = Number(/<key>Minute<\/key>\s*<integer>(\d+)/.exec(d[1])?.[1] ?? 0);
+        if (Number.isInteger(h)) slots.push({ h, m: Number.isInteger(m) ? m : 0 });
+      }
+    }
+
+    const logPath = j(homedir(), 'flowvium_runtime/video.log');
+    let tail = '';
+    if (ex(logPath)) { const b = rf(logPath, 'utf8'); tail = b.slice(-200000); }
+    const f = recentFailures(tail, { hours: 6 });
+    if (f.auth) {
+      issues.push(`쇼츠 업로드 인증 실패 ${f.auth}건(최근 6h) — 재시도로 안 낫는다. `
+        + `\`node scripts/youtube-auth.mjs\` 로 다시 동의받을 것 (${f.lastLine ?? ''})`);
+    } else if (f.upload) {
+      issues.push(`쇼츠 업로드 실패 ${f.upload}건(최근 6h) — logs 확인 (${f.lastLine ?? ''})`);
+    }
+
+    if (slots.length) {
+      // 위쪽 db 는 이 시점에 이미 닫혀 있다(실측) — 공용 싱글턴을 쓴다.
+      //   ⚠ openDb() 가 연 것은 닫지 않는다(never-close-shared-db).
+      const { openDb: odb2 } = await import('./lib/db.mjs');
+      const row = odb2().prepare(
+        `SELECT published_at FROM shorts_published WHERE retracted_at IS NULL ORDER BY published_at DESC LIMIT 1`,
+      ).get();
+      const ms = missedSlots({ slots, lastPublishedAt: row?.published_at ? new Date(row.published_at) : null });
+      // 한 회차는 지나갈 수 있다(소재 없음·예산 소진). 두 회차부터 사람을 부른다.
+      if (ms.missed >= 2) {
+        issues.push(`쇼츠 ${ms.missed}회차 연속 미발행(오늘 예정 ${ms.expected}회차) — `
+          + `마지막 발행 ${ms.lastAgeMin == null ? '기록 없음' : `${Math.round(ms.lastAgeMin / 60)}시간 전`}`);
+      } else {
+        info.push(`쇼츠 발행 정상 (오늘 예정 ${ms.expected}회차 중 놓친 것 ${ms.missed})`);
+      }
+    }
+  } catch (e) { info.push(`쇼츠 발행 점검 건너뜀: ${String(e?.message).slice(0, 60)}`); }
+
   return { issues, info };
 }
 
