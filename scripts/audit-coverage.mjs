@@ -12,6 +12,7 @@ import { endpointsFromPageAudit } from './lib/page-endpoint-coverage.mjs';
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { ROOT as _PROJECT_ROOT } from './lib/project-root.mjs';
 import { buildTickerEndpoints } from './lib/snapshot-endpoints.mjs';
+import { judgeNullCoverage } from './lib/null-coverage.mjs';
 const ROOT = _PROJECT_ROOT;
 const db = new Database(`${ROOT}/data/flowvium.db`, { readonly: true });
 
@@ -81,6 +82,18 @@ const STRUCTURAL_NULLS = {
   //   - short_squeeze_archive.rationale: score+timing+risk 합성 배선 + 역사 backfill(100%)
 };
 
+// 갓 붙인 컬럼 — 과거 행에 값을 소급할 방법이 없다. **면제가 아니라 시점으로** 본다:
+//   도입일 이후 행만 놓고 같은 80% 잣대를 다시 댄다(null-coverage.mjs 주석 참고).
+//   배선이 끊기면 최근 구간이 비면서 여기서 다시 ❌ 가 난다.
+//   since 는 **실제로 처음 채워진 시각**으로 잡는다 — 하루 이르게 잡았더니 배선 전 7행이
+//   섞여 64%null 로 보였다. 넉넉히 잡으면 관문이 그만큼 무뎌진다.
+const NEW_COLUMNS = {
+  'shorts_published.hooks_json': { since: '2026-09-18T10:22', at: 'published_at',
+    why: '대본 보관을 2026-09-18 에 시작 — 그 전 편은 대본이 남지 않았다(shorts-blog 의 소재)' },
+  'shorts_stats.subs_gained': { since: '2026-09-18T13:05', at: 'checked_at',
+    why: '구독자 증가 수집을 2026-09-18 에 시작 — 그 전 표본은 그 API 를 부르지 않았다' },
+};
+
 const tables = db.prepare(`
   SELECT name FROM sqlite_master
   WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts%' AND name NOT LIKE '%_data' AND name NOT LIKE '%_idx' AND name NOT LIKE '%_docsize' AND name NOT LIKE '%_config' AND name NOT LIKE '%_content'
@@ -105,7 +118,14 @@ for (const t of tables) {
       if (nullPct >= 80) {
         const key = `${t}.${c.name}`;
         if (STRUCTURAL_NULLS[key]) ackStructural.push(`${key}(${nullPct.toFixed(0)}%) — ${STRUCTURAL_NULLS[key]}`);
-        else lowCovCols.push(`${c.name}(${nullPct.toFixed(0)}%null)`);
+        else if (NEW_COLUMNS[key]) {
+          const { since, at, why } = NEW_COLUMNS[key];
+          const rt = db.prepare(`SELECT COUNT(*) c FROM ${t} WHERE ${at} >= ?`).get(since).c;
+          const rn = db.prepare(`SELECT COUNT(*) c FROM ${t} WHERE ${at} >= ? AND ${c.name} IS NULL`).get(since).c;
+          const j = judgeNullCoverage({ overallNullPct: nullPct, recentRows: rt, recentNullPct: rt ? (rn / rt) * 100 : 100 });
+          if (j.verdict === 'error') lowCovCols.push(`${c.name}(${since} 이후 ${j.note})`);
+          else ackStructural.push(`${key} — ${why} · ${j.note}`);
+        } else lowCovCols.push(`${c.name}(${nullPct.toFixed(0)}%null)`);
       }
     }
     if (lowCovCols.length > 0) {
