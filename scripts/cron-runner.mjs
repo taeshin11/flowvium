@@ -566,7 +566,10 @@ const MAINT_JOBS = [
   //   아침 보고서(07:00 KST) 직후 한 번만 만든다 — 07:10 KST = 22:10 UTC. 크론은 UTC 로 적는다.
   //   하루 한 편이면 --session morning 으로 고정해도 되지만, 그날 아침 회차가 밀리면 빈손이 된다.
   //   최신 ko 보고서를 집게 두어 회차가 밀려도 그날 글은 나오게 한다.
-  { label: 'blog-post',            script: 'scripts/make-blog-post.mjs',             timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['10 22 * * *'],                maxAgeH: 30 },
+  //   2026-09-19: 고쳐쓰기를 agy 로 넘기면서 예산을 300→600 초로 올린다. 실측 225초(7블록,
+  //   블록당 24초) 로 옛 예산의 75% 를 썼다 — agy 는 네트워크 서비스라 느린 날이 있고,
+  //   시간 초과로 죽으면 그날 아침 글이 통째로 없다. 로컬 4B 시절(15초)의 예산이었다.
+  { label: 'blog-post',            script: 'scripts/make-blog-post.mjs',             timeoutMs: 600000,  commitPaths: ['reports/blog'],                       schedules: ['10 22 * * *'],                maxAgeH: 30 },
   //   만든 글을 Blogger 에 올린다(정식 API). 만들기 5분 뒤에 둔다 — 같은 잡으로 묶으면
   //   글 만들기가 느려졌을 때 게시까지 통째로 시간 초과가 된다.
   //   네이버가 아니라 Blogger 인 이유: 네이버는 자동 게재가 약관 위반이고 글쓰기 API 도 없다.
@@ -576,7 +579,8 @@ const MAINT_JOBS = [
   //   **하루 전편(9편)을 쓰지 않는다** — 구글이 2024년부터 대량 생성 콘텐츠를 강등하고,
   //   자동 생성 뉴스 요약 9편/일이 정확히 그 모양이다. 하루 2편(회당 1편)으로 나눠 올린다.
   //   대본(hooks)이 남은 편만 쓴다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다.
-  { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --limit 1',  timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
+  //   2026-09-19: agy 전환으로 실측 91초(3블록). 예산은 blog-post 와 같은 이유로 올린다.
+  { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --limit 1',  timeoutMs: 480000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
   //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고
