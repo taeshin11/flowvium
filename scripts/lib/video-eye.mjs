@@ -65,9 +65,26 @@ export function grabFrames(video, n = 0, durationSec = null) {
 //     · --sandbox 로 터미널을 제한하고
 //     · **프레임만 들어 있는 임시 폴더를 작업 디렉터리로 준다** — 건드릴 것이 프레임뿐이다.
 //   그래도 자율 에이전트를 부르는 일이므로, 실패하면 조용히 API 경로로 내려간다.
+// agy 실행 파일을 **절대 경로로** 찾는다.
+//   2026-09-19: spawnSync 가 물려받는 PATH 에 ~/.local/bin 이 없어 agy 를 못 찾고 조용히
+//   무료 API 로 떨어졌다. 로그에는 모델 이름만 찍혀서, 보지 않으면 모른다.
+//   설치 경로는 install.sh 가 쓰는 ~/.local/bin 이 기본이고, AGY_BIN 으로 덮을 수 있다.
+// 왜 agy 를 못 썼는지 남긴다. 조용히 떨어지면 값싼 모델로 검사한 줄 모른다(2026-09-19 실제로 그랬다).
+const EYE_WHY = [];
+export const eyeWhy = () => EYE_WHY.slice();
+
+function agyBin() {
+  const cands = [process.env.AGY_BIN, join(process.env.HOME ?? '', '.local/bin/agy'), '/usr/local/bin/agy'];
+  for (const c of cands) if (c && existsSync(c)) return c;
+  const w = spawnSync('which', ['agy'], { encoding: 'utf8' });
+  return w.status === 0 ? (w.stdout ?? '').trim() : null;
+}
+
 function agyAvailable() {
-  const r = spawnSync('bash', ['-lc', 'command -v agy >/dev/null && agy models 2>&1 | head -1'], { encoding: 'utf8' });
-  return r.status === 0 && !/sign in/i.test(r.stdout ?? '');
+  const bin = agyBin();
+  if (!bin) return false;
+  const r = spawnSync(bin, ['models'], { encoding: 'utf8', timeout: 60000 });
+  return r.status === 0 && !/sign in/i.test(`${r.stdout ?? ''}${r.stderr ?? ''}`);
 }
 
 function agyInspect(frames, prompt, model, timeoutMs) {
@@ -85,17 +102,20 @@ function agyInspect(frames, prompt, model, timeoutMs) {
     required: ['ok', 'issues', 'notes'],
   }));
   const full = `${prompt}\n\n볼 파일(시간 순): ${names.join(', ')}`;
-  const r = spawnSync('agy', ['-p', full, '--model', model, '--sandbox', '--dangerously-skip-permissions',
-    '--json-schema', 'schema.json', '--output-format', 'json'],
+  const bin = agyBin();
+  if (!bin) return null;
+  // --add-dir 로 **작업 공간에 넣어야** 본다. cwd 만 주면 "파일을 찾을 수 없음" 이라고 답한다(실측).
+  const r = spawnSync(bin, ['-p', full, '--model', model, '--sandbox', '--dangerously-skip-permissions',
+    '--add-dir', dir, '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],
   { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 });
-  if (r.status !== 0 || !r.stdout) return null;
+  if (r.status !== 0 || !r.stdout) { EYE_WHY.push(`agy 실행 실패(status ${r.status}${r.error ? ` ${r.error.message}` : ''})`); return null; }
   try {
     const j = JSON.parse(r.stdout.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim());
     const d = j.structured_output;
-    if (!d) return null;
+    if (!d) { EYE_WHY.push('agy 응답에 structured_output 없음'); return null; }
     return { ok: d.ok !== false, checked: true, issues: Array.isArray(d.issues) ? d.issues.map(String) : [],
       readable: true, notes: String(d.notes ?? ''), model: `agy:${model}` };
-  } catch { return null; }
+  } catch (e) { EYE_WHY.push(`agy 응답 파싱 실패: ${String(e.message).slice(0, 50)}`); return null; }
 }
 
 const SCHEMA_HINT = `아래 JSON 하나만 출력하라(설명·코드펜스 금지):
@@ -121,13 +141,18 @@ export async function inspectFrames(frames, opt = {}) {
 다음을 확인하라 — 글자가 잘리거나 화면 밖으로 나갔는가 · 글자가 서로 겹쳤는가 ·
 화면이 거의 검거나 비었는가 · 글자가 너무 작아 안 읽히는가 · 깨진 문자(□ � 등)가 있는가 ·
 사진과 글자가 겹쳐 안 읽히는가.${expect}
-**우리가 얹은 글자만** 본다 — 자막·배지·브랜드 문구·주소.
-배경 영상이나 사진 **속**의 글자(화면 속 이메일 본문, 기사 사진의 작은 글씨 등)는 읽히지 않아도 정상이다.
-그건 소재이지 우리가 쓴 글이 아니다. 그걸 문제로 적지 마라.
+**우리가 얹은 글자만** 본다 — 검은 띠 위의 훅(흰색·노랑), 아래 띠의 형광 연두 캡션, 배지·브랜드·주소.
+사진이나 영상 **안에 원래 박혀 있던 글자**(방송사 자막, 기사 사진 속 문구, 화면 속 이메일 본문)는
+**잘려 보여도 정상이다** — 우리가 소재를 띠 크기에 맞춰 잘라 쓰기 때문이다. 그걸 문제로 적지 마라.
+2026-09-19 실측: 사진 속 방송 자막이 잘린 것을 우리 자막이 잘렸다고 보고한 오탐이 있었다.
+우리 캡션인지 아닌지 헷갈리면 **색으로 가른다** — 우리 캡션은 형광 연두(#b6ff3b), 훅은 흰색/노랑이다.
+그 색이 아니면 소재 안의 글자다.
 "보기 좋다/나쁘다" 같은 취향도 적지 마라. 눈에 보이는 결함만 적어라.
 ${SCHEMA_HINT}`;
 
   // Ultra 계정이 붙어 있으면 3 Pro 로 본다. 실패하면 조용히 API(2.5-flash)로 내려간다.
+  if (process.env.EYE_BACKEND === 'api') EYE_WHY.push('EYE_BACKEND=api 지정');
+  else if (!agyAvailable()) EYE_WHY.push('agy 없음/미로그인');
   if (process.env.EYE_BACKEND !== 'api' && agyAvailable()) {
     const viaAgy = agyInspect(frames, prompt, process.env.AGY_EYE_MODEL || 'gemini-3.1-pro-high', opt.timeoutMs ?? 300000);
     if (viaAgy) return viaAgy;
