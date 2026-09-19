@@ -355,16 +355,30 @@ async function checkOnce() {
   //   업로드가 invalid_grant 로 죽었고 **9시간 뒤에야** 알았다 — 그동안 렌더는 계속 돌았다.
   //   로그의 invalid_grant 는 이번이 5번째였다. 죽은 뒤 아는 것과 죽기 전 아는 것은 다르다.
   //   앱을 프로덕션으로 게시하면 만료가 사라진다 — 그때는 YOUTUBE_APP_PUBLISHED=1 로 끈다.
-  try {
-    const { tokenVerdict } = await import('./lib/token-age.mjs');
-    const { readFileSync: rf } = await import('node:fs');
-    const tk = JSON.parse(rf(`${_PROJECT_ROOT}/secrets/youtube-token.json`, 'utf8'));
-    // expiry_date 는 access token 만료(발급 +1시간)다. 여기서 1시간을 빼면 발급 시각이 된다.
-    const issuedAt = Number.isFinite(tk.expiry_date) ? tk.expiry_date - 3600_000 : null;
-    const v = tokenVerdict({ issuedAt, published: process.env.YOUTUBE_APP_PUBLISHED === '1' });
-    if (v.level === 'expired' || v.level === 'warn') issues.push(v.line);
-    else if (v.level === 'ok') info.push(v.line);
-  } catch (e) { info.push(`유튜브 토큰 나이 판정 불가: ${String(e.message).slice(0, 50)}`); }
+  //   2026-09-19: **이 경고가 한 번도 울리지 못한 채 오늘 아침 또 죽었다**(invalid_grant 8회).
+  //   여기서 `issuedAt = expiry_date - 1시간` 으로 나이를 추정했는데 expiry_date 는 **액세스**
+  //   토큰 만료라 매시간 갱신된다 — 나이가 영원히 0.0 일이었다. 검출기를 만들고 입력을 틀렸다.
+  //   토큰 파일에 구글이 준 refresh_token_expires_in(갱신 토큰의 남은 초)이 들어 있다. 그걸 쓴다.
+  //   블로거도 같은 처지다(같은 테스트 모드 앱) — 자동 발행이 같은 식으로 멈추므로 함께 본다.
+  for (const [service, file, envKey] of [
+    ['유튜브', 'secrets/youtube-token.json', 'YOUTUBE_APP_PUBLISHED'],
+    ['블로거', 'secrets/blogger-token.json', 'BLOGGER_APP_PUBLISHED'],
+  ]) {
+    try {
+      const { tokenVerdict, refreshExpiresAt } = await import('./lib/token-age.mjs');
+      const { readFileSync: rf, statSync: st } = await import('node:fs');
+      const path = `${_PROJECT_ROOT}/${file}`;
+      const tk = JSON.parse(rf(path, 'utf8'));
+      const v = tokenVerdict({
+        service,
+        // 파일이 마지막으로 쓰인 때 = 구글이 그 남은 초를 알려준 때.
+        refreshExpiresAt: refreshExpiresAt({ writtenAt: st(path).mtimeMs, refreshTokenExpiresIn: tk.refresh_token_expires_in }),
+        published: process.env[envKey] === '1',
+      });
+      if (v.level === 'expired' || v.level === 'warn' || v.level === 'unknown') issues.push(v.line);
+      else info.push(v.line);
+    } catch (e) { info.push(`${service} 토큰 판정 불가: ${String(e.message).slice(0, 50)}`); }
+  }
 
   // [6-a] 쇼츠 조회수 추세 (2026-09-11 신설).
   //   shorts-health 는 재고 찍기만 한다. 경보는 여기서 올린다 —
