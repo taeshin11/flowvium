@@ -1,26 +1,27 @@
 {
-  "generatedAt": "2026-09-18T13:00:38.857Z",
+  "generatedAt": "2026-09-19T09:01:39.677Z",
   "universe": "US",
   "scanned": 324,
-  "count": 11,
+  "count": 17,
   "strongCount": 1,
-  "watchCount": 10,
+  "watchCount": 16,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "HEPS",
-      "name": "D-Market Electronic Services & ",
+      "ticker": "MG",
+      "name": "Mistras Group Inc",
       "tier": "strong",
-      "score": 38,
-      "coFire": 3,
+      "score": 39,
+      "coFire": 4,
       "lead": [
-        "거래량 추세 4.3× 상승(지속 매집)",
-        "거래량 4.9× 급증(가격 평탄)",
-        "변동성 수축(coiling) — 돌파 압축"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.9× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": 3.5,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 294451,
+      "runup20dPct": 6.4,
+      "runup5dPct": 4.7,
+      "medDollarVolUsd": 3283290,
       "smartAccum": false,
       "official": null
     },
@@ -31,13 +32,128 @@
       "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 10.9,
+      "runup5dPct": 7.9,
+      "medDollarVolUsd": 6546388,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NABL",
+      "name": "N-able, Inc.",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 10.3,
-      "runup5dPct": 7.5,
-      "medDollarVolUsd": 6546388,
+      "runup20dPct": 12,
+      "runup5dPct": -0.5,
+      "medDollarVolUsd": 8346459,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "HEPS",
+      "name": "D-Market Electronic Services & ",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.7× 상승(지속 매집)",
+        "거래량 5.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.4,
+      "runup5dPct": -4.6,
+      "medDollarVolUsd": 348254,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SHEN",
+      "name": "Shenandoah Telecommunications C",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.1,
+      "runup5dPct": -2.9,
+      "medDollarVolUsd": 5763280,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ACP",
+      "name": "Aberdeen Income Credit Strategi",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 4.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -8.5,
+      "runup5dPct": -3.9,
+      "medDollarVolUsd": 2239758,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "DSP",
+      "name": "Viant Technology Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 4.4× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -4.3,
+      "runup5dPct": -5.6,
+      "medDollarVolUsd": 2684737,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SPTX",
+      "name": "Seaport Therapeutics, Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 4.1× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -11,
+      "runup5dPct": -8.4,
+      "medDollarVolUsd": 2887878,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SWBI",
+      "name": "Smith & Wesson Brands, Inc.",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -1.9,
+      "runup5dPct": 3.7,
+      "medDollarVolUsd": 6944091,
       "smartAccum": false,
       "official": null
     },
@@ -48,30 +164,47 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.5× 상승",
+        "거래량 추세 1.6× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.3,
-      "runup5dPct": 5,
+      "runup20dPct": 7.2,
+      "runup5dPct": 4.2,
       "medDollarVolUsd": 10316909,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "ATLC",
-      "name": "Atlanticus Holdings Corporation",
+      "ticker": "MCS",
+      "name": "Marcus Corporation (The)",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -4,
+      "runup20dPct": -6.5,
       "runup5dPct": 2,
-      "medDollarVolUsd": 15047124,
+      "medDollarVolUsd": 5827464,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BRCC",
+      "name": "BRC Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 8.3,
+      "runup5dPct": 9.3,
+      "medDollarVolUsd": 914652,
       "smartAccum": false,
       "official": null
     },
@@ -83,60 +216,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -6.2,
-      "runup5dPct": -0.3,
-      "medDollarVolUsd": 4295480,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ACP",
-      "name": "Aberdeen Income Credit Strategi",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -9.8,
-      "runup5dPct": -3.5,
-      "medDollarVolUsd": 2239758,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SWBI",
-      "name": "Smith & Wesson Brands, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -5.6,
-      "runup5dPct": 0.3,
-      "medDollarVolUsd": 6944091,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LMNR",
-      "name": "Limoneira Co",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.2,
-      "runup5dPct": -3.5,
-      "medDollarVolUsd": 931468,
+      "runup20dPct": -6.9,
+      "runup5dPct": -2.4,
+      "medDollarVolUsd": 4488806,
       "smartAccum": false,
       "official": null
     },
@@ -147,44 +231,60 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 추세 2.4× 상승(지속 매집)",
         "거래량 3.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.2,
-      "runup5dPct": -2.8,
-      "medDollarVolUsd": 2892181,
+      "runup20dPct": -8.8,
+      "runup5dPct": -5.8,
+      "medDollarVolUsd": 2881173,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MG",
-      "name": "Mistras Group Inc",
+      "ticker": "XZO",
+      "name": "Exzeo Group, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 2.3,
+      "runup5dPct": 3.4,
+      "medDollarVolUsd": 3087054,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "TUYA",
+      "name": "Tuya Inc.",
       "tier": "watch",
       "score": 16,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
+        "거래량 추세 1.7× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": 2,
-      "runup5dPct": 2.5,
-      "medDollarVolUsd": 3283290,
+      "runup20dPct": -6.3,
+      "runup5dPct": -8.9,
+      "medDollarVolUsd": 924350,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "ANGX",
-      "name": "Angel Studios, Inc.",
+      "ticker": "PSTL",
+      "name": "Postal Realty Trust, Inc.",
       "tier": "watch",
-      "score": 15,
+      "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%"
+        "거래량 추세 1.8× 상승",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 6.5,
-      "runup5dPct": -8.9,
-      "medDollarVolUsd": 5239080,
+      "runup20dPct": 3.4,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 6739805,
       "smartAccum": false,
       "official": null
     }
