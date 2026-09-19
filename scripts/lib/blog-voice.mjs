@@ -191,8 +191,17 @@ export async function rewriteBlock(src, opt = {}) {
   if (isCompressed(base)) return { ...fallback, why: 'compressed' };
 
   const style = opt.style ?? '시장을 매일 들여다보는 사람이 블로그에 쓰듯';
+  // 참고 사실(2026-09-19 신설). 쇼츠 훅처럼 **조사가 빠진 제목체**는 주어가 뒤집혀 읽힌다 —
+  //   "덴마크 헬기, 러시아 군함 조명탄 발사" 를 4B 는 덴마크가 쏜 것으로 읽어 발행했고
+  //   agy 는 러시아가 쏜 것으로 읽었다(기사 제목이 맞다). 제목을 못 보면 둘 다 추측이다.
+  //   그래서 같은 회차의 기사 제목을 함께 준다. 재료가 아니라 **판독의 근거**로만 쓰게 한다 —
+  //   참고에서 숫자를 끌어오면 addedNumbers 가 잡아 원문으로 떨어진다(테스트 17d).
+  const ctx = (Array.isArray(opt.context) ? opt.context : opt.context ? [opt.context] : [])
+    .map((x) => String(x ?? '').trim()).filter(Boolean);
   const prompt = [
     `다음 글을 ${style} 다시 써라.`,
+    ...(ctx.length ? ['', '참고 — 같은 회차의 기사 제목:', ...ctx.map((x) => `- ${x}`),
+      '참고는 사실을 확인하라고 주는 것이다(누가 무엇을 했는지). 참고의 내용을 본문에 새로 옮기지 마라.', ''] : []),
     '규칙:',
     '- 존댓말(~습니다/~입니다)로 쓴다.',
     '- 숫자는 원문에 있는 것만 쓴다. 새 숫자를 만들지 마라.',

@@ -110,5 +110,38 @@ const r15 = await rewriteBlock('시장은 상승했다.', { call: async () => '�
   ? ok(`[16] ${src.trim()} → ${want}`) : bad(`[16] ${src} → ${toPolite(src)}`));
 toPolite('오늘은 좋다.').includes('좋다') ? ok('[16b] 받침이 ㅆ 이 아니면 건드리지 않는다') : bad(`[16b] ${toPolite('오늘은 좋다.')}`);
 
+// [17] 참고 사실을 프롬프트에 실어 준다 — 훅은 조사가 없어 주어가 모호할 때가 있다.
+//   실측(2026-09-19): "덴마크 헬기, 러시아 군함 조명탄 발사" 를 4B 는 덴마크가 쏜 것으로,
+//   agy 는 러시아가 쏜 것으로 읽었다. 기사 제목("덴마크 헬기에 조명탄 발사한 러 군함")을
+//   못 봤으니 둘 다 추측이었다. 본 것을 근거로 쓰게 한다.
+{
+  let seen = '';
+  await rewriteBlock('덴마크 헬기, 러시아 군함 조명탄 발사', {
+    context: ['덴마크 헬기에 조명탄 발사한 러 군함'],
+    call: async (p) => { seen = p; return '러시아 군함이 덴마크 헬기를 향해 조명탄을 발사했습니다.'; },
+  });
+  seen.includes('덴마크 헬기에 조명탄 발사한 러 군함')
+    ? ok('[17] 참고 사실이 프롬프트에 들어간다') : bad(`[17] 프롬프트에 없음: ${seen.slice(0, 120)}`);
+  /참고는 사실을 확인하라고 주는 것/.test(seen)
+    ? ok('[17b] 참고를 본문에 옮기지 말라고 못박는다') : bad('[17b] 참고 남용을 막는 말이 없다');
+}
+
+// [17c] 참고가 없으면 프롬프트 모양이 예전과 같다 — 있는 글을 건드리지 않는다
+{
+  let seen = '';
+  await rewriteBlock('시장은 상승했다.', { call: async (p) => { seen = p; return '시장은 올랐습니다.'; } });
+  !/참고/.test(seen) ? ok('[17c] 참고 없으면 그 문단도 없다') : bad('[17c] 빈 참고 문단이 붙었다');
+}
+
+// [17d] 참고에 있는 숫자를 본문으로 끌어오면 원문으로 떨어뜨린다 — 참고는 사실 확인용이지 재료가 아니다
+{
+  const r = await rewriteBlock('코스피가 올랐다', {
+    context: ['코스피 2650 마감'],
+    call: async () => '코스피가 2650 으로 올랐습니다',
+  });
+  r.used === 'fallback' && /added-numbers/.test(r.why ?? '')
+    ? ok(`[17d] 참고 숫자 유입 차단 (${r.why})`) : bad(`[17d] ${r.used} ${r.why}`);
+}
+
 console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ blog-voice 통과');
 process.exit(fail ? 1 : 0);

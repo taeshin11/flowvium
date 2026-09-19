@@ -58,8 +58,8 @@ if (!rows.length) { console.log('쓸 거리가 없다 — 대본이 남은 새 �
 // 고쳐쓰기는 agy 로 간다(make-blog-post 주석 참고). 안 되면 로컬 4B 로 떨어진다.
 const call = useLlm ? agyCaller(llmCaller('web')) : null;
 const stats = { llm: 0, fallback: 0, why: [] };
-const voice = async (src, style) => {
-  const r = await rewriteBlock(src, { call, style });
+const voice = async (src, style, context) => {
+  const r = await rewriteBlock(src, { call, style, context });
   stats[r.used] += 1;
   if (r.why) stats.why.push(r.why);
   return r.text;
@@ -74,7 +74,10 @@ for (const row of rows.slice(0, LIMIT)) {
   // 알맹이: 대본을 문단으로 푼다. 한 번에 하나씩 보낸다(mlx_lm 배치 사고 회피 — llm-config 주석).
   const paras = [];
   for (const h of hooks.slice(0, 5)) {
-    const t = await voice(String(h), '뉴스를 설명하듯 한 문단으로, 없는 사실을 보태지 말고');
+    // 그 회차의 기사 제목을 전부 참고로 준다. 훅과 제목을 번호로 짝지으려다가는 어긋난다 —
+    //   대본 장면은 파싱 실패한 것이 걸러지므로(make-shorts 의 filter) 순서가 밀릴 수 있다.
+    //   제목 전체를 주면 짝이 틀릴 일이 없고, 모델은 이 훅에 맞는 제목을 골라 읽는다.
+    const t = await voice(String(h), '뉴스를 설명하듯 한 문단으로, 없는 사실을 보태지 말고', heads.slice(0, 6));
     if (t) paras.push(t);
   }
   if (!paras.length) continue;
