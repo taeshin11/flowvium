@@ -9,7 +9,7 @@ let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);
 const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
 
-const { durationSec, pickSegment, ccDownloadReady, MIN_SEC, MAX_SEC } = await import('./youtube-cc.mjs');
+const { durationSec, pickSegment, ccDownloadReady, downloadCcClip, MIN_SEC, MAX_SEC } = await import('./youtube-cc.mjs');
 const { licenseUsable, attributionFree, creditLine } = await import('./footage.mjs');
 
 // [1] ISO 길이 — 못 읽으면 null 이어야 한다. 0 을 돌려주면 길이 검사가 통과해 버린다
@@ -80,6 +80,41 @@ const { licenseUsable, attributionFree, creditLine } = await import('./footage.m
   (raw === 0 && still >= 3)
     ? ok(`CLIP 관문이 영상도 프레임으로 잰다 (호출 ${still}곳, 날것 ${raw}곳)`)
     : bad(`media 를 그대로 사진으로 여는 곳이 ${raw}곳 남았다`);
+}
+
+// 지난 회차 파일이 남아 새 회차에 섞이지 않는가 (2026-09-19)
+//   make-shorts 의 작업 폴더는 회차마다 새로 만들지 않고 이름을 장면 번호로 짓는다(cc0.mp4).
+//   downloadCcClip 은 마지막에 existsSync(outFile) 로 성공을 판정하는데, yt-dlp 가 mp4 가
+//   아닌 형식으로 저장하면(포맷 폴백 두 갈래가 ext 를 강제하지 않는다) 이번 회차에는 그 파일이
+//   안 생긴다. 그때 **어제 회차의 cc0.mp4 가 남아 있으면 그걸 돌려준다** — 남의 영상이 실린다.
+//   실측: /tmp/flowvium-shorts 에 12:11 회차가 끝난 뒤 11:41 의 p3.mp4 와 09:23 의 ov0_4.png 가
+//   그대로 있었다. 옆 세션도 같은 사고를 겪었다(슬러그 번호 재사용으로 옛 소재가 새 편에 섞임).
+{
+  const { mkdtempSync, writeFileSync, existsSync } = await import('fs');
+  const { join } = await import('path');
+  const { tmpdir } = await import('os');
+  const dir = mkdtempSync(join(tmpdir(), 'cc-stale-'));
+  const out = join(dir, 'cc0.mp4');
+  writeFileSync(out, 'ANCIENT');                      // 어제 회차가 남긴 파일
+  // 받기 자체가 안 되는 상태로 부른다(ccDownloadReady 실패 또는 videoId 없음) —
+  // 그래도 옛 파일이 살아 있으면 안 된다.
+  const got = downloadCcClip({ videoId: '', url: '' }, out, { seconds: 6 });
+  got === null && !existsSync(out)
+    ? ok('옛 회차 파일을 지우고 null 을 돌려준다')
+    : bad(`옛 파일이 살아남았다 — got=${got} exists=${existsSync(out)}`);
+}
+
+// make-shorts 가 회차 시작 때 작업 폴더를 비우는가 (같은 결함 부류의 경계 방어)
+//   막는 자리를 하나씩 늘리는 대신 없는 상태에서 시작한다 — 새 파일이 늘어도 규칙이 따라간다.
+{
+  const { readFileSync: rf } = await import('fs');
+  const { ROOT: R } = await import('./project-root.mjs');
+  const src = rf(`${R}/scripts/video/make-shorts.mjs`, 'utf8');
+  const i = src.indexOf("const WORK = join(tmpdir()");
+  const head = i >= 0 ? src.slice(i, i + 1400) : '';
+  /rmSync\(WORK,[^)]*recursive[^)]*\)/.test(head) && head.indexOf('rmSync(WORK') < head.indexOf('mkdirSync(WORK')
+    ? ok('회차 시작 때 작업 폴더를 비우고 다시 만든다')
+    : bad('작업 폴더를 비우지 않고 시작한다 — 지난 회차 파일이 섞인다');
 }
 
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');

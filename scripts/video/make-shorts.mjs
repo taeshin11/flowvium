@@ -22,7 +22,7 @@ import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync, readdirSync, copyFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync, readdirSync, copyFileSync, rmSync } from 'fs';
 import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
@@ -57,6 +57,17 @@ const arg = (f, d) => {
 const DRY = argv.includes('--dry');
 const TARGET_SEC = Number(arg('seconds', 45));
 const WORK = join(tmpdir(), 'flowvium-shorts');
+// 2026-09-19: **회차를 시작할 때 작업 폴더를 비운다.**
+//   이 폴더는 회차마다 새로 만들지 않고 파일 이름을 장면 번호로 짓는다(m0.jpg, p0.mp4, cc0.mp4).
+//   그래서 4장면 회차가 남긴 m3.jpg 가 3장면 회차가 끝난 뒤에도 남아 있었다(실측: 12:11 회차가
+//   끝난 폴더에 11:41 의 p3.mp4 와 09:23 의 ov0_4.png). 지금까지는 옛 파일을 쓰는 길이
+//   downloadCcClip 하나였고 그건 막았지만(youtube-cc.mjs), 막는 자리를 하나씩 늘리는 대신
+//   **없는 상태에서 시작**한다. 옆 세션도 같은 사고를 겪었다 — 슬러그 번호를 재사용하다
+//   전날 편의 영상이 다음 날 편에 그대로 들어갔다.
+//   폴더를 통째로 지우지 않고 안의 것만 비우는 이유: 회차가 끝난 뒤에도 마지막 산출물이 남아
+//   사후에 들여다볼 수 있다(오늘 이 결함을 찾은 방법이 그것이다). 다음 회차가 비운다.
+//   동시 실행은 상정하지 않는다 — 파일 이름이 같아서 애초에 겹치면 깨진다(회차 간격 55분).
+rmSync(WORK, { recursive: true, force: true });
 mkdirSync(WORK, { recursive: true });
 const log = (...a) => console.log(' ', ...a);
 

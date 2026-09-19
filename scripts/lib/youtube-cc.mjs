@@ -135,7 +135,7 @@ export async function searchCcVideos(terms, opts = {}) {
 //   켤지 말지는 채널 주인이 정할 일이지 스크립트가 조용히 정할 일이 아니다.
 // ───────────────────────────────────────────────────────────────────────────
 import { execFileSync } from 'child_process';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import { homedir } from 'os';
 import { join, dirname } from 'path';
 
@@ -171,6 +171,14 @@ export function pickSegment(totalSec, wantSec) {
  * @returns {string|null} 받은 파일 경로
  */
 export function downloadCcClip(cand, outFile, { seconds = 6 } = {}) {
+  // 2026-09-19: **받기 전에 그 이름의 옛 파일을 지운다.**
+  //   make-shorts 의 작업 폴더는 회차마다 새로 만들지 않고 이름을 장면 번호로 짓는다(cc0.mp4).
+  //   아래 성공 판정이 existsSync(outFile) 하나뿐이라, 이번에 mp4 가 아닌 형식으로 저장되면
+  //   (포맷 폴백 두 갈래가 ext 를 강제하지 않는다) **어제 회차의 cc0.mp4 를 성공으로 돌려준다.**
+  //   실측: 작업 폴더에 12:11 회차가 끝난 뒤 11:41 의 p3.mp4 와 09:23 의 ov0_4.png 가 남아 있었다.
+  //   맨 앞에서 지우는 이유: 준비가 안 돼 그냥 돌아가는 길에도 옛 파일을 남기면 다음 호출이
+  //   속는다. 이 호출이 끝난 뒤 outFile 이 있다 = 이 호출이 만들었다, 로 뜻을 하나로 만든다.
+  try { if (existsSync(outFile)) unlinkSync(outFile); } catch { /* 못 지우면 아래 판정이 막는다 */ }
   const r = ccDownloadReady();
   if (!r.ok) return null;
   if (!cand?.videoId) return null;
