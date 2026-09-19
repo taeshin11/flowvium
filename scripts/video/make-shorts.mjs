@@ -673,6 +673,7 @@ if (quote) log(`[인용] "${quote.text.slice(0, 40)}…" — ${quote.speaker ?? 
 
 // ── 2. 대본 — 짧고 훅이 강해야 한다 ─────────────────────────────────────────────
 const { resolveLlm } = await import('../lib/llm-config.mjs');
+const { agyText, agyLastWhy } = await import('../lib/agy.mjs');
 const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: process.env.VIDEO_LLM_MODEL ?? 'mlx-community/Qwen3.5-4B-4bit' };
 // 한국어는 초당 약 6.7자로 읽힌다(Piper 실측: 47자 / 7.0초).
 const CPS = 6.7;
@@ -753,8 +754,14 @@ ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.spea
 - 장면 ${SCENES}개. **총 ${budget}자 안팎으로 채워라** — ${Math.round(budget * 0.6)}자보다 짧으면 다시 쓴다.
   각 장면의 say 를 한 문장으로 끝내지 말고, 사실이 더 있으면 두 문장까지 쓴다.`;
 
-async function askLLM() {
-  const activePrompt = BRIEF ? briefPrompt() : prompt;
+// 2026-09-19 사용자 "대본도 바꿔. 4B쓰던것들 다 넘기고" — 대본은 agy(gemini-3.1-pro)가 먼저 쓴다.
+//   4B 가 이 프롬프트에서 계속 어긴 것들: 반말 종결, 끊긴 문장, 자릿수 띄어쓰기("6 억 8 천만"),
+//   예산의 절반도 못 채우는 길이. 아래 재시도 루프와 tightenNumbers 는 **그대로 둔다** —
+//   모델이 바뀌어도 코드가 보장한다는 원칙은 같고, 폴백으로 4B 가 다시 올 수 있다.
+async function rawScript(activePrompt) {
+  const viaAgy = agyText(activePrompt, { timeoutMs: 180_000 });
+  if (typeof viaAgy === 'string' && viaAgy.trim()) return viaAgy;
+  log(`  ↩ agy 실패 → 로컬 ${llm.model} 로 (${agyLastWhy() ?? '응답 없음'})`);
   const r = await fetch(`${llm.url}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -767,7 +774,11 @@ async function askLLM() {
     signal: AbortSignal.timeout(5 * 60_000),
   });
   if (!r.ok) throw new Error(`LLM HTTP ${r.status}`);
-  const txt = (await r.json())?.choices?.[0]?.message?.content ?? '';
+  return (await r.json())?.choices?.[0]?.message?.content ?? '';
+}
+
+async function askLLM() {
+  const txt = await rawScript(BRIEF ? briefPrompt() : prompt);
   const m = String(txt).match(/\[[\s\S]*\]/);
   if (!m) throw new Error(`JSON 없음 (${txt.length}자, 끝: …${txt.slice(-80)})`);
   // 2026-09-05 사용자 "대본도 좀 잘 띄워서 읽게해보고".

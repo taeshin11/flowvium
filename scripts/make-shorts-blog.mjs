@@ -22,6 +22,7 @@ import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
 import { rewriteBlock, llmCaller, toPolite } from './lib/blog-voice.mjs';
+import { agyCaller } from './lib/agy.mjs';
 
 loadEnvLocal?.();
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : d; };
@@ -54,7 +55,8 @@ const rows = db.prepare(
 
 if (!rows.length) { console.log('쓸 거리가 없다 — 대본이 남은 새 쇼츠가 없음'); process.exit(0); }
 
-const call = useLlm ? llmCaller('web') : null;
+// 고쳐쓰기는 agy 로 간다(make-blog-post 주석 참고). 안 되면 로컬 4B 로 떨어진다.
+const call = useLlm ? agyCaller(llmCaller('web')) : null;
 const stats = { llm: 0, fallback: 0, why: [] };
 const voice = async (src, style) => {
   const r = await rewriteBlock(src, { call, style });

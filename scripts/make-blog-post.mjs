@@ -26,6 +26,7 @@ import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
 import { rewriteBlock, llmCaller, toPolite } from './lib/blog-voice.mjs';
+import { agyCaller } from './lib/agy.mjs';
 
 loadEnvLocal?.();
 const arg = (n, d = null) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : d; };
@@ -106,7 +107,11 @@ function titles() {
 //   그때마다 /v1/models 는 200 인데 완료는 영영 안 왔다 — 웹 레인은 사이트 번역·챗도
 //   쓰는 곳이라 내 블로그 작업이 남의 기능을 죽이는 꼴이었다.
 //   한 덩어리가 1~2초라 직렬로 돌려도 전체 15초 안쪽이다. 속도를 위해 남의 기능을 걸 이유가 없다.
-const call = useLlm ? llmCaller('web') : null;
+// 2026-09-19 사용자 "4B쓰던것들 다 넘기고 4B는 끄자" — 고쳐쓰기는 agy(gemini-3.1-pro)로 간다.
+//   로컬 4B 는 번역투와 한자 섞임을 냈다("한국两地" 가 실제로 발행됐다). 같은 문장을 agy 로
+//   돌리니 어순이 뒤엉킨 원문까지 바로잡혔다(실측 24초).
+//   폴백은 남긴다 — 오늘 구글이 Gemini CLI 를 하루아침에 닫는 걸 봤다.
+const call = useLlm ? agyCaller(llmCaller('web')) : null;
 const stats = { llm: 0, fallback: 0, why: [] };
 async function voice(src, style) {
   const res = await rewriteBlock(tidy(src), { call, style });
