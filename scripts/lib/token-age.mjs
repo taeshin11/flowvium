@@ -48,6 +48,16 @@ export function tokenVerdict(input) {
   const exp = input?.refreshExpiresAt;
 
   if (published) return { level: 'ok', line: `${service} 토큰 — 앱이 프로덕션이라 7일 만료 없음` };
+
+  // 2026-09-19 오후, 앱을 프로덕션으로 게시한 뒤: 구글은 **테스트 모드 앱에만**
+  //   refresh_token_expires_in 을 준다. 게시하고 재인증하니 파일에서도 갱신 응답에서도
+  //   그 필드가 사라졌다(실측: 블로거). 필드의 **부재 자체가 만료 없음의 신호**다.
+  //   env 플래그를 따로 두지 않는 이유: 사람이 켜 주어야 하는 깃발은 잊힌다. 토큰이 사실을
+  //   말해 주고 있고, 테스트로 되돌리면 필드가 돌아와 경보도 저절로 살아난다.
+  if (input?.hasRefreshToken && !Number.isFinite(exp) && input?.refreshTokenExpiresIn == null) {
+    return { level: 'ok', line: `${service} 갱신 토큰 만료 없음 (앱이 프로덕션 — refresh_token_expires_in 이 오지 않는다)` };
+  }
+
   if (!Number.isFinite(exp)) {
     // 액세스 토큰 만료(expiry_date)만 있는 경우가 여기로 온다. 그건 매시간 갱신되므로
     //   "방금 발급" 으로 보일 뿐이고, 갱신 토큰이 언제 죽는지는 말해 주지 않는다.

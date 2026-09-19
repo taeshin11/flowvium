@@ -87,3 +87,24 @@ test('서비스 이름을 붙일 수 있다 — 유튜브와 블로거를 같이
   const v = tokenVerdict({ refreshExpiresAt: Date.now() + 1.5 * 86400000, service: '블로거' });
   assert.match(v.line, /블로거/);
 });
+
+// ── 2026-09-19 오후: 앱을 프로덕션으로 게시한 뒤 ─────────────────────────────
+// 구글은 **테스트 모드 앱에만** refresh_token_expires_in 을 준다. 게시하고 재인증하니
+//   파일에서도 갱신 응답에서도 그 필드가 사라졌다(실측). 그러면 위의 '모르면 unknown' 규칙이
+//   정상 상태를 경보로 올린다. 필드의 **부재 자체가 만료 없음의 신호**다 —
+//   다시 테스트로 되돌리면 필드가 돌아오고 경보도 저절로 살아난다.
+
+test('갱신 토큰은 있는데 만료 필드가 없으면 만료가 없는 것이다', () => {
+  const v = tokenVerdict({ hasRefreshToken: true, refreshTokenExpiresIn: undefined });
+  assert.equal(v.level, 'ok', v.line);
+  assert.match(v.line, /만료 없음|프로덕션/);
+});
+
+test('갱신 토큰 자체가 없으면 그건 여전히 모르는 것이다', () => {
+  assert.equal(tokenVerdict({ hasRefreshToken: false }).level, 'unknown');
+});
+
+test('만료 필드가 돌아오면 다시 카운트다운한다 (테스트 모드로 되돌린 경우)', () => {
+  const v = tokenVerdict({ hasRefreshToken: true, refreshExpiresAt: Date.now() + 1.5 * 86400000 });
+  assert.equal(v.level, 'warn', v.line);
+});

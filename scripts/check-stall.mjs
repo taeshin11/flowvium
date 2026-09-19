@@ -371,6 +371,9 @@ async function checkOnce() {
       const tk = JSON.parse(rf(path, 'utf8'));
       const v = tokenVerdict({
         service,
+        hasRefreshToken: Boolean(tk.refresh_token),
+        // 이 필드가 **없다는 것**이 프로덕션 신호다 — 구글은 테스트 모드 앱에만 준다.
+        refreshTokenExpiresIn: tk.refresh_token_expires_in,
         // 파일이 마지막으로 쓰인 때 = 구글이 그 남은 초를 알려준 때.
         refreshExpiresAt: refreshExpiresAt({ writtenAt: st(path).mtimeMs, refreshTokenExpiresIn: tk.refresh_token_expires_in }),
         published: process.env[envKey] === '1',
