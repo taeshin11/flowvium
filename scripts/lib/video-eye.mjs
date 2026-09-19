@@ -14,7 +14,7 @@
  *   자동 차단에 쓸 수 없다.
  */
 import { spawnSync } from 'child_process';
-import { readFileSync, existsSync, mkdtempSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdtempSync, copyFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import ffmpegPath from 'ffmpeg-static';
@@ -55,6 +55,49 @@ export function grabFrames(video, n = 0, durationSec = null) {
   return out;
 }
 
+// ── Antigravity CLI(agy) 경로 ────────────────────────────────────────────────
+//
+// 2026-09-19: 사용자 Ultra 계정으로 `agy` 로그인이 되면서 **gemini-3.1-pro-high** 를 쓸 수 있게 됐다.
+//   무료 API 키로는 3 Pro 가 429(할당량 0)라 2.5-flash 를 쓰고 있었다.
+//
+// 권한: agy 는 코딩 에이전트라 이미지를 읽을 때도 셸을 쓴다. 이 기계에서는 보고서·쇼츠가 돌고
+//   있으므로 통째로 허용할 수 없다. 그래서
+//     · --sandbox 로 터미널을 제한하고
+//     · **프레임만 들어 있는 임시 폴더를 작업 디렉터리로 준다** — 건드릴 것이 프레임뿐이다.
+//   그래도 자율 에이전트를 부르는 일이므로, 실패하면 조용히 API 경로로 내려간다.
+function agyAvailable() {
+  const r = spawnSync('bash', ['-lc', 'command -v agy >/dev/null && agy models 2>&1 | head -1'], { encoding: 'utf8' });
+  return r.status === 0 && !/sign in/i.test(r.stdout ?? '');
+}
+
+function agyInspect(frames, prompt, model, timeoutMs) {
+  // 프레임을 임시 폴더로 옮기고 거기서 돌린다(작업 디렉터리 격리).
+  const dir = mkdtempSync(join(tmpdir(), 'agy-eye-'));
+  const names = frames.map((f, i) => {
+    const n = `frame${i}_${f.at}s.jpg`;
+    copyFileSync(f.file, join(dir, n));
+    return n;
+  });
+  const schema = join(dir, 'schema.json');
+  writeFileSync(schema, JSON.stringify({
+    type: 'object',
+    properties: { ok: { type: 'boolean' }, issues: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' } },
+    required: ['ok', 'issues', 'notes'],
+  }));
+  const full = `${prompt}\n\n볼 파일(시간 순): ${names.join(', ')}`;
+  const r = spawnSync('agy', ['-p', full, '--model', model, '--sandbox', '--dangerously-skip-permissions',
+    '--json-schema', 'schema.json', '--output-format', 'json'],
+  { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 });
+  if (r.status !== 0 || !r.stdout) return null;
+  try {
+    const j = JSON.parse(r.stdout.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim());
+    const d = j.structured_output;
+    if (!d) return null;
+    return { ok: d.ok !== false, checked: true, issues: Array.isArray(d.issues) ? d.issues.map(String) : [],
+      readable: true, notes: String(d.notes ?? ''), model: `agy:${model}` };
+  } catch { return null; }
+}
+
 const SCHEMA_HINT = `아래 JSON 하나만 출력하라(설명·코드펜스 금지):
 {"ok":true|false,"issues":["..."],"readable":true|false,"notes":"한 줄"}
 issues 에는 **눈에 보이는 결함만** 적어라. 없으면 빈 배열.`;
@@ -83,6 +126,12 @@ export async function inspectFrames(frames, opt = {}) {
 그건 소재이지 우리가 쓴 글이 아니다. 그걸 문제로 적지 마라.
 "보기 좋다/나쁘다" 같은 취향도 적지 마라. 눈에 보이는 결함만 적어라.
 ${SCHEMA_HINT}`;
+
+  // Ultra 계정이 붙어 있으면 3 Pro 로 본다. 실패하면 조용히 API(2.5-flash)로 내려간다.
+  if (process.env.EYE_BACKEND !== 'api' && agyAvailable()) {
+    const viaAgy = agyInspect(frames, prompt, process.env.AGY_EYE_MODEL || 'gemini-3.1-pro-high', opt.timeoutMs ?? 300000);
+    if (viaAgy) return viaAgy;
+  }
 
   const parts = [{ text: prompt }];
   for (const f of frames) {
