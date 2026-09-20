@@ -90,6 +90,8 @@ const STRUCTURAL_NULLS = {
 const NEW_COLUMNS = {
   'shorts_published.hooks_json': { since: '2026-09-18T10:22', at: 'published_at',
     why: '대본 보관을 2026-09-18 에 시작 — 그 전 편은 대본이 남지 않았다(shorts-blog 의 소재)' },
+  'shorts_published.bodies_json': { since: '2026-09-20T12:00', at: 'published_at',
+    why: '기사 본문 보관을 2026-09-20 에 시작 — 그 전 회차는 대본을 쓸 때 읽고 버렸다(쇼츠→블로그의 재료)' },
   'shorts_stats.subs_gained': { since: '2026-09-18T13:05', at: 'checked_at',
     why: '구독자 증가 수집을 2026-09-18 에 시작 — 그 전 표본은 그 API 를 부르지 않았다' },
 };

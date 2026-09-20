@@ -2075,6 +2075,21 @@ function ensureHooksColumn(db) {
   if (!cols.includes('hooks_json')) db.exec('ALTER TABLE shorts_published ADD COLUMN hooks_json TEXT');
 }
 
+/**
+ * bodies_json 컬럼 보장. (2026-09-20 신설)
+ *
+ * 왜: 쇼츠를 글로 풀 때 **재료가 훅밖에 없었다.** 훅은 화면에 띄우는 12자짜리 문구라
+ *   그걸 문단으로 펴 봐야 알맹이가 200~300자다. 그래서 쇼츠 블로그 글이 품질 관문
+ *   (최소 500자·정형구 50%)을 **한 번도 통과하지 못했다** — 2026-09-18 에 기능을 만든 뒤
+ *   지금까지 게시된 쇼츠 글이 0편이다.
+ *   make-shorts 는 대본을 쓸 때 기사 본문을 이미 읽는다. 그걸 버리지 말고 남긴다.
+ *   지어내서 늘리는 게 아니라 **있는 원문을 더 주는** 것이다.
+ */
+function ensureBodiesColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
+  if (!cols.includes('bodies_json')) db.exec('ALTER TABLE shorts_published ADD COLUMN bodies_json TEXT');
+}
+
 /** duration_sec 컬럼 보장(기존 DB 는 없다). idempotent. */
 function ensureDurationColumn(db) {
   const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
@@ -2107,23 +2122,27 @@ export function recentShortsIssues(hours = 24) {
 }
 
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [] }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [] }) {
   const db = openDb();
   ensureHeadlinesColumn(db);
   ensureHooksColumn(db);
+  ensureBodiesColumn(db);
   // 2026-09-10: 올린 파일의 실제 길이를 남긴다. 유튜브가 보고하는 길이와 대조해
   //   광고 클립 누락·업로드 잘림을 잡는다(로그는 "붙인다" 만 찍고 붙었는지는 안 본다).
   ensureDurationColumn(db);
   // 브리핑은 한 편에 뉴스가 넷이다. **전부 남긴다** — 제목만 남기면 나머지 셋이 다음에 또 나온다.
   const all = [...new Set([headline, ...(headlines ?? [])].filter(Boolean).map((h) => String(h).slice(0, 300)))];
   const hookList = (hooks ?? []).map((h) => String(h ?? '').trim()).filter(Boolean).slice(0, 8);
+  // 기사 본문. 글로 풀 때의 재료다 — 훅만으로는 알맹이가 300자를 못 넘는다(위 주석 참고).
+  const bodyList = (bodies ?? []).map((b) => String(b ?? '').trim()).filter(Boolean).slice(0, 8);
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
     new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null,
     Number.isFinite(durationSec) ? durationSec : null,
-    hookList.length ? JSON.stringify(hookList) : null);
+    hookList.length ? JSON.stringify(hookList) : null,
+    bodyList.length ? JSON.stringify(bodyList) : null);
 }
 
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */

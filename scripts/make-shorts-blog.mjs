@@ -45,15 +45,27 @@ mkdirSync(outDir, { recursive: true });
 const LEDGER = resolve(outDir, '.shorts-blogged.json');
 const done = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
 
-const rows = db.prepare(
-  `SELECT video_id, headline, headlines_json, hooks_json, published_at, issue_key
+// 2026-09-20: 조건에 bodies_json 을 넣는다. 훅만 있는 회차로 글을 쓰면 **반드시 거절당한다** —
+//   훅은 화면에 띄우는 12자짜리 문구라 문단으로 펴도 알맹이가 200~300자다.
+//   실측: 품질 관문이 최소 500자·정형구 50% 인데 쇼츠 글은 273자/63%, 192자/70% 로 걸렸다.
+//   2026-09-18 에 기능을 만든 뒤 게시된 쇼츠 글이 **0편**이었다.
+//   만들어 놓고 거절당하는 것보다 **안 만드는 게 낫다**(agy 호출도 아낀다).
+//   bodies_json 은 2026-09-20 부터 쌓인다 — 그 전 회차는 재료가 없으니 건너뛴다.
+const hasBodies = db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'bodies_json');
+const rows = hasBodies ? db.prepare(
+  `SELECT video_id, headline, headlines_json, hooks_json, bodies_json, published_at, issue_key
      FROM shorts_published
-    WHERE retracted_at IS NULL AND hooks_json IS NOT NULL
+    WHERE retracted_at IS NULL AND hooks_json IS NOT NULL AND bodies_json IS NOT NULL
       AND datetime(published_at) >= datetime('now', ?)
     ORDER BY published_at DESC`,
-).all(`-${HOURS} hours`).filter((r) => !done[r.video_id]);
+).all(`-${HOURS} hours`).filter((r) => !done[r.video_id]) : [];
 
-if (!rows.length) { console.log('쓸 거리가 없다 — 대본이 남은 새 쇼츠가 없음'); process.exit(0); }
+if (!rows.length) {
+  console.log(hasBodies
+    ? '쓸 거리가 없다 — 기사 본문이 남은 새 쇼츠가 없음(본문 보관은 2026-09-20 부터)'
+    : '아직 기사 본문이 쌓이지 않았다(bodies_json 컬럼 없음) — 다음 쇼츠 회차부터 쓸 수 있다');
+  process.exit(0);
+}
 
 // 고쳐쓰기는 agy 로 간다(make-blog-post 주석 참고). 안 되면 로컬 4B 로 떨어진다.
 const call = useLlm ? agyCaller(llmCaller('web')) : null;
@@ -69,16 +81,20 @@ const made = [];
 for (const row of rows.slice(0, LIMIT)) {
   const heads = (() => { try { return JSON.parse(row.headlines_json ?? '[]'); } catch { return []; } })();
   const hooks = (() => { try { return JSON.parse(row.hooks_json ?? '[]'); } catch { return []; } })();
-  if (!hooks.length) continue;
+  const bodies = (() => { try { return JSON.parse(row.bodies_json ?? '[]'); } catch { return []; } })();
+  if (!bodies.length) continue;
 
-  // 알맹이: 대본을 문단으로 푼다. 한 번에 하나씩 보낸다(mlx_lm 배치 사고 회피 — llm-config 주석).
+  // 알맹이: **기사 본문**을 문단으로 고쳐 쓴다. 훅이 아니라 본문이 재료다 —
+  //   훅으로 쓰면 알맹이가 300자를 못 넘어 품질 관문에 반드시 걸린다(위 주석).
+  //   한 번에 하나씩 보낸다(mlx_lm 배치 사고 회피 — llm-config 주석).
   const paras = [];
-  for (const h of hooks.slice(0, 5)) {
-    // 그 회차의 기사 제목을 전부 참고로 준다. 훅과 제목을 번호로 짝지으려다가는 어긋난다 —
+  for (const [i, b] of bodies.slice(0, 5).entries()) {
+    const src = String(b ?? '').trim();
+    if (src.length < 40) continue;                 // 너무 짧은 본문은 펴도 알맹이가 안 된다
+    // 그 회차의 기사 제목을 전부 참고로 준다. 본문과 제목을 번호로 짝지으려다가는 어긋난다 —
     //   대본 장면은 파싱 실패한 것이 걸러지므로(make-shorts 의 filter) 순서가 밀릴 수 있다.
-    //   제목 전체를 주면 짝이 틀릴 일이 없고, 모델은 이 훅에 맞는 제목을 골라 읽는다.
-    const t = await voice(String(h), '뉴스를 설명하듯 한 문단으로, 없는 사실을 보태지 말고', heads.slice(0, 6));
-    if (t) paras.push(t);
+    const t = await voice(src, '뉴스를 설명하듯 두세 문장으로, 없는 사실을 보태지 말고', heads.slice(0, 6));
+    if (t) paras.push(hooks[i] ? `**${String(hooks[i]).trim()}** — ${t}` : t);
   }
   if (!paras.length) continue;
 

@@ -690,6 +690,13 @@ const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: pr
 const CPS = 6.7;
 const budget = Math.round(TARGET_SEC * CPS);
 
+// 기사 본문을 한 번만 뽑아 둔다. 프롬프트도 이걸 쓰고, 발행 기록에도 이걸 남긴다.
+//   2026-09-20: 종전에는 프롬프트 안에서만 뽑아 쓰고 버렸다. 그래서 쇼츠를 글로 풀 때
+//   재료가 훅(12자짜리 화면 문구)밖에 없었고, 그 글이 품질 관문을 한 번도 통과하지 못했다.
+//   같은 원문을 더 주는 것이지 지어내서 늘리는 게 아니다.
+const bodies = (BRIEF ?? []).map((p2) =>
+  stripHtml((p2.it.items ?? []).map((x) => x.summary).find(Boolean) ?? '').slice(0, 700));
+
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
 ${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
 
@@ -699,7 +706,7 @@ ${(BRIEF ?? []).map((p2, i) => {
   //   지어낼 수밖에 없다 — "한국인 근무 발전소서 발견" 이 "한국인 근무자 2명도 구출되었습니다"
   //   가 돼서 나갔다(Xfa26lCv6cM, 내렸다). 실종 수색 중인 사람을 구출됐다고 한 것이다.
   //   기사 본문을 함께 준다. 쓸 내용이 있으면 지어낼 이유가 줄어든다.
-  const body = stripHtml((p2.it.items ?? []).map((x) => x.summary).find(Boolean) ?? '').slice(0, 220);
+  const body = (bodies[i] ?? '').slice(0, 220);   // 대본에는 짧게 — 길면 장황해진다(저장본은 길게 둔다)
   return `${i + 1}. ${h.slice(0, 160)}${body ? `\n   (기사: ${body})` : ''}`;
 }).join('\n') || headlines.map((h, i) => `${i + 1}. ${h.slice(0, 160)}`).join('\n')}
 
@@ -2012,6 +2019,6 @@ if (credits.length) {
 }
 // 업로드가 쓸 메타. 훅을 제목 후보로 넘긴다.
 writeFileSync(join(MEDIA.root, 'shorts-ko-meta.json'), JSON.stringify({
-  headlines, hooks: scenes.map((s) => s.hook), keyword: issue.keyword,
+  headlines, hooks: scenes.map((s) => s.hook), bodies, keyword: issue.keyword,
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));
