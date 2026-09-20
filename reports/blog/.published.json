@@ -65,5 +65,10 @@
   "skipped": true,
   "reason": "low-quality:알맹이가 짧다 385자 (최소 500)",
   "at": "2026-09-20T12:45:00.624Z"
+ },
+ "2026-09-21-morning.md": {
+  "skipped": true,
+  "reason": "low-quality:이미 올린 글과 61% 겹친다 (상한 60%)",
+  "at": "2026-09-20T22:15:00.386Z"
  }
 }
