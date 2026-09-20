@@ -13,6 +13,7 @@
  *   → CRON_TZ 환경변수로 'Etc/UTC' 지정 시 기존 Vercel UTC 스케줄 그대로 유지.
  */
 import cron from 'node-cron';
+import { isOverdue } from './lib/cron-slot.mjs';
 import { readFileSync, existsSync, writeFileSync, statSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { execFile } from 'child_process';
@@ -369,10 +370,24 @@ async function runMonitor() {
     try { hb = JSON.parse(readFileSync(resolve(process.cwd(), 'logs/maintenance-heartbeat.json'), 'utf8')); } catch { /* 아직 없음 */ }
     const stale = [];
     const staleLabels = [];
-    for (const [label, maxH] of Object.entries(HB_MAX)) {
+    // 2026-09-20: 나이(maxAgeH)만 보던 것을 **슬롯 기준**으로 바꾼다.
+    //   실측 — blog-post 가 예정 시각(22:10 UTC = 07:10 KST)에 불린 기록이 한 번도 없다.
+    //   node-cron 이 틱을 흘리기 때문이다(로그에 missed execution 1,055건). 그물은 있었지만
+    //   maxAgeH 가 30h 라 **아침 글이 다음 날 오후에** 나왔다. 그물이 너무 성겼다.
+    //   슬롯으로 보면 07:10 을 흘려도 다음 사이클(20분)에 잡힌다.
+    //   스케줄을 못 읽으면 isOverdue 가 null 을 주고, 그때만 옛 방식으로 떨어진다.
+    for (const j of MAINT_JOBS) {
+      const label = j.label, maxH = HB_MAX[label];
       const ts = hb[label] ? new Date(hb[label]).getTime() : 0;
       const ageH = ts ? (Date.now() - ts) / 3600000 : Infinity;
-      if (ageH > maxH) { stale.push(`${label} ${ts ? ageH.toFixed(0) + 'h' : '무기록'}>${maxH}h`); staleLabels.push(label); }
+      const due = isOverdue({ schedules: j.schedules, lastRunAt: ts });
+      if (due.overdue === true) {
+        stale.push(`${label} 슬롯 ${Math.round(due.lateMin)}분 지남${ts ? '' : '·무기록'}`);
+        staleLabels.push({ label, lateMin: due.lateMin });
+      } else if (due.overdue === null && ageH > maxH) {
+        stale.push(`${label} ${ts ? ageH.toFixed(0) + 'h' : '무기록'}>${maxH}h`);
+        staleLabels.push({ label, lateMin: ageH * 60 });
+      }
     }
     result.checks.artifactFresh = stale.length ? `stale ${stale.length}` : 'ok';
     if (stale.length) result.defects.push(`[maint] 잡 미실행 의심: ${stale.join(', ').slice(0, 140)}`);
@@ -380,7 +395,11 @@ async function runMonitor() {
     //   runMaintenance 가 report lock 시 자연 skip → 다음 사이클(20분) 재시도 = 재시도 루프 자동 확보.
     //   (scan-accumulation 슬롯이 리포트 종료창과 겹쳐 4연속 skip·44h stale 인데 감지만 하던 사각지대.)
     if (staleLabels.length) {
-      const j = MAINT_JOBS.find((x) => x.label === staleLabels[0]);
+      // 2026-09-20: 종전에는 **목록 첫 번째**를 골랐다. 슬롯 기준으로 바꾸니 자주 도는 잡이
+      //   먼저 걸리는 일이 생기고, 그러면 하루 한 번짜리(blog-post)는 영영 차례가 안 온다.
+      //   가장 오래 굶은 것부터 먹인다 — 사이클당 하나라는 제한은 그대로다(폭주 방지).
+      staleLabels.sort((a, b) => b.lateMin - a.lateMin);
+      const j = MAINT_JOBS.find((x) => x.label === staleLabels[0].label);
       if (j) {
         log(`[auto-monitor/self-heal] stale 잡 즉석 소급: ${j.label}`);
         void runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths);
