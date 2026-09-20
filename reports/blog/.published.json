@@ -55,5 +55,15 @@
   "url": "https://flowvium.blogspot.com/2026/09/sk-9-20-2042700.html",
   "status": "LIVE",
   "at": "2026-09-20T02:30:38.383Z"
+ },
+ "2026-09-20-afternoon.md": {
+  "skipped": true,
+  "reason": "same-day:2026-09-20-morning.md",
+  "at": "2026-09-20T12:45:00.622Z"
+ },
+ "2026-09-20-short-We_EJbJ0y9g.md": {
+  "skipped": true,
+  "reason": "low-quality:알맹이가 짧다 385자 (최소 500)",
+  "at": "2026-09-20T12:45:00.624Z"
  }
 }
