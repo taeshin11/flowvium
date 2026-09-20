@@ -302,6 +302,39 @@ async function checkOnce() {
     else info.push('git 동기화 ✓ (origin/master 와 일치)');
   } catch { /* git 미가용 — skip */ }
 
+  // [5-c] 푸시가 **될 수 있는 상태인가** (2026-09-20 신설).
+  //   위 [5] 는 "밀리지 않은 것이 있는가" 를 본다. 그건 이미 일어난 일이다.
+  //   2026-09-20 에 밀리지 않은 커밋 4개를 발견하고서야 원인을 알았다 — 키체인에 깃허브
+  //   자격증명이 아예 없었고, 푸시가 VS Code 의 인증 소켓을 타고 나가고 있었다.
+  //   그 소켓이 죽으면 조용히 못 민다. 증상을 기다리지 말고 자격증명을 직접 확인한다.
+  try {
+    const { parseCredential, credentialVerdict } = await import('./lib/git-credential-health.mjs');
+    const { execFileSync } = await import('node:child_process');
+    let out = '';
+    try {
+      out = execFileSync('git', ['credential-osxkeychain', 'get'],
+        { input: 'protocol=https\nhost=github.com\n\n', encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'ignore'] });
+    } catch { /* 헬퍼 없음 = 자격증명 없음으로 본다 */ }
+    const cred = parseCredential(out);
+    let apiStatus = null, canPush;
+    if (cred.hasPassword) {
+      // 토큰 값은 헤더로만 쓴다 — 로그에도 변수에도 남기지 않는다.
+      const pw = (out.match(/^password=(.*)$/m) || [])[1] ?? '';
+      try {
+        const r = await fetch('https://api.github.com/repos/taeshin11/flowvium', {
+          headers: { Authorization: `Bearer ${pw}`, Accept: 'application/vnd.github+json', 'User-Agent': 'flowvium-stall' },
+          signal: AbortSignal.timeout(15000),
+        });
+        apiStatus = r.status;
+        if (r.ok) canPush = Boolean((await r.json())?.permissions?.push);
+      } catch { apiStatus = null; }
+    }
+    const v = credentialVerdict({ ...cred, apiStatus, canPush });
+    if (v.level === 'error') issues.push(v.line);
+    else if (v.level === 'unknown') info.push(v.line);
+    else info.push(v.line);
+  } catch (e) { info.push(`깃 자격증명 점검 불가: ${String(e.message).slice(0, 50)}`); }
+
   // [7-a] 회차 간 추천 교체율 (2026-09-10 신설).
   //   하루 4~5회차가 각각 다른 포트폴리오를 낸다. 실측 7일 — 직전 회차와 평균 48% 겹치고,
   //   31쌍 중 9건은 25% 이하였다(사실상 전면 교체). 따라가는 사람에게는 따라갈 수 없는 신호다.
