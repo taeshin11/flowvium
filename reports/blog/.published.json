@@ -24,5 +24,36 @@
   "url": "https://flowvium.blogspot.com/2026/09/sk-9-19-2042700.html",
   "status": "LIVE",
   "at": "2026-09-19T03:21:20.019Z"
+ },
+ "2026-09-18-evening.md": {
+  "skipped": true,
+  "reason": "same-day:2026-09-18-afternoon.md",
+  "at": "2026-09-20T02:30:27.928Z"
+ },
+ "2026-09-18-midnight.md": {
+  "skipped": true,
+  "reason": "low-quality:이미 올린 글과 62% 겹친다 (상한 60%)",
+  "at": "2026-09-20T02:30:27.930Z"
+ },
+ "2026-09-19-noon.md": {
+  "skipped": true,
+  "reason": "same-day:2026-09-19-morning.md",
+  "at": "2026-09-20T02:30:27.931Z"
+ },
+ "2026-09-19-short-a9wdYeyLkpk.md": {
+  "skipped": true,
+  "reason": "low-quality:알맹이가 짧다 273자 (최소 500)",
+  "at": "2026-09-20T02:30:36.008Z"
+ },
+ "2026-09-19-short-tvGAycZYwAQ.md": {
+  "skipped": true,
+  "reason": "low-quality:알맹이가 짧다 192자 (최소 500)",
+  "at": "2026-09-20T02:30:36.010Z"
+ },
+ "2026-09-20-morning.md": {
+  "id": "6146725063309676953",
+  "url": "https://flowvium.blogspot.com/2026/09/sk-9-20-2042700.html",
+  "status": "LIVE",
+  "at": "2026-09-20T02:30:38.383Z"
  }
 }

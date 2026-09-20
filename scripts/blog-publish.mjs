@@ -12,6 +12,7 @@
  * 사용: node scripts/blog-publish.mjs [--file <md>] [--draft] [--blog <id>]
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
+import { isPublished, markSkipped } from './lib/publish-queue.mjs';
 import { resolve, join, basename } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
@@ -30,7 +31,7 @@ if (!tokenPresent()) {
 
 const dir = resolve(ROOT, 'reports/blog');
 const LEDGER = resolve(dir, '.published.json');
-const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
+let ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : {};
 const force = process.argv.includes('--force');
 const MAX = Number(arg('max') ?? 3);
 
@@ -55,19 +56,29 @@ for (const file of files) {
   const key = basename(file);
     const md = readFileSync(file, 'utf8');
   const title = extractTitle(md);
-  if (!title) { console.error(`  ⚠ 제목(# ...)이 없어 건너뛴다: ${key}`); continue; }
+  if (!title) {
+    console.error(`  ⚠ 제목(# ...)이 없어 건너뛴다: ${key}`);
+    ledger = markSkipped(ledger, key, 'no-title');
+    writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
+    continue;
+  }
   const html = mdToHtml(stripFrontComment(md));
 
   // 저품질 관문 (사용자 "블로그도 저품질 블로그로 걸리면 안 된다").
   //   얇음·중복·광고과다를 발행 **전에** 잡는다. 이미 올린 글과 비교해야 하므로 원문을 읽어 준다.
   //   광고 블록은 매 편 같으니 길이를 잴 때 빼고 잰다 — 안 그러면 두 줄짜리도 통과한다.
-  const prevTexts = Object.keys(ledger).filter((k) => k !== key && ledger[k]?.status !== 'DRAFT')
+  const prevTexts = Object.keys(ledger).filter((k) => k !== key && isPublished(ledger[k]))
     .map((k) => { try { return readFileSync(join(dir, k), 'utf8'); } catch { return ''; } })
     .filter(Boolean);
   const q = checkQuality(md, prevTexts);
   if (!q.ok) {
     console.error(`  ⚠ 저품질로 판단해 올리지 않는다: ${key}`);
     for (const i of q.issues) console.error(`     · ${i}`);
+    // 2026-09-20: 종전에는 그냥 넘어갔다. 그러면 이 글이 줄의 앞자리를 계속 차지해
+    //   뒤의 글이 영영 못 올라간다(실제로 어제 12:21 이후 한 편도 못 올렸다).
+    //   **거른 것도 결론이다.** 적어야 줄이 움직인다. 다시 보려면 --force 로 돌린다.
+    ledger = markSkipped(ledger, key, `low-quality:${q.issues[0] ?? ''}`.slice(0, 60));
+    writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
     continue;
   }
   console.log(`  품질: 알맹이 ${q.stats.original}자 · 정형구 ${Math.round(q.stats.boilerRatio * 100)}% · 기존글 겹침 ${Math.round(q.stats.overlap * 100)}%`);
@@ -75,9 +86,16 @@ for (const file of files) {
   //   겹치는 글이 둘이면 검색에서 서로를 갉아먹는다(2026-09-18 실제로 3편이 올라가 되돌렸다).
   const sameDay = key.match(/^(\d{4}-\d{2}-\d{2})-(morning|noon|afternoon|evening|midnight)\.md$/);
   if (sameDay && !force) {
-    const dup = Object.entries(ledger).find(([k, v]) => k !== key && v.status !== 'DRAFT'
+    // isPublished: id 가 있고 초안이 아닌 것만 '올라간 글'. 거른 기록을 여기 세면
+    //   올리지도 않은 글 때문에 다음 글이 막힌다.
+    const dup = Object.entries(ledger).find(([k, v]) => k !== key && isPublished(v)
       && k.startsWith(`${sameDay[1]}-`) && /-(morning|noon|afternoon|evening|midnight)\.md$/.test(k));
-    if (dup) { console.log(`  · 같은 날 브리핑이 이미 올라가 있어 건너뛴다: ${key} (기존 ${dup[0]})`); continue; }
+    if (dup) {
+      console.log(`  · 같은 날 브리핑이 이미 올라가 있어 건너뛴다: ${key} (기존 ${dup[0]})`);
+      ledger = markSkipped(ledger, key, `same-day:${dup[0]}`);
+      writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
+      continue;
+    }
   }
 
 let blogId = arg('blog') ?? process.env.BLOGGER_BLOG_ID;
