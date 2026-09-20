@@ -286,54 +286,56 @@ async function fetchYahooKoreaFallback(): Promise<KoreaFlowEntry[]> {
 }
 
 /**
- * Naver Finance frgn.naver — per-stock 외국인·기관 순매매량 (shares × close = KRW approx).
- * Accessible from all IPs; KRX getJsonData 가 anti-bot LOGOUT 로 막혀 이게 1차 소스.
- * 셀 레이아웃(span.tah, 헤더 검증): [0]날짜 [1]종가 [2]전일비 [3]등락률 [4]거래량
- *   [5]기관 순매매량 [6]외국인 순매매량 [7]외국인 보유주수 [8]보유율.
- *   ⚠️ row[5]=기관, row[6]=외국인 — 과거 코드가 row[5]를 외국인으로 잘못 라벨해 기관 데이터 전체 누락.
- * 개인(individual)은 이 페이지에 없음.
+ * Naver m.stock API — per-stock 외국인·기관·개인 순매수 (shares × close = KRW approx).
+ * - 변경사유: KRX getJsonData가 안티봇(LOGOUT)으로 막혀 1차 소스로 썼던 frgn.naver 페이지가
+ *   302 리다이렉트와 함께 폐지됨. 새 JSON API로 대체.
+ * - 새 API는 개인(individual) 순매수량까지 제공하므로 함께 합산함.
  */
-async function fetchNaverFrgnEntry(code: string, days = 1): Promise<(KoreaFlowEntry & { actualDays: number }) | null> {
+function parseNaverNumber(val: string | null | undefined): number {
+  if (!val) return 0;
+  const cleaned = val.replace(/,/g, '').replace(/\+/g, '').trim();
+  const parsed = Number(cleaned);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+async function fetchNaverFrgnEntry(code: string, days = 1): Promise<(KoreaFlowEntry & { actualDays: number; trdDd: string | null }) | null> {
   try {
-    const res = await fetch(`https://finance.naver.com/item/frgn.naver?code=${code}`, {
+    const res = await fetch(`https://m.stock.naver.com/api/stock/${code}/trend?pageSize=${days}&page=1`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(10000),
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://finance.naver.com/',
-        'Accept-Language': 'ko-KR,ko;q=0.9',
+        'Accept': 'application/json',
       },
     });
     if (!res.ok) return null;
-    const buf = await res.arrayBuffer();
-    const html = new TextDecoder('euc-kr').decode(buf);
 
-    const raw = Array.from(html.matchAll(/<span class="tah[^"]*">([\s\S]*?)<\/span>/g))
-      .map(m => m[1].replace(/<[^>]+>/g, '').replace(/[,\s\n]/g, '').trim())
-      .filter(v => v.length > 0);
+    const data = await res.json() as Array<Record<string, string>>;
+    if (!Array.isArray(data) || data.length === 0) return null;
 
-    const dateIdx = raw.findIndex(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
-    if (dateIdx < 0) return null;
+    let instSum = 0, forSum = 0, indSum = 0, actualDays = 0;
+    let latestClose: number | null = null;
+    let latestDate: string | null = null;
 
-    // 2026-06-04: frgn.naver 테이블은 ~20+ 일별 행. period(1d/1w/4w/13w) 만큼 행을 합산해
-    //   진짜 multi-day 차별화 (이전엔 1행만 읽어 모든 period 가 동일값이던 버그).
-    // row layout: [0]date [1]close [2]change [3]changePct% [4]volume [5]기관 [6]외국인 [7]보유주수 [8]보유율
-    const sharesToKrw = (close: number | null, s: string | undefined) => {
-      const shares = Number((s ?? '0').replace('+', '')) || 0;
-      return close && shares !== 0 ? Math.round(close * shares) : 0;
-    };
-    let instSum = 0, forSum = 0, actualDays = 0;
-    let latestClose: number | null = null, latestChangePct: number | null = null;
-    for (let d = 0; d < days; d++) {
-      const off = dateIdx + d * 9;
-      const row = raw.slice(off, off + 9);
-      if (!row[0] || !/^\d{4}\.\d{2}\.\d{2}$/.test(row[0])) break; // 더 이상 일별 행 없음
-      const close = Number(row[1]) || null;
-      if (d === 0) { latestClose = close; latestChangePct = Number((row[3] ?? '0').replace('%', '')) || null; }
-      instSum += sharesToKrw(close, row[5]);
-      forSum += sharesToKrw(close, row[6]);
+    for (const row of data) {
+      if (actualDays >= days) break;
+      const close = parseNaverNumber(row.closePrice) || null;
+      if (actualDays === 0) {
+        latestClose = close;
+        latestDate = row.bizdate || null;
+      }
+
+      const sharesInst = parseNaverNumber(row.organPureBuyQuant);
+      const sharesFor = parseNaverNumber(row.foreignerPureBuyQuant);
+      const sharesInd = parseNaverNumber(row.individualPureBuyQuant);
+
+      instSum += close && sharesInst !== 0 ? Math.round(close * sharesInst) : 0;
+      forSum += close && sharesFor !== 0 ? Math.round(close * sharesFor) : 0;
+      indSum += close && sharesInd !== 0 ? Math.round(close * sharesInd) : 0;
+
       actualDays++;
     }
+
     if (actualDays === 0) return null;
 
     return {
@@ -342,10 +344,11 @@ async function fetchNaverFrgnEntry(code: string, days = 1): Promise<(KoreaFlowEn
       market: 'KOSPI',
       foreignerNetBuy: forSum || null,
       institutionNetBuy: instSum || null,
-      individualNetBuy: null,
+      individualNetBuy: indSum || null,
       closePrice: latestClose,
-      changePct: latestChangePct,
+      changePct: null,
       actualDays,
+      trdDd: latestDate,
     };
   } catch {
     return null;
@@ -355,25 +358,21 @@ async function fetchNaverFrgnEntry(code: string, days = 1): Promise<(KoreaFlowEn
 async function fetchNaverForeignFlow(days = 1): Promise<{ entries: KoreaFlowEntry[]; trdDd: string; effectiveDays: number } | null> {
   const tickers = Object.keys(EN_NAMES);
   const results = await Promise.all(tickers.map(c => fetchNaverFrgnEntry(c, days)));
-  const valid = results.filter((e): e is KoreaFlowEntry & { actualDays: number } => e !== null && (e.foreignerNetBuy !== null || e.institutionNetBuy !== null));
-  const entries: KoreaFlowEntry[] = valid.map(({ actualDays: _d, ...e }) => e);
-  if (entries.length === 0) return null;
+  const valid = results.filter((e): e is KoreaFlowEntry & { actualDays: number; trdDd: string | null } =>
+    e !== null && (e.foreignerNetBuy !== null || e.institutionNetBuy !== null || e.individualNetBuy !== null)
+  );
+
+  if (valid.length === 0) return null;
+
+  const entries: KoreaFlowEntry[] = valid.map(({ actualDays: _d, trdDd: _t, ...e }) => e);
   const effectiveDays = Math.max(1, ...valid.map(e => e.actualDays));
-  // Derive tradingDay from the raw HTML date (YYYY.MM.DD → YYYYMMDD)
-  // All entries share the same date; pick first valid one
-  const sampleRes = await fetch(`https://finance.naver.com/item/frgn.naver?code=${tickers[0]}`, {
-    cache: 'no-store', signal: AbortSignal.timeout(8000),
-    headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://finance.naver.com/' },
-  }).catch(() => null);
+
   let trdDd = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10).replace(/-/g, '');
-  if (sampleRes?.ok) {
-    const buf = await sampleRes.arrayBuffer();
-    const html = new TextDecoder('euc-kr').decode(buf);
-    const raw = Array.from(html.matchAll(/<span class="tah[^"]*">([\s\S]*?)<\/span>/g))
-      .map(m => m[1].replace(/<[^>]+>/g, '').replace(/[,\s\n]/g, '').trim());
-    const dateStr = raw.find(v => /^\d{4}\.\d{2}\.\d{2}$/.test(v));
-    if (dateStr) trdDd = dateStr.replace(/\./g, '');
+  const sampleWithDate = valid.find(e => e.trdDd);
+  if (sampleWithDate?.trdDd) {
+    trdDd = sampleWithDate.trdDd;
   }
+
   return { entries, trdDd, effectiveDays };
 }
 
