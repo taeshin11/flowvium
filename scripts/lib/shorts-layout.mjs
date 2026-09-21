@@ -183,12 +183,13 @@ ${o.brand ? `<div class="brand">${esc(o.brand)}</div>` : ''}`;
 /**
  * 소재를 가운데 영역에 맞추는 ffmpeg 필터.
  *
- * 자르지 않는다 — 뉴스 사진은 잘리면 인물·현장이 사라진다. 대신 **블러 채움**을 쓴다:
- *   뒤에는 같은 그림을 영역에 꽉 차게(cover) 깔고 흐리게 만들고,
- *   앞에는 잘리지 않은 원본을 얹는다(contain).
- * 왜 필요한가(2026-09-03 실측): 순수 레터박스로 두니 가로로 긴 파노라마 사진이 얇은 띠가 되고
- *   소재 영역의 절반이 검게 비었다. 쇼츠에서 흔히 쓰는 방식으로 채운다 — 원본을 잃지 않으면서
- *   화면이 비지 않는다.
+ * 자르지 않는다 — 뉴스 사진은 잘리면 인물·현장이 사라진다.
+ *
+ * 이전 결정(2026-09-03): 순수 레터박스로 두니 가로로 긴 사진은 영역 절반이 검게 비었다.
+ *   그래서 원본을 잃지 않으면서 화면이 비어 보이지 않게 배경을 블러로 채웠다.
+ * 뒤집은 이유(2026-09-21): 쇼츠 전체 배경이 이미 검정이다. 소재 양옆을 검정으로 두면
+ *   빈 여백처럼 보이지 않고 자연스럽게 가운데 사진 한 장으로 보인다.
+ *   사용자 지시에 따라 블러를 빼고 다시 검정 배경을 쓴다.
  */
 /**
  * 소재 가장자리를 얼마나 잘라낼지 (0 이면 안 자름).
@@ -223,12 +224,8 @@ export function mediaFilter(inLabel, outLabel) {
     ? `crop=iw*${keepW.toFixed(4)}:ih*${keepH.toFixed(4)}:iw*${t.side.toFixed(4)}:ih*${t.top.toFixed(4)},`
     : '';
   return [
-    `[${inLabel}]${trim}split=2[mc][mf]`,
-    // 뒤: 영역을 덮도록 키우고 잘라낸 뒤 흐리게. 여기서 잘리는 것은 배경이므로 정보 손실이 아니다.
-    `[mc]scale=${W}:${MH}:force_original_aspect_ratio=increase,crop=${W}:${MH},boxblur=28:2,eq=brightness=-0.10[mbg]`,
-    // 앞: 원본 그대로 영역 안에 들어가게.
-    `[mf]scale=${W}:${MH}:force_original_aspect_ratio=decrease[mfg]`,
-    `[mbg][mfg]overlay=(W-w)/2:(H-h)/2[mrg]`,
+    // 소재가 잘리지 않게 영역 안에 넣고, 남는 자리는 검정으로 채워 가운데 정렬한다.
+    `[${inLabel}]${trim}scale=${W}:${MH}:force_original_aspect_ratio=decrease,pad=${W}:${MH}:(ow-iw)/2:(oh-ih)/2:black[mrg]`,
     // 소재 영역을 화면의 제자리에 앉힌다. 위아래는 오버레이의 검은 띠가 덮는다.
     `[mrg]pad=${W}:${g.H}:0:${g.media.top}:black,fps=${g.FPS},setsar=1[${outLabel}]`,
   ].join(';');
