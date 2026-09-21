@@ -1,27 +1,45 @@
 {
-  "generatedAt": "2026-09-21T13:00:58.897Z",
+  "generatedAt": "2026-09-21T22:03:38.849Z",
   "universe": "US",
-  "scanned": 324,
-  "count": 17,
-  "strongCount": 1,
-  "watchCount": 16,
+  "scanned": 330,
+  "count": 14,
+  "strongCount": 2,
+  "watchCount": 12,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "MG",
       "name": "Mistras Group Inc",
       "tier": "strong",
-      "score": 39,
+      "score": 52,
       "coFire": 4,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)",
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 4.5× 급증(가격 평탄)",
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 6.4,
-      "runup5dPct": 4.7,
-      "medDollarVolUsd": 3283290,
+      "runup20dPct": 10.7,
+      "runup5dPct": 7.5,
+      "medDollarVolUsd": 3301485,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SOHU",
+      "name": "Sohu.com Limited",
+      "tier": "strong",
+      "score": 38,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.8× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축"
+      ],
+      "runup20dPct": -10.1,
+      "runup5dPct": -6.5,
+      "medDollarVolUsd": 688828,
       "smartAccum": false,
       "official": null
     },
@@ -32,79 +50,13 @@
       "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 추세 2.7× 상승(지속 매집)",
         "종가 일중 상단 80%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 10.9,
-      "runup5dPct": 7.9,
-      "medDollarVolUsd": 6546388,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NABL",
-      "name": "N-able, Inc.",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 12,
-      "runup5dPct": -0.5,
-      "medDollarVolUsd": 8346459,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "HEPS",
-      "name": "D-Market Electronic Services & ",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "거래량 5.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.4,
-      "runup5dPct": -4.6,
-      "medDollarVolUsd": 348254,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SHEN",
-      "name": "Shenandoah Telecommunications C",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.3× 상승(지속 매집)",
-        "거래량 4.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.1,
-      "runup5dPct": -2.9,
-      "medDollarVolUsd": 5763280,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ACP",
-      "name": "Aberdeen Income Credit Strategi",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.5,
-      "runup5dPct": -3.9,
-      "medDollarVolUsd": 2239758,
+      "runup20dPct": 4,
+      "runup5dPct": 6.2,
+      "medDollarVolUsd": 6619320,
       "smartAccum": false,
       "official": null
     },
@@ -115,62 +67,61 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 4.4× 급증(가격 평탄)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -4.3,
-      "runup5dPct": -5.6,
-      "medDollarVolUsd": 2684737,
+      "runup20dPct": 1.7,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 2741369,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "SPTX",
-      "name": "Seaport Therapeutics, Inc.",
+      "ticker": "SHEN",
+      "name": "Shenandoah Telecommunications C",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.3× 상승(지속 매집)",
-        "거래량 4.1× 급증(가격 평탄)"
+        "거래량 추세 3.5× 상승(지속 매집)",
+        "거래량 4.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11,
-      "runup5dPct": -8.4,
-      "medDollarVolUsd": 2887878,
+      "runup20dPct": -1.6,
+      "runup5dPct": 2.9,
+      "medDollarVolUsd": 5816640,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "SWBI",
-      "name": "Smith & Wesson Brands, Inc.",
+      "ticker": "KELYB",
+      "name": "Kelly Services, Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 30.6× 상승(지속 매집)",
+        "거래량 39.2× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 14370,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CTKB",
+      "name": "Cytek Biosciences, Inc.",
       "tier": "watch",
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "거래량 추세 1.8× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -1.9,
-      "runup5dPct": 3.7,
-      "medDollarVolUsd": 6944091,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GNK",
-      "name": "Genco Shipping & Trading Limite",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.2,
-      "runup5dPct": 4.2,
-      "medDollarVolUsd": 10316909,
+      "runup20dPct": 9.8,
+      "runup5dPct": 9.3,
+      "medDollarVolUsd": 4045792,
       "smartAccum": false,
       "official": null
     },
@@ -185,58 +136,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -6.5,
-      "runup5dPct": 2,
-      "medDollarVolUsd": 5827464,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BRCC",
-      "name": "BRC Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.3,
-      "runup5dPct": 9.3,
-      "medDollarVolUsd": 914652,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MQY",
-      "name": "Blackrock MuniYield Quality Fun",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.9,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 4488806,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PERI",
-      "name": "Perion Network Ltd",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.8,
-      "runup5dPct": -5.8,
-      "medDollarVolUsd": 2881173,
+      "runup20dPct": -6.1,
+      "runup5dPct": 0.5,
+      "medDollarVolUsd": 5867950,
       "smartAccum": false,
       "official": null
     },
@@ -248,11 +150,59 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": 2.3,
-      "runup5dPct": 3.4,
-      "medDollarVolUsd": 3087054,
+      "runup20dPct": -0.7,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 3095350,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MQY",
+      "name": "Blackrock MuniYield Quality Fun",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.4,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 4539184,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ACP",
+      "name": "Aberdeen Income Credit Strategi",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -7.7,
+      "runup5dPct": 2.8,
+      "medDollarVolUsd": 2297396,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "WHF",
+      "name": "WhiteHorse Finance, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -1.1,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 346840,
       "smartAccum": false,
       "official": null
     },
@@ -263,12 +213,12 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 2.7× 급증(가격 평탄)"
+        "거래량 추세 1.9× 상승",
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": -6.3,
-      "runup5dPct": -8.9,
-      "medDollarVolUsd": 924350,
+      "runup20dPct": -3.9,
+      "runup5dPct": -3.4,
+      "medDollarVolUsd": 956635,
       "smartAccum": false,
       "official": null
     },
@@ -280,11 +230,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.8× 상승",
-        "거래량 2.5× 급증(가격 평탄)"
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": 3.4,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 6739805,
+      "runup20dPct": 3.1,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 6750560,
       "smartAccum": false,
       "official": null
     }
