@@ -1,48 +1,12 @@
 {
-  "generatedAt": "2026-09-20T22:20:24.896Z",
+  "generatedAt": "2026-09-21T07:20:32.310Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "222080.KQ",
-      "name": "씨아이에스",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 3.2,
-      "runup5dPct": 3.1,
-      "medDollarVolUsd": 2794978,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "397030.KQ",
-      "name": "에이프릴바이오",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -7.9,
-      "runup5dPct": 6.7,
-      "medDollarVolUsd": 3705203,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "050890.KQ",
       "name": "쏠리드",
@@ -50,12 +14,12 @@
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.4× 급증(가격 평탄)",
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 8,
-      "runup5dPct": 13.5,
+      "runup20dPct": 2.5,
+      "runup5dPct": 7.8,
       "medDollarVolUsd": 5531378,
       "smartAccum": true,
       "official": null
