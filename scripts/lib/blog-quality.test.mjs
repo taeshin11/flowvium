@@ -39,8 +39,16 @@ checkQuality(`# 제목\n\n${long}`).issues.some((i) => i.includes('광고가 없
   r.ok ? ok(`[6] 내용이 다르면 통과 (겹침 ${r.stats.overlap})`) : bad(`[6] ${r.issues.join(' / ')}`);
 }
 // [7] 겹침 계산
-overlap('가나다라마바사', '가나다라마바사') > 0.9 ? ok('[7] 같은 글은 겹침 1에 가깝다') : bad('[7]');
-overlap('가나다라마바사', '차카타파하') < 0.2 ? ok('[7b] 다른 글은 낮다') : bad('[7b]');
+const marketA = '오늘 국내 증시는 외국인과 기관의 동반 매도세에 하락 마감했습니다. 특히 반도체와 이차전지 대형주 중심으로 낙폭이 컸습니다. 원달러 환율은 소폭 상승하며 불안감을 키웠습니다.';
+const marketB = '전일 미 증시 호조에도 불구하고 국내 증시는 하락 마감했습니다. 외국인 매도세가 이어진 가운데 반도체 섹터의 약세가 두드러졌습니다. 환율은 오름세로 거래를 마쳤습니다.';
+const cooking = '오늘은 맛있는 김치찌개를 끓여보겠습니다. 잘 익은 묵은지와 돼지고기를 준비해주세요. 먼저 냄비에 기름을 두르고 고기를 볶다가 김치를 넣어 함께 볶습니다.';
+const copiedHalf = '오늘 국내 증시는 외국인과 기관의 동반 매도세에 하락 마감했습니다. 특히 반도체와 이차전지 대형주 중심으로 낙폭이 컸습니다.';
+
+overlap(marketA, marketA) === 1 ? ok('[7-1] 같은 글끼리는 100%') : bad('[7-1] 같은 글끼리는 100%');
+overlap(marketA, copiedHalf) >= 0.9 ? ok('[7-2] 앞 절반을 그대로 베낀 글은 90% 이상') : bad(`[7-2] 앞 절반을 그대로 베낀 글은 90% 이상 (${overlap(marketA, copiedHalf)})`);
+overlap(marketA, cooking) < 0.1 ? ok('[7-3] 전혀 다른 주제의 두 글은 10% 미만') : bad(`[7-3] 전혀 다른 주제의 두 글은 10% 미만 (${overlap(marketA, cooking)})`);
+overlap(marketA, '') === 0 && overlap('', marketA) === 0 ? ok('[7-4] 빈 문자열이 섞이면 0') : bad('[7-4] 빈 문자열이 섞이면 0');
+overlap(marketA, marketB, 2) > overlap(marketA, marketB, 4) ? ok('[7-5] n=2 로 주면 4보다 높게 나온다') : bad(`[7-5] n=2 로 주면 4보다 높게 나온다 (2: ${overlap(marketA, marketB, 2)}, 4: ${overlap(marketA, marketB, 4)})`);
 
 console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ blog-quality 통과');
 process.exit(fail ? 1 : 0);

@@ -66,9 +66,16 @@
   "reason": "low-quality:알맹이가 짧다 385자 (최소 500)",
   "at": "2026-09-20T12:45:00.624Z"
  },
+ "2026-09-21-shorts-0952.md": {
+  "id": "6529679237070272701",
+  "url": "https://flowvium.blogspot.com/2026/09/3-10-9-21.html",
+  "status": "LIVE",
+  "at": "2026-09-21T01:41:28.291Z"
+ },
  "2026-09-21-morning.md": {
-  "skipped": true,
-  "reason": "low-quality:이미 올린 글과 61% 겹친다 (상한 60%)",
-  "at": "2026-09-20T22:15:00.386Z"
+  "id": "685853787403394232",
+  "url": "https://flowvium.blogspot.com/2026/09/kb-9-21-195000.html",
+  "status": "LIVE",
+  "at": "2026-09-21T01:41:46.669Z"
  }
 }

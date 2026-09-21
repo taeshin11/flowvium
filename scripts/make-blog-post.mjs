@@ -27,6 +27,7 @@ import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
 import { rewriteBlock, llmCaller, toPolite } from './lib/blog-voice.mjs';
 import { agyCaller } from './lib/agy.mjs';
+import { pickOpener } from './lib/blog-openers.mjs';
 
 loadEnvLocal?.();
 const arg = (n, d = null) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : d; };
@@ -146,13 +147,7 @@ const verdictKo = { buy: '매수', wait: '관망', sell: '축소', hold: '유지
 // 도입부는 날짜에 따라 돌린다. 매 글이 같은 문장으로 시작하면 읽는 사람도 지겹고,
 //   검색 엔진에는 대량 생산의 표시가 된다(2026-09-18 실측: 같은 날 글끼리 61% 겹침).
 //   무작위가 아니라 날짜 기반이라 같은 날 다시 만들어도 같은 문장이 나온다.
-const OPENERS = [
-  (d, s) => `${d} ${s}에 본 시장을 적어 둡니다. 지수가 어떻게 움직였고, 그걸 어떻게 읽었고, 그래서 무엇을 들여다봤는지 순서대로 갑니다.`,
-  (d, s) => `${d} ${s} 기준으로 정리했습니다. 숫자부터 보고, 그 숫자를 어떻게 해석했는지, 오늘 눈에 걸린 종목은 무엇인지 차례로 적습니다.`,
-  (d, s) => `${d} ${s} 시장입니다. 오늘 무슨 일이 있었고 그게 무슨 뜻인지, 그리고 그 안에서 뭘 봤는지 적었습니다.`,
-  (d, s) => `${d} ${s}에 돌린 정리입니다. 지수·수급·종목 순으로 훑고, 마지막에 지난 추천이 어땠는지도 같이 둡니다.`,
-];
-L.push(OPENERS[(Number(mm) * 31 + Number(dd) + String(row.session).length) % OPENERS.length](md, sessionKo));
+L.push(pickOpener(mm, dd, row.session)(md, sessionKo));
 L.push('');
 
 L.push('## 오늘 시장, 이렇게 봤습니다');
