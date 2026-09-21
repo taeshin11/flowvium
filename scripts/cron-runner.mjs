@@ -599,7 +599,7 @@ const MAINT_JOBS = [
   //   자동 생성 뉴스 요약 9편/일이 정확히 그 모양이다. 하루 2편(회당 1편)으로 나눠 올린다.
   //   대본(hooks)이 남은 편만 쓴다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다.
   //   2026-09-19: agy 전환으로 실측 91초(3블록). 예산은 blog-post 와 같은 이유로 올린다.
-  { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --limit 1',  timeoutMs: 480000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
+  { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --max-items 5',  timeoutMs: 480000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
   //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고
