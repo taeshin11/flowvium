@@ -1,4 +1,4 @@
-﻿/**
+/**
  * generate-report-local.mjs — 로컬 AI 보고서 생성 + 업로드 도구
  *
  * 프로덕션 route.ts와 동일한 다단계 구조:
@@ -43,6 +43,7 @@ import { peakRiskAction } from './lib/peak-risk-action.mjs';
 import { reconcileReportIndexLevels } from './lib/index-level-check.mjs';
 import { canonicalTermGlossary } from './lib/narrative-fix.mjs';
 import { sameCompany } from './lib/sec-name-clean.mjs';
+import { agyReport } from './lib/agy-report.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -1375,6 +1376,16 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = 
     : 2048;
 
   // 1. vLLM 우선 (VLLM_URL 설정된 경우만) — numPredict·schema 전달(2048 절단/스키마 유실 방지).
+  if (process.env.REPORT_VIA_AGY === '1') {
+    const t0Agy = Date.now();
+    const agyRes = await agyReport(prompt, { label, schema, timeoutMs });
+    if (agyRes) {
+      console.log(`[agy:${label}] ${((Date.now() - t0Agy) / 1000).toFixed(1)}초`);
+      return agyRes;
+    }
+    // 왜: agy 실패 시 기존 callVLLM 으로 폴백
+  }
+
   const vllmText = await callVLLM(prompt, timeoutMs, label, numPredict, schema);
   if (vllmText) return vllmText;
 
