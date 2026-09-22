@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-22T07:20:28.258Z",
+  "generatedAt": "2026-09-22T22:20:25.013Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 3,
@@ -8,38 +8,36 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "036810.KQ",
-      "name": "에프에스티",
+      "ticker": "050890.KQ",
+      "name": "쏠리드",
       "tier": "watch",
-      "score": 38,
+      "score": 33,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)",
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 3.9× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 10.6,
-      "runup5dPct": 14.6,
-      "medDollarVolUsd": 1908309,
+      "runup20dPct": 3.8,
+      "runup5dPct": 8.6,
+      "medDollarVolUsd": 5531378,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "445680.KQ",
-      "name": "큐리옥스바이오시스템즈",
+      "ticker": "205100.KQ",
+      "name": "엑셈",
       "tier": "watch",
-      "score": 34,
+      "score": 33,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -13.6,
-      "runup5dPct": -3.9,
-      "medDollarVolUsd": 2673342,
+      "runup20dPct": -0.8,
+      "runup5dPct": 7.4,
+      "medDollarVolUsd": 263805,
       "smartAccum": true,
       "official": null
     },
