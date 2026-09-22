@@ -694,8 +694,32 @@ const budget = Math.round(TARGET_SEC * CPS);
 //   2026-09-20: 종전에는 프롬프트 안에서만 뽑아 쓰고 버렸다. 그래서 쇼츠를 글로 풀 때
 //   재료가 훅(12자짜리 화면 문구)밖에 없었고, 그 글이 품질 관문을 한 번도 통과하지 못했다.
 //   같은 원문을 더 주는 것이지 지어내서 늘리는 게 아니다.
-const bodies = (BRIEF ?? []).map((p2) =>
-  stripHtml((p2.it.items ?? []).map((x) => x.summary).find(Boolean) ?? '').slice(0, 700));
+//   2026-09-23: BRIEF 가 조건부라는 것, 그래서 한쪽만 채우면 단일 이슈 편이
+//   통째로 빠진다는 것을 고쳤다. 실측:
+//     2026-09-21  일부 편에 본문 있음(648·320·159자) — 브리핑 모드였던 편들
+//     2026-09-22  8편 전부 0자 — 전부 단일 이슈 모드였다
+//   단일 이슈 모드에서도 본문을 거두고, 두 갈래 모두 마지막에 빈 문자열을 거른다.
+let bodies = [];
+if (BRIEF) {
+  bodies = BRIEF.map((p2) =>
+    stripHtml((p2.it.items ?? []).map((x) => x.summary).find(Boolean) ?? '').slice(0, 700)
+  );
+} else {
+  const seen = new Set();
+  for (const it of onTopicItems) {
+    const text = stripHtml(it.summary ?? '').slice(0, 700);
+    if (text.length >= 40 && !seen.has(text)) {
+      seen.add(text);
+      bodies.push(text);
+      if (bodies.length >= 5) break;
+    }
+  }
+}
+// ⚠ BRIEF 모드에서는 **거르지 않는다.** briefPrompt 가 bodies[i] 를 headlines[i] 와 번호로
+//   짝지어 쓰기 때문에, 중간에 하나라도 빠지면 그 뒤가 전부 한 칸씩 밀려 엉뚱한 기사 본문이
+//   붙는다. 빈 자리는 빈 자리로 남겨 둔다(프롬프트가 `(기사: …)` 를 통째로 생략한다).
+//   단일 이슈 모드는 위에서 이미 40자·중복을 걸렀고 번호 짝이 없으므로 그대로 둔다.
+if (!BRIEF) bodies = bodies.filter(Boolean);
 
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
 ${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
