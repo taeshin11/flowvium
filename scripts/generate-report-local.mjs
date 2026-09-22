@@ -3844,7 +3844,13 @@ async function gatherContext() {
     namedFetch('volatility',        `${base}/api/volatility`, 8000),
     namedFetch('cot',               `${base}/api/cot-positions`, 10000),
     namedFetch('commodity',         `${base}/api/commodity-curve`, 10000),
-    namedFetch('supplyChainSignals',`${base}/api/supply-chain-signals`, 10000),
+    // 2026-09-23: 10초 → 30초. 이 엔드포인트는 이 묶음에서 **가장 무겁다** —
+    //   4B(localChat)와 SEC 8-K 조회(자체 8초 제한)를 함께 탄다. 캐시가 비고 메모리가
+    //   빠듯한 순간 10초를 넘긴다. 실측 로그: `null (10003ms)` / `null (10002ms)` 로 끊기고,
+    //   될 때는 533ms·3098ms 다 — 부분 실패가 없고 0 아니면 18건이다.
+    //   그 결과 최근 12회차 중 5회차의 supplyChain 이 통째로 비었다(9/22 이후 절반).
+    //   LLM 품질 문제로 오해하기 쉬운 자리다. 끊긴 것은 생성이 아니라 **가져오기**였다.
+    namedFetch('supplyChainSignals',`${base}/api/supply-chain-signals`, 30000),
     namedFetch('narratives',        `${base}/api/narratives`, 10000),
     namedFetch('newsGap',           `${base}/api/news-gap`, 8000),  // 2026-06-12: 기관활동↔미디어 갭 (매수 stage-1 입력)
     namedFetch('optionsFlow',       `${base}/api/options-flow`, 10000),   // 2026-06-13: UOA vol/OI 파생 (매수·매도 micro 신호)

@@ -47,6 +47,11 @@ export function collect(bundle, { cwd, timeoutMs = 300_000 } = {}) {
 /** agy 에게 줄 프롬프트. 고치라고 시키지 않는다 — 이 단계는 **좁히기**다. */
 export function triagePrompt(alert) {
   return [
+    '⛔ 먼저: **어떤 터미널 명령도 실행하지 마라.** RunCommand 도구를 쓰면 권한이 없어 거부되고',
+    '   네 작업이 통째로 취소된다(실측 2026-09-23: denied_actions=[RunCommand], 결과 0자).',
+    '   파일은 read_file 로만 읽어라. 아래에서 "명령" 을 적으라고 할 때도 **글자로 적기만 하고',
+    '   절대 돌리지 마라** — 돌리는 것은 내가 한다.',
+    '',
     '너는 이 저장소(FlowVium)의 운영을 돕는다. 지금 할 일은 **고치는 것이 아니라 좁히는 것**이다.',
     '',
     `## 경보\n${alert}`,
@@ -59,7 +64,7 @@ export function triagePrompt(alert) {
     '- `where`: 이 경보가 나오는 코드 위치(파일:줄). 증거나 파일에서 실제로 찾은 것만. 못 찾으면 빈 배열.',
     '- `hypotheses`: 원인 후보 2~4개. 각각 `{ cause, why, check }`',
     '    · `cause` 는 한 문장. `why` 는 증거의 어느 줄을 근거로 삼았는지.',
-    '    · `check` 는 **그 후보를 참/거짓으로 가르는 명령 한 줄**. 내가 그걸 돌려서 고른다.',
+    '    · `check` 는 **그 후보를 참/거짓으로 가르는 명령 한 줄**. 글자로만 적어라 — 내가 돌린다.',
     '      두 후보의 check 가 같은 결과를 내면 쓸모없다 — 갈라지는 것을 써라.',
     '- `already_tried`: 이 저장소가 **이미 해 보고 버린 방법**이 있으면 적어라.',
     '    모듈 머리말 주석에 그런 기록이 자주 있다. 없으면 빈 배열.',
@@ -110,11 +115,22 @@ export function triage(alert, evidence, { cwd, model, timeoutMs = 600_000 } = {}
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],
     { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
     if (r.status !== 0 || !r.stdout) return { ok: false, why: `종료코드 ${r.status}` };
-    const j = JSON.parse(r.stdout.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim());
+    // stdout 전체가 JSON 이라고 믿지 않는다 — 작업 폴더를 여럿 붙이면 앞뒤에 다른 출력이 섞인다
+    //   (2026-09-23 실측: status=SUCCESS 인데 통째로 parse 하다 실패했다).
+    //   ANSI 를 걷어 낸 뒤 **첫 { 부터 마지막 } 까지**만 꺼낸다.
+    const clean = r.stdout.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '');
+    const a = clean.indexOf('{'); const b = clean.lastIndexOf('}');
+    if (a < 0 || b <= a) return { ok: false, why: 'JSON 덩어리를 못 찾았다' };
+    const j = JSON.parse(clean.slice(a, b + 1));
     // agy 는 스키마가 단순하면 structured_output 에, 복잡하면 response 에 **마크다운으로 감싼**
     //   JSON 을 넣는다(실측 2026-09-20). 둘 다 받는다 — 한쪽만 보면 조용히 실패한다.
     const s = j?.structured_output ?? parseFenced(j?.response);
-    return s ? { ok: true, result: s } : { ok: false, why: `판단을 못 읽었다(status=${j?.status ?? '?'})` };
+    if (s) return { ok: true, result: s };
+    // 왜 못 읽었는지 **말하게** 한다. "못 읽었다" 만 남기면 다음에 또 추측하게 된다.
+    const dump = join(tmpdir(), `agy-triage-fail-${Date.now()}.json`);
+    try { writeFileSync(dump, r.stdout ?? ''); } catch { /* 비치명 */ }
+    return { ok: false, why: `판단을 못 읽었다(status=${j?.status ?? '?'} · turns=${j?.num_turns ?? '?'} · `
+      + `키 ${Object.keys(j ?? {}).join(',')} · response ${String(j?.response ?? '').length}자) — 원문 ${dump}` };
   } catch (e) { return { ok: false, why: `예외 ${e?.message ?? e}` }; }
   finally { try { rmSync(dir, { recursive: true, force: true }); } catch { /* 비치명 */ } }
 }
