@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-09-21T22:20:26.598Z",
+  "generatedAt": "2026-09-22T07:20:28.258Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "036810.KQ",
+      "name": "에프에스티",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 10.6,
+      "runup5dPct": 14.6,
+      "medDollarVolUsd": 1908309,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "445680.KQ",
       "name": "큐리옥스바이오시스템즈",
@@ -19,9 +37,26 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -10.1,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 2695920,
+      "runup20dPct": -13.6,
+      "runup5dPct": -3.9,
+      "medDollarVolUsd": 2673342,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "115180.KQ",
+      "name": "큐리언트",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -10.2,
+      "runup5dPct": 3,
+      "medDollarVolUsd": 2200086,
       "smartAccum": true,
       "official": null
     }
