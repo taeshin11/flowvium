@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { join } from 'path';
 import { execFile } from 'child_process';
 import util from 'util';
 
@@ -116,7 +117,14 @@ export async function agyReport(prompt, { label, schema, timeoutMs, agyImpl } = 
       return JSON.stringify(resp);
     }
 
-    // fallback: 구조화된 출력이 모두 없는 경우
+    // 2026-09-23: 여기가 **조용한 실패 경로**였다. structured_output 도 response 도 없으면
+    //   아무 말 없이 null 을 돌려줬고, 부르는 쪽은 그냥 로컬로 떨어졌다.
+    //   실제로 afternoon 회차의 macro 가 이 길로 빠져 27B 에서 698.9초를 먹었는데
+    //   로그 어디에도 이유가 없어서 회차가 끝난 뒤에야 알았다. 왜 못 받았는지 남긴다.
+    const dump = join(os.tmpdir(), `agy-report-fail-${label ?? 'x'}-${Date.now()}.json`);
+    try { await fs.writeFile(dump, stdout ?? '', 'utf8'); } catch { /* 비치명 */ }
+    console.error(`[agy:${label}] 봉투에 본문이 없다(키 ${Object.keys(parsed ?? {}).join(',') || '없음'}`
+      + ` · status=${parsed?.status ?? '?'} · turns=${parsed?.num_turns ?? '?'}) — 원문 ${dump}`);
     return null;
 
   } finally {

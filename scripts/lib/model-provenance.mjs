@@ -2,8 +2,11 @@
  * model-provenance.mjs — 보고서에 **실제로 누가 썼는지** 적는다. (2026-09-23 신설)
  *
  * 왜 (2026-09-23 실측):
- *   noon 회차를 REPORT_VIA_AGY=1 로 돌렸다. LLM 호출 18건이 전부 agy 로 갔고
- *   로컬(vLLM) 호출은 **0건**이었다(logs/report.log: [agy:*] 18 · [llm-gate] 0).
+ *   noon 회차를 REPORT_VIA_AGY=1 로 돌렸다. LLM 호출 18건이 agy 로 갔다.
+ *   (⚠ 같은 날 정정: 처음엔 "로컬 0건" 이라고 적었는데 틀렸다. `[llm-gate]` 는 동시성 관문이
+ *    **대기할 때만** 찍히는 줄이라 호출이 있어도 0 으로 보인다. 실제 표지는 `[vLLM:<label>]` 이고,
+ *    그것으로 다시 세니 noon 은 로컬 2건(opportunity 266.9초 · fact-check:ADBE 12.8초)이었다.
+ *    그래서 아래 '섞인 회차' 처리가 이론이 아니라 **첫 회차부터 실제로 필요했다**.)
  *   그런데 reports/report-2026-09-23-noon-ko.json 의 model 은 'Qwen3.8-27B-8bit',
  *   source 는 'local-Qwen3.8-27B-8bit' 였다 — Qwen 이 한 글자도 쓰지 않은 보고서다.
  *

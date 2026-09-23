@@ -1,0 +1,96 @@
+{
+ "ts": "2026-09-23T05:58:54.844Z",
+ "what": "shorts",
+ "items": [
+  {
+   "id": "D8xZUUEu1Bs",
+   "status": "disagree",
+   "agreed": [],
+   "onlyA": [
+    {
+     "evidence": "이재명 대통령 제안",
+     "severity": "high",
+     "what": "제안의 주체가 이란임에도 이재명 대통령으로 주어가 뒤집혀 오해할 여지가 있음",
+     "where": "hooks[2]"
+    },
+    {
+     "evidence": "국제유가 2주 하락",
+     "severity": "high",
+     "what": "본문에 관련 언급이 전혀 없어 낚시라고 느낄 만큼 동떨어짐",
+     "where": "hooks[3]"
+    },
+    {
+     "evidence": "7일...",
+     "severity": "medium",
+     "what": "문장이 불완전하게 잘림",
+     "where": "bodies[0]"
+    },
+    {
+     "evidence": "IRNA 통...",
+     "severity": "medium",
+     "what": "문장이 불완전하게 잘림",
+     "where": "bodies[1]"
+    },
+    {
+     "evidence": "통로가...",
+     "severity": "medium",
+     "what": "문장이 불완전하게 잘림",
+     "where": "bodies[2]"
+    }
+   ],
+   "onlyB": [
+    {
+     "evidence": "새벽 폭발음 발생",
+     "severity": "medium",
+     "what": "훅이 본문과 주제가 다르다. headline은 '7일내 호르무즈 재개방 제안'(외교 제안)인데, 이 훅은 bodies[1]의 '폭발음' 소식을 별개 사건처럼 끌어와 마치 전쟁·공격이 발생한 것처럼 오해를 유발한다. 본문을 읽으면 게슘섬 인근 폭발음 보도일 뿐이지만, 훅만 보면 대규모 폭발 사건으로 읽힌다.",
+     "where": "hooks[1] \"새벽 폭발음 발생\""
+    }
+   ],
+   "unverified": [
+    {
+     "evidence": "이재명 대통령 제안 / headline: 이란, 美와 대화 재개 위해 7일내 호르무즈 재개방 제안",
+     "severity": "high",
+     "what": "훅만 보면 이재명 대통령이 '7일내 호르무즈 재개방'을 제안한 주체로 읽힌다. 실제 bodies[2]에서 이재명 대통령은 해상 봉쇄 문제에 대해 발언한 것이고, headline의 '제안' 주체는 이란이다. 주어가 뒤집혀 오해를 유발한다.",
+     "where": "hooks[2] \"이재명 대통령 제안\"",
+     "model": "claude-opus-4-6-thinking"
+    }
+   ],
+   "runs": [
+    {
+     "model": "gemini-3.1-pro-high",
+     "sec": 58.7,
+     "ok": true,
+     "why": null
+    },
+    {
+     "model": "claude-opus-4-6-thinking",
+     "sec": 23.4,
+     "ok": true,
+     "why": null
+    }
+   ]
+  },
+  {
+   "id": "qZ2UeTcn6Ac",
+   "status": "pass",
+   "agreed": [],
+   "onlyA": [],
+   "onlyB": [],
+   "unverified": [],
+   "runs": [
+    {
+     "model": "gemini-3.1-pro-high",
+     "sec": 26.2,
+     "ok": true,
+     "why": null
+    },
+    {
+     "model": "claude-opus-4-6-thinking",
+     "sec": 18.7,
+     "ok": true,
+     "why": null
+    }
+   ]
+  }
+ ]
+}
