@@ -36,7 +36,11 @@ const { nFix: nAttr, log: attrLog } = attributePctSubjects(r, pctPool);
 const { nFix: nDup } = dedupeThesisMacro(r);
 // 2026-07-05: KR 수급 방향모순 소급 교정 — 발간본은 flowNarrativeEvidence 를 내장하므로 실측 claim 재사용.
 const _krClaim = (r.flowNarrativeEvidence?.allClaims ?? []).find((c) => c.id === 'kr_smart_flow');
-const { nFix: nKrDir, log: krDirLog } = _krClaim ? fixKrFlowContradiction(r, _krClaim.text) : { nFix: 0, log: [] };
+// 2026-09-23: 종전엔 claim 이 있을 때만 불렀다. generate-report-local.mjs 와 **같은 결함**이다 —
+//   2026-09-10 에 함수 안에 regionStances.korea.thesis 폴백을 넣었는데 부르는 두 곳 다 안 고쳤다.
+//   오늘 afternoon 발간본을 이걸로 교정하려다 "변경 없음" 이 나와서 알았다(실측 모순이 남아 있는데도).
+//   무조건 부르고 판단은 함수가 한다. kr-flow-corrector-reach.test.mjs [2] 가 두 곳을 함께 본다.
+const { nFix: nKrDir, log: krDirLog } = fixKrFlowContradiction(r, _krClaim?.text ?? '');
 const { nFix: nSan } = sanitizeReport(r);
 const { nFix: nCB } = fixDuplicateCentralBankEvents(r);
 if (nFix || nSan || nCB || nAttr || nDup || nKrDir) {

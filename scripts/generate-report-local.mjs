@@ -4845,11 +4845,19 @@ function enforceFlowNarrativeContract(report, flowEvidence) {
     //   verify (b3++) 검출만 있던 detector-without-corrector 해소. 모순 문장 제거 후 아래 keyToken 미언급
     //   백스톱이 실측 claim 을 결정론 append → 제거+복원이 한 계약 안에서 완결. 학습 적재는 호출부(_sanitized).
     const _krClaim = (flowEvidence?.allClaims ?? []).find((c) => c.id === 'kr_smart_flow');
-    if (_krClaim) {
-      const { nFix: nKrDir, log: krDirLog } = fixKrFlowContradiction(report, _krClaim.text);
+    // 2026-09-23: 종전엔 `if (_krClaim)` 으로 감싸 **claim 이 있을 때만** 불렀다.
+    //   그런데 2026-09-10 에 fixKrFlowContradiction 안에 "claim 이 없으면 regionStances.korea.thesis
+    //   로 떨어진다" 는 폴백을 넣었다. 호출부를 안 고쳐서 그 폴백은 만든 날부터 **죽은 코드**였다.
+    //   오늘 afternoon 회차가 정확히 그 구멍으로 샜다 — 실측 "외국인 794억 순매도" 인데
+    //   thesis 에 "원화 강세가 외국인 자금 유입을 촉진" 을 발간했고, 검출기만 잡아 push 가 막혔다.
+    //   (확인: 같은 보고서에 교정기를 claim 없이 직접 부르니 nFix=1 로 고쳐진다.)
+    //   함수를 고쳤으면 그 앞의 관문도 같이 봐야 한다. 이제 무조건 부르고, 판단은 함수가 한다.
+    {
+      const { nFix: nKrDir, log: krDirLog } = fixKrFlowContradiction(report, _krClaim?.text ?? '');
       if (nKrDir) {
-        console.log(`  [flow-contract] KR 수급 방향모순 교정 ${nKrDir}필드 (${krDirLog.join(',')}) — 실측: ${String(_krClaim.text).slice(0, 50)}`);
-        report._krFlowDirFix = { nFix: nKrDir, log: krDirLog, claim: String(_krClaim.text).slice(0, 80) };
+        const src = _krClaim ? String(_krClaim.text) : String(report?.regionStances?.korea?.thesis ?? '(regionStances 폴백)');
+        console.log(`  [flow-contract] KR 수급 방향모순 교정 ${nKrDir}필드 (${krDirLog.join(',')}) — 실측: ${src.slice(0, 50)}`);
+        report._krFlowDirFix = { nFix: nKrDir, log: krDirLog, claim: src.slice(0, 80) };
       }
     }
     const fixVerbs = (s) => typeof s === 'string'
