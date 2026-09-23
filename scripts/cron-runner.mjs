@@ -506,8 +506,15 @@ async function runSegmentRefresh() {
 //   게다가 회전이 실패 종목에 갇혀 15회 연속 ✓0 ✗6 이었다(segment-rotation 으로 해결).
 //   남은 종목 대부분은 10-K 표 형식이 달라 결정론 파싱에서 실패한다(no-region 10 · no-total-row 11) —
 //   서두를 이유가 없는 점진 백필이므로 매시로 낮춘다. 백오프가 걸리면 대상 0으로 헛돌지 않는다.
-cron.schedule('7 * * * *', runSegmentRefresh, { timezone: TZ });
-log('동적 세그먼트 refresh 등록: 매시 7분 4 ticker rotating (실패 백오프 · 대상 없으면 skip)');
+// 2026-09-23: 매시간 등록을 **끈다.** 27B 를 내리면서 소비처를 훑다가 성적을 처음 재 봤다 —
+//   로그 전체 기준 실행 472회 · 성공 10 · 실패 1,910 (수율 0.5%). 마지막 성공은 2026-09-14 로 9일 전이다.
+//   실패 사유도 LLM 이 아니다: no-region · no-total-row · sum-mismatch 가 대부분으로,
+//   SEC 파일 파싱이 LLM 에 닿기 전에 깨진다(llm-rows-0 는 소수). agy 로 옮겨도 안 낫는다.
+//   그런데 이 잡은 매시간 27B 를 깨워 idle 시간대 최대 소비자였다(seed-translation-memory 머리말이
+//   "segments-refresh 와 상시 경합" 이라고 적어 둔 그 잡이다).
+//   스크립트는 남긴다 — 손으로 돌릴 수 있고, 파서를 고치면 되살리면 된다. 지금은 GPU 만 태운다.
+//   되살리려면 이 주석을 풀어라: cron.schedule('7 * * * *', runSegmentRefresh, { timezone: TZ });
+log('segments-refresh 등록 안 함 — 수율 0.5%(472회 중 10건, 마지막 성공 2026-09-14). 파서부터 고칠 것');
 
 // 2026-06-12: 사라진 유지보수 작업 복원 — 이전 Windows Task Scheduler 의 DART-CorpCodes(02:00)/
 //   DART-Prefetch(03:00)/Tune-Rules(일 04:00) 가 머신 재구성 중 소멸돼 silent 미시행 상태였음

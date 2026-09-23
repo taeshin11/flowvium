@@ -34,7 +34,10 @@ export function reportProvenance({ agyCalls = 0, localCalls = 0, agyModel = null
 
   // agy 가 돌았다는데 모델명이 없으면 **모른다고 적는다.** 그럴듯한 기본값을 넣으면
   //   오늘 고친 고장이 이름만 바꿔 되돌아온다.
-  if (a > 0 && l === 0) return { source: `agy-${am || 'unknown'}`, model: am || 'unknown' };
-  if (a > 0 && l > 0) return { source: `mixed-agy${a}(${am || 'unknown'})+local${l}(${lm})`, model: 'mixed' };
+  // 2026-09-23 (사장님 지시): agy 경유라는 것은 **경로**지 저자가 아니다. 저자는 모델이다.
+  //   그래서 source 에 'agy-' 를 덧붙이지 않고 모델 이름을 그대로 쓴다.
+  //   섞인 회차만 내역이 필요해서 접두사를 남긴다.
+  if (a > 0 && l === 0) return { source: am || 'unknown', model: am || 'unknown' };
+  if (a > 0 && l > 0) return { source: `mixed-${am || 'unknown'}+local${l}(${lm})`, model: 'mixed' };
   return { source: `local-${lm}`, model: lm };
 }

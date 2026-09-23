@@ -106,7 +106,10 @@ cleanup() {
   #   LLM 점검 실패(141·156행)도 같다 — 그건 모델이 이상하다는 뜻이라 더더욱 내려야 한다.
   #   '이미 다른 회차가 돈다' 는 SKIP 경로들(78~90행)은 이 trap 이 걸리기 **전에** 끝나므로
   #   남의 보고서 모델을 내리지 않는다.
-  if [ "${REPORT_LLM_KEEP:-0}" != "1" ]; then
+  # 2026-09-23: agy 로 돌아 :8000 을 아예 안 띄운 회차는 내려놓을 것도 없다.
+  #   그대로 두면 이미 내려간 잡에 unload 를 걸어 매 회차 [WARN] 이 찍힌다 —
+  #   멀쩡한데 우는 경보는 곧 무시당하고, 진짜 실패를 묻는다.
+  if [ "${REPORT_LLM_KEEP:-0}" != "1" ] && [ "${LLM_SKIPPED:-0}" = "0" ]; then
     if launchctl unload "$HOME/Library/LaunchAgents/com.spinai.flowvium-llm.plist" 2>/dev/null; then
       log "[INFO] 보고서 모델(:8000) 내려놓음 — 다음 회차 사전점검이 다시 올린다"
     else
@@ -138,11 +141,27 @@ ETA="$("$NODE_BIN" -e "import('$APP_DIR/scripts/lib/report-eta.mjs').then(m=>con
 #   --pid 로 임자를 남긴다. trap 은 SIGKILL 에 안 걸리고 bash 는 foreground 명령이 끝나야
 #   trap 을 돈다(실측). 해제 신호를 못 보내고 죽어도, 읽는 쪽이 PID 로 죽은 키를 알아본다.
 "$NODE_BIN" "$APP_DIR/scripts/notify-peer.mjs" --event report-start --pid $$ \
-  --detail "$* · 27B 28GB · $ETA" >/dev/null 2>&1 || true
+  --detail "$* · $([ "${REPORT_VIA_AGY:-0}" = "1" ] && echo "agy(원격)" || echo "27B 28GB") · $ETA" >/dev/null 2>&1 || true
 PEER_NOTIFIED=1
 
 # ── 1. LLM 헬스 대기 ───────────────────────────────────────────────────────────
+# 2026-09-23 (사장님 "Qwen 27b 내리고 agy 쓰자"): agy 로 도는 회차는 :8000 이 필요 없다.
+#   그런데 이 관문은 포트가 죽어 있으면 **plist 를 다시 올려서** 28GB 를 적재한다.
+#   그대로 두면 27B 를 내려도 회차마다 되살아난다 — 내린 적이 없는 것과 같다.
+#   그래서 agy 가 실제로 준비됐는지 먼저 본다. 준비됐으면 :8000 관문을 통째로 건너뛴다.
+#   준비 안 됐으면 **종전 경로로 떨어진다** — 보고서를 통째로 잃는 것보다 27B 를 깨우는 게 낫다.
+LLM_SKIPPED=0
+if [ "${REPORT_VIA_AGY:-0}" = "1" ]; then
+  if "$NODE_BIN" -e "import('$APP_DIR/scripts/lib/agy.mjs').then(m=>process.exit(m.agyReady()?0:1)).catch(()=>process.exit(1))" 2>/dev/null; then
+    LLM_SKIPPED=1
+    log "[INFO] agy 준비됨 — 로컬 27B(:8000) 기동/프로브 건너뜀"
+  else
+    log "[WARN] REPORT_VIA_AGY=1 인데 agy 가 준비 안 됨 — 로컬 27B 경로로 간다"
+  fi
+fi
+
 # 1-a. 포트 기동 대기. 이건 *기동* 확인일 뿐 정상 확인이 아니다 — 아래 1-b 가 진짜 판정이다.
+if [ "$LLM_SKIPPED" = "0" ]; then
 log "[INFO] LLM 기동 대기 $LLM_HEALTH (상한 ${LLM_WAIT_S}s)"
 deadline=$(( $(date +%s) + LLM_WAIT_S ))
 repaired=0
@@ -160,6 +179,7 @@ until code=$(curl -s --max-time 8 -o /dev/null -w '%{http_code}' "$LLM_HEALTH" 2
   fi
   sleep 15
 done
+fi   # LLM_SKIPPED
 
 # 1-b. 생성 프로브. 2026-08-31: 여기가 없어서 3일간 보고서가 0건이었다.
 #   mlx_lm.server 는 요청마다 스레드를 띄우므로 08-28 10:44 Metal OOM 으로 생성 워커가
@@ -167,14 +187,15 @@ done
 #   런들은 섹션마다 3600s 를 태우고 빈 문자열을 받아 4시간+ 정지했고, 그동안 파이프라인
 #   락 때문에 video·auto-warm·segments 잡까지 전부 skip 됐다. 서버 재기동 1회로 즉시 복구됐다.
 #   → 게이트가 물어야 할 질문은 "포트가 살아있나" 가 아니라 "토큰이 나오나" 다.
-if [ "${SKIP_LLM_PROBE:-0}" != "1" ]; then
+if [ "${SKIP_LLM_PROBE:-0}" != "1" ] && [ "$LLM_SKIPPED" = "0" ]; then
   log "[INFO] LLM 생성 프로브 (죽어 있으면 1회 재기동)"
   if ! "$NODE_BIN" scripts/llm-health-check.mjs --repair >> "$LOG_FILE" 2>&1; then
     log "[ERROR] LLM 이 토큰을 내놓지 못한다 — 4시간 헛도는 대신 중단 (logs/report.log 의 [llm-health] 참조)"
     exit 1
   fi
 fi
-log "[INFO] LLM 정상 (생성 확인됨)"
+[ "$LLM_SKIPPED" = "0" ] && log "[INFO] LLM 정상 (생성 확인됨)"
+true
 
 # ── 2. 사전점검 (조용한 실패 방지). 종료코드 2 = 치명 → 중단 ──────────────────
 if [ "${SKIP_PREFLIGHT:-0}" != "1" ]; then

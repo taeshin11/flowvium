@@ -29,10 +29,15 @@ import { buildTranslatePrompt } from './lib/translate-prompt.mjs';
 import { isUntranslated } from './lib/lang-detect.mjs';
 import { hasScriptSplice } from './lib/script-splice.mjs';
 import { sanitizeText } from './lib/narrative-fix.mjs';
+import { agyText, agyReady, agyLastWhy } from './lib/agy.mjs';
 
 const REPORT_LANE = process.env.REPORT_LLM_URL || 'http://127.0.0.1:8000/v1';
 const MODEL = process.env.VLLM_MODEL || 'default_model';
-const SOURCE = 'qwen3.8-27b';
+// 2026-09-23 (사장님 "Qwen 27b 내리고 agy 쓰자"): 출처를 상수로 박지 않는다.
+//   오늘 아침 보고서에서 같은 함정을 봤다 — agy 가 다 썼는데 라벨은 Qwen 이었고,
+//   그 칸이 품질 추적의 기준이라 결함이 엉뚱한 모델 앞으로 달렸다. 실제로 쓴 쪽을 적는다.
+const LOCAL_SOURCE = 'qwen3.8-27b';
+const AGY_SOURCE = process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high';
 const arg = (n, d) => (process.argv.find(a => a.startsWith(`--${n}=`)) ?? '').split('=')[1] ?? d;
 const DRY = process.argv.includes('--dry');
 const LOCALES = arg('locales', 'ko').split(',').filter(Boolean);
@@ -48,7 +53,24 @@ const seedTerms = JSON.parse(readFileSync(resolve(ROOT, 'data/translation-seed-t
 // 시드 목록은 그럴 것이라 예상한 것이다. 실측이 예상보다 우선한다.
 const backlog = openBacklog(resolve(ROOT, 'data/flowvium.db'));
 
+/**
+ * agy 로 먼저 시도한다. 27B 를 내렸기 때문이다(2026-09-23).
+ * 실패하면 종전 로컬 경로로 떨어진다 — :8000 이 떠 있으면 살아나고, 없으면 그 건만 실패한다.
+ *   이 잡은 배경 품질개선이라 한 건 실패는 다음 시각에 다시 온다. 조용히 넘어가지만 않으면 된다.
+ */
 async function translate(text, locale) {
+  const prompt = buildTranslatePrompt({ text, langName: LANG_NAME[locale] ?? locale });
+  if (agyReady()) {
+    let out = null;
+    try { out = agyText(prompt, { timeoutMs: Number(process.env.SEED_TIMEOUT_MS) || 300_000 }); }
+    catch (e) { console.log(`  ↩ agy 예외 ${String(e?.message ?? e).slice(0, 60)}`); }
+    if (typeof out === 'string' && out.trim()) return { out: sanitizeText(out.trim(), locale), source: AGY_SOURCE };
+    console.log(`  ↩ agy 실패 → 로컬 27B 로 (${agyLastWhy() ?? '응답 없음'})`);
+  }
+  return { out: await translateLocal(text, locale), source: LOCAL_SOURCE };
+}
+
+async function translateLocal(text, locale) {
   const res = await fetch(`${REPORT_LANE}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -103,13 +125,13 @@ for (const locale of LOCALES) {
     if (backlog.isExhausted(text, locale)) { exhausted++; continue; }
     n++;
     try {
-      const out = await translate(text, locale);
+      const { out, source: usedSource } = await translate(text, locale);
       // 가드 거부는 *결정론적* 이다 — 같은 입력에 같은 결과. 그러므로 소진으로 센다.
       if (isUntranslated(out, locale)) { reject(text, locale, 'untranslated', out); continue; }
       // 음차 중단("케urig 드피퍼")을 사전에 넣으면 깨진 번역이 영구히 박힌다. 27B 도 고유명사에서 낸다.
       if (hasScriptSplice(out, locale)) { reject(text, locale, 'script-splice', out); continue; }
       if (DRY) { console.log(`  (dry) ${text} → ${out}`); continue; }
-      if (tm.remember(text, locale, out, { source: SOURCE })) { added++; backlog.resolve(text, locale); }
+      if (tm.remember(text, locale, out, { source: usedSource })) { added++; backlog.resolve(text, locale); }
       else skipped++;
       console.log(`  ✓ ${locale}  ${text}  →  ${out}`);
     } catch (e) {

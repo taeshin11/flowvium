@@ -21,8 +21,8 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 
 // [2] 이번에 하마터면 낸 사고 — agy/mixed 라벨이 막히면 캐시가 빈다
 {
-  isGeneratedSource('agy-gemini-3.1-pro-high') ? ok('[2] agy 통과') : bad('[2] agy 가 막힌다');
-  isGeneratedSource('mixed-agy12(gemini-3.1-pro-high)+local6(Qwen3.8-27B-8bit)')
+  isGeneratedSource('gemini-3.1-pro-high') ? ok('[2] agy 모델명 통과') : bad('[2] agy 가 막힌다');
+  isGeneratedSource('mixed-gemini-3.1-pro-high+local6(Qwen3.8-27B-8bit)')
     ? ok('[2b] mixed 통과') : bad('[2b] mixed 가 막힌다');
 }
 
@@ -34,7 +34,7 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 
 // [4] 접두사만 있고 모델명이 없으면 막는다 — 'agy-' 는 모른다는 뜻이다
 {
-  !isGeneratedSource('agy-') && !isGeneratedSource('local-')
+  !isGeneratedSource('gemini-') && !isGeneratedSource('local-')
     ? ok('[4] 접두사뿐이면 막힌다') : bad('[4] 빈 모델명이 통과했다');
 }
 
@@ -49,9 +49,12 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   ];
   const out = cases.map((c) => reportProvenance(c).source);
   const blocked = out.filter((s) => !isGeneratedSource(s));
-  blocked.length === 0
-    ? ok(`[5] 생성 라벨 ${out.length}종이 모두 통과 — ${out.map((s) => s.split('(')[0]).join(' · ')}`)
-    : bad(`[5] 막힌 라벨: ${blocked.join(', ')}`);
+  // 'unknown' 은 **일부러** 막는다. agyReportModel() 은 빈 값을 못 내므로 실제로는 안 생기고,
+  //   생겼다면 부르는 쪽 버그다. 저자를 못 대는 보고서를 last-good 으로 붙잡아 두는 것보다
+  //   한 건 캐시에 안 들어가는 편이 싸다. 막힌 목록이 딱 이것뿐인지를 고정한다.
+  JSON.stringify(blocked) === JSON.stringify(['unknown'])
+    ? ok(`[5] 통과 ${out.length - 1}종 · 의도적 차단 1종(unknown) — ${out.filter((s) => s !== 'unknown').map((s) => s.split('+')[0]).join(' · ')}`)
+    : bad(`[5] 막힌 라벨이 예상과 다르다: ${JSON.stringify(blocked)}`);
 }
 
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');

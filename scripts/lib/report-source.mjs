@@ -23,9 +23,13 @@
 export const GENERATED_SOURCE_PREFIXES = [
   'local-',   // 로컬 vLLM/Ollama (종전 유일한 경로)
   'vllm',     // 옛 라벨
-  'agy-',     // 2026-09-23: Antigravity 경유
+  'gemini-',  // 2026-09-23: agy 경유. source 에 경로가 아니라 **모델 이름**을 적는다
   'mixed-',   // 2026-09-23: 한 회차에 agy + 로컬이 섞임
 ];
+
+// ⚠ AGY_TEXT_MODEL 을 gemini 계열이 아닌 것으로 바꾸면 여기도 같이 늘려야 한다.
+//   안 늘리면 그 회차는 last-good 캐시에 못 들어가고, Redis 가 튈 때 generic 이 서빙된다.
+//   model-provenance.test.mjs [6] 이 지금 설정된 모델로 그 짝을 매번 확인한다.
 
 /** 접두사가 없는, 그대로 허용하는 값. */
 export const GENERATED_SOURCE_EXACT = ['cron'];
