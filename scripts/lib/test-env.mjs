@@ -96,22 +96,26 @@ export async function requires(spec) {
   // 2026-09-23: 이 맥에 매인 전제조건. ci.yml 에 lib 스위트를 켜 놓고 **CI 에서 돌려보지 않아서**
   //   10개가 우분투에서 빨간불이 됐다(launchd plist·macOS say·melo venv·뜬 웹서버).
   //   환경·DB 만 선언하게 해 뒀던 것이 부족했다 — 기계 자체에 매인 것도 선언하게 넓힌다.
-  if (spec.macos && process.platform !== 'darwin') missing.push(`platform:darwin(현재 ${process.platform})`);
+  // 2026-09-23: CI 흉내 모드. 이 맥에는 전부 갖춰져 있어서 **로컬에서는 스킵이 안 나고**,
+  //   그래서 CI 에서만 빨간불이 난다. 오늘 그 실수를 두 커밋 연속으로 했다.
+  //   LIB_TEST_AS_CI=1 이면 이 기계에 매인 조건을 **없는 것으로 친다** — 푸시 전에 확인할 수 있게.
+  const asCI = process.env.LIB_TEST_AS_CI === '1';
+  if (spec.macos && (asCI || process.platform !== 'darwin')) missing.push(`platform:darwin(${asCI ? 'CI 흉내' : `현재 ${process.platform}`})`);
 
   for (const label of spec.launchd ?? []) {
     const f = resolve(homedir(), 'Library/LaunchAgents', label.endsWith('.plist') ? label : `${label}.plist`);
-    if (!existsSync(f)) missing.push(`launchd:${label}`);
+    if (asCI || !existsSync(f)) missing.push(`launchd:${label}`);
   }
 
   for (const b of spec.bins ?? []) {
     const abs = b.startsWith('/') || b.startsWith('~');
     const f = abs ? b.replace(/^~/, homedir()) : null;
-    if (f ? !existsSync(f) : !which(b)) missing.push(`bin:${b}`);
+    if (asCI || (f ? !existsSync(f) : !which(b))) missing.push(`bin:${b}`);
   }
 
   for (const f of spec.paths ?? []) {
     const abs = f.startsWith('/') ? f : (f.startsWith('~') ? f.replace(/^~/, homedir()) : resolve(ROOT, f));
-    if (!existsSync(abs)) missing.push(`path:${f}`);
+    if (asCI || !existsSync(abs)) missing.push(`path:${f}`);
   }
 
   if (!missing.length) return;

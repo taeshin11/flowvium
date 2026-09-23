@@ -9,8 +9,8 @@
  * 모르면 모른다고 해야 한다 — plist 를 못 읽었는데 "agy 쓴다" 고 답하면 27B 를 안 올리고
  *   보고서를 통째로 잃는다.
  */
-import { mkdtempSync, writeFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { tmpdir, homedir } from 'os';
 import { join } from 'path';
 import { reportViaAgy } from './report-backend.mjs';
 let fail = 0;
@@ -51,11 +51,20 @@ const E = {};
   rmSync(d, { recursive: true, force: true });
 }
 
-// [6] 실제 이 기계에서 지금 무엇으로 도는가 — 값을 단정하지 않고 **판단이 서는지**만 본다
+// [6] 실제 이 기계에서 지금 무엇으로 도는가 — 값을 단정하지 않고 **판단이 서는지**만 본다.
+//     2026-09-23: 이 단언은 **launchd plist 가 있는 기계에서만** 뜻이 있다. 처음엔 그걸 안 적어
+//       CI(우분투)에서 빨간불이 났다 — 바로 앞 커밋에서 다른 테스트 10개에 고쳐 놓고
+//       새 테스트에서 같은 실수를 했다. 파일 전체를 스킵하지 않고 **이 단언만** 건너뛴다:
+//       위 [1]~[5] 는 순수 로직이라 CI 에서도 돌아야 한다.
 {
-  const v = reportViaAgy();
-  v === null ? bad('[6] 이 기계의 설정을 못 읽는다 — 그러면 아무도 27B 를 내릴 판단을 못 한다')
-    : ok(`[6] 이 기계: 보고서 ${v ? 'agy' : '로컬'}`);
+  const hasAgents = existsSync(join(homedir(), 'Library/LaunchAgents'));
+  if (!hasAgents || process.env.LIB_TEST_AS_CI === '1') {
+    console.log('  SKIP  [6] launchd plist 가 없는 환경 — 이 기계 설정 판정은 건너뛴다');
+  } else {
+    const v = reportViaAgy();
+    v === null ? bad('[6] 이 기계의 설정을 못 읽는다 — 그러면 아무도 27B 를 내릴 판단을 못 한다')
+      : ok(`[6] 이 기계: 보고서 ${v ? 'agy' : '로컬'}`);
+  }
 }
 
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');
