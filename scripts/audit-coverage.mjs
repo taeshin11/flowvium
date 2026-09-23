@@ -190,7 +190,13 @@ const archiveTables = [
   { name: 'endpoint_snapshots',      expected: totalReports * 24, perReport: '24 endpoint' },
   { name: 'news_archive',            expected: totalReports * 5,  perReport: '5+ 뉴스' },
   { name: 'macro_snapshots',         expected: totalReports,      perReport: '1 시점 압축' },
-  { name: 'short_squeeze_archive',   expected: totalReports * 3,  perReport: '3 종목' },
+  // 2026-09-23: 회차당 3개라는 잣대를 버렸다. 2026-09-18 에 **첫 등재만 싣도록** 바꿨기 때문이다
+  //   (generate-report-local.mjs:9043, 실측 근거: 첫 등재 +27.3%p · 30일 초과 -11.0%p).
+  //   같은 종목이 매일 다시 실리지 않으니 회차당 개수는 시간이 갈수록 **반드시** 0 으로 수렴한다.
+  //   옛 잣대로는 정상 동작이 실패로 찍힌다 — 실측 7일 31/108(29%) ❌ 인데, 보고서에 실린 픽은
+  //   27개였고 그게 전부 보관돼 있었다(중복 4행 포함 31). 재야 할 것은 생산량이 아니라 **보관 충실도**다.
+  { name: 'short_squeeze_archive',   expectedFrom: '$.shortSqueeze', distinctBy: 'report_id, ticker',
+    perReport: '보고서에 실린 픽 전부(첫 등재만 싣는 규칙)' },
   { name: 'earnings_archive',        expected: totalReports * 3,  perReport: '3 회사' },
   { name: 'insider_archive',         expected: totalReports * 2,  perReport: '2 신호' },
   { name: 'fg_archive',              expected: totalReports * 10, perReport: '10 국가' },
@@ -206,21 +212,37 @@ for (const at of archiveTables) {
     : cols.includes('evaluated_at') ? 'evaluated_at'
     : null;
   if (!ts) { warn(`${at.name}: timestamp column 없음`); continue; }
-  const actual = db.prepare(`SELECT COUNT(*) c FROM ${at.name} WHERE ${ts} >= datetime('now','-7 days')`).get().c;
-  const ratio = at.expected > 0 ? (actual / at.expected) * 100 : 0;
+  // expectedFrom 이 있으면 기대치를 **보고서 자신**에서 뽑는다(고정 할당량이 규칙과 어긋나는 표).
+  //   중복 행이 비율을 부풀리지 않도록 DISTINCT 로 세고, 중복은 따로 경고한다.
+  // SQLite 의 COUNT(DISTINCT …) 는 인자 하나만 받는다 — 복합키는 서브쿼리로 센다.
+  const cnt = (days, distinct) => db.prepare(distinct
+    ? `SELECT COUNT(*) c FROM (SELECT DISTINCT ${distinct} FROM ${at.name} WHERE ${ts} >= datetime('now','-${days} days'))`
+    : `SELECT COUNT(*) c FROM ${at.name} WHERE ${ts} >= datetime('now','-${days} days')`).get().c;
+  const picks = (days) => db.prepare(
+    `SELECT COALESCE(SUM(json_array_length(json_extract(full_json,'${at.expectedFrom}'))),0) c
+       FROM reports WHERE datetime(generated_at) >= datetime('now','-${days} days') AND full_json IS NOT NULL`).get().c;
+  const expected = at.expectedFrom ? picks(7) : at.expected;
+  const actual = cnt(7, at.distinctBy);
+  if (at.distinctBy) {
+    const dups = cnt(7, null) - actual;
+    if (dups > 0) warn(`${at.name}: 같은 (${at.distinctBy}) 중복 ${dups}행 — 비율에선 뺐다`);
+  }
+  // 기대치가 0 이면 **잴 것이 없는 것**이지 실패가 아니다. 첫 등재 규칙에선 정상적으로 일어난다.
+  if (expected === 0) { ok(`${at.name.padEnd(28)} ${actual}/0 — 이번 창에 실린 픽 없음(규칙상 정상)`); continue; }
+  const ratio = expected > 0 ? (actual / expected) * 100 : 0;
   // 2026-06-05: recency-aware — 7일 비율이 낮아도 최근 2일 적재율이 정상이면 "과거 갭 회복"(자가호스팅
   //   전환 중 fg_archive 05-29~06-02 중단 사건). 회복했는데 7일 윈도우가 과거 갭을 끌고가 false ❌ 방지.
-  const actual2 = db.prepare(`SELECT COUNT(*) c FROM ${at.name} WHERE ${ts} >= datetime('now','-2 days')`).get().c;
-  const expected2 = at.expected * 2 / 7;
+  const actual2 = cnt(2, at.distinctBy);
+  const expected2 = at.expectedFrom ? picks(2) : at.expected * 2 / 7;
   const recovered = expected2 > 0 && (actual2 / expected2) >= 0.6;
   if (ratio >= 80) {
-    ok(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — ${at.perReport}`);
+    ok(`${at.name.padEnd(28)} ${actual}/${expected} (${ratio.toFixed(0)}%) — ${at.perReport}`);
   } else if (ratio >= 30) {
-    warn(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 부분 적재`);
+    warn(`${at.name.padEnd(28)} ${actual}/${expected} (${ratio.toFixed(0)}%) — 부분 적재`);
   } else if (recovered) {
     warn(`${at.name.padEnd(28)} 7일 ${ratio.toFixed(0)}% but 최근2일 ${actual2}/${expected2.toFixed(0)} 정상 — 과거 갭 회복(aging out)`);
   } else {
-    err(`${at.name.padEnd(28)} ${actual}/${at.expected} (${ratio.toFixed(0)}%) — 적재 거의 안 됨`);
+    err(`${at.name.padEnd(28)} ${actual}/${expected} (${ratio.toFixed(0)}%) — 적재 거의 안 됨`);
   }
  } catch (e) { warn(`${at.name}: archive 적재 점검 실패(스키마 drift 의심) — ${String(e?.message).slice(0, 50)}`); }
 }
