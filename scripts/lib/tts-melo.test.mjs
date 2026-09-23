@@ -19,6 +19,10 @@ import { existsSync, rmSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
+
+// 2026-09-23: requires 를 **import 만 하고 부르지 않았다.** 그래서 CI(우분투)에서
+//   melo venv 가 없는데도 그냥 돌아 빨간불이 났다. 가져다 놓고 안 쓰면 없는 것과 같다.
+await requires({ paths: ['~/.flowvium-tools/melo-venv/bin/python'], macos: true });
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);
 const bad = m => { console.log(`  FAIL  ${m}`); fail++; };

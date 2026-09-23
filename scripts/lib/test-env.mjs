@@ -20,8 +20,17 @@
  *   `--strict`(pre-push 훅·수동 실행)에서는 스킵을 실패로 센다. 조용한 스킵을 막는다.
  */
 import { existsSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, delimiter, join } from 'path';
+import { homedir } from 'os';
 import { ROOT } from './project-root.mjs';
+
+/** PATH 에서 실행파일을 찾는다. `which` 를 셸로 부르지 않는다 — 윈도우·제한 환경에서 안 통한다. */
+function which(bin) {
+  for (const dir of String(process.env.PATH ?? '').split(delimiter)) {
+    if (dir && existsSync(join(dir, bin))) return true;
+  }
+  return false;
+}
 
 export const SKIP_CODE = 77;
 
@@ -32,6 +41,10 @@ export const SKIP_CODE = 77;
  *   dbTables?: string[],            // 이 테이블들이 비어 있지 않은가
  *   http?: string[],                // 응답하는 URL (2s 상한)
  *   backup?: boolean,               // 대조할 로컬 백업 스냅샷이 있는가
+ *   macos?: boolean,                // macOS 전용 도구(say·launchctl·vm_stat)가 필요한가
+ *   launchd?: string[],             // ~/Library/LaunchAgents 의 plist 라벨
+ *   bins?: string[],                // PATH 또는 절대경로로 존재해야 하는 실행파일
+ *   paths?: string[],               // 있어야 하는 파일/폴더(절대경로 또는 ROOT 상대)
  * }} spec
  */
 export async function requires(spec) {
@@ -78,6 +91,27 @@ export async function requires(spec) {
       const r = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (!r.ok) missing.push(`http:${url}(${r.status})`);
     } catch { missing.push(`http:${url}(무응답)`); }
+  }
+
+  // 2026-09-23: 이 맥에 매인 전제조건. ci.yml 에 lib 스위트를 켜 놓고 **CI 에서 돌려보지 않아서**
+  //   10개가 우분투에서 빨간불이 됐다(launchd plist·macOS say·melo venv·뜬 웹서버).
+  //   환경·DB 만 선언하게 해 뒀던 것이 부족했다 — 기계 자체에 매인 것도 선언하게 넓힌다.
+  if (spec.macos && process.platform !== 'darwin') missing.push(`platform:darwin(현재 ${process.platform})`);
+
+  for (const label of spec.launchd ?? []) {
+    const f = resolve(homedir(), 'Library/LaunchAgents', label.endsWith('.plist') ? label : `${label}.plist`);
+    if (!existsSync(f)) missing.push(`launchd:${label}`);
+  }
+
+  for (const b of spec.bins ?? []) {
+    const abs = b.startsWith('/') || b.startsWith('~');
+    const f = abs ? b.replace(/^~/, homedir()) : null;
+    if (f ? !existsSync(f) : !which(b)) missing.push(`bin:${b}`);
+  }
+
+  for (const f of spec.paths ?? []) {
+    const abs = f.startsWith('/') ? f : (f.startsWith('~') ? f.replace(/^~/, homedir()) : resolve(ROOT, f));
+    if (!existsSync(abs)) missing.push(`path:${f}`);
   }
 
   if (!missing.length) return;

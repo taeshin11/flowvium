@@ -15,6 +15,14 @@ import { execFileSync } from 'child_process';
 import { homedir } from 'os';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+
+// 2026-09-23: 전제조건을 **스스로 선언한다.** ci.yml 에 lib 스위트를 켜 놓고 CI 에서 돌려보지 않아
+//   이 맥에만 있는 것(launchd plist·macOS say·melo venv·뜬 웹서버)을 요구하는 테스트들이
+//   우분투에서 빨간불이 됐다. 상시 빨간 CI 는 아무도 안 본다 — test-env.mjs 머리말의 교훈 그대로다.
+//   launchd plist 를 읽어 스케줄 드리프트를 본다
+import { requires } from './test-env.mjs';
+await requires({ macos: true, launchd: ['com.spinai.flowvium-report-noon'] });
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);

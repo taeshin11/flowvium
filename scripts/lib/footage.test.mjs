@@ -19,6 +19,14 @@ const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
 
 const M = await import('./footage.mjs');
 
+// 2026-09-23: 전제조건을 **스스로 선언한다.** ci.yml 에 lib 스위트를 켜 놓고 CI 에서 돌려보지 않아
+//   이 맥에만 있는 것(launchd plist·macOS say·melo venv·뜬 웹서버)을 요구하는 테스트들이
+//   우분투에서 빨간불이 됐다. 상시 빨간 CI 는 아무도 안 본다 — test-env.mjs 머리말의 교훈 그대로다.
+//   검색 API 키가 있어야 키를 읽는 경로를 볼 수 있다
+import { requires } from './test-env.mjs';
+await requires({ envFile: true });
+
+
 // ── 1. 라이선스 게이트 ───────────────────────────────────────────────────────
 {
   const allow = ['cc0', 'pdm', 'by', 'by-sa', 'Public domain', 'CC BY 4.0', 'CC BY-SA 3.0'];

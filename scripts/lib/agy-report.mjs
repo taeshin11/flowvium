@@ -24,11 +24,13 @@ export function agyReportModel() {
 export const AGY_MODEL_CHAIN = (process.env.AGY_MODEL_CHAIN
   ? process.env.AGY_MODEL_CHAIN.split(',').map((x) => x.trim()).filter(Boolean)
   : [
-    process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
-    process.env.AGY_FALLBACK_MODEL || 'claude-opus-4-6-thinking',
-    // 3차 (2026-09-23): 27B 를 내리려면 한 단이 더 필요하다. 실측 실패율 —
-    //   gemini 약 8%(오늘 36호출 중 3건), claude 는 내용 대신 작업 보고를 내는 일이 약 1/6.
-    //   둘만으로는 회차당 한 번쯤 로컬로 내려간다. 계열이 또 다른 것을 하나 더 둔다.
+    // 2026-09-23 (사장님 "3단 사슬 중 첫번째를 agy opus 4.6 thinking으로 하자"):
+    //   1차를 claude-opus 로 올렸다. 실측 근거가 있다 — 같은 보고서 프롬프트에서
+    //   claude 16~23초 / gemini 32~51초로 **claude 가 더 빠르고** 서술도 더 촘촘했다.
+    //   claude 의 약점(내용 대신 작업 보고, 약 1/6)은 isMetaReply 가 걸러 다음 단으로 넘긴다.
+    process.env.AGY_TEXT_MODEL || 'claude-opus-4-6-thinking',
+    process.env.AGY_FALLBACK_MODEL || 'gemini-3.1-pro-high',
+    // 3차: 27B 를 내렸으니 한 단이 더 필요하다. 계열이 또 달라 같은 이유로 같이 실패하지 않는다.
     process.env.AGY_LAST_MODEL || 'gpt-oss-120b-medium',
   ]);
 

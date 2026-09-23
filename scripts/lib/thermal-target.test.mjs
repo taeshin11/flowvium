@@ -11,6 +11,14 @@ import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+
+// 2026-09-23: 전제조건을 **스스로 선언한다.** ci.yml 에 lib 스위트를 켜 놓고 CI 에서 돌려보지 않아
+//   이 맥에만 있는 것(launchd plist·macOS say·melo venv·뜬 웹서버)을 요구하는 테스트들이
+//   우분투에서 빨간불이 됐다. 상시 빨간 CI 는 아무도 안 본다 — test-env.mjs 머리말의 교훈 그대로다.
+//   plist 가 있어야 대상 경로를 대조한다
+import { requires } from './test-env.mjs';
+await requires({ macos: true, launchd: ['com.spinai.thermal-governor'] });
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 let fail = 0;
 const ok  = m => console.log(`  PASS  ${m}`);

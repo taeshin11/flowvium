@@ -25,22 +25,29 @@ const envelope = (obj) => JSON.stringify({ status: 'SUCCESS', structured_output:
 
 // [1] 모델 사슬이 **계열이 다른** 두 모델이다 — 같은 계열이면 같은 이유로 같이 실패한다
 {
-  AGY_MODEL_CHAIN.length >= 2 && /gemini/.test(AGY_MODEL_CHAIN[0]) && /claude/.test(AGY_MODEL_CHAIN[1])
-    ? ok(`[1] 사슬: ${AGY_MODEL_CHAIN.join(' → ')}`) : bad(`[1] ${JSON.stringify(AGY_MODEL_CHAIN)}`);
+  // 2026-09-23: 처음엔 순서를 고정했다(gemini 먼저). 1차를 claude 로 바꾸자 깨졌는데,
+  //   깨져야 할 이유가 없다 — 순서는 실측으로 바뀔 수 있는 선택이고, 지켜야 할 것은
+  //   **계열이 서로 다르다**는 성질이다. 같은 계열을 늘어놓으면 같은 이유로 같이 실패한다.
+  const family = (m) => String(m).split('-')[0];
+  const fams = new Set(AGY_MODEL_CHAIN.map(family));
+  AGY_MODEL_CHAIN.length >= 2 && fams.size === AGY_MODEL_CHAIN.length
+    ? ok(`[1] 사슬 ${AGY_MODEL_CHAIN.length}단이 모두 다른 계열: ${AGY_MODEL_CHAIN.join(' → ')}`)
+    : bad(`[1] 계열이 겹친다: ${JSON.stringify(AGY_MODEL_CHAIN)}`);
 }
 
 // [2] 1차가 실패하면 2차로 간다
 {
   resetAgyModelUsage();
   const seen = [];
+  // 순서에 기대지 않는다 — **사슬의 1차**를 실패시키고 2차가 받는지만 본다.
   const impl = async (args) => {
     const m = args[args.indexOf('--model') + 1];
     seen.push(m);
-    if (/gemini/.test(m)) return { stdout: '쓰레기 — JSON 아님', stderr: '' };
+    if (m === AGY_MODEL_CHAIN[0]) return { stdout: '쓰레기 — JSON 아님', stderr: '' };
     return { stdout: envelope({ thesis: 'ok' }), stderr: '' };
   };
   const out = await agyReport('테스트', { label: 't', agyImpl: impl });
-  out && seen.length === 2 && /claude/.test(seen[1])
+  out && seen.length === 2 && seen[1] === AGY_MODEL_CHAIN[1]
     ? ok(`[2] 1차 실패 → 2차(${seen[1]})가 받는다`) : bad(`[2] out=${!!out} seen=${JSON.stringify(seen)}`);
 }
 
@@ -57,14 +64,12 @@ const envelope = (obj) => JSON.stringify({ status: 'SUCCESS', structured_output:
   resetAgyModelUsage();
   const impl = async (args) => {
     const m = args[args.indexOf('--model') + 1];
-    return /gemini/.test(m) ? { stdout: '깨짐', stderr: '' } : { stdout: envelope({ a: 1 }), stderr: '' };
+    return m === AGY_MODEL_CHAIN[0] ? { stdout: '깨짐', stderr: '' } : { stdout: envelope({ a: 1 }), stderr: '' };
   };
-  await agyReport('x', { label: 'a', agyImpl: impl });
-  await agyReport('y', { label: 'b', agyImpl: async () => ({ stdout: envelope({ a: 1 }), stderr: '' }) });
+  await agyReport('x', { label: 'a', agyImpl: impl });                                        // 2차가 받는다
+  await agyReport('y', { label: 'b', agyImpl: async () => ({ stdout: envelope({ a: 1 }), stderr: '' }) }); // 1차가 받는다
   const u = agyModelUsage();
-  const claude = [...u].find(([m]) => /claude/.test(m))?.[1] ?? 0;
-  const gem = [...u].find(([m]) => /gemini/.test(m))?.[1] ?? 0;
-  claude === 1 && gem === 1
+  (u.get(AGY_MODEL_CHAIN[0]) ?? 0) === 1 && (u.get(AGY_MODEL_CHAIN[1]) ?? 0) === 1
     ? ok(`[4] 모델별 성공 횟수를 센다 (${[...u].map(([m, c]) => `${m.split('-')[0]}:${c}`).join(' ')})`)
     : bad(`[4] ${JSON.stringify([...u])}`);
 }
@@ -161,13 +166,13 @@ const envelope = (obj) => JSON.stringify({ status: 'SUCCESS', structured_output:
   resetAgyModelUsage();
   const impl = async (args) => {
     const m = args[args.indexOf('--model') + 1];
-    return /gemini/.test(m)
+    return m === AGY_MODEL_CHAIN[0]
       ? { stdout: envelope({ why: 'Provided the requested summary as a JSON object.' }), stderr: '' }
       : { stdout: envelope({ why: '코스피가 0.6% 올라 7,052로 마감했습니다.' }), stderr: '' };
   };
   const out = await agyReport('오늘 시장을 한국어 한 문장으로 써라', { label: 't', agyImpl: impl });
   const u = agyModelUsage();
-  out && /코스피/.test(out) && !u.has('gemini-3.1-pro-high')
+  out && /코스피/.test(out) && !u.has(AGY_MODEL_CHAIN[0])
     ? ok('[11] 작업 보고를 낸 모델은 실패로 세고 다음 모델이 받는다')
     : bad(`[11] out=${String(out).slice(0, 60)} 사용=${JSON.stringify([...u])}`);
 }
