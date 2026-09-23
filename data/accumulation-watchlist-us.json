@@ -1,79 +1,45 @@
 {
-  "generatedAt": "2026-09-22T22:03:33.948Z",
+  "generatedAt": "2026-09-23T13:00:48.249Z",
   "universe": "US",
   "scanned": 330,
-  "count": 11,
+  "count": 16,
   "strongCount": 2,
-  "watchCount": 9,
+  "watchCount": 14,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "MG",
       "name": "Mistras Group Inc",
       "tier": "strong",
-      "score": 55,
+      "score": 52,
       "coFire": 4,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 5.0× 급증(가격 평탄)",
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 4.5× 급증(가격 평탄)",
         "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 9.3,
-      "runup5dPct": 6.2,
-      "medDollarVolUsd": 3301485,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KELYB",
-      "name": "Kelly Services, Inc.",
-      "tier": "strong",
-      "score": 37,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 34.6× 상승(지속 매집)",
-        "거래량 21.3× 급증(가격 평탄)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -3.8,
-      "runup5dPct": 0.5,
-      "medDollarVolUsd": 16212,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "DSP",
-      "name": "Viant Technology Inc.",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 5.0× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 4.9,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 2741369,
+      "runup20dPct": 10.7,
+      "runup5dPct": 7.5,
+      "medDollarVolUsd": 3283290,
       "smartAccum": false,
       "official": null
     },
     {
       "ticker": "SOHU",
       "name": "Sohu.com Limited",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
+      "tier": "strong",
+      "score": 38,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.9× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축"
       ],
-      "runup20dPct": -8.9,
-      "runup5dPct": -4,
-      "medDollarVolUsd": 688828,
+      "runup20dPct": -10.1,
+      "runup5dPct": -6.4,
+      "medDollarVolUsd": 668684,
       "smartAccum": false,
       "official": null
     },
@@ -88,26 +54,25 @@
         "종가 일중 상단 80%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -2,
-      "runup5dPct": -1.5,
-      "medDollarVolUsd": 6619320,
+      "runup20dPct": 4,
+      "runup5dPct": 6.2,
+      "medDollarVolUsd": 6546388,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "RGR",
-      "name": "Sturm, Ruger & Company, Inc.",
+      "ticker": "DSP",
+      "name": "Viant Technology Inc.",
       "tier": "watch",
-      "score": 31,
+      "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": 12.7,
-      "medDollarVolUsd": 4228835,
+      "runup20dPct": 1.7,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 2684737,
       "smartAccum": false,
       "official": null
     },
@@ -118,29 +83,62 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 4.7× 급증(가격 평탄)"
+        "거래량 추세 3.5× 상승(지속 매집)",
+        "거래량 4.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": 0.1,
-      "runup5dPct": 5.8,
-      "medDollarVolUsd": 5819418,
+      "runup20dPct": -1.6,
+      "runup5dPct": 2.9,
+      "medDollarVolUsd": 5816640,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NAT",
-      "name": "Nordic American Tankers Limited",
+      "ticker": "KELYB",
+      "name": "Kelly Services, Inc.",
       "tier": "watch",
-      "score": 23,
+      "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 30.6× 상승(지속 매집)",
+        "거래량 38.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": 9.4,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 24415829,
+      "runup20dPct": -3.5,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 14370,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CTKB",
+      "name": "Cytek Biosciences, Inc.",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 9.8,
+      "runup5dPct": 9.3,
+      "medDollarVolUsd": 4003680,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MCS",
+      "name": "Marcus Corporation (The)",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -6.1,
+      "runup5dPct": 0.5,
+      "medDollarVolUsd": 5827464,
       "smartAccum": false,
       "official": null
     },
@@ -152,11 +150,43 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.3,
-      "runup5dPct": -0.7,
-      "medDollarVolUsd": 3182565,
+      "runup20dPct": -0.7,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 3095350,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MQY",
+      "name": "Blackrock MuniYield Quality Fun",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.4,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 4539184,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ACP",
+      "name": "Aberdeen Income Credit Strategi",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -7.7,
+      "runup5dPct": 2.8,
+      "medDollarVolUsd": 2297396,
       "smartAccum": false,
       "official": null
     },
@@ -167,12 +197,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": 3.3,
-      "runup5dPct": -1,
-      "medDollarVolUsd": 346840,
+      "runup20dPct": -1.1,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 345030,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "APOG",
+      "name": "Apogee Enterprises, Inc.",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -11.1,
+      "runup5dPct": -0.5,
+      "medDollarVolUsd": 8018775,
       "smartAccum": false,
       "official": null
     },
@@ -183,12 +229,44 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 3.1× 급증(가격 평탄)"
+        "거래량 추세 1.9× 상승",
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": 1.1,
-      "runup5dPct": 0.6,
+      "runup20dPct": -3.9,
+      "runup5dPct": -3.4,
       "medDollarVolUsd": 924350,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PSTL",
+      "name": "Postal Realty Trust, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 3.1,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 6739805,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "RGR",
+      "name": "Sturm, Ruger & Company, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 6.3,
+      "runup5dPct": 10.3,
+      "medDollarVolUsd": 4209579,
       "smartAccum": false,
       "official": null
     }
