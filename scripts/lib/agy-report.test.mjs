@@ -12,10 +12,10 @@ async function runTests() {
   // [1] structured_output 이 오면 그것을 쓴다
   let calledPrompt = '';
   const impl1 = async (args) => {
-    // 왜: 프롬프트에 금지 문구가 포함되었는지 확인하기 위해 파일 내용을 읽음
-    const tmpDirIndex = args.indexOf('--add-dir') + 1;
-    const promptContent = await fs.readFile(path.join(args[tmpDirIndex], 'prompt.md'), 'utf8');
-    calledPrompt = promptContent;
+    // 2026-09-23: 종전엔 prompt.md 를 읽어서 확인했다. 이제 짧은 프롬프트는 **파일을 만들지 않고**
+    //   -p 로 직접 준다(claude-opus 가 "파일을 읽어라" 를 작업으로 받아 완료 보고를 쓰는 문제 때문).
+    //   확인할 곳이 파일에서 인자로 옮겨졌을 뿐, 물어보는 것은 같다.
+    calledPrompt = args[args.indexOf('-p') + 1];
 
     return {
       stdout: JSON.stringify({
@@ -29,7 +29,7 @@ async function runTests() {
 
   // [5] 프롬프트에 터미널 명령 금지 문구가 들어간다
   calledPrompt.includes('어떤 터미널 명령도 실행하지 마라') && calledPrompt.includes('hello')
-    ? ok('[5] 프롬프트에 금지 문구가 들어감') : bad(`[5] 프롬프트: ${calledPrompt.slice(0, 50)}...`);
+    ? ok('[5] -p 인자에 금지 문구와 본문이 함께 들어감') : bad(`[5] 프롬프트: ${calledPrompt.slice(0, 80)}...`);
 
   // [2] response 에 ```json 으로 감싸 오면 본체만 꺼낸다
   const impl2 = async () => ({

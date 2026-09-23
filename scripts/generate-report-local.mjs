@@ -43,7 +43,7 @@ import { peakRiskAction } from './lib/peak-risk-action.mjs';
 import { reconcileReportIndexLevels } from './lib/index-level-check.mjs';
 import { canonicalTermGlossary } from './lib/narrative-fix.mjs';
 import { sameCompany } from './lib/sec-name-clean.mjs';
-import { agyReport, agyReportModel } from './lib/agy-report.mjs';
+import { agyReport, agyReportModel, agyModelUsage } from './lib/agy-report.mjs';
 import { reportProvenance } from './lib/model-provenance.mjs';
 import { isGeneratedSource } from './lib/report-source.mjs';
 setGlobalDispatcher(new Agent({
@@ -8406,8 +8406,14 @@ async function generateViaOllama() {
     // 2026-09-23: 종전엔 `local-${runtimeModel ?? modelArg}` 였다. agy 로만 돈 회차는 runtimeModel 이
     //   null 이라 기본 인자(Qwen)가 그대로 적혔다 — 실측 9/23 noon: agy 18건·로컬 0건인데 'local-Qwen…'.
     //   센 값으로 고른다. 섞인 회차는 한쪽에 달지 않는다(model='mixed').
+    // 2026-09-23: agy 가 **사슬**이 됐다(gemini → claude). 어느 모델이 실제로 썼는지는
+    //   회차마다 다르다. 설정값(agyReportModel)이 아니라 **센 값**으로 라벨을 만든다 —
+    //   오늘 아침 고친 것과 같은 함정이다. 두 모델이 섞이면 많이 쓴 순으로 이어 붙인다.
     ...reportProvenance({ agyCalls: agyCallCount, localCalls: localCallCount,
-      agyModel: agyCallCount ? agyReportModel() : null, localModel: runtimeModel ?? modelArg }),
+      agyModel: agyCallCount
+        ? ([...agyModelUsage()].sort((a, b) => b[1] - a[1]).map(([m]) => m).join('+') || agyReportModel())
+        : null,
+      localModel: runtimeModel ?? modelArg }),
     locale: localeArg,
     session,
     schemaVersion: 8,

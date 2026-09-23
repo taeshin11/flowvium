@@ -54,12 +54,18 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 //     AGY_TEXT_MODEL 을 다른 계열로 바꾸고 report-source.mjs 를 안 늘리면
 //     그 회차는 last-good 캐시에 못 들어가고 Redis 가 튈 때 generic 이 서빙된다.
 {
-  const { agyReportModel } = await import('./agy-report.mjs');
+  // 2026-09-23: 처음엔 1차 모델만 봤다. agy 가 사슬(gemini → claude)이 된 뒤로는
+  //   2차가 쓴 회차의 라벨이 'claude-…' 가 되는데, 그게 막히면 그 회차만 조용히 캐시에서 빠진다.
+  //   **사슬 전체**와 섞인 경우까지 본다.
+  const { AGY_MODEL_CHAIN } = await import('./agy-report.mjs');
   const { isGeneratedSource } = await import('./report-source.mjs');
-  const src = reportProvenance({ agyCalls: 1, localCalls: 0, agyModel: agyReportModel(), localModel: 'x' }).source;
-  isGeneratedSource(src)
-    ? ok(`[6] 설정된 모델이 허용 판정을 통과 — ${src}`)
-    : bad(`[6] ${src} 가 막힌다 — report-source.mjs 의 허용목록을 늘려라`);
+  const labels = [...AGY_MODEL_CHAIN, AGY_MODEL_CHAIN.join('+')];
+  const blocked = labels
+    .map((m) => reportProvenance({ agyCalls: 1, localCalls: 0, agyModel: m, localModel: 'x' }).source)
+    .filter((src) => !isGeneratedSource(src));
+  blocked.length === 0
+    ? ok(`[6] 사슬 ${labels.length}종이 모두 허용 판정을 통과 — ${AGY_MODEL_CHAIN.join(' → ')}`)
+    : bad(`[6] 막힌 라벨: ${blocked.join(', ')} — report-source.mjs 의 허용목록을 늘려라`);
 }
 
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');

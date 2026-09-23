@@ -24,10 +24,12 @@ export const GENERATED_SOURCE_PREFIXES = [
   'local-',   // 로컬 vLLM/Ollama (종전 유일한 경로)
   'vllm',     // 옛 라벨
   'gemini-',  // 2026-09-23: agy 경유. source 에 경로가 아니라 **모델 이름**을 적는다
+  'claude-',  // 2026-09-23: agy 사슬의 2차. gemini 가 못 내놓으면 여기가 받는다
+  'gpt-',     // 2026-09-23: agy 사슬의 3차. 계열이 또 달라 같은 이유로 같이 실패하지 않는다
   'mixed-',   // 2026-09-23: 한 회차에 agy + 로컬이 섞임
 ];
 
-// ⚠ AGY_TEXT_MODEL 을 gemini 계열이 아닌 것으로 바꾸면 여기도 같이 늘려야 한다.
+// ⚠ AGY_TEXT_MODEL / AGY_FALLBACK_MODEL 을 다른 계열로 바꾸면 여기도 같이 늘려야 한다.
 //   안 늘리면 그 회차는 last-good 캐시에 못 들어가고, Redis 가 튈 때 generic 이 서빙된다.
 //   model-provenance.test.mjs [6] 이 지금 설정된 모델로 그 짝을 매번 확인한다.
 
