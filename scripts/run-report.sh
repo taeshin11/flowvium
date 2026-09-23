@@ -151,12 +151,31 @@ PEER_NOTIFIED=1
 #   그래서 agy 가 실제로 준비됐는지 먼저 본다. 준비됐으면 :8000 관문을 통째로 건너뛴다.
 #   준비 안 됐으면 **종전 경로로 떨어진다** — 보고서를 통째로 잃는 것보다 27B 를 깨우는 게 낫다.
 LLM_SKIPPED=0
-if [ "${REPORT_VIA_AGY:-0}" = "1" ]; then
+# 2026-09-23: 테스트용 탈출구. run-report-selfcopy.test.mjs 는 **진짜 이 스크립트를 돌린다**
+#   (사본으로 갈아타도 APP_DIR 을 제대로 찾는지 보려면 그래야 한다). 그런데 1-a 관문이
+#   포트 무응답을 보고 llm-health-check --repair 를 부르고, 그게 `launchctl load -w` 라
+#   **disable 플래그까지 지우고 28GB 를 올렸다.** 푸시할 때마다(pre-push 훅) 그랬다.
+#   그 테스트는 이미 REPORT_LLM_KEEP 으로 '내려놓기' 는 막아 뒀는데 '올리기' 는 못 막고 있었다.
+#   SKIP_PREFLIGHT·SKIP_INGEST 와 같은 결의 탈출구를 하나 더 둔다. 테스트가 운영을 건드리면 안 된다.
+if [ "${SKIP_LLM_GATE:-0}" = "1" ]; then
+  LLM_SKIPPED=1
+  log "[INFO] LLM 관문 건너뜀 (SKIP_LLM_GATE=1 — 테스트용)"
+elif [ "${REPORT_VIA_AGY:-0}" = "1" ]; then
   if "$NODE_BIN" -e "import('$APP_DIR/scripts/lib/agy.mjs').then(m=>process.exit(m.agyReady()?0:1)).catch(()=>process.exit(1))" 2>/dev/null; then
     LLM_SKIPPED=1
     log "[INFO] agy 준비됨 — 로컬 27B(:8000) 기동/프로브 건너뜀"
   else
-    log "[WARN] REPORT_VIA_AGY=1 인데 agy 가 준비 안 됨 — 로컬 27B 경로로 간다"
+    # 2026-09-23: 27B 는 `launchctl disable` 로 막아 뒀다(사장님 "27B 안올리고 agy claude opus 로").
+    #   그 상태에서 옛 경로로 가면 bootstrap 이 거부되고, 그래도 900초를 기다린 뒤에야 죽는다 —
+    #   회차 하나를 15분 태우고 잃는 셈이다. 막혀 있으면 **기다리지 않고 바로 말한다.**
+    if ! launchctl print-disabled "gui/$(id -u)" 2>/dev/null | grep -q '"com.spinai.flowvium-llm" => *\(true\|disabled\)'; then
+      log "[WARN] REPORT_VIA_AGY=1 인데 agy 가 준비 안 됨 — 로컬 27B 경로로 간다"
+    else
+      log "[FATAL] agy 가 준비 안 됐고 로컬 27B 는 disable 돼 있다 — 이 회차는 만들 수 없다."
+      log "        되살리려면: launchctl enable gui/\$(id -u)/com.spinai.flowvium-llm"
+      log "        agy 부터 확인: node -e \"import('./scripts/lib/agy.mjs').then(m=>console.log(m.agyReady(), m.agyBin()))\""
+      exit 3
+    fi
   fi
 fi
 
