@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-22T22:20:25.013Z",
+  "generatedAt": "2026-09-23T07:20:29.480Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -15,11 +15,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)",
+        "거래량 2.6× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 3.8,
-      "runup5dPct": 8.6,
+      "runup20dPct": 5.1,
+      "runup5dPct": 4.6,
       "medDollarVolUsd": 5531378,
       "smartAccum": true,
       "official": null
@@ -31,30 +31,13 @@
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -0.8,
-      "runup5dPct": 7.4,
+      "runup20dPct": -2.1,
+      "runup5dPct": 7.3,
       "medDollarVolUsd": 263805,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "115180.KQ",
-      "name": "큐리언트",
-      "tier": "watch",
-      "score": 26,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -10.2,
-      "runup5dPct": 3,
-      "medDollarVolUsd": 2200086,
       "smartAccum": true,
       "official": null
     }
