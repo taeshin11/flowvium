@@ -20,6 +20,7 @@ import type { CtxForPrompts, CritiqueInput, RiskMgmtInput, CompanyChangesInput, 
 import { logPortfolioPredictions, getRetrospectiveForS2, getRetrospectiveForS7 } from '@/lib/portfolio-retrospective';
 import { executeReportTrades } from '@/lib/paper-trading';
 import { FG, VIX, SPREADS, PORTFOLIO } from '@/lib/thresholds';
+import { isGeneratedSource } from '../../../../scripts/lib/report-source.mjs';
 export const dynamic = 'force-dynamic';
 
 const ERROR_LOG_KEY = 'flowvium:error-log:recent';
@@ -66,7 +67,11 @@ const LAST_GOOD = new Map<string, { data: any; expiresAt: number }>();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rememberGood(locale: string, data: any) {
   const src = String((data && data.source) || '');
-  if (data && (src.startsWith('local-') || src.startsWith('vllm') || src === 'cron')) {
+  // 2026-09-23: 종전엔 여기서 직접 startsWith('local-') 를 물었다. 보고서를 agy 로 돌리면서
+  //   라벨이 'agy-…' 가 되자 이 관문이 agy 회차를 전부 걸렀다 — 그러면 Upstash 가 튈 때
+  //   generic(중립·분산ETF)이 서빙된다. 2026-06-13 사용자 신고와 같은 증상이다.
+  //   판정을 scripts/lib/report-source.mjs 한 곳으로 모았다(news-cascade 가 쓰는 방식과 동일).
+  if (data && isGeneratedSource(src)) {
     LAST_GOOD.set(locale, { data, expiresAt: Date.now() + 8 * 60 * 60 * 1000 }); // 8h — stale-good ≫ generic
   }
 }

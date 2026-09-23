@@ -27,6 +27,21 @@ jobs:
       - name: TypeScript (noEmit)
         run: npx tsc --noEmit
 
+      # ── lib 회귀 스위트 ────────────────────────────────────────────────
+      # 2026-08-22 신설. 이 저장소의 회귀 방지 테스트가 여기서 한 번도 안 돌고 있었다(당시 92개, 2026-08-22 기준 110개).
+      #   로컬 pre-push 훅에만 걸려 있었는데, cron 산출물 자동 커밋 푸시는 그 훅을 타지 않는다.
+      #   run-lib-tests.mjs 가 스스로 적어 둔 교훈("테스트가 있어도 안 돌면 없는 것과 같다")이
+      #   한 단계 위에서 그대로 반복되고 있었다.
+      #   .env.local·라이브 LLM·데이터가 든 DB 가 필요한 7개는 스스로 스킵한다(test-env.mjs).
+      #   스킵은 이유와 함께 로그에 남으므로 조용히 넘어가지 않는다.
+      - name: Init DB schema (빈 스키마 — 데이터 필요한 테스트는 스스로 스킵)
+        run: |
+          mkdir -p data reports/verify logs
+          node -e "import('./scripts/lib/db.mjs').then(m => { const db = m.openDb(); db.close(); console.log('schema ok'); })"
+
+      - name: lib 회귀 스위트
+        run: node scripts/run-lib-tests.mjs
+
       # ── Pattern audits — catch known recurring bug classes ──────────────
       - name: Audit — no direct redis.set() in API routes
         run: |

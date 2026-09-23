@@ -43,7 +43,9 @@ import { peakRiskAction } from './lib/peak-risk-action.mjs';
 import { reconcileReportIndexLevels } from './lib/index-level-check.mjs';
 import { canonicalTermGlossary } from './lib/narrative-fix.mjs';
 import { sameCompany } from './lib/sec-name-clean.mjs';
-import { agyReport } from './lib/agy-report.mjs';
+import { agyReport, agyReportModel } from './lib/agy-report.mjs';
+import { reportProvenance } from './lib/model-provenance.mjs';
+import { isGeneratedSource } from './lib/report-source.mjs';
 setGlobalDispatcher(new Agent({
   headersTimeout: 0,          // 0 = 무제한. 큐 대기 중 헤더 미도착 허용
   bodyTimeout: 0,             // 0 = 무제한. 토큰 간 공백(온도 조절기 정지 포함) 허용
@@ -130,6 +132,11 @@ const modelArg = args.find(a => a.startsWith('--model='))?.split('=')[1] ?? reso
 //   vLLM 이 30B 를 qwen3:8b/flowvium-local 별칭으로도 서빙해서, modelArg(기본 qwen3:8b)로 라벨하면
 //   "8b 로 만든 것처럼" 오표기됨. callVLLM 이 /v1/models root 를 해석해 진짜 모델명으로 채움.
 let runtimeModel = null;    // 예: 'Qwen3-30B-A3B-Instruct-2507-AWQ'
+// 2026-09-23: 보고서 저자 라벨의 근거. runtimeModel 은 callVLLMOnce 안에서만 채워져서,
+//   agy 로만 돌린 회차는 null 로 남고 기본 인자(Qwen)가 적혔다 — 한 글자도 안 쓴 모델 이름이.
+//   그래서 '누가 몇 번 썼나' 를 센다. 추정하지 않는다.
+let agyCallCount = 0;
+let localCallCount = 0;
 let runtimeBackend = null;  // 'vllm' | 'ollama'
 const uploadArg = args.find(a => a.startsWith('--upload='))?.split('=')[1];
 const autoUpload = args.includes('--auto-upload');
@@ -1228,10 +1235,12 @@ async function verifyUploadSource(locale) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const source = data?.source ?? 'missing';
-    if (typeof source === 'string' && source.startsWith('local-')) {
+    // 2026-09-23: startsWith('local-') 였다. agy 로 돌린 회차는 source 가 'agy-…' 라서
+    //   매번 "Source mismatch" 로 경고했다 — 멀쩡한데 우는 경보는 곧 무시당한다.
+    if (isGeneratedSource(source)) {
       console.log(`[UPLOAD VERIFY] ✓ Redis key confirmed, source=${source}`);
     } else {
-      console.warn(`[UPLOAD VERIFY] ⚠ Source mismatch: expected local-*, got ${source}`);
+      console.warn(`[UPLOAD VERIFY] ⚠ Source mismatch: 생성 라벨이 아니다 — got ${source}`);
     }
   } catch (err) {
     console.warn('[UPLOAD VERIFY] ⚠ Could not verify upload: ' + err.message);
@@ -1380,6 +1389,7 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = 
     const t0Agy = Date.now();
     const agyRes = await agyReport(prompt, { label, schema, timeoutMs });
     if (agyRes) {
+      agyCallCount++;
       console.log(`[agy:${label}] ${((Date.now() - t0Agy) / 1000).toFixed(1)}초`);
       return agyRes;
     }
@@ -1387,7 +1397,7 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = 
   }
 
   const vllmText = await callVLLM(prompt, timeoutMs, label, numPredict, schema);
-  if (vllmText) return vllmText;
+  if (vllmText) { localCallCount++; return vllmText; }
 
   // 2. Ollama 로컬 (레거시 폴백 — vLLM 이전 후엔 VLLM_URL 설정 시 미사용)
   const t0 = Date.now();
@@ -8385,8 +8395,11 @@ async function generateViaOllama() {
     generatedAt: now,
     dataAsOf: now,
     // 실제 생성 모델 라벨 (별칭/기본인자 아님). vLLM 사용 시 해석된 진짜 모델명, 아니면 modelArg.
-    source: `local-${runtimeModel ?? modelArg}`,
-    model: runtimeModel ?? modelArg,   // 2026-06-17: per-model 결함률 추적용 정밀 모델 컬럼(prefix 없는 순수 모델명)
+    // 2026-09-23: 종전엔 `local-${runtimeModel ?? modelArg}` 였다. agy 로만 돈 회차는 runtimeModel 이
+    //   null 이라 기본 인자(Qwen)가 그대로 적혔다 — 실측 9/23 noon: agy 18건·로컬 0건인데 'local-Qwen…'.
+    //   센 값으로 고른다. 섞인 회차는 한쪽에 달지 않는다(model='mixed').
+    ...reportProvenance({ agyCalls: agyCallCount, localCalls: localCallCount,
+      agyModel: agyCallCount ? agyReportModel() : null, localModel: runtimeModel ?? modelArg }),
     locale: localeArg,
     session,
     schemaVersion: 8,

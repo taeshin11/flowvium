@@ -6,6 +6,12 @@ import util from 'util';
 
 const execFileAsync = util.promisify(execFile);
 
+// 왜: 보고서에 저자를 적으려면 **실제로 넘긴 모델명**이 필요하다. 기본값을 두 군데 적어 두면
+//   한쪽만 바뀌어 라벨이 조용히 틀어진다(2026-09-23 실측 고장이 정확히 그 모양이었다).
+export function agyReportModel() {
+  return process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high';
+}
+
 // 왜: 환경변수 REPORT_VIA_AGY=1 일 때 agy를 통해 프롬프트를 처리하기 위함
 export async function agyReport(prompt, { label, schema, timeoutMs, agyImpl } = {}) {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agy-report-'));
@@ -21,7 +27,7 @@ export async function agyReport(prompt, { label, schema, timeoutMs, agyImpl } = 
       '--sandbox', // 왜: dangerously-skip-permissions 금지, 샌드박스에서 안전하게 실행
       // ⚠ 이것이 없으면 agy 가 산문으로 답한다. JSON 봉투(structured_output/response)를 받으려면 필수다.
       '--output-format', 'json',
-      '--model', process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+      '--model', agyReportModel(),
       '--add-dir', tmpDir
     ];
 
