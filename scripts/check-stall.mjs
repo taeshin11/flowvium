@@ -36,6 +36,7 @@ import { analyzeCorrectors } from './lib/corrector-drift.mjs';
 const PUBLISH_GRACE_MIN = 10;
 import { readLauncherModels } from './lib/report-launcher.mjs';
 
+import { reportViaAgy } from './lib/report-backend.mjs';
 const ROOT = _PROJECT_ROOT;
 const STALE_H = 11;   // 보고서 최대 허용 age (8h cadence + grace)
 const VERIFY_STALE_H = 13;
@@ -168,6 +169,14 @@ async function checkOnce() {
     //   3일간 침묵한 감시와 같은 종류의 실패다(사람이 곧 무시하게 된다).
     //   그래서 보고서가 도는 중이면 아예 쏘지 않는다 — 쏴봐야 결과가 정해져 있고, GPU 큐만 늘린다.
     //   판정은 report-running.findReportProcesses 를 그대로 쓴다(이 파일이 이미 [1] 에서 쓰는 것과 동일 근거).
+    // 2026-09-23: 보고서가 agy 로 돌면 :8000 은 폴백이라 **내려가 있는 게 정상**이다.
+    //   여기서 DEAD 를 찍으면 cron-runner self-heal 이 그걸 보고 28GB 를 다시 올린다 —
+    //   오늘 27B 를 내렸는데 되살아난 사슬의 첫 고리가 이 판정이었다.
+    //   판단은 report-backend.mjs 한 곳에서만 한다(모르면 null → 종전대로 본다).
+    if (reportViaAgy() === true) {
+      info.push('보고서 레인(:8000) 프로브 건너뜀 — 보고서는 agy 로 돈다. :8000 은 폴백이라 내려가 있는 게 정상이다');
+      throw { __skip: true };
+    }
     const genRunning = findReportProcesses();
     if (genRunning.length) {
       info.push(`model-id probe 건너뜀 — 보고서 생성 중(PID ${genRunning.map(p => p.pid).join(',')}). :8000 은 동시처리 1건이라 프로브가 큐에 밀려 반드시 20s 타임아웃 난다(혼잡 ≠ 사망)`);

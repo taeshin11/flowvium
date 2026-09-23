@@ -22,6 +22,7 @@ import { resolveLauncher } from './lib/report-launcher.mjs';   // 2026-08-20: cm
 import { resolveLlm } from './lib/llm-config.mjs';
 import { isReportPipelineRunning as isReportRunningShared } from './lib/report-running.mjs';
 import { shouldDeferUnscheduled } from './lib/report-sessions.mjs';
+import { reportViaAgy } from './lib/report-backend.mjs';
 import { listenerUptimeMs } from './lib/service-uptime.mjs';
 //   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
@@ -227,8 +228,16 @@ async function runMonitor() {
   //   :8000 은 재기동이 더 조심스럽다 — 보고서가 이 레인으로 90분짜리 작업을 돈다.
   //   그래서 llm-health-check 안의 가드에 맡긴다: 다른 생성이 진행 중이면 재기동을 거부하고,
   //   연결 자체가 거부될 때(=아무도 안 듣고 있을 때)만 미기동으로 보고 되살린다.
+  // 2026-09-23: 보고서가 agy 로 돌면 :8000 은 **폴백**일 뿐이라 상시 떠 있을 이유가 없다.
+  //   그런데 이 self-heal 은 "보고서 생성이 이 레인을 쓴다" 를 전제로 되살린다 —
+  //   오늘 27B 를 내렸는데 되살아난 경로 중 하나가 여기다. run-report.sh 만 고치고 놓쳤다.
+  //   판단은 report-backend.mjs 한 곳에서만 한다. 모르면(null) 종전대로 되살린다 —
+  //   모르면서 안 올렸다가 보고서를 통째로 잃는 것보다 28GB 를 잠깐 쥐는 게 싸다.
   const REPORT_HEAL_COOLDOWN_MS = 60 * 60 * 1000;
-  if (result.defects.some((d) => /LLM DEAD/.test(d) && !/WEB LLM DEAD/.test(d))) {
+  const _viaAgy = reportViaAgy();
+  if (_viaAgy === true && result.defects.some((d) => /LLM DEAD/.test(d) && !/WEB LLM DEAD/.test(d))) {
+    log('[auto-monitor/self-heal] 보고서 레인(:8000) 재기동 안 함 — 보고서는 agy 로 돈다(폴백은 run-report.sh 가 필요할 때 올린다)');
+  } else if (result.defects.some((d) => /LLM DEAD/.test(d) && !/WEB LLM DEAD/.test(d))) {
     const since = Date.now() - (_lastRun.reportLaneHeal ?? 0);
     if (since < REPORT_HEAL_COOLDOWN_MS) {
       log(`[auto-monitor/self-heal] 보고서 레인 재기동 보류 — ${Math.round(since / 60000)}분 전에 이미 시도했다(사람이 볼 것)`);
