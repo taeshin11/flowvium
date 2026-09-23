@@ -15,6 +15,7 @@
  */
 import { resolveLlm, SAMPLING_DEFAULTS } from './llm-config.mjs';
 
+import { overlap } from './blog-quality.mjs';
 /** 문자열에서 숫자만 뽑아 값으로 정규화한다. '6,715' → '6715', '-0.0%' → '0' */
 export function numbersIn(text) {
   const out = [];
@@ -104,6 +105,28 @@ const UNITS = '원|월|일|주|주일|개월|년|표본|건|배|명|차|위|회|
 const JOSA = '은|는|이|가|을|를|과|와|로|으로|에|에서|의|도|만|까지|부터|보다|라|랑';
 
 /** 고쳐 쓴 문장의 띄어쓰기를 우리말 표기로 되돌린다. 뜻은 건드리지 않는다. */
+/**
+ * 제목 **전체**를 감싼 따옴표만 벗긴다. 2026-09-23 신설.
+ *
+ * 종전 규칙 `/^["“]|["”]$/g` 은 양끝을 **따로** 봤다. 그래서 인용이 들어간 제목
+ *   `DS증권 "포스코퓨처엠, … 기대 유효"` 에서 닫는 쪽만 지워 여는 따옴표가 혼자 남았고,
+ *   그대로 발행됐다(reports/blog/2026-09-23-shorts-1245.md).
+ *   한국 기사 제목은 인용으로 끝나는 경우가 흔해서 드물게 나는 일이 아니다.
+ * 감싼 것인지 판단해서, 감쌌을 때만 양쪽을 함께 벗긴다.
+ */
+export function stripWrappingQuotes(title) {
+  const t = String(title ?? '').trim();
+  const pairs = [['"', '"'], ['\u201c', '\u201d'], ["'", "'"], ['\u2018', '\u2019']];
+  for (const [open, close] of pairs) {
+    if (t.length >= 2 && t.startsWith(open) && t.endsWith(close)) {
+      const inner = t.slice(1, -1);
+      // 안쪽에 같은 부호가 또 있으면 감싼 게 아니라 **두 인용이 붙은 것**이다 — 건드리지 않는다.
+      if (!inner.includes(open) && !inner.includes(close)) return inner.trim();
+    }
+  }
+  return t;
+}
+
 export function polishTypography(text) {
   return String(text ?? '')
     .replace(new RegExp(`(\\d)\\s+(${UNITS})(?![가-힣])`, 'g'), '$1$2')
@@ -111,6 +134,10 @@ export function polishTypography(text) {
     .replace(new RegExp(`([A-Za-z0-9%)])\\s+(${JOSA})(?![가-힣])`, 'g'), '$1$2')
     .replace(new RegExp(`\\)\\s+(${JOSA})(?![가-힣])`, 'g'), ')$1')
     .replace(/\s+([,.])/g, '$1')
+    // 2026-09-23: RSS 가 자른 본문은 `…설명이다....` 처럼 **점 네 개**로 끝난다(잘림 표시 ... + 문장의 .).
+    //   실제 발행본에 그대로 나갔다. 점 셋 이상은 말줄임표 하나로 모은다.
+    .replace(/\.{3,}/g, '\u2026')
+    .replace(/\u2026\.+/g, '\u2026')
     .replace(/[ \t]{2,}/g, ' ');
 }
 
@@ -235,6 +262,17 @@ export async function rewriteBlock(src, opt = {}) {
 
   const foreign = addedForeignChars(base, out);
   if (foreign.length) return { ...fallback, why: `foreign:${foreign.join('')}` };
+
+  // 2026-09-23: **내용이 남았는가.** 위 관문은 전부 숫자·기호를 센다 — 숫자가 애초에 없는
+  //   답은 아무 데도 안 걸린다. 실제로 발행 직전 글에 이렇게 찍혔다:
+  //     원문 'DS투자증권은 포스코퓨처엠[003670]이 … 첫 공식 수주공시를 냈다며'
+  //     출력 '작업을 완료했습니다. 추가로 도움이 필요하시면 말씀해 주세요.'
+  //   길이비 0.53 이라 minRatio(0.45)를 넘었고, 숫자·단위·외국문자는 없으니 통과했다.
+  //   문구를 목록으로 막지 않는다 — 다음엔 다른 인사말로 온다. **원문과 겹치는 게 없다**는
+  //   구조를 본다. 실측(같은 판 7덩어리): 이 덩어리 0.000 / 정상 6덩어리 0.787~0.983.
+  //   0.25 는 그 사이에 두되 정상 쪽에서 3배 떨어뜨린 값이다 — 관문이 세면 말투 개선이 통째로 죽는다.
+  const kept = overlap(base, out, 2);
+  if (kept < (opt.minKept ?? 0.25)) return { ...fallback, why: `no-content:${kept.toFixed(2)}` };
 
   // 모델이 지시를 무시하고 문어체로 돌려줄 때가 있다. 버리기엔 아까우니 종결만 존댓말로 맞춘다.
   return { text: polishTypography(toPolite(out)), used: 'llm' };

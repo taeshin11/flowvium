@@ -6,7 +6,7 @@
  *   말투를 바꾸려면 다시 쓰는 수밖에 없는데, 다시 쓰다가 지수·등락률이 바뀌면
  *   그 글은 못 쓰는 글이 된다. 그래서 고쳐 쓴 문장은 **원문에 없는 숫자를 담을 수 없다**.
  */
-import { numbersIn, addedNumbers, toPolite, rewriteBlock } from './blog-voice.mjs';
+import { numbersIn, addedNumbers, toPolite, rewriteBlock, stripWrappingQuotes } from './blog-voice.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
@@ -141,6 +141,79 @@ toPolite('오늘은 좋다.').includes('좋다') ? ok('[16b] 받침이 ㅆ 이 �
   });
   r.used === 'fallback' && /added-numbers/.test(r.why ?? '')
     ? ok(`[17d] 참고 숫자 유입 차단 (${r.why})`) : bad(`[17d] ${r.used} ${r.why}`);
+}
+
+// ── 2026-09-23: 발행 직전에 잡은 사고 ────────────────────────────────────────
+// 실제로 reports/blog/2026-09-23-shorts-1242.md 에 이렇게 찍혔다:
+//     ## 1조700억 수주, 어디
+//     작업을 완료했습니다. 추가로 도움이 필요하시면 말씀해 주세요.
+// 모델이 글을 고치는 대신 **챗봇 인사말**을 돌려줬는데 관문이 전부 통과시켰다.
+//   길이 33/64 = 0.53 → minRatio(0.45) 위. 숫자·단위·외국문자는 애초에 없으니 안 걸린다.
+//   숫자로만 재는 관문은 "내용이 없다" 를 못 본다.
+// 실측 2-gram 겹침: 이 덩어리 0.000 / 같은 판의 정상 6덩어리 0.787~0.983.
+
+// [18] 원문 내용이 하나도 안 남으면 버린다
+{
+  const r = await rewriteBlock(
+    'DS투자증권은 포스코퓨처엠[003670]이 리튬인산철(LFP) 양극재와 관련한 첫 공식 수주공시를 냈다며',
+    { call: async () => '작업을 완료했습니다. 추가로 도움이 필요하시면 말씀해 주세요.' });
+  r.used === 'fallback' && /no-content/.test(r.why ?? '')
+    ? ok(`[18] 내용 없는 답을 버린다 (${r.why})`) : bad(`[18] ${r.used} ${r.why}`);
+}
+
+// [18b] 원문에 '습니다' 가 있어 보일러플레이트와 어미가 겹쳐도 잡는다 —
+//       0.000 이 우연이 아니어야 한다
+{
+  const r = await rewriteBlock('코스피가 2% 올라 2650 에 마감했습니다. 외국인이 순매수했습니다.',
+    { call: async () => '요청하신 작업을 마쳤습니다. 더 필요하시면 말씀해 주세요.' });
+  r.used === 'fallback' && /no-content/.test(r.why ?? '')
+    ? ok(`[18b] 어미가 겹쳐도 잡는다 (${r.why})`) : bad(`[18b] ${r.used} ${r.why}`);
+}
+
+// [18c] ★ 정상 고쳐쓰기는 통과해야 한다. 같은 판에서 실제로 발행된 문장이다(겹침 0.882).
+//       관문을 세게 잡으면 멀쩡한 글까지 원문으로 떨어져 말투 개선이 통째로 죽는다.
+{
+  const r = await rewriteBlock(
+    'LG전자[066570]의 핵심 냉각 솔루션이 엔비디아 규격 승인을 받았다. 이 솔루션은 AI 데이터센터(DC)의 열을 안정적으로 관리한다.',
+    { call: async () => 'LG전자[066570]의 핵심 냉각 솔루션이 엔비디아 규격 승인을 받았습니다. 이 솔루션은 AI 데이터센터(DC)의 열을 안정적으로 관리합니다.' });
+  r.used === 'llm' ? ok('[18c] 정상 고쳐쓰기는 통과') : bad(`[18c] 멀쩡한 글을 버렸다 — ${r.why}`);
+}
+
+// [19] 제목 따옴표 — **양끝이 다 따옴표일 때만** 벗긴다.
+//   실제로 발행된 제목: `DS증권 "포스코퓨처엠, LFP 첫 공식수주…추가수주 기대 유효 외 6건 — …`
+//   DB 원문에는 닫는 따옴표가 있었는데 `/^["“]|["”]$/g` 가 **끝쪽만** 지워서 여는 따옴표가 혼자 남았다.
+//   따옴표로 감싼 제목을 벗기려던 규칙이, 인용이 들어간 제목을 망가뜨린 것이다.
+{
+  const cases = [
+    ['DS증권 "포스코퓨처엠, LFP 첫 공식수주…추가수주 기대 유효"', 'DS증권 "포스코퓨처엠, LFP 첫 공식수주…추가수주 기대 유효"', '안쪽 인용은 그대로'],
+    ['ADB, 韓 성장률 상향…"반도체 수출 증가"', 'ADB, 韓 성장률 상향…"반도체 수출 증가"', '끝의 인용 부호 보존'],
+    ['"전체가 따옴표로 감싸인 제목"', '전체가 따옴표로 감싸인 제목', '감싼 것만 벗긴다'],
+    ['“곡선 따옴표로 감싼 제목”', '곡선 따옴표로 감싼 제목', '곡선 따옴표도'],
+    ['따옴표 없는 제목', '따옴표 없는 제목', '없으면 그대로'],
+  ];
+  let bad0 = 0;
+  for (const [inp, want, note] of cases) {
+    const got = stripWrappingQuotes(inp);
+    if (got !== want) { bad0++; console.log(`  FAIL  [19] ${note}: ${JSON.stringify(got)} ≠ ${JSON.stringify(want)}`); }
+  }
+  bad0 ? (fail += 0) : ok('[19] 감싼 따옴표만 벗긴다 (5종)');
+  if (bad0) fail++;
+}
+
+// [20] RSS 가 잘린 본문은 `…이다....` 로 끝난다(마침표 넷). 실제 발행본에 그대로 나갔다.
+{
+  const cases = [
+    ['민간소비의 완만한 회복 등도 반영했다는 설명입니다....', '민간소비의 완만한 회복 등도 반영했다는 설명입니다…'],
+    ['본문이 여기서 잘렸습니다...', '본문이 여기서 잘렸습니다…'],
+    ['정상 문장입니다.', '정상 문장입니다.'],
+    ['말줄임표는 그대로…', '말줄임표는 그대로…'],
+  ];
+  let bad0 = 0;
+  for (const [inp, want] of cases) {
+    const got = polishTypography(inp);
+    if (got !== want) { bad0++; console.log(`  FAIL  [20] ${JSON.stringify(got)} ≠ ${JSON.stringify(want)}`); }
+  }
+  bad0 ? fail++ : ok('[20] 점 네 개를 말줄임표 하나로 (4종)');
 }
 
 console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ blog-voice 통과');

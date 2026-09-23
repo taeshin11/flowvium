@@ -25,7 +25,7 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
-import { rewriteBlock, llmCaller, toPolite } from './lib/blog-voice.mjs';
+import { rewriteBlock, llmCaller, toPolite, stripWrappingQuotes } from './lib/blog-voice.mjs';
 import { agyCaller } from './lib/agy.mjs';
 
 loadEnvLocal?.();
@@ -92,7 +92,9 @@ for (const row of rows) {
   // 알맹이: **기사 본문**을 문단으로 고쳐 쓴다. 훅이 아니라 본문이 재료다 —
   //   훅으로 쓰면 알맹이가 300자를 못 넘어 품질 관문에 반드시 걸린다(위 주석).
   //   한 번에 하나씩 보낸다(mlx_lm 배치 사고 회피 — llm-config 주석).
-  const title = String(row.headline ?? '').replace(/^\[[^\]]*\]\s*/, '').replace(/^["“]|["”]$/g, '').trim();
+  // 2026-09-23: 종전 `/^["“]|["”]$/g` 은 양끝을 따로 봐서, 인용으로 끝나는 제목의
+  //   닫는 따옴표만 지웠다 — 여는 따옴표가 혼자 남은 채 발행됐다. 감쌌을 때만 벗긴다.
+  const title = stripWrappingQuotes(String(row.headline ?? '').replace(/^\[[^\]]*\]\s*/, ''));
   const articles = [];
   for (const [i, b] of bodies.slice(0, 5).entries()) {
     const src = String(b ?? '').trim();
@@ -133,7 +135,10 @@ const day = recentDateKst.getUTCDate();
 const mainTitle = `${firstHeadline} 외 ${count}건 — ${month}월 ${day}일 뉴스 정리`;
 
 const L = [];
-L.push(`${includedItems.length}건의 주요 이슈를 정리했습니다. 영상으로 먼저 올렸고, 여기에 글로 모아 둡니다.`);
+// 2026-09-23: 여기만 **영상 편수**(4)를 썼고 제목은 **기사 건수**(7)를 써서 같은 글이
+//   '외 6건' 과 '4건' 을 동시에 말했다. 본문의 ## 절은 기사마다 하나라 독자가 세는 것은 기사 쪽이다.
+//   단위를 기사로 맞추고, 영상 편수는 따로 밝힌다.
+L.push(`${totalArticlesCount}건의 주요 이슈를 정리했습니다. 영상 ${includedItems.length}편으로 먼저 올렸고, 여기에 글로 모아 둡니다.`);
 L.push('');
 
 for (const item of includedItems) {
