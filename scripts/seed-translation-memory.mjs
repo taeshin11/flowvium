@@ -28,8 +28,10 @@ import { openBacklog, MAX_GUARD_FAILURES } from './lib/translation-backlog.mjs';
 import { buildTranslatePrompt } from './lib/translate-prompt.mjs';
 import { isUntranslated } from './lib/lang-detect.mjs';
 import { hasScriptSplice } from './lib/script-splice.mjs';
+import { looksLikeTranslation } from './lib/translation-shape.mjs';
 import { sanitizeText } from './lib/narrative-fix.mjs';
-import { agyText, agyReady, agyLastWhy } from './lib/agy.mjs';
+import { agyReady } from './lib/agy.mjs';
+import { agyTextChain, AGY_TEXT_CHAIN } from './lib/agy-chain.mjs';
 
 const REPORT_LANE = process.env.REPORT_LLM_URL || 'http://127.0.0.1:8000/v1';
 const MODEL = process.env.VLLM_MODEL || 'default_model';
@@ -61,11 +63,21 @@ const backlog = openBacklog(resolve(ROOT, 'data/flowvium.db'));
 async function translate(text, locale) {
   const prompt = buildTranslatePrompt({ text, langName: LANG_NAME[locale] ?? locale });
   if (agyReady()) {
-    let out = null;
-    try { out = agyText(prompt, { timeoutMs: Number(process.env.SEED_TIMEOUT_MS) || 300_000 }); }
-    catch (e) { console.log(`  ↩ agy 예외 ${String(e?.message ?? e).slice(0, 60)}`); }
-    if (typeof out === 'string' && out.trim()) return { out: sanitizeText(out.trim(), locale), source: AGY_SOURCE };
-    console.log(`  ↩ agy 실패 → 로컬 27B 로 (${agyLastWhy() ?? '응답 없음'})`);
+    let used = AGY_TEXT_CHAIN[0];
+    const out = agyTextChain(prompt, {
+      timeoutMs: Number(process.env.SEED_TIMEOUT_MS) || 300_000,
+      onFallback: (m, why) => {
+        const next = AGY_TEXT_CHAIN[AGY_TEXT_CHAIN.indexOf(m) + 1];
+        console.log(`  ↩ ${m} 실패(${why}) → ${next}`);
+        used = next;
+      },
+    });
+    if (out) return { out: sanitizeText(out, locale), source: used };
+    // 2026-09-23: 종전엔 여기서 로컬 27B 로 떨어졌다. 그 27B 를 내린 뒤 이 잡이 **0건**이 됐다
+    //   (실측: agy 빈 답 → fetch failed → 등록 0). 이제 로컬로 안 간다 —
+    //   4B 는 금융 용어를 틀리고("산업 컨glomerate"), 그 틀림을 고치려고 만든 잡이 이것이다.
+    //   못 하면 못 했다고 하고 다음 회차에 다시 한다. 틀린 번역이 사전에 박히는 게 더 나쁘다.
+    return { out: null, source: null };
   }
   return { out: await translateLocal(text, locale), source: LOCAL_SOURCE };
 }
@@ -126,10 +138,17 @@ for (const locale of LOCALES) {
     n++;
     try {
       const { out, source: usedSource } = await translate(text, locale);
+      // agy 사슬이 전부 못 했다. 결정론적 실패가 아니므로 **소진으로 세지 않는다** — 다음 회차에 다시 온다.
+      if (!out) { failed++; console.log(`  ✗ ${text} — agy 사슬 전부 실패(일시적, 다음 회차 재시도)`); continue; }
       // 가드 거부는 *결정론적* 이다 — 같은 입력에 같은 결과. 그러므로 소진으로 센다.
       if (isUntranslated(out, locale)) { reject(text, locale, 'untranslated', out); continue; }
       // 음차 중단("케urig 드피퍼")을 사전에 넣으면 깨진 번역이 영구히 박힌다. 27B 도 고유명사에서 낸다.
       if (hasScriptSplice(out, locale)) { reject(text, locale, 'script-splice', out); continue; }
+      // 2026-09-23: 번역 대신 **번역에 대한 설명**이 오는 일이 있다. 실측으로 사전에 들어갔다 —
+      //   tyChg3m → '"tyChg3m"은 번역 가능한 단어나 문장이 아닌 …'. 위 관문들은 전부 통과했다
+      //   (한국어이고·음차중단 없고·한자 없다). 내용이 다르다는 것을 아무도 안 봤다.
+      //   모양으로 본다: 번역문은 원문보다 몇 배씩 길어지지 않고, 원문을 인용하지 않는다.
+      if (!looksLikeTranslation(text, out)) { reject(text, locale, 'not-a-translation', out); continue; }
       if (DRY) { console.log(`  (dry) ${text} → ${out}`); continue; }
       if (tm.remember(text, locale, out, { source: usedSource })) { added++; backlog.resolve(text, locale); }
       else skipped++;
@@ -143,9 +162,9 @@ for (const locale of LOCALES) {
     }
   }
 }
-console.log(`\n등록 ${added} · 건너뜀 ${skipped} · 실패 ${failed}${exhausted ? ` · 소진 ${exhausted}(27B 미호출)` : ''}`);
+console.log(`\n등록 ${added} · 건너뜀 ${skipped} · 실패 ${failed}${exhausted ? ` · 소진 ${exhausted}(모델 미호출)` : ''}`);
 if (failed > 0 && added === 0) {
-  console.log('  ⚠️ 한 건도 못 넣었다 — 27B 경합(보고서/segments-refresh) 가능성. 다음 회차에 재시도된다.');
+  console.log('  ⚠️ 한 건도 못 넣었다 — agy 사슬이 못 냈거나 관문이 전부 걸렀다. 위 ✗ 사유를 볼 것 — 다음 회차에 재시도된다.');
 }
 console.log('  현재 사전:', JSON.stringify(tm.stats()));
 for (const locale of LOCALES) {
