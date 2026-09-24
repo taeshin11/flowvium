@@ -7,7 +7,7 @@ import { emptyCards } from './lib/report-cards.mjs';
 import fs from 'node:fs';
 import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';
 import { latinGarbleFragments } from './lib/latin-garble.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
-import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex, contradictingSentence } from './lib/flow-contradiction.mjs';
+import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex, contradictingSentence, measuredSubjectDirs } from './lib/flow-contradiction.mjs';
 import { isMovementClaim } from './lib/flow-move-claim.mjs';
 import { detectIndexLevelMismatch } from './lib/index-level-check.mjs';
 
@@ -965,12 +965,16 @@ export async function verifyReport(file, { silent = false } = {}) {
     //   "외국인 자금 유입을 가속"을 검출기는 잡고 교정기는 못 고쳐 발간만 막혔다. 단일 소스를 쓴다.
     const measuredDir = /순매도|유출|이탈/.test(krThesis) ? 'sell' : (/순매수|유입/.test(krThesis) ? 'buy' : null);
     const krSell = measuredDir === 'sell';
-    const buyClaim = krSell && isFlowContradiction(narrText, 'sell');
+    // 2026-09-24: 주체별 실측을 넘긴다. 외국인 순매도·기관 순매수(실측)인 날에
+    //   "기관의 풍부한 매수세" 를 모순으로 잡았다(noon 캐치업 오탐 — 서술이 맞았다).
+    //   교정기(narrative-fix)도 같은 값을 넘긴다. 한쪽만 알면 둘이 또 갈라진다.
+    const subjDirs = measuredSubjectDirs(r);
+    const buyClaim = krSell && isFlowContradiction(narrText, 'sell', subjDirs);
     if (krSell && buyClaim) {
       const inDir = krThesis.match(/(둔화|순매도|감소|이탈|약화|유출)/)?.[0];
       // 2026-09-10: 종전엔 텍스트 전체의 첫 매치를 인용해 **엉뚱한 문장**을 가리켰다.
       //   실제로 걸린 문장을 그대로 보여준다 — 안 그러면 진짜 결함을 오탐으로 오판한다.
-      const sentence = contradictingSentence(narrText, 'sell') ?? '';
+      const sentence = contradictingSentence(narrText, 'sell', subjDirs) ?? '';
       const claim = sentence.match(flowContradictionRegex('sell'))?.[0] ?? sentence.slice(0, 40);
       defects.push({ ticker: 'NARRATIVE', defect_type: 'flow_direction_inversion',
         llm_value: `내러티브 "${claim}" vs 입력 "외국인 ${inDir}"`, correct_value: 'regionStances.korea 수급 방향과 일치', severity: 'high' });

@@ -24,12 +24,14 @@ export function agyReportModel() {
 export const AGY_MODEL_CHAIN = (process.env.AGY_MODEL_CHAIN
   ? process.env.AGY_MODEL_CHAIN.split(',').map((x) => x.trim()).filter(Boolean)
   : [
-    // 2026-09-23 (사장님 "3단 사슬 중 첫번째를 agy opus 4.6 thinking으로 하자"):
-    //   1차를 claude-opus 로 올렸다. 실측 근거가 있다 — 같은 보고서 프롬프트에서
-    //   claude 16~23초 / gemini 32~51초로 **claude 가 더 빠르고** 서술도 더 촘촘했다.
-    //   claude 의 약점(내용 대신 작업 보고, 약 1/6)은 isMetaReply 가 걸러 다음 단으로 넘긴다.
-    process.env.AGY_TEXT_MODEL || 'claude-opus-4-6-thinking',
-    process.env.AGY_FALLBACK_MODEL || 'gemini-3.1-pro-high',
+    // 2026-09-24: 1차를 다시 gemini 로 (사장님 "ㅇㅋ").
+    //   9/23 에 claude-opus 를 1차로 올렸었다 — 한가한 시간대 실측에서 claude 16~23초 / gemini 32~51초로
+    //   claude 가 빨랐다. 그런데 **실전 누적 실패가 claude-opus 39회 · gemini 4회**였다.
+    //   사유 로그를 넣고 보니 opus 쪽은 서비스가 `Eligibility check failed: UNAVAILABLE (code 503)` 을 냈다.
+    //   한가할 때 몇 번 잰 속도보다 회차 안에서 실제로 받아 주는 쪽이 1차다.
+    //   opus 는 2차로 남긴다 — 살아 있을 때는 여전히 좋은 답을 낸다. 차단기가 죽어 있을 땐 건너뛴다.
+    process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+    process.env.AGY_FALLBACK_MODEL || 'claude-opus-4-6-thinking',
     // 3차: 27B 를 내렸으니 한 단이 더 필요하다. 계열이 또 달라 같은 이유로 같이 실패하지 않는다.
     process.env.AGY_LAST_MODEL || 'gpt-oss-120b-medium',
   ]);

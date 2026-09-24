@@ -18,8 +18,10 @@ import { agyText, agyLastWhy } from './agy.mjs';
 export const AGY_TEXT_CHAIN = (process.env.AGY_TEXT_CHAIN
   ? process.env.AGY_TEXT_CHAIN.split(',').map((x) => x.trim()).filter(Boolean)
   : [
-    process.env.AGY_TEXT_MODEL || 'claude-opus-4-6-thinking',
-    process.env.AGY_FALLBACK_MODEL || 'gemini-3.1-pro-high',
+    // 2026-09-24: gemini 1차 — 보고서 사슬과 같은 근거(실전 실패 opus 39 · gemini 4, opus 는 503).
+    //   두 사슬이 서로 다른 순서면 번역만 느려지는 이유를 나중에 또 찾게 된다. 맞춰 둔다.
+    process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+    process.env.AGY_FALLBACK_MODEL || 'claude-opus-4-6-thinking',
     process.env.AGY_LAST_MODEL || 'gpt-oss-120b-medium',
   ]);
 

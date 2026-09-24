@@ -1,4 +1,4 @@
-import { contradictionRegex as flowContradictionRegex, sentenceContradicts, isContradiction as flowIsContradiction, measuredClaimText } from './flow-contradiction.mjs';
+import { contradictionRegex as flowContradictionRegex, sentenceContradicts, isContradiction as flowIsContradiction, measuredClaimText, measuredSubjectDirs } from './flow-contradiction.mjs';
 // scripts/lib/narrative-fix.mjs
 // 내러티브 결정적 corrector (단일 source of truth — 생성기 + patch-narrative 공용).
 //   "제일 정확한 방법"(2026-06-16 사용자): 지수/종목 등락%를 *실제 일간등락과 대조*해 환각만 제거하고
@@ -327,9 +327,12 @@ export function fixKrFlowContradiction(report, krClaimText) {
   // 2026-09-10: 종전엔 원시 정규식(contraRe)으로 문장을 판정해 **검출기보다 공격적**이었다.
   //   주체 인식이 검출기에만 들어가자 교정기가 참인 문장("외국인 이탈에도 기관·개인 매수")까지 지웠다.
   //   판단은 sentenceContradicts 하나만 쓴다 — 두 곳에 두면 반드시 갈라진다.
-  const bad = (sent) => sentenceContradicts(sent, dir);
+  // 2026-09-24: 검출기와 **같은** 주체별 실측을 쓴다 — 한쪽만 알면 검출기는 잡는데 교정기는 안 고치거나,
+  //   반대로 교정기가 맞는 문장("기관의 풍부한 매수세", 기관 순매수 실측)을 지운다.
+  const subjDirs = measuredSubjectDirs(report);
+  const bad = (sent) => sentenceContradicts(sent, dir, subjDirs);
   const fixField = (text) => {
-    if (typeof text !== 'string' || !flowIsContradiction(text, dir)) return text;
+    if (typeof text !== 'string' || !flowIsContradiction(text, dir, subjDirs)) return text;
     // ⓪ 초단문 필드(watch 류, ≤40자) — 통째로 실측 방향의 관찰 문구로 교체(절 치환은 비문 생성).
     if (text.trim().length <= 40) return `외국인·기관 ${toDir} 지속 여부`;
     // ① 모순 문장 제거 (마침표 경계). " | 꼬리" 구조(macroAnalysis) 보존.

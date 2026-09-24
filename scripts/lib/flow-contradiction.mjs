@@ -77,14 +77,24 @@ const OTHER_SUBJECT = /(기관|개인|연기금|국내)[^.]{0,10}(순유입|자�
  *   교정기가 검출기보다 공격적이 됐다 — 참인 문장("외국인 이탈에도 기관·개인 매수")까지 지웠다.
  *   판단이 두 곳에 있으면 반드시 갈라진다.
  */
-export function sentenceContradicts(sentence, measuredDir) {
+export function sentenceContradicts(sentence, measuredDir, subjectDirs = {}) {
   const s = String(sentence ?? '');
   if (!s) return false;
   if (SLOWDOWN.test(s)) return false;      // "순매수 둔화" — 매수 주장이 아니다
   if (HINDRANCE.test(s)) return false;     // "유입에 부담" — 유입이 막힌다는 뜻이다
   if (PAST_SHIFT.test(s)) return false;    // "유입이 있었으나 지금은 이탈" — 전환 서술
   const claimRe = new RegExp(measuredDir === 'sell' ? BUY_CLAIM : SELL_CLAIM);
-  if (!claimRe.test(s)) return false;
+  const cm = s.match(claimRe);
+  if (!cm) return false;
+  // 2026-09-24: 주장한 주체의 **실측 방향**이 있고 그 주장과 같으면 모순이 아니다.
+  //   오늘 noon 캐치업 오탐: 외국인 순매도·기관 순매수 5640억(실측)인데
+  //   "한국 증시는 기관의 풍부한 매수세를 바탕으로" 를 모순으로 잡았다. 서술이 맞았다.
+  //   아래 09-10 규칙(같은 문장이 외국인 매도를 **인정**할 때만 봐준다)은 근거 없이 느슨해지지 않으려는
+  //   것이었다. 이번엔 추측이 아니라 **그 주체의 실측**이 근거다. 외국인은 여기서 봐주지 않는다 —
+  //   외국인의 방향은 measuredDir 자체다.
+  const subj = cm[1];
+  const claimDir = measuredDir === 'sell' ? 'buy' : 'sell';
+  if (subj && subj !== '외국인' && subjectDirs?.[subj] === claimDir) return false;
   // 2026-09-10: 외국인이 팔고 기관·개인이 사는 것은 **동시에 성립한다**. 문장이 실측 방향을
   //   명시적으로 인정하면서 다른 주체의 반대 매매를 말하는 것은 모순이 아니다.
   //   느슨해지는 쪽 실수가 더 나쁘므로 **인정이 있고 + 주체가 외국인이 아닐 때**만 뺀다.
@@ -104,8 +114,8 @@ export function sentenceContradicts(sentence, measuredDir) {
  * ('…매수했지만…')가 전체를 제외시켜 진짜 모순("자금 유입을 가속")을 놓쳤다 —
  * 게이트가 약해지는 방향의 버그라 반드시 문장별로 갈라 본다.
  */
-export function isContradiction(text, measuredDir) {
-  return contradictingSentence(text, measuredDir) != null;
+export function isContradiction(text, measuredDir, subjectDirs = {}) {
+  return contradictingSentence(text, measuredDir, subjectDirs) != null;
 }
 
 /**
@@ -117,10 +127,31 @@ export function isContradiction(text, measuredDir) {
  *   "기관과 개인 매수세" 를 인용했고, 그걸 보고 오탐이라 판단할 뻔했다.
  *   틀린 문장을 가리키는 오류 메시지는 없는 것보다 나쁘다.
  */
-export function contradictingSentence(text, measuredDir) {
+export function contradictingSentence(text, measuredDir, subjectDirs = {}) {
   const s = String(text ?? '');
   if (!s || (measuredDir !== 'buy' && measuredDir !== 'sell')) return null;
-  return splitSentences(s).find((sent) => sentenceContradicts(sent, measuredDir)) ?? null;
+  return splitSentences(s).find((sent) => sentenceContradicts(sent, measuredDir, subjectDirs)) ?? null;
+}
+
+/**
+ * 보고서에서 **주체별** 실측 방향을 읽는다. (2026-09-24)
+ * 외국인은 regionStances.korea.thesis 에서, 기관·개인·연기금은 flowNarrativeEvidence 의 실측 claim 에서.
+ * 모르는 주체는 넣지 않는다 — 없는 키는 "봐줄 근거 없음" 으로 읽힌다(느슨해지지 않는다).
+ */
+export function measuredSubjectDirs(report) {
+  const out = {};
+  const dirOf = (t) => (/순매수|순유입/.test(t) ? 'buy' : /순매도|순유출|이탈/.test(t) ? 'sell' : null);
+  const kr = String(report?.regionStances?.korea?.thesis ?? '');
+  const fm = kr.match(/외국인[^.]{0,12}(순매수|순매도|순유입|순유출|이탈)/);
+  if (fm) out.외국인 = dirOf(fm[1]);
+  for (const c of report?.flowNarrativeEvidence?.allClaims ?? []) {
+    const t = String(c?.text ?? '');
+    for (const subj of ['기관', '개인', '연기금']) {
+      const m = t.match(new RegExp(`${subj}[^.]{0,12}(순매수|순매도|순유입|순유출)`));
+      if (m && !out[subj]) out[subj] = dirOf(m[1]);
+    }
+  }
+  return out;
 }
 
 /** 문장 분리. 한국어 마침표/줄바꿈/파이프 구분자 기준. */
