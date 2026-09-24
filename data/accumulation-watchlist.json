@@ -1,43 +1,81 @@
 {
-  "generatedAt": "2026-09-23T07:20:29.480Z",
+  "generatedAt": "2026-09-24T05:23:05.199Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
-  "strongCount": 0,
-  "watchCount": 2,
+  "count": 4,
+  "strongCount": 1,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "050890.KQ",
-      "name": "쏠리드",
-      "tier": "watch",
-      "score": 33,
+      "ticker": "220100.KQ",
+      "name": "퓨쳐켐",
+      "tier": "strong",
+      "score": 46,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.1× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 5.1,
-      "runup5dPct": 4.6,
-      "medDollarVolUsd": 5531378,
+      "runup20dPct": -12.6,
+      "runup5dPct": -7.7,
+      "medDollarVolUsd": 296592,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "205100.KQ",
-      "name": "엑셈",
+      "ticker": "445680.KQ",
+      "name": "큐리옥스바이오시스템즈",
       "tier": "watch",
-      "score": 33,
+      "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 6개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -2.1,
-      "runup5dPct": 7.3,
-      "medDollarVolUsd": 263805,
+      "runup20dPct": -9.3,
+      "runup5dPct": 4.8,
+      "medDollarVolUsd": 2655531,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "397030.KQ",
+      "name": "에이프릴바이오",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -5.6,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 3275310,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "085660.KQ",
+      "name": "차바이오텍",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 6개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -3.6,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 1769927,
       "smartAccum": true,
       "official": null
     }
