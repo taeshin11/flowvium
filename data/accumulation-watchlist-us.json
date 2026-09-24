@@ -1,62 +1,27 @@
 {
-  "generatedAt": "2026-09-24T05:03:23.872Z",
+  "generatedAt": "2026-09-24T17:43:16.197Z",
   "universe": "US",
   "scanned": 330,
-  "count": 12,
+  "count": 11,
   "strongCount": 1,
-  "watchCount": 11,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "MG",
-      "name": "Mistras Group Inc",
+      "ticker": "SOHU",
+      "name": "Sohu.com Limited",
       "tier": "strong",
-      "score": 52,
-      "coFire": 4,
+      "score": 42,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 4.8× 급증(가격 평탄)",
-        "변동성 수축(coiling) — 돌파 압축",
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 4.3× 급증(가격 평탄)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 9.6,
-      "runup5dPct": 6.5,
-      "medDollarVolUsd": 3283290,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SOHU",
-      "name": "Sohu.com Limited",
-      "tier": "watch",
-      "score": 36,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 4.4× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -9.8,
-      "runup5dPct": -4.9,
+      "runup20dPct": -7.7,
+      "runup5dPct": -2.7,
       "medDollarVolUsd": 655540,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SB",
-      "name": "Safe Bulkers, Inc",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": -3.2,
-      "runup5dPct": -2.8,
-      "medDollarVolUsd": 6546388,
       "smartAccum": false,
       "official": null
     },
@@ -68,11 +33,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 5.0× 급증(가격 평탄)"
+        "거래량 4.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": 0.4,
-      "runup5dPct": -2.5,
-      "medDollarVolUsd": 2741369,
+      "runup20dPct": 0.1,
+      "runup5dPct": -0.4,
+      "medDollarVolUsd": 2766210,
       "smartAccum": false,
       "official": null
     },
@@ -83,11 +48,11 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 4.8× 급증(가격 평탄)"
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 4.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -1.7,
-      "runup5dPct": 4,
+      "runup20dPct": -2.4,
+      "runup5dPct": 3.5,
       "medDollarVolUsd": 5816640,
       "smartAccum": false,
       "official": null
@@ -115,13 +80,47 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.5× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 8.9,
-      "runup5dPct": -2.9,
+      "runup20dPct": 11.4,
+      "runup5dPct": -3.8,
       "medDollarVolUsd": 24110100,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SB",
+      "name": "Safe Bulkers, Inc",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -4.7,
+      "runup5dPct": -5.3,
+      "medDollarVolUsd": 6546388,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ATLC",
+      "name": "Atlanticus Holdings Corporation",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": -2.7,
+      "medDollarVolUsd": 14978778,
       "smartAccum": false,
       "official": null
     },
@@ -132,28 +131,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -12.3,
-      "runup5dPct": -8,
+      "runup20dPct": -9.7,
+      "runup5dPct": -5.8,
       "medDollarVolUsd": 3182565,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "WHF",
-      "name": "WhiteHorse Finance, Inc.",
+      "ticker": "SJT",
+      "name": "San Juan Basin Royalty Trust",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 1,
-      "runup5dPct": -3.1,
-      "medDollarVolUsd": 345030,
+      "runup20dPct": 7.5,
+      "runup5dPct": 3.6,
+      "medDollarVolUsd": 560142,
       "smartAccum": false,
       "official": null
     },
@@ -164,11 +163,11 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승",
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -1.7,
-      "runup5dPct": -2.3,
+      "runup20dPct": -2.9,
+      "runup5dPct": -0.7,
       "medDollarVolUsd": 874594,
       "smartAccum": false,
       "official": null
@@ -180,28 +179,12 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 추세 1.8× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": 8.9,
-      "runup5dPct": 12.5,
+      "runup20dPct": 9.6,
+      "runup5dPct": 13.5,
       "medDollarVolUsd": 4228835,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EDIT",
-      "name": "Editas Medicine, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -10.3,
-      "runup5dPct": 2.3,
-      "medDollarVolUsd": 6167400,
       "smartAccum": false,
       "official": null
     }
