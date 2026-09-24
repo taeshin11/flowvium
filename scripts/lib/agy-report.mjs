@@ -260,6 +260,15 @@ export async function agyReport(prompt, opt = {}) {
     if (out && isMetaReply(out, prompt)) {
       // 내용 대신 과정을 썼다. 성공으로 세면 그 문장이 보고서 본문에 실린다.
       why = `작업보고: ${String(out).replace(/\s+/g, ' ').slice(0, 90)}`;
+    } else if (out && opt.accept && !opt.accept(out)) {
+      // 2026-09-25: 부르는 쪽의 합격 조건. isMetaReply 는 5낱말 이상의 라틴 산문만 잡아서
+      //   "Task completed" 같은 짧은 작업 보고가 성공으로 세졌다(궁금증 제목에서 6편 중 2편).
+      //   판정 문턱을 모두에게 낮추면 짧은 영어 값을 돌려주는 다른 호출이 막힌다 —
+      //   무엇이 쓸 만한 답인지는 부르는 쪽이 안다. 못 미치면 다음 모델에 묻는다.
+      //   모델 고장이 아니라 이 호출만의 조건이라 차단기(streak)는 올리지 않는다.
+      const why2 = `합격 조건 미달: ${String(out).replace(/\s+/g, ' ').slice(0, 90)}`;
+      console.error(`[agy:${opt.label}] ${model} ${why2}${i < chain.length - 1 ? ` → ${chain[i + 1]}` : ' — 사슬 끝'}`);
+      continue;
     } else if (out) {
       USED.set(model, (USED.get(model) ?? 0) + 1);
       BREAKER.delete(model);   // 한 번 성공하면 풀린다

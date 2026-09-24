@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** agy-report.test.mjs — agy 연동 모듈을 주입으로 시험한다. */
-import { agyReport } from './agy-report.mjs';
+import { agyReport, resetAgyBreaker } from './agy-report.mjs';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -55,6 +55,27 @@ async function runTests() {
   });
   res = await agyReport('hello', { label: 't4', agyImpl: impl4 });
   res === '{"clean":1}' ? ok('[4] 앞뒤 쓰레기 텍스트 무시하고 JSON 추출') : bad(`[4] ${res}`);
+
+  // [6] 부르는 쪽이 준 합격 조건(accept)에 못 미치면 **다음 모델**에 묻는다 (2026-09-25)
+  //   실측: 궁금증 제목을 한국어로 물었는데 "Task completed" · "Completed title generation" 이 왔다.
+  //   라틴 산문 판정(5낱말 이상)을 빠져나가는 짧은 작업 보고라 성공으로 세졌고, 사슬이 넘어가지 않았다.
+  resetAgyBreaker();
+  const seen = [];
+  const impl6 = async (args) => {
+    const m = args[args.indexOf('--model') + 1];
+    seen.push(m);
+    return { stdout: JSON.stringify(seen.length === 1
+      ? { response: 'Task completed' }
+      : { structured_output: { title: '이란 대통령이 연설한 이유' } }) };
+  };
+  res = await agyReport('제목을 한국어로 한 줄 써라. 궁금해서 누르게 만드는 문장으로.', {
+    label: 't6', agyImpl: impl6,
+    accept: (out) => /[가-힣]/.test(out),
+  });
+  (seen.length === 2 && seen[0] !== seen[1] && /이란/.test(res ?? ''))
+    ? ok(`[6] 합격 조건 미달 → 다음 모델(${seen.join(' → ')})`)
+    : bad(`[6] 모델 ${seen.join(',')} · 결과 ${res}`);
+  resetAgyBreaker();
 
   console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ agy-report 통과');
   process.exit(fail ? 1 : 0);

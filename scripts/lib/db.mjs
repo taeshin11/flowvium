@@ -2127,6 +2127,13 @@ export function recentShortsIssues(hours = 24) {
  *   내려면 과거 편의 주제가 있어야 한다. 정규식 categoryOf 는 헤드라인의 46% 를 '기타' 로 못 나눠
  *   성적이 아무 신호도 못 냈다 — 그래서 고를 때 쓴 **같은 분류**를 발행 기록에 붙인다.
  */
+// 2026-09-25: 제목 방식(curiosity | headline). 궁금증 제목이 우리 채널에서 통하는지 재려면
+//   어느 편이 어떤 제목으로 나갔는지가 있어야 한다. 차례가 아니라 **실제로 나간 방식**을 적는다.
+function ensureTitleStyleColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
+  if (!cols.includes('title_style')) db.exec('ALTER TABLE shorts_published ADD COLUMN title_style TEXT');
+}
+
 function ensureTopicColumn(db) {
   const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
   if (!cols.includes('topic')) db.exec('ALTER TABLE shorts_published ADD COLUMN topic TEXT');
@@ -2151,8 +2158,9 @@ export function setShortsTopic(videoId, topic) {
 }
 
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null, titleStyle = null }) {
   const db = openDb();
+  ensureTitleStyleColumn(db);
   ensureHeadlinesColumn(db);
   ensureHooksColumn(db);
   ensureBodiesColumn(db);
@@ -2166,14 +2174,15 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
   // 기사 본문. 글로 풀 때의 재료다 — 훅만으로는 알맹이가 300자를 못 넘는다(위 주석 참고).
   const bodyList = (bodies ?? []).map((b) => String(b ?? '').trim()).filter(Boolean).slice(0, 8);
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic, title_style)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
     new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null,
     Number.isFinite(durationSec) ? durationSec : null,
     hookList.length ? JSON.stringify(hookList) : null,
     bodyList.length ? JSON.stringify(bodyList) : null,
-    topic ? String(topic) : null);
+    topic ? String(topic) : null,
+    titleStyle === 'curiosity' || titleStyle === 'headline' ? titleStyle : null);
 }
 
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */

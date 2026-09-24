@@ -261,6 +261,26 @@ if (isShorts) {
 let title = isShorts
   ? buildTitle(top, isKoUpload, seed, { maxLen: SHORTS_TITLE_MAX - 8 })
   : buildTitle(top, isKoUpload);
+// ── 궁금증형 제목 (2026-09-25 사장님 "상위 채널 레퍼런스 체크해서 다음 편부터 반영") ──────
+//   상위 쇼츠 뉴스 채널은 헤드라인이 아니라 "~한 이유" 꼴로 궁금증을 남긴다. 우리 채널에서도 통하는지는
+//   모른다 — 그래서 **편마다 번갈아** 쓰고 실제로 나간 방식을 대장에 적어 같은 날끼리 비교한다.
+//   원문에 없는 숫자·동떨어진 문장·작업 보고는 lib/curiosity-title 이 막고, 막히면 헤드라인 제목 그대로다.
+//   끄려면 SHORTS_CURIOSITY_TITLE=0.
+let titleStyle = null;
+if (isShorts) {
+  const { chooseShortsTitle } = await import('./lib/curiosity-title.mjs');
+  const picked = await chooseShortsTitle({
+    headlineTitle: title,
+    headline: orderForTitle(top, isKoUpload).ordered[0],
+    context: (last.bodies ?? []).slice(0, 2),
+    seed, isKo: isKoUpload, maxLen: SHORTS_TITLE_MAX - 8,
+    disabled: process.env.SHORTS_CURIOSITY_TITLE === '0',
+  });
+  title = picked.title;
+  titleStyle = picked.style;
+  if (picked.style === 'curiosity') log(`제목: 궁금증형 — ${title}`);
+  else if (picked.fellBack) log(`제목: 궁금증형 차례였지만 선을 못 지켜 헤드라인으로 (${picked.reason})`);
+}
 // 쇼츠는 제목·설명에 #Shorts 가 있어야 유튜브가 쇼츠 선반에 올린다(세로+3분이하 만으로는 놓칠 때가 있다).
 if (isShorts && !/#Shorts/i.test(title)) title = `${title} #Shorts`;
 if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다');
@@ -369,7 +389,7 @@ if (isShorts && last.keyword) {
       const m = String(probe.stderr).match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
       if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]);
     } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null });
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
