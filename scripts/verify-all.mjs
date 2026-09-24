@@ -9,7 +9,7 @@
  * 매 commit / push 전 실행 권장. CLAUDE.md "모든 fix 후 통합 검증" 의무.
  */
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pickLatestReport } from './verify-report.mjs';
 import { classifyCheck } from './lib/verify-gate.mjs';
@@ -310,6 +310,20 @@ const promises = checks.map(c => {
     const { status, blocking } = classifyCheck({
       exitCode: res.status, timedOut: res.timedOut, errCount, warnCount, critical: c.critical, live: c.live,
     });
+    // 2026-09-24: 실패한 검사의 출력을 **남긴다.** 종전엔 개수(err=2)만 찍고 본문을 버렸다.
+    //   오늘만 세 번 "왜 막혔나" 를 못 봤다 — audit-coverage 는 단독 실행하면 0결함인데
+    //   여기(22개 병렬) 안에서만 err 를 냈고, 무엇이었는지 알 길이 없었다.
+    //   실패 이유를 남기지 않는 관문은 사람이 --no-verify 로 넘기게 만든다.
+    if (status === 'fail' || errCount > 0) {
+      try {
+        const dir = resolve(ROOT, 'logs/verify-all');
+        mkdirSync(dir, { recursive: true });
+        const lines = stdout.split('\n').filter((l) => /❌|\bFAIL\b|\bERROR\b/.test(l));
+        writeFileSync(resolve(dir, `${c.name}.log`),
+          `# ${new Date().toISOString()} exit=${res.status} err=${errCount} timedOut=${res.timedOut}\n`
+          + `## ❌ 줄만\n${lines.join('\n')}\n\n## 전체 출력\n${stdout}`);
+      } catch { /* 비치명 */ }
+    }
     return { ...c, status, blocking, errCount, warnCount, okCount, durationMs: res.durationMs, exitCode: res.status, timedOut: res.timedOut };
   });
 });

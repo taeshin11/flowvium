@@ -127,3 +127,4 @@ assets/broll/*.mov
 assets/broll/*.webm
 assets/broll/*.mkv
 assets/broll/*.m4v
+logs/verify-all/
