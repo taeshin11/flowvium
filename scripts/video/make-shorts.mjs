@@ -512,7 +512,9 @@ if (FORCE_ISSUE) {
     const { topicLift, topicTier } = await import('../lib/topic-lift.mjs');
     const { shortsTopicObservations } = await import('../lib/db.mjs');
     const head = fresh.slice(0, TOP);
-    const topics = await classifyTopics(head.map((c) => (c.headlines ?? [])[0] ?? c.keyword));
+    let classifyWhy = '';
+    const topics = await classifyTopics(head.map((c) => (c.headlines ?? [])[0] ?? c.keyword),
+      { onReject: (w) => { classifyWhy = w; } });
     if (topics) {
       head.forEach((c, i) => { c.__topic = topics[i]; });
       const tier = topicTier(topicLift(shortsTopicObservations(), { minSamples: 8 }));
@@ -531,7 +533,7 @@ if (FORCE_ISSUE) {
           + ` · 후보 주제 ${Object.entries(dist).map(([k, v]) => `${k} ${v}`).join(' · ')}`
           + `${moved ? ` · 약한 주제 ${moved}건 뒤로` : ''} · 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
       } else log('[편성] 조회수 성적 — 유의한 강·약 주제 없음(표본 부족 또는 차이가 우연 범위) — 순서 유지');
-    } else log('[편성] 주제 분류 실패(agy) — 조회수 성적 반영 건너뜀, 순서 유지');
+    } else log(`[편성] 주제 분류 실패(agy: ${classifyWhy || '사유 없음'}) — 조회수 성적 반영 건너뜀, 순서 유지`);
   } catch (e) { log(`[편성] 조회수 성적 반영 건너뜀: ${String(e.message).slice(0, 60)}`); }
 
   const scored = [];

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /** agy-report.test.mjs — agy 연동 모듈을 주입으로 시험한다. */
-import { agyReport, resetAgyBreaker } from './agy-report.mjs';
+import { agyReport, resetAgyBreaker, parseQuotaReset, AGY_MODEL_CHAIN } from './agy-report.mjs';
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -76,6 +77,52 @@ async function runTests() {
     ? ok(`[6] 합격 조건 미달 → 다음 모델(${seen.join(' → ')})`)
     : bad(`[6] 모델 ${seen.join(',')} · 결과 ${res}`);
   resetAgyBreaker();
+
+  // [7] 할당량 소진(429 · "Resets in …")은 **그 시각까지** 모든 프로세스가 건너뛴다 (2026-09-25)
+  //   실측: claude-opus 37회 · gpt-oss 4회 "Individual quota reached … Resets in 26h28m49s".
+  //   한 번 떨어지는 데 ~155초(agy 내부 재시도). 차단기는 프로세스 안에서만 기억해서
+  //   보고서·쇼츠 프로세스마다 같은 세금을 다시 냈다. 리셋 시각은 서버가 알려 준다 — 그걸 쓴다.
+  {
+    const ms = parseQuotaReset('error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 26h28m49s.');
+    const ms2 = parseQuotaReset('Resets in 45m3s');
+    (ms === (26 * 3600 + 28 * 60 + 49) * 1000 && ms2 === (45 * 60 + 3) * 1000 && parseQuotaReset('timeout') === null)
+      ? ok('[7a] 리셋 시각을 읽는다 (26h28m49s · 45m3s · 없으면 null)') : bad(`[7a] ${ms} ${ms2}`);
+
+    const qf = path.join(os.tmpdir(), `agy-quota-test-${process.pid}.json`);
+    process.env.AGY_QUOTA_FILE = qf;
+    await fs.rm(qf, { force: true });
+    resetAgyBreaker();
+    const [m0, m1] = AGY_MODEL_CHAIN;
+    const calls = [];
+    const quotaImpl = (dead) => async (args) => {
+      const m = args[args.indexOf('--model') + 1];
+      calls.push(m);
+      if (dead.includes(m)) {
+        const e = new Error('Command failed'); e.stderr = 'error: Individual quota reached. Please upgrade your subscription to increase your limits. Resets in 2h0m0s.'; throw e;
+      }
+      return { stdout: JSON.stringify({ structured_output: { ok: true } }) };
+    };
+    let r = await agyReport('hello', { label: 't7', agyImpl: quotaImpl([m0]) });
+    const saved = JSON.parse(await fs.readFile(qf, 'utf8').catch(() => '{}'));
+    const until = Date.parse(saved[m0] ?? '');
+    (r === '{"ok":true}' && until > Date.now() + 1.9 * 3600e3 && until < Date.now() + 2.1 * 3600e3)
+      ? ok(`[7b] 소진 모델을 파일에 적는다 (${m0} → 약 2시간 뒤)`) : bad(`[7b] r=${r} saved=${JSON.stringify(saved)}`);
+
+    // 새 프로세스를 흉내 — 프로세스 안 차단기를 비워도 파일이 건너뛰게 한다
+    resetAgyBreaker(); calls.length = 0;
+    r = await agyReport('hello', { label: 't7', agyImpl: quotaImpl([]) });
+    (!calls.includes(m0) && calls[0] === m1 && r === '{"ok":true}')
+      ? ok(`[7c] 다른 프로세스에서도 ${m0} 를 부르지 않고 ${m1} 부터`) : bad(`[7c] calls=${calls.join(',')}`);
+
+    // 지난 기록은 무시한다
+    await fs.writeFile(qf, JSON.stringify({ [m0]: new Date(Date.now() - 1000).toISOString() }));
+    resetAgyBreaker(); calls.length = 0;
+    await agyReport('hello', { label: 't7', agyImpl: quotaImpl([]) });
+    calls[0] === m0 ? ok('[7d] 리셋 시각이 지나면 다시 부른다') : bad(`[7d] calls=${calls.join(',')}`);
+    await fs.rm(qf, { force: true });
+    delete process.env.AGY_QUOTA_FILE;
+    resetAgyBreaker();
+  }
 
   console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ agy-report 통과');
   process.exit(fail ? 1 : 0);

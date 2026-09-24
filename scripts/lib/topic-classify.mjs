@@ -30,23 +30,39 @@ export function classifyPrompt(headlines) {
 
 /**
  * @param {string[]} headlines
- * @param {{timeoutMs?:number, call?:Function}} opt  call 은 테스트용(agyReport 대체)
+ * @param {{timeoutMs?:number, call?:Function, agyReportImpl?:Function, onReject?:Function}} opt  call·agyReportImpl 은 테스트용
  * @returns {Promise<string[]|null>} headlines 와 같은 길이. 목록 밖 답은 '기타'. 실패하면 null.
  */
 export async function classifyTopics(headlines, opt = {}) {
   const hs = (headlines ?? []).map((h) => String(h ?? ''));
   if (!hs.length) return [];
-  const call = opt.call ?? ((p) => agyReport(p, {
+  // 2026-09-25: 실패 사유를 남긴다. 9/24 21:45 회차가 "주제 분류 실패(agy)" 한 줄만 남기고 끝났는데
+  //   agy 쪽 오류 줄이 없었다 — agy 는 답했고 여기서 **조용히** 버렸다. 무엇이 왔는지 몰라 원인을 못 찾았다.
+  const reject = (why) => { opt.onReject?.(why); return null; };
+  /** 답에서 분류표를 꺼낸다. 번호가 하나라도 빠지면 사유 문자열. */
+  const parse = (out) => {
+    let c;
+    try { c = JSON.parse(out)?.c; } catch { return `JSON 해석 실패: ${String(out).replace(/\s+/g, ' ').slice(0, 80)}`; }
+    if (!c || typeof c !== 'object') return `c 가 객체가 아니다: ${String(out).slice(0, 80)}`;
+    // 키는 **번호로** 맞춘다. 2026-09-25 실측: gemini 가 {"'0'": "…"} 처럼 따옴표를 키 안에 넣었다 —
+    //   c["0"] 이 없어 전부 '누락' 이 됐고, 9/24 21:45 회차의 분류 실패가 이것이었다.
+    c = Object.fromEntries(Object.entries(c).map(([k, v]) => [String(k).replace(/['"\s]/g, ''), v]));
+    // 하나라도 빠졌으면 믿지 않는다 — 일부만 나뉜 목록으로 순서를 바꾸면 빠진 후보가 조용히 밀린다.
+    const missing = hs.map((_, i) => i).filter((i) => c[String(i)] == null);
+    if (missing.length) return `번호 누락 ${missing.length}/${hs.length}: ${String(out).replace(/\s+/g, ' ').slice(0, 80)}`;
+    return c;
+  };
+  const viaAgy = opt.agyReportImpl ?? agyReport;
+  const call = opt.call ?? ((p) => viaAgy(p, {
     label: 'topic-classify', timeoutMs: opt.timeoutMs ?? 180_000,
     schema: { type: 'object', properties: { c: { type: 'object' } }, required: ['c'] },
+    // 불완전한 분류면 이 모델의 답은 못 쓴다 — 사슬의 다음 모델이 받게 한다(agy-report 의 accept).
+    accept: (out) => typeof parse(out) === 'object',
   }));
   let out;
-  try { out = await call(classifyPrompt(hs)); } catch { return null; }
-  if (!out) return null;
-  let c;
-  try { c = JSON.parse(out)?.c; } catch { return null; }
-  if (!c || typeof c !== 'object') return null;
-  // 하나라도 빠졌으면 믿지 않는다 — 일부만 나뉜 목록으로 순서를 바꾸면 빠진 후보가 조용히 밀린다.
-  if (hs.some((_, i) => c[String(i)] == null)) return null;
+  try { out = await call(classifyPrompt(hs)); } catch (e) { return reject(`호출 오류: ${e?.message ?? e}`); }
+  if (!out) return reject('응답 없음(agy 사슬 전부 실패 — 위 [agy:topic-classify] 줄 참고)');
+  const c = parse(out);
+  if (typeof c === 'string') return reject(c);
   return hs.map((_, i) => (TOPICS.includes(c[String(i)]) ? c[String(i)] : '기타'));
 }

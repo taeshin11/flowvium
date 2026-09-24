@@ -128,3 +128,5 @@ assets/broll/*.webm
 assets/broll/*.mkv
 assets/broll/*.m4v
 logs/verify-all/
+# agy 할당량 소진 기록(런타임, 기계마다 다름)
+logs/agy-quota.json

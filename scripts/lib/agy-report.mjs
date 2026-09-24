@@ -4,6 +4,8 @@ import os from 'os';
 import { join } from 'path';
 import { execFile } from 'child_process';
 import util from 'util';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 const execFileAsync = util.promisify(execFile);
 
@@ -53,6 +55,40 @@ const BREAK_AFTER = 2;
 const BREAK_MS = 30 * 60 * 1000;
 const BREAKER = new Map();   // model → { streak, until }
 export function resetAgyBreaker() { BREAKER.clear(); }
+
+/**
+ * 할당량 소진 기록 (2026-09-25). **프로세스 사이에서 나눈다.**
+ *
+ * 실측: claude-opus 37회 · gpt-oss 4회가 `Individual quota reached … Resets in 26h28m49s` 로 떨어졌다.
+ *   한 번 떨어지는 데 ~155초(agy 가 안에서 재시도한다). 위 차단기는 프로세스 안에서만 기억해서
+ *   보고서·쇼츠·블로그 프로세스마다 같은 세금을 다시 냈다. 이건 "어제 죽은 게 오늘 살아 있을 수도"
+ *   같은 추측이 아니라 **서버가 리셋 시각을 알려 준다** — 그때까지는 부르지 않는다.
+ * 파일은 logs/ 아래(런타임 산출물, 저장소에 안 들어간다). AGY_QUOTA_FILE 로 바꿀 수 있다(테스트용).
+ */
+const quotaFile = () => process.env.AGY_QUOTA_FILE
+  || fileURLToPath(new URL('../../logs/agy-quota.json', import.meta.url));
+function readQuota() {
+  try { return JSON.parse(readFileSync(quotaFile(), 'utf8')) ?? {}; } catch { return {}; }
+}
+/** 이 모델이 지금 할당량 소진 상태면 리셋 시각(ms), 아니면 0. */
+function quotaUntil(model, now = Date.now()) {
+  const t = Date.parse(readQuota()[model] ?? '');
+  return Number.isFinite(t) && t > now ? t : 0;
+}
+function markQuota(model, resetMs) {
+  const q = readQuota();
+  q[model] = new Date(Date.now() + resetMs).toISOString();
+  try { mkdirSync(path.dirname(quotaFile()), { recursive: true }); writeFileSync(quotaFile(), JSON.stringify(q, null, 2)); }
+  catch (e) { console.error(`[agy] 할당량 기록 실패(비치명): ${e.message}`); }
+}
+/** agy 오류 문구에서 "Resets in 26h28m49s" 를 ms 로. 없으면 null. */
+export function parseQuotaReset(text) {
+  const s = String(text ?? '');
+  if (!/quota reached|RESOURCE_EXHAUSTED/i.test(s) && !/^Resets in/i.test(s.trim())) return null;
+  const m = /Resets in\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?/i.exec(s);
+  if (!m || !(m[1] || m[2] || m[3])) return null;
+  return ((+(m[1] ?? 0)) * 3600 + (+(m[2] ?? 0)) * 60 + (+(m[3] ?? 0))) * 1000;
+}
 export function agyModelUsage() { return new Map(USED); }
 export function resetAgyModelUsage() { USED.clear(); }
 
@@ -172,6 +208,11 @@ async function attemptOnce(prompt, { label, schema, timeoutMs, agyImpl, model } 
       } else {
         console.error(`[agy:${label}] 실행 실패: ${err.message}`);
         if (err.stderr) console.error(`[agy:${label}] stderr: ${err.stderr}`);
+        const reset = parseQuotaReset(err.stderr);
+        if (reset) {
+          markQuota(model, reset);
+          console.error(`[agy:${label}] ${model} 할당량 소진 — ${new Date(Date.now() + reset).toISOString()} 까지 모든 프로세스가 건너뛴다`);
+        }
       }
       return null;
     } finally {
@@ -245,6 +286,12 @@ export async function agyReport(prompt, opt = {}) {
   const now = opt.now ?? Date.now;
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i];
+    const qUntil = quotaUntil(model, now());
+    if (qUntil) {
+      // 할당량 소진은 사슬 끝이라도 건너뛴다 — 불러 봐야 ~155초 뒤에 같은 429 다.
+      console.error(`[agy:${opt.label}] ${model} 할당량 소진 중(${new Date(qUntil).toISOString()} 리셋) — 건너뛴다`);
+      continue;
+    }
     const b = BREAKER.get(model);
     // 사슬의 마지막 모델은 건너뛰지 않는다 — 건너뛰면 시도도 안 하고 null 이 된다.
     if (!opt.model && i < chain.length - 1 && b && b.until > now()) {
