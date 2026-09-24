@@ -77,15 +77,27 @@ offenders.length === 0
     const lr = rl('report'), lw = rl('web');
     lr !== lw ? ok(`레인마다 다른 라벨 (report=${lr} · web=${lw})`) : bad(`두 레인이 같은 라벨 ${lr} — 재기동이 엉뚱한 서비스를 죽인다`);
     // 라벨은 실제로 등록된 plist 와 일치해야 한다. 없는 라벨을 kickstart 하면 조용히 실패한다.
+    // 2026-09-24: 레인의 서비스를 **의도적으로 은퇴**시킬 수 있다. 27B(report 레인)는 보고서를 agy 로
+    //   옮기고 plist 를 LaunchAgents/_disabled/ 로 치웠다(사장님 "27B 이제 안 쓸 건데" — README 에 사유).
+    //   이 검사가 막으려는 것은 "라벨이 엉뚱한 서비스를 가리킨다"(08-31 웹을 고치려다 27B 를 재기동한 사고)이지
+    //   "서비스가 반드시 살아 있어야 한다" 가 아니다. 그래서 _disabled/ 에 있으면 **은퇴**로 받아들이고,
+    //   거기서도 짝(포트)이 맞는지는 계속 본다 — 되살릴 때 엉뚱한 포트로 뜨면 안 된다.
+    //   두 곳 다 없으면 그건 은퇴가 아니라 **분실**이다. 그때는 실패시킨다.
+    const AG = `${process.env.HOME}/Library/LaunchAgents`;
+    const where = (lbl) => existsSync(`${AG}/${lbl}.plist`) ? `${AG}/${lbl}.plist`
+      : existsSync(`${AG}/_disabled/${lbl}.plist`) ? `${AG}/_disabled/${lbl}.plist` : null;
     for (const [lane, lbl] of [['report', lr], ['web', lw]]) {
-      const plist = `${process.env.HOME}/Library/LaunchAgents/${lbl}.plist`;
-      if (!existsSync(`${process.env.HOME}/Library/LaunchAgents`)) { console.log(`  – LaunchAgents 없음 — 이 기계 전용 검사 건너뜀 (${lane})`); continue; }
-      existsSync(plist) ? ok(`${lane} 라벨이 실제 plist 와 일치: ${lbl}`) : bad(`${lane} 라벨 ${lbl} 에 해당하는 plist 가 없다`);
+      if (!existsSync(AG)) { console.log(`  – LaunchAgents 없음 — 이 기계 전용 검사 건너뜀 (${lane})`); continue; }
+      const at = where(lbl);
+      if (!at) bad(`${lane} 라벨 ${lbl} 에 해당하는 plist 가 없다(_disabled/ 에도 없다 — 은퇴가 아니라 분실)`);
+      else if (at.includes('/_disabled/')) ok(`${lane} 라벨 ${lbl} — 의도적으로 은퇴(_disabled/)`);
+      else ok(`${lane} 라벨이 실제 plist 와 일치: ${lbl}`);
     }
     // 그리고 그 plist 가 가리키는 포트가 레인 URL 과 같아야 한다 — 여기까지 봐야 "짝" 이다.
     for (const lane of ['report', 'web']) {
       const port = (C.resolveLlm(lane).url.match(/:(\d+)/) ?? [])[1];
-      let args = ''; try { args = readFileSync(`${process.env.HOME}/Library/LaunchAgents/${rl(lane)}.plist`, 'utf8'); } catch { continue; }
+      const at = where(rl(lane));
+      let args = ''; try { args = readFileSync(at, 'utf8'); } catch { continue; }
       args.includes(`<string>${port}</string>`) || args.includes(`:${port}`)
         ? ok(`${lane} 라벨의 plist 가 포트 ${port} 를 띄운다`)
         : bad(`${lane} 라벨(${rl(lane)}) 의 plist 에 포트 ${port} 가 없다 — 레인과 서비스가 어긋났다`);
