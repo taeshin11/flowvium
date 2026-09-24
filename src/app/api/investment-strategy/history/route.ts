@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getMemberEmail } from '@/lib/member-auth';
-import { gateReport } from '@/lib/report-gate';
+import { gateReport, MEMBER_RESPONSE_HEADERS } from '@/lib/report-gate';
 import { createRedis } from '@/lib/redis';
 import type { InvestmentStrategy } from '@/app/api/investment-strategy/route';
 import { memGetReport, memGetArray } from '@/lib/investment-strategy-memory';
@@ -55,9 +55,7 @@ export async function GET(req: NextRequest) {
       if (!report) return null;
       if (isFallbackSrc((report as { source?: string }).source)) return NextResponse.json({ report: null, expired: true, filtered: 'fallback-source' });
       const out = gateReport(report as unknown as Record<string, unknown>, isMember);
-      const res = NextResponse.json({ report: out, ...extra });
-      if (isMember) res.headers.set('Cache-Control', 'private, no-store');
-      return res;
+      return NextResponse.json({ report: out, ...extra }, isMember ? { headers: MEMBER_RESPONSE_HEADERS } : undefined);
     };
     try {
       const r1 = serve(await redis.get<InvestmentStrategy>(loadKey));

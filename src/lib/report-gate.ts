@@ -22,6 +22,10 @@ export const GATED_FIELDS: readonly string[] = [
   'portfolioOutcomes', 'companyChanges', 'supplyChainChanges', 'manipulationWatch',
 ];
 
+// 회원 응답은 공유 캐시에 올리지 않는다 — 올리면 비회원이 그 캐시를 받는다. 두 라우트가 같은 값을 쓴다.
+export const MEMBER_CACHE_CONTROL = 'private, no-store';
+export const MEMBER_RESPONSE_HEADERS: Readonly<Record<string, string>> = { 'Cache-Control': MEMBER_CACHE_CONTROL };
+
 export function isFreeSession(session: unknown): boolean {
   return typeof session === 'string' && FREE_SESSIONS.includes(session);
 }

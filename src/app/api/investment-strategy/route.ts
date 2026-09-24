@@ -6,7 +6,7 @@ import { preValidateFix, validateStrategy } from '@/lib/strategy-schema';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getMemberEmail } from '@/lib/member-auth';
-import { gateReport } from '@/lib/report-gate';
+import { gateReport, MEMBER_CACHE_CONTROL } from '@/lib/report-gate';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider, llmTimeoutMs } from '@/lib/ai-providers';
@@ -1492,7 +1492,7 @@ async function gateResponse(req: NextRequest, res: Response): Promise<Response> 
   const headers = new Headers(res.headers);
   if (getMemberEmail(req) || isInternal(req)) {
     // 회원 응답은 공유 캐시에 올리지 않는다 — 올리면 비회원이 그 캐시를 받는다.
-    headers.set('Cache-Control', 'private, no-store');
+    headers.set('Cache-Control', MEMBER_CACHE_CONTROL);
     return new Response(res.body, { status: res.status, headers });
   }
   let data: Record<string, unknown>;
