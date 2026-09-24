@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { getMemberEmail } from '@/lib/member-auth';
+import { gateReport } from '@/lib/report-gate';
 import { createRedis } from '@/lib/redis';
 import type { InvestmentStrategy } from '@/app/api/investment-strategy/route';
 import { memGetReport, memGetArray } from '@/lib/investment-strategy-memory';
@@ -29,7 +31,14 @@ export interface HistoryMeta {
   sessionLabel?: string;
 }
 
-export async function GET(req: Request) {
+function isInternalReq(req: NextRequest): boolean {
+  const sec = process.env.CRON_SECRET;
+  if (!sec) return false;
+  const h = req.headers.get('authorization') ?? '';
+  return h === `Bearer ${sec}` || req.headers.get('x-cron-secret') === sec;
+}
+
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const loadKey = searchParams.get('key');
   const redis = createRedis();
@@ -37,10 +46,18 @@ export async function GET(req: Request) {
 
   if (loadKey) {
     // serve-time 차단: 로드한 보고서 source 가 fallback 이면 노출하지 않음 (expired 처럼 처리)
+    // 2026-09-24: 여기엔 **회원 잠금이 없었다.** 9/18 에 메인 라우트만 서버에서 잠갔고 이 라우트를 놓쳐서,
+    //   비회원이 과거 회차 탭을 누르면 화면은 가입 안내를 띄웠지만 데이터는 전부 내려갔다
+    //   (실측: noon portfolio 5건·evening 4건이 비회원에게 그대로). 메인 라우트와 **같은 함수**로 잠근다.
+    //   회원 응답은 공유 캐시에 올리지 않는다 — 올리면 비회원이 그 캐시를 받는다.
+    const isMember = !!getMemberEmail(req) || isInternalReq(req);
     const serve = (report: InvestmentStrategy | null, extra: Record<string, unknown> = {}) => {
       if (!report) return null;
       if (isFallbackSrc((report as { source?: string }).source)) return NextResponse.json({ report: null, expired: true, filtered: 'fallback-source' });
-      return NextResponse.json({ report, ...extra });
+      const out = gateReport(report as unknown as Record<string, unknown>, isMember);
+      const res = NextResponse.json({ report: out, ...extra });
+      if (isMember) res.headers.set('Cache-Control', 'private, no-store');
+      return res;
     };
     try {
       const r1 = serve(await redis.get<InvestmentStrategy>(loadKey));

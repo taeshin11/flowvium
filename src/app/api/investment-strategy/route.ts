@@ -6,6 +6,7 @@ import { preValidateFix, validateStrategy } from '@/lib/strategy-schema';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getMemberEmail } from '@/lib/member-auth';
+import { gateReport } from '@/lib/report-gate';
 import { Redis } from '@upstash/redis';
 import { createRedis, gatherTabContext } from '@/lib/daily-brief';
 import { callAI as callAIProvider, llmTimeoutMs } from '@/lib/ai-providers';
@@ -1469,13 +1470,7 @@ function parseStrategy(raw: string, source: string): InvestmentStrategy | null {
 //
 // ⚠ 캐시: 이 라우트는 s-maxage 로 CDN 에 실린다. 회원 응답이 캐시되면 비회원에게 새어 나간다.
 //   그래서 **회원에게 주는 응답만** private·no-store 로 바꾼다. 비회원용(가린 것)은 캐시해도 안전하다.
-const GATED_FIELDS = [
-  'portfolio', 'portfolioByMarket', 'sellRecommendations', 'buyCandidateScoring',
-  'shortSqueeze', 'insiderSignals', 'topOpportunity', 'conditionalEntryWatch',
-  'fundamentalAnalysis', 'technicalAnalysis', 'macroAnalysis', 'marketNarrative',
-  'sectorAllocation', 'riskEvents', 'hedgingSuggestion', 'stopLossRationale',
-  'portfolioOutcomes', 'companyChanges', 'supplyChainChanges', 'manipulationWatch',
-];
+// 2026-09-24: 잠금 필드·무료 회차는 src/lib/report-gate.ts 한 곳에서 정한다(과거 회차 라우트·페이지와 공유).
 
 function isInternal(req: NextRequest): boolean {
   const sec = process.env.CRON_SECRET;
@@ -1502,12 +1497,9 @@ async function gateResponse(req: NextRequest, res: Response): Promise<Response> 
   }
   let data: Record<string, unknown>;
   try { data = await res.clone().json() as Record<string, unknown>; } catch { return res; }
-  let removed = 0;
-  for (const f of GATED_FIELDS) if (f in data) { delete data[f]; removed += 1; }
-  if (!removed) return res;
-  data.gated = true;
-  data.gatedFields = removed;
-  const body = JSON.stringify(data);
+  const gatedData = gateReport(data, false);
+  if (gatedData === data) return res;   // 무료 회차(아침)이거나 뺄 필드가 없다
+  const body = JSON.stringify(gatedData);
   headers.delete('content-length');
   return new Response(body, { status: res.status, headers });
 }

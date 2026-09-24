@@ -753,8 +753,16 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 
 ### 13-0. 🔓 장중 보고서 회원 게이트 (2026-06-13 신설)
 - noon/afternoon/evening/midnight 세션 보고서는 비회원에게 stance·종합판단까지만 + 이메일 가입 카드 (morning 은 전체 무료 맛보기)
+  - 2026-09-18 "다 잠궈" 로 morning 까지 잠갔다가 **2026-09-24 사장님 "아침 다시 무료로 풀어"** 로 되돌림.
 - `/api/member` POST {email} → Redis `flowvium:members:emails` SADD + HMAC 쿠키(fv_member, 1년). 비밀번호/결제 없음
-- i18n `report.gate*` 6키 ×16. 한계(인지): UI 게이트 v1 — API 직접 호출 미차단 (가입 유도 목적)
+- i18n `report.gate*` 6키 ×16.
+- **서버 게이트**(2026-09-18~): 비회원 응답에서 20개 필드(portfolio 등)를 서버가 뺀다. 정책은 `src/lib/report-gate.ts`
+  한 곳(FREE_SESSIONS·GATED_FIELDS·gateReport)에서 정하고 세 곳이 공유한다 —
+  `/api/investment-strategy`(최신) · `/api/investment-strategy/history`(과거 회차) · `ReportPage`(화면 분기).
+  - 2026-09-24: `/history` 에 잠금이 **없어서** 과거 회차 포트폴리오가 비회원에게 새고 있었다 → 같은 함수로 잠금.
+  - 2026-09-24: 페이지가 서버의 `gated` 표시 대신 자기 member 판정만 믿어, 보고서가 /api/member 보다 먼저 오면
+    지워진 필드를 그리다 죽었다(비회원 6/6 "일시적인 오류") → 서버 표시를 먼저 믿는다.
+  - 검증: `scripts/check-report-gate.mjs`(정책 대 응답 본문) · `scripts/check-report-gate-race.mjs`(비회원 N회 렌더)
 
 ### 13-1b. 🚨 거시 급락 조기경보 배너 (2026-06-06 신설)
 - `earlyWarning` 결정론적 composite — 신용 OAS(HY/IG 확대·고위험) / VIX 단계 / 금리커브 역전 / F&G 극단 / USD-KRW 급변 / jobless·PMI 위축 → 0-100 위험점수 + level(low/elevated/high/severe) + drivers.

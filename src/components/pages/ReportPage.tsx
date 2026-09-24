@@ -26,6 +26,7 @@ function TBizSummary({ text }: { text: string }) {
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
 
+import { isFreeSession } from '@/lib/report-gate';
 // 2026-06-04: ticker → 회사명 (이름 우선 표시, 코드는 작게). stopLossRationale 등 name 없는 항목용 fallback.
 const TICKER_NAME: Record<string, string> = Object.fromEntries(UNIVERSE_SEARCH.map(c => [c.ticker, c.name]));
 function displayName(ticker: string, fallback?: string): string {
@@ -561,7 +562,8 @@ export default function ReportPage() {
   // 2026-09-18 사용자 "다 잠궈" — 아침(07:00)까지 포함해 전 회차를 회원 전용으로.
   //   종전엔 아침만 전체 무료(맛보기)였다(2026-06-13 "장중 보고서는 회원가입 해야").
   //   비회원도 게이트 **위쪽**(지수·스탠스·종합판단)은 그대로 본다 — 완전한 벽이 아니라 맛보기가 남는다.
-  const GATED_SESSIONS = ['morning', 'noon', 'afternoon', 'evening', 'midnight'];
+  // 2026-09-24 사장님 "아침 다시 무료로 풀어" — 무료 회차는 src/lib/report-gate.ts 한 곳에서 정한다
+  //   (서버 두 라우트와 공유). 종전엔 여기와 서버가 따로 들고 있어 한쪽만 바뀌는 일이 생겼다.
   const dataSession = (data as unknown as { session?: string } | null)?.session;
   // 2026-09-24: **서버의 표시를 먼저 믿는다.** 서버는 비회원 응답에서 portfolio 등 20개 필드를 지우고
   //   `gated: true` 를 붙인다. 종전엔 그걸 안 보고 member === false 만 봤는데, member 는 처음에 null 이다.
@@ -569,7 +571,7 @@ export default function ReportPage() {
   //   오류 경계가 페이지 전체를 덮었다. 실측: 비회원 6회 중 6회 "일시적인 오류가 발생했습니다".
   //   필드를 지운 쪽이 그 사실을 알린다 — 그 표시를 받는 쪽에서 판정한다.
   const serverGated = (data as unknown as { gated?: boolean } | null)?.gated === true;
-  const gated = serverGated || (member === false && !!dataSession && GATED_SESSIONS.includes(dataSession));
+  const gated = serverGated || (member === false && !!dataSession && !isFreeSession(dataSession));
 
   const fetchStrategy = useCallback(async (force = false) => {
     abortRef.current?.abort();
