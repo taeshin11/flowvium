@@ -36,6 +36,21 @@ export const AGY_MODEL_CHAIN = (process.env.AGY_MODEL_CHAIN
 
 /** 모델별 성공 횟수. 보고서 저자 라벨이 이 값으로 정해진다(오늘 아침 고친 그 칸). */
 const USED = new Map();
+
+/**
+ * 차단기 (2026-09-24).
+ *
+ * 실측: 1차 claude-opus 가 midnight 회차에서 23번 떨어졌고 한 번에 ~150초씩 먹었다
+ *   (오늘 오전엔 "1+1" 에 218초, 빈 응답). 떨어질 때마다 **다음 호출이 또 1차부터** 시작해서
+ *   같은 세금을 다시 냈다 — 회차 하나에 한 시간 가까이 버렸다.
+ * 순서는 사장님이 정한 것이라 바꾸지 않는다. 연속 BREAK_AFTER 번 실패하면 BREAK_MS 동안 건너뛴다.
+ * 한 번 성공하면 즉시 풀린다 — 일시 장애 한 번으로 1차가 영영 밀려나면 안 된다.
+ * 프로세스 안에서만 기억한다. 회차마다 새로 판단하는 게 맞다(어제 죽은 모델이 오늘은 살아 있을 수 있다).
+ */
+const BREAK_AFTER = 2;
+const BREAK_MS = 30 * 60 * 1000;
+const BREAKER = new Map();   // model → { streak, until }
+export function resetAgyBreaker() { BREAKER.clear(); }
 export function agyModelUsage() { return new Map(USED); }
 export function resetAgyModelUsage() { USED.clear(); }
 
@@ -225,15 +240,43 @@ async function attemptOnce(prompt, { label, schema, timeoutMs, agyImpl, model } 
  */
 export async function agyReport(prompt, opt = {}) {
   const chain = opt.model ? [opt.model] : AGY_MODEL_CHAIN;
+  const now = opt.now ?? Date.now;
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i];
+    const b = BREAKER.get(model);
+    // 사슬의 마지막 모델은 건너뛰지 않는다 — 건너뛰면 시도도 안 하고 null 이 된다.
+    if (!opt.model && i < chain.length - 1 && b && b.until > now()) {
+      if (!b.noted) {
+        console.error(`[agy:${opt.label}] ${model} 차단 중(연속 ${b.streak}회 실패) — ${Math.ceil((b.until - now()) / 60000)}분간 ${chain[i + 1]} 부터 간다`);
+        b.noted = true;
+      }
+      continue;
+    }
+    const t0 = Date.now();
+    let why = '응답 없음';
     const out = await attemptOnce(prompt, { ...opt, model });
     if (out && isMetaReply(out, prompt)) {
       // 내용 대신 과정을 썼다. 성공으로 세면 그 문장이 보고서 본문에 실린다.
-      console.error(`[agy:${opt.label}] ${model} 이 내용 대신 작업 보고를 냈다 — 실패로 본다: ${String(out).slice(0, 80)}`);
-    } else if (out) { USED.set(model, (USED.get(model) ?? 0) + 1); return out; }
+      why = `작업보고: ${String(out).replace(/\s+/g, ' ').slice(0, 90)}`;
+    } else if (out) {
+      USED.set(model, (USED.get(model) ?? 0) + 1);
+      BREAKER.delete(model);   // 한 번 성공하면 풀린다
+      return out;
+    }
+    {
+      const st = BREAKER.get(model) ?? { streak: 0, until: 0 };
+      st.streak += 1;
+      if (st.streak >= BREAK_AFTER) { st.until = now() + BREAK_MS; st.noted = false; }
+      BREAKER.set(model, st);
+    }
+    // 2026-09-24: 종전엔 "실패 → 다음 모델" 만 찍고 **왜인지 안 남겼다.**
+    //   그래서 밤 회차에서 claude-opus 가 34번 떨어졌는데(evening 11 · midnight 23)
+    //   로그만으로는 원인을 알 수 없었다. 고르는 근거가 없으면 감으로 되돌리게 된다.
+    //   사유와 걸린 시간을 남긴다 — 집계해서 판단할 수 있게.
     if (i < chain.length - 1) {
-      console.error(`[agy:${opt.label}] ${model} 실패 → ${chain[i + 1]} 로 한 번 더`);
+      console.error(`[agy:${opt.label}] ${model} 실패(${((Date.now() - t0) / 1000).toFixed(1)}초 · ${why}) → ${chain[i + 1]}`);
+    } else {
+      console.error(`[agy:${opt.label}] ${model} 실패(${((Date.now() - t0) / 1000).toFixed(1)}초 · ${why}) — 사슬 끝`);
     }
   }
   return null;

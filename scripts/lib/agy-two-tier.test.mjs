@@ -17,7 +17,7 @@
  *
  * 그리고 누가 썼는지 세어야 한다 — 보고서 저자 라벨이 그걸로 정해진다(오늘 아침 고친 그 칸).
  */
-import { agyReport, agyModelUsage, resetAgyModelUsage, AGY_MODEL_CHAIN, isMetaReply } from './agy-report.mjs';
+import { agyReport, agyModelUsage, resetAgyModelUsage, AGY_MODEL_CHAIN, isMetaReply, resetAgyBreaker } from './agy-report.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
@@ -175,6 +175,60 @@ const envelope = (obj) => JSON.stringify({ status: 'SUCCESS', structured_output:
   out && /코스피/.test(out) && !u.has(AGY_MODEL_CHAIN[0])
     ? ok('[11] 작업 보고를 낸 모델은 실패로 세고 다음 모델이 받는다')
     : bad(`[11] out=${String(out).slice(0, 60)} 사용=${JSON.stringify([...u])}`);
+}
+
+// ── 차단기 ────────────────────────────────────────────────────────────────
+// 2026-09-24 실측: claude-opus 가 1차인데 midnight 회차에서 23번 떨어졌고, 한 번에 ~150초씩 먹었다
+//   (오늘 오전에는 "1+1" 에 218초, 빈 응답). 떨어질 때마다 다음 호출이 또 1차부터 시작해
+//   같은 세금을 다시 냈다 — 회차 하나에 한 시간 가까이 버렸다.
+//   순서는 사장님이 정한 것이라 바꾸지 않는다. **연속으로 실패하면 잠깐 건너뛴다.**
+{
+  resetAgyModelUsage(); resetAgyBreaker();
+  const calls = [];
+  const impl = async (args) => {
+    const m = args[args.indexOf('--model') + 1];
+    calls.push(m);
+    return m === AGY_MODEL_CHAIN[0] ? { stdout: '깨짐', stderr: '' } : { stdout: envelope({ a: 1 }), stderr: '' };
+  };
+  for (let i = 0; i < 5; i++) await agyReport('x', { label: `b${i}`, agyImpl: impl });
+  const firstTries = calls.filter((m) => m === AGY_MODEL_CHAIN[0]).length;
+  firstTries === 2
+    ? ok(`[12] 1차가 2번 연속 실패하면 이후 3번은 건너뛴다 (1차 시도 ${firstTries}/5)`)
+    : bad(`[12] 1차를 ${firstTries}번 불렀다 — 매번 세금을 낸다`);
+}
+
+// [13] 한 번 성공하면 차단기가 풀린다 — 일시 장애 한 번으로 영영 밀려나면 안 된다
+{
+  resetAgyModelUsage(); resetAgyBreaker();
+  let n = 0;
+  const impl = async (args) => {
+    const m = args[args.indexOf('--model') + 1];
+    if (m !== AGY_MODEL_CHAIN[0]) return { stdout: envelope({ a: 1 }), stderr: '' };
+    n++;
+    return n === 1 ? { stdout: '깨짐', stderr: '' } : { stdout: envelope({ a: 1 }), stderr: '' };  // 1번 실패 후 회복
+  };
+  await agyReport('x', { label: 'r1', agyImpl: impl });
+  await agyReport('x', { label: 'r2', agyImpl: impl });
+  const u = agyModelUsage();
+  (u.get(AGY_MODEL_CHAIN[0]) ?? 0) === 1
+    ? ok('[13] 1번 실패는 차단하지 않는다 — 다음 호출에서 1차가 다시 받는다')
+    : bad(`[13] ${JSON.stringify([...u])}`);
+}
+
+// [14] 차단 시간이 지나면 다시 시도한다 — 차단이 영구면 1차 모델이 영영 안 돈다
+{
+  resetAgyModelUsage(); resetAgyBreaker();
+  const calls = [];
+  let now = 1_000_000;
+  const impl = async (args) => { const m = args[args.indexOf('--model') + 1]; calls.push(m);
+    return m === AGY_MODEL_CHAIN[0] ? { stdout: '깨짐', stderr: '' } : { stdout: envelope({ a: 1 }), stderr: '' }; };
+  await agyReport('x', { label: 't1', agyImpl: impl, now: () => now });
+  await agyReport('x', { label: 't2', agyImpl: impl, now: () => now });   // 여기서 차단
+  now += 31 * 60 * 1000;                                                    // 31분 뒤
+  calls.length = 0;
+  await agyReport('x', { label: 't3', agyImpl: impl, now: () => now });
+  calls[0] === AGY_MODEL_CHAIN[0]
+    ? ok('[14] 차단 30분이 지나면 1차를 다시 시도한다') : bad(`[14] ${JSON.stringify(calls)}`);
 }
 
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');

@@ -35,6 +35,7 @@ import { probeWithColdRetry, waitUntilServing } from './lib/llm-health.mjs';
 import { resolveLlm, resolveLaunchdLabel } from './lib/llm-config.mjs';
 import { canReload, reclaimableBytes, weightBytes, modelPathFromPlist } from './lib/llm-memory.mjs';
 
+import { isLabelDisabled } from './lib/launchd-disabled.mjs';
 const argv = process.argv.slice(2);
 const VALUE_FLAGS = ['--lane', '--timeout-ms', '--reload-timeout-ms', '--label'];
 const BOOL_FLAGS = ['--repair'];
@@ -112,6 +113,24 @@ function pidOfLabel() {
 function restartService() {
   const uid = process.getuid();
   const plistPath = `${process.env.HOME}/Library/LaunchAgents/${label}.plist`;
+
+  // 2026-09-24: **운영자가 disable 한 잡은 올리지 않는다.** 여기가 모든 복구 경로가 모이는 곳이다 —
+  //   run-report 사전점검 · 누락 보고서 캐치업 · cron self-heal · 테스트가 전부 --repair 로 여기 온다.
+  //   종전엔 아래 `load -w` 가 disable 표시를 **조용히 지우고** 28GB 를 올렸다. 오늘 06:00·08:20·10:30·11:01
+  //   네 번 떴고, 10:30 기동이 10:45 영상 렌더와 겹쳐 10:47 맥이 멈췄다 → 11:00 강제 재부팅.
+  //   경로를 하나씩 막는 건 어제부터 다섯 번째였다. 모이는 곳에서 막는다.
+  //   모르면(null) 올리지 않는다 — 모르면서 올린 것이 오늘 사고다.
+  let disabledOut = '';
+  try { disabledOut = execFileSync('/bin/launchctl', ['print-disabled', `gui/${uid}`], { encoding: 'utf8', timeout: 15_000 }); }
+  catch { /* 아래에서 null 로 판정 */ }
+  const disabled = isLabelDisabled(disabledOut, label);
+  if (disabled !== false) {
+    log(disabled
+      ? `⛔ '${label}' 은 운영자가 disable 해 뒀다 — 올리지 않는다. 필요하면 사람이: launchctl enable gui/${uid}/${label}`
+      : `⛔ '${label}' 의 disable 여부를 읽지 못했다 — 모르면 올리지 않는다`);
+    return false;
+  }
+
   let listed = execFileSync('/bin/launchctl', ['list'], { encoding: 'utf8', timeout: 15_000 });
   if (!listed.split('\n').some((l) => l.trim().endsWith(label))) {
     // 2026-09-05: 여기서 그냥 포기했다. 그래서 **오늘 정오 보고서가 통째로 날아갔다** —
@@ -122,9 +141,24 @@ function restartService() {
       log(`❌ launchd 잡 '${label}' 도, plist 도 없다 — 재기동 경로 없음`);
       return false;
     }
+    // 2026-09-24: 이 분기는 **메모리 검사 없이** 올렸다 — 검사는 아래 kickstart 분기에만 있었다.
+    //   그래서 10:30 에 28GB 를 여유 확인도 없이 올렸고, 렌더와 겹쳐 맥이 멈췄다.
+    //   위 주석이 이미 "메모리가 가중치에도 못 미치면 재기동은 복구가 아니라 두 번째 사고다" 라고
+    //   적고 있었는데, 그 말을 한 분기에만 지켰다. 여기서도 잰다.
+    const dir0 = modelPathFromPlist(plistPath);
+    const w0 = weightBytes(dir0 || '');
+    if (w0 > 0) {
+      const v0 = canReload({ weights: w0, reclaimable: reclaimableBytes(), releasing: 0 });
+      if (!v0.ok) { log(`❌ 올리지 않는다 — ${v0.detail}`); return false; }
+      log(v0.tight ? `⚠️ ${v0.detail}` : `메모리 ${v0.detail}`);
+    } else {
+      log(`⛔ 가중치 크기를 못 쟀다(${dir0 || 'model 경로 미검출'}) — 메모리 판정 없이는 올리지 않는다`);
+      return false;
+    }
     log(`launchd 잡 '${label}' 이 언로드돼 있다 — plist 로 다시 올린다`);
     try {
-      execFileSync('/bin/launchctl', ['load', '-w', plistPath], { encoding: 'utf8', timeout: 60_000 });
+      // `-w` 를 **빼다.** -w 는 disable 표시를 지운다 — 위에서 disable 을 확인했으니 필요 없고, 있으면 해롭다.
+      execFileSync('/bin/launchctl', ['load', plistPath], { encoding: 'utf8', timeout: 60_000 });
     } catch (e) {
       log(`❌ load 실패: ${String(e.message).slice(0, 120)}`);
       return false;

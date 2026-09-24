@@ -151,6 +151,18 @@ PEER_NOTIFIED=1
 #   그래서 agy 가 실제로 준비됐는지 먼저 본다. 준비됐으면 :8000 관문을 통째로 건너뛴다.
 #   준비 안 됐으면 **종전 경로로 떨어진다** — 보고서를 통째로 잃는 것보다 27B 를 깨우는 게 낫다.
 LLM_SKIPPED=0
+# 2026-09-24: REPORT_VIA_AGY 가 **환경에 없으면 plist 를 보고 정한다.**
+#   그 값은 정규 5회차의 launchd plist 에만 있다. 누락 보고서 캐치업(cron-runner)은 이 스크립트를
+#   그 값 없이 불러서 옛 경로(27B)로 갔고, 오늘 06:00·08:20 에 28GB 를 올렸다.
+#   같은 질문("보고서를 무엇이 쓰나")을 호출자마다 따로 답하게 두면 반드시 갈라진다.
+#   report-backend.mjs 한 곳에서 답한다. 모르면(null) 종전대로 0 으로 둔다.
+if [ -z "${REPORT_VIA_AGY:-}" ]; then
+  _via=$("$NODE_BIN" -e "import('$APP_DIR/scripts/lib/report-backend.mjs').then(m=>{const v=m.reportViaAgy();process.stdout.write(v===true?'1':'0')}).catch(()=>process.stdout.write('0'))" 2>/dev/null)
+  if [ "$_via" = "1" ]; then
+    REPORT_VIA_AGY=1; export REPORT_VIA_AGY
+    log "[INFO] REPORT_VIA_AGY 미지정 — plist 기준 agy 로 판정(캐치업·수동 실행도 정규 회차와 같은 길로)"
+  fi
+fi
 # 2026-09-23: 테스트용 탈출구. run-report-selfcopy.test.mjs 는 **진짜 이 스크립트를 돌린다**
 #   (사본으로 갈아타도 APP_DIR 을 제대로 찾는지 보려면 그래야 한다). 그런데 1-a 관문이
 #   포트 무응답을 보고 llm-health-check --repair 를 부르고, 그게 `launchctl load -w` 라
