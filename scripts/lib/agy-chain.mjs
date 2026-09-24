@@ -13,17 +13,12 @@
  *   틀린 번역이 사전에 박히는 것이 한 회차 거르는 것보다 나쁘다.
  */
 import { agyText, agyLastWhy } from './agy.mjs';
+import { AGY_MODEL_CHAIN } from './agy-report.mjs';
 
-/** 계열이 서로 다른 모델들. agy-report.mjs 의 AGY_MODEL_CHAIN 과 같은 원리다. */
-export const AGY_TEXT_CHAIN = (process.env.AGY_TEXT_CHAIN
+/** 보고서 사슬과 **같은 목록**을 쓴다(2026-09-25). 따로 적어 두면 한쪽만 바뀐다 — 실제로 두 곳에 같은 목록이 있었다. */
+export const AGY_TEXT_CHAIN = process.env.AGY_TEXT_CHAIN
   ? process.env.AGY_TEXT_CHAIN.split(',').map((x) => x.trim()).filter(Boolean)
-  : [
-    // 2026-09-24: gemini 1차 — 보고서 사슬과 같은 근거(실전 실패 opus 39 · gemini 4, opus 는 503).
-    //   두 사슬이 서로 다른 순서면 번역만 느려지는 이유를 나중에 또 찾게 된다. 맞춰 둔다.
-    process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
-    process.env.AGY_FALLBACK_MODEL || 'claude-opus-4-6-thinking',
-    process.env.AGY_LAST_MODEL || 'gpt-oss-120b-medium',
-  ]);
+  : AGY_MODEL_CHAIN;
 
 /**
  * @param {string} prompt

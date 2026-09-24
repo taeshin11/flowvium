@@ -33,9 +33,14 @@ export const AGY_MODEL_CHAIN = (process.env.AGY_MODEL_CHAIN
     //   한가할 때 몇 번 잰 속도보다 회차 안에서 실제로 받아 주는 쪽이 1차다.
     //   opus 는 2차로 남긴다 — 살아 있을 때는 여전히 좋은 답을 낸다. 차단기가 죽어 있을 땐 건너뛴다.
     process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
-    process.env.AGY_FALLBACK_MODEL || 'claude-opus-4-6-thinking',
+    // 2026-09-25: 2·3차도 gemini 로 (사장님 "gemini 쓰면되지").
+    //   "계열이 다르면 같이 안 죽는다" 는 원칙으로 claude-opus·gpt-oss 를 뒀는데, 실측은 반대였다 —
+    //   opus 37회 · gpt-oss 4회가 할당량 소진(429, "Resets in 26h…")으로 떨어졌고 gemini 는 0회.
+    //   예비가 아니라 매번 ~155초를 버리는 칸이었다. flash 는 같은 한국어 요약에 11~13초,
+    //   숫자를 그대로 옮겼다(3.8·3.7 각 2회). pro-low 는 2회 중 1회 작업 보고를 내서 뺐다.
+    process.env.AGY_FALLBACK_MODEL || 'gemini-3.8-flash-high',
     // 3차: 27B 를 내렸으니 한 단이 더 필요하다. 계열이 또 달라 같은 이유로 같이 실패하지 않는다.
-    process.env.AGY_LAST_MODEL || 'gpt-oss-120b-medium',
+    process.env.AGY_LAST_MODEL || 'gemini-3.7-flash-high',
   ]);
 
 /** 모델별 성공 횟수. 보고서 저자 라벨이 이 값으로 정해진다(오늘 아침 고친 그 칸). */
@@ -239,9 +244,20 @@ async function attemptOnce(prompt, { label, schema, timeoutMs, agyImpl, model } 
 
     // 왜: 스키마 구조에 따라 structured_output 또는 response 필드로 반환됨
     if (parsed.structured_output !== undefined) {
-      return typeof parsed.structured_output === 'string'
-        ? parsed.structured_output
-        : JSON.stringify(parsed.structured_output);
+      let so = parsed.structured_output;
+      // 이중 포장을 한 겹 벗긴다 (2026-09-25 실측: pro-high·flash 모두 한 칸짜리 스키마에
+      //   {"summary":"{\"summary\": \"…\"}"} 를 냈다). 필드가 **하나**이고 그 값이 같은 키를 가진
+      //   JSON 일 때만 — 여러 필드의 답은 건드리지 않는다.
+      if (so && typeof so === 'object' && !Array.isArray(so)) {
+        const keys = Object.keys(so);
+        if (keys.length === 1 && typeof so[keys[0]] === 'string' && /^\s*\{/.test(so[keys[0]])) {
+          try {
+            const inner = JSON.parse(so[keys[0]]);
+            if (inner && typeof inner === 'object' && keys[0] in inner) so = inner;
+          } catch { /* JSON 이 아니면 원래 값이 답이다 */ }
+        }
+      }
+      return typeof so === 'string' ? so : JSON.stringify(so);
     }
 
     if (parsed.response !== undefined) {

@@ -23,16 +23,17 @@ const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 const envelope = (obj) => JSON.stringify({ status: 'SUCCESS', structured_output: obj });
 
-// [1] 모델 사슬이 **계열이 다른** 두 모델이다 — 같은 계열이면 같은 이유로 같이 실패한다
+// [1] 사슬의 각 칸은 **서로 다른 gemini 모델**이다 (2026-09-25 사장님 "gemini 쓰면되지")
 {
-  // 2026-09-23: 처음엔 순서를 고정했다(gemini 먼저). 1차를 claude 로 바꾸자 깨졌는데,
-  //   깨져야 할 이유가 없다 — 순서는 실측으로 바뀔 수 있는 선택이고, 지켜야 할 것은
-  //   **계열이 서로 다르다**는 성질이다. 같은 계열을 늘어놓으면 같은 이유로 같이 실패한다.
-  const family = (m) => String(m).split('-')[0];
-  const fams = new Set(AGY_MODEL_CHAIN.map(family));
-  AGY_MODEL_CHAIN.length >= 2 && fams.size === AGY_MODEL_CHAIN.length
-    ? ok(`[1] 사슬 ${AGY_MODEL_CHAIN.length}단이 모두 다른 계열: ${AGY_MODEL_CHAIN.join(' → ')}`)
-    : bad(`[1] 계열이 겹친다: ${JSON.stringify(AGY_MODEL_CHAIN)}`);
+  // 종전엔 "계열이 달라야 같은 이유로 같이 안 죽는다" 를 못박았다. 실측은 반대였다 —
+  //   claude-opus 37회 · gpt-oss 4회가 할당량 소진(429)으로 떨어졌고 gemini 는 0회였다.
+  //   다른 계열 칸은 예비가 아니라 매번 ~155초를 버리는 자리였다. 지킬 성질은 이제
+  //   **같은 모델을 두 번 부르지 않는다**(같은 모델 반복은 같은 이유로 같이 실패한다)와 gemini 만 쓴다는 결정이다.
+  const distinct = new Set(AGY_MODEL_CHAIN).size === AGY_MODEL_CHAIN.length;
+  const allGemini = AGY_MODEL_CHAIN.every((m) => /^gemini-/.test(m));
+  AGY_MODEL_CHAIN.length >= 2 && distinct && allGemini
+    ? ok(`[1] 사슬 ${AGY_MODEL_CHAIN.length}단, 서로 다른 gemini 모델: ${AGY_MODEL_CHAIN.join(' → ')}`)
+    : bad(`[1] 사슬: ${JSON.stringify(AGY_MODEL_CHAIN)} (중복=${!distinct} · gemini 외=${!allGemini})`);
 }
 
 // [2] 1차가 실패하면 2차로 간다

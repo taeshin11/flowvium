@@ -124,6 +124,22 @@ async function runTests() {
     resetAgyBreaker();
   }
 
+  // [8] 한 칸짜리 답이 **이중 포장**돼 와도 벗긴다 (2026-09-25 실측: pro-high·flash 모두
+  //   {"summary":"{\"summary\": \"…\"}"} 를 냈다 — 그대로 두면 본문에 중괄호가 실린다)
+  {
+    resetAgyBreaker();
+    const inner = '환율은 1,392원으로 올랐습니다.';
+    const impl8 = async () => ({ stdout: JSON.stringify({ structured_output: { summary: JSON.stringify({ summary: inner }) } }) });
+    const r8 = await agyReport('요약해라 한국어로 두 문장으로 써라', { label: 't8', agyImpl: impl8 });
+    const got = JSON.parse(r8 ?? '{}').summary;
+    got === inner ? ok('[8] 이중 포장 → 한 겹 벗김') : bad(`[8] ${r8}`);
+    // 필드가 여럿이면 건드리지 않는다(정상 답을 망가뜨리지 않게)
+    const impl8b = async () => ({ stdout: JSON.stringify({ structured_output: { a: '{"a":"x"}', b: 'y' } }) });
+    const r8b = await agyReport('요약해라 한국어로 두 문장으로 써라', { label: 't8b', agyImpl: impl8b });
+    r8b === JSON.stringify({ a: '{"a":"x"}', b: 'y' }) ? ok('[8b] 여러 필드는 그대로') : bad(`[8b] ${r8b}`);
+    resetAgyBreaker();
+  }
+
   console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ agy-report 통과');
   process.exit(fail ? 1 : 0);
 }

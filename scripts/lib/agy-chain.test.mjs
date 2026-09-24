@@ -14,11 +14,17 @@ let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 
-// [1] 사슬이 계열이 다른 모델들이다 — 같은 계열이면 같은 이유로 같이 실패한다
+// [1] 사슬은 **gemini 모델들**이고, 보고서 사슬과 같은 목록이다 (2026-09-25 사장님 "gemini 쓰면되지")
+//   종전 원칙은 "계열이 다르면 같은 이유로 같이 안 죽는다" 였다. 실측은 반대였다 —
+//   claude-opus 37회 · gpt-oss 4회가 할당량 소진(429)으로 떨어졌고 gemini 는 0회.
+//   다른 계열이 **예비가 아니라 매번 ~155초를 버리는 칸**이었다. 두 사슬을 따로 적어 둔 것도
+//   어긋날 자리라 한 곳(agy-report 의 AGY_MODEL_CHAIN)에서 가져온다.
 {
-  const fams = new Set(AGY_TEXT_CHAIN.map((m) => String(m).split('-')[0]));
-  AGY_TEXT_CHAIN.length >= 2 && fams.size === AGY_TEXT_CHAIN.length
-    ? ok(`[1] ${AGY_TEXT_CHAIN.join(' → ')}`) : bad(`[1] ${JSON.stringify(AGY_TEXT_CHAIN)}`);
+  const { AGY_MODEL_CHAIN } = await import('./agy-report.mjs');
+  const allGemini = AGY_TEXT_CHAIN.every((m) => /^gemini-/.test(m));
+  const distinct = new Set(AGY_TEXT_CHAIN).size === AGY_TEXT_CHAIN.length;
+  (AGY_TEXT_CHAIN.length >= 2 && allGemini && distinct && JSON.stringify(AGY_TEXT_CHAIN) === JSON.stringify(AGY_MODEL_CHAIN))
+    ? ok(`[1] ${AGY_TEXT_CHAIN.join(' → ')} (보고서 사슬과 같다)`) : bad(`[1] text=${JSON.stringify(AGY_TEXT_CHAIN)} report=${JSON.stringify(AGY_MODEL_CHAIN)}`);
 }
 
 // [2] 1차가 빈 답을 내면 2차로 간다 — 오늘 실제로 난 모양이다
