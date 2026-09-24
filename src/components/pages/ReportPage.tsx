@@ -563,7 +563,13 @@ export default function ReportPage() {
   //   비회원도 게이트 **위쪽**(지수·스탠스·종합판단)은 그대로 본다 — 완전한 벽이 아니라 맛보기가 남는다.
   const GATED_SESSIONS = ['morning', 'noon', 'afternoon', 'evening', 'midnight'];
   const dataSession = (data as unknown as { session?: string } | null)?.session;
-  const gated = member === false && !!dataSession && GATED_SESSIONS.includes(dataSession);
+  // 2026-09-24: **서버의 표시를 먼저 믿는다.** 서버는 비회원 응답에서 portfolio 등 20개 필드를 지우고
+  //   `gated: true` 를 붙인다. 종전엔 그걸 안 보고 member === false 만 봤는데, member 는 처음에 null 이다.
+  //   보고서가 /api/member 보다 먼저 오면 gated=false → 지워진 data.portfolio.some(…) 에서 죽고
+  //   오류 경계가 페이지 전체를 덮었다. 실측: 비회원 6회 중 6회 "일시적인 오류가 발생했습니다".
+  //   필드를 지운 쪽이 그 사실을 알린다 — 그 표시를 받는 쪽에서 판정한다.
+  const serverGated = (data as unknown as { gated?: boolean } | null)?.gated === true;
+  const gated = serverGated || (member === false && !!dataSession && GATED_SESSIONS.includes(dataSession));
 
   const fetchStrategy = useCallback(async (force = false) => {
     abortRef.current?.abort();
