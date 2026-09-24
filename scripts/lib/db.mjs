@@ -2121,12 +2121,42 @@ export function recentShortsIssues(hours = 24) {
   return new Set(rows.map((r) => r.issue_key));
 }
 
+/**
+ * topic 컬럼 보장. (2026-09-24 신설 — 사장님 "다음 주제를 정할 때는 조회수 분석해서 해라")
+ * 쇼츠마다 **주제 한 줄**(topic-classify 의 고정 목록 중 하나)을 남긴다. 편성 때 주제별 조회수 성적을
+ *   내려면 과거 편의 주제가 있어야 한다. 정규식 categoryOf 는 헤드라인의 46% 를 '기타' 로 못 나눠
+ *   성적이 아무 신호도 못 냈다 — 그래서 고를 때 쓴 **같은 분류**를 발행 기록에 붙인다.
+ */
+function ensureTopicColumn(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name);
+  if (!cols.includes('topic')) db.exec('ALTER TABLE shorts_published ADD COLUMN topic TEXT');
+}
+
+/** 주제 성적 계산용 — shorts_stats 관측 + 그 영상의 topic. 내린 영상은 뺀다. */
+export function shortsTopicObservations() {
+  const db = openDb();
+  ensureTopicColumn(db);
+  return db.prepare(
+    `SELECT s.video_id, s.views, s.age_hours, p.published_at, p.topic
+       FROM shorts_stats s JOIN shorts_published p ON p.video_id = s.video_id
+      WHERE p.retracted_at IS NULL`,
+  ).all();
+}
+
+/** 발행 뒤 주제를 붙인다(분류가 발행보다 늦게 끝나거나, 과거 편을 소급할 때). */
+export function setShortsTopic(videoId, topic) {
+  const db = openDb();
+  ensureTopicColumn(db);
+  return db.prepare('UPDATE shorts_published SET topic = ? WHERE video_id = ?').run(topic ?? null, videoId).changes;
+}
+
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [] }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null }) {
   const db = openDb();
   ensureHeadlinesColumn(db);
   ensureHooksColumn(db);
   ensureBodiesColumn(db);
+  ensureTopicColumn(db);
   // 2026-09-10: 올린 파일의 실제 길이를 남긴다. 유튜브가 보고하는 길이와 대조해
   //   광고 클립 누락·업로드 잘림을 잡는다(로그는 "붙인다" 만 찍고 붙었는지는 안 본다).
   ensureDurationColumn(db);
@@ -2136,13 +2166,14 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
   // 기사 본문. 글로 풀 때의 재료다 — 훅만으로는 알맹이가 300자를 못 넘는다(위 주석 참고).
   const bodyList = (bodies ?? []).map((b) => String(b ?? '').trim()).filter(Boolean).slice(0, 8);
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
     new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null,
     Number.isFinite(durationSec) ? durationSec : null,
     hookList.length ? JSON.stringify(hookList) : null,
-    bodyList.length ? JSON.stringify(bodyList) : null);
+    bodyList.length ? JSON.stringify(bodyList) : null,
+    topic ? String(topic) : null);
 }
 
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */

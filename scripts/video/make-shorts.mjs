@@ -445,6 +445,7 @@ if (FORCE_ISSUE) {
     UNSAFE_THUMB = unsafe;
   } catch (e) { log(`[편성] 자극도 반영 건너뜀: ${String(e.message).slice(0, 50)}`); }
 
+
   BRIEF_POOL = fresh.slice();
   // 2026-09-06: 브리핑에 **중기중앙회 강소기업 선정**이 섞여 나왔다.
   //   약한 갈래를 거르는 건 1순위 이슈에만 걸려 있었고 브리핑 풀에는 안 걸려 있었다.
@@ -492,6 +493,46 @@ if (FORCE_ISSUE) {
   //   · 시장종목 0.52% · **지역·기관 0.35%**(전남대 산학연 3편).
   //   약한 갈래는 **버리지 않고 뒤로 민다** — 표본이 얇고 그날 그 주제뿐일 수도 있다.
   //   짐작이 아니라 DB 에 쌓인 성적에서 온다. 성적이 없으면 아무것도 하지 않는다.
+
+  // 2026-09-24 사장님 "다음 주제를 정할 때는 조회수 분석해서 해라".
+  //   위 '성적 반영'(weakByViews)은 있었지만 **아무것도 못 골랐다** — 정규식 분류가 헤드라인의 46% 를
+  //   '기타' 로 못 나눴고, 나이·날짜를 안 가린 원시 조회수로 쟀다. 지금 데이터로 약·강 갈래 둘 다 빈 값이었다.
+  //   여기서는 (1) 후보를 agy 로 **고정 주제 목록**에 나누고 (2) 과거 편을 같은 목록으로 나눈 성적을
+  //   48시간 조회수·같은 날 또래 대비로 재서 (3) 통계적으로 유의한 강·약만 순서에 반영한다.
+  //   실측(2026-09-24, 161편): 국내정치 강(26/38 또래 이상) · 기업·산업 약(6/21). 나머지는 우연 범위라 안 건드린다.
+  //   빼지는 않는다 — 앞뒤만 바꾼다. 같은 등급 안에서는 앞 단계 순서를 그대로 둔다(정렬은 안정적이다).
+  //   인용 낙인은 여전히 뒤로 — 강한 주제라도 썸네일 사고를 앞세우지 않는다.
+  //   ★ 자리가 중요하다: 처음엔 자극도 정렬 바로 뒤에 뒀더니 `李대통령(국내정치)` 을 1순위로 올린 직후
+  //     응집도 필터가 그 묶음을 지웠다(여러 기사가 섞여 한 사건이 아님). 걸러질 것이 다 걸러진 **뒤**,
+  //     소재 확인 **직전**에 정렬해야 실제로 남는 후보가 순서를 받는다.
+  //   백필(SHORTS_PREFER_PROUD)은 사장님이 정한 '한국 성과 먼저' 순서가 있어 건드리지 않는다.
+  if (process.env.SHORTS_PREFER_PROUD !== '1') try {
+    const TOP = Number(process.env.SHORTS_TOPIC_POOL || 15);
+    const { classifyTopics } = await import('../lib/topic-classify.mjs');
+    const { topicLift, topicTier } = await import('../lib/topic-lift.mjs');
+    const { shortsTopicObservations } = await import('../lib/db.mjs');
+    const head = fresh.slice(0, TOP);
+    const topics = await classifyTopics(head.map((c) => (c.headlines ?? [])[0] ?? c.keyword));
+    if (topics) {
+      head.forEach((c, i) => { c.__topic = topics[i]; });
+      const tier = topicTier(topicLift(shortsTopicObservations(), { minSamples: 8 }));
+      if (tier.size) {
+        const rank = (c) => (tier.get(c.__topic) === 'strong' ? 0 : tier.get(c.__topic) === 'weak' ? 2 : 1);
+        const unsafeRank = (c) => (UNSAFE_THUMB && UNSAFE_THUMB(c) ? 1 : 0);
+        const before = head[0]?.keyword;
+        const sorted = [...head].sort((a, b) => unsafeRank(a) - unsafeRank(b) || rank(a) - rank(b));
+        fresh = [...sorted, ...fresh.slice(TOP)];
+        issue = fresh[0];
+        // 후보 주제 분포를 남긴다 — "1순위가 안 바뀌었다" 가 '강한 주제가 없어서' 인지 '정렬이 안 먹어서' 인지 가르려면 필요하다.
+        const dist = {};
+        for (const c of head) dist[c.__topic] = (dist[c.__topic] ?? 0) + 1;
+        const moved = head.filter((c) => rank(c) === 2).length;
+        log(`[편성] 조회수 성적(같은 날 대비) — ${[...tier].map(([t, v]) => `${t}=${v === 'strong' ? '강' : '약'}`).join(' · ')}`
+          + ` · 후보 주제 ${Object.entries(dist).map(([k, v]) => `${k} ${v}`).join(' · ')}`
+          + `${moved ? ` · 약한 주제 ${moved}건 뒤로` : ''} · 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
+      } else log('[편성] 조회수 성적 — 유의한 강·약 주제 없음(표본 부족 또는 차이가 우연 범위) — 순서 유지');
+    } else log('[편성] 주제 분류 실패(agy) — 조회수 성적 반영 건너뜀, 순서 유지');
+  } catch (e) { log(`[편성] 조회수 성적 반영 건너뜀: ${String(e.message).slice(0, 60)}`); }
 
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
@@ -830,6 +871,14 @@ async function askLLM() {
   //   프롬프트도 같이 고쳤지만 4B 가 지킬 거라고 믿지 않는다. 코드가 보장한다.
   return JSON.parse(m[0]).filter((x) => x?.say && x?.hook).slice(0, BRIEF ? BRIEF.length : SCENES)
     .map((x) => ({ ...x, say: tightenNumbers(x.say), hook: tightenNumbers(x.hook) }));
+}
+
+// 2026-09-24: **고르기까지만** 돌고 멈춘다(확인용). 편성 로직을 바꿀 때 영상을 실제로 만들지 않고
+//   무엇을 골랐는지 볼 수 있어야 한다 — 렌더는 무겁고, 만든 산출물이 발행 대기열에 섞일 수 있다.
+//   이 지점 전에는 아무것도 기록하지 않는다(발행 기록은 video-publish 가 렌더 뒤에 남긴다).
+if (process.env.SHORTS_PICK_ONLY === '1') {
+  log(`[편성·확인용] 최종 선택: "${issue.keyword}" · 주제 ${issue.__topic ?? '(미분류)'} · 헤드라인 ${String((issue.headlines ?? [])[0] ?? '').slice(0, 60)}`);
+  process.exit(0);
 }
 
 let scenes = [];
@@ -2044,5 +2093,6 @@ if (credits.length) {
 // 업로드가 쓸 메타. 훅을 제목 후보로 넘긴다.
 writeFileSync(join(MEDIA.root, 'shorts-ko-meta.json'), JSON.stringify({
   headlines, hooks: scenes.map((s) => s.hook), bodies, keyword: issue.keyword,
+  topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));
