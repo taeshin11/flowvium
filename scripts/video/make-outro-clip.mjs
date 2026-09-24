@@ -113,7 +113,9 @@ const COPY = {
 
 const argOf = (k, d = '') => {
   const i = process.argv.indexOf(`--${k}`);
-  return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d;
+  // 다음 칸이 다른 플래그면 값이 아니다 — `--demo --out x` 에서 '--out' 을 시연 경로로 먹었다(2026-09-24).
+  const v = i > 0 ? process.argv[i + 1] : undefined;
+  return v && !v.startsWith('--') ? v : d;
 };
 const LOCALE = argOf('locale', process.env.AISVI_LOCALE || 'ko');
 const T = COPY[LOCALE];
@@ -122,9 +124,20 @@ if (!T) {
   process.exit(2);
 }
 
+// ── 2초 카드 (2026-09-24 사용자 "광고를 2초 카드로 만들어서 다른 세션들에 전달") ──────────
+//   시연 없이 **브랜드 카드 한 장만** 짧게. 다른 채널 본편 끝에 붙는 파일이다.
+//   2초 안에 긴 대사는 못 넣는다 — 주소만 읽는다(siteSpoken). 화면 글자도 주소 중심으로 줄인다.
+//   말이 카드보다 길면 **자르지 않고 멈춘다**: 잘린 브랜드 이름이 나가는 게 제일 나쁘다.
+const CARD = process.argv.includes('--card');
+const CARD_SEC = Number(argOf('sec', process.env.AISVI_CARD_SEC || '2'));
+if (CARD && !(CARD_SEC >= 1 && CARD_SEC <= 4)) { console.error(`❌ --sec 는 1~4초: ${CARD_SEC}`); process.exit(2); }
+if (CARD && (process.argv.includes('--demo') || process.env.AISVI_DEMO)) {
+  console.error('❌ --card 는 시연 없이 브랜드 카드만 만든다 — --demo 와 같이 쓸 수 없다'); process.exit(2);
+}
 // 한국어판은 종전 경로 그대로다 — make-shorts 가 assets/outro/aisvi.mp4 를 본다.
 //   다른 로케일은 파일을 나눈다(aisvi-ja.mp4). --out 으로 덮어쓸 수 있다.
-const OUT = resolve(ROOT, argOf('out', `assets/outro/aisvi${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
+//   카드는 이름을 따로 둔다(aisvi-card.mp4) — 쇼츠에 붙는 광고를 실수로 덮지 않게.
+const OUT = resolve(ROOT, argOf('out', `assets/outro/aisvi${CARD ? '-card' : ''}${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
 // 2026-09-17: 바깥에 넘기는 파일만 샘플레이트를 바꾼다(일본 채널 본편이 48kHz).
 //   쇼츠에 붙는 assets/outro/aisvi.mp4 는 AUDIO_SPEC(44.1kHz)을 따라야 concat 이 안전하다 —
 //   그래서 그 파일로 나가는데 이 옵션이 오면 멈춘다.
@@ -147,7 +160,7 @@ if (AUDIO_RATE && AUDIO_RATE !== 44100 && OUT === resolve(ROOT, 'assets/outro/ai
 
 const SPOKEN = process.env.AISVI_SPOKEN || T.spoken;
 const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || T.siteSpoken;
-const SAY = T.say(SPOKEN, SITE_SPOKEN);
+const SAY = CARD ? SITE_SPOKEN : T.say(SPOKEN, SITE_SPOKEN);
 
 console.log(`  대사: ${SAY}`);
 // 소리. 세 갈래다 — 받아 온 파일(--audio) · 한국어 전용 경로 · MeloTTS 다국어(ja 등).
@@ -202,7 +215,34 @@ if (AUDIO_IN) {
   console.error('   그 언어로 만든 wav 를 --audio <파일> 로 주십시오. 한국어 발음으로 읽히지 않게 막는다.');
   process.exit(2);
 }
+// 카드는 초 단위가 빠듯하다. TTS 는 말 앞뒤에 무음을 붙인다(2026-09-24 실측: melo 가
+//   "에이스비 에이전트 닷컴" 2.54초 중 말은 0.10~1.81초, 뒤 0.73초가 무음) — 그 무음 때문에
+//   들어가는 말을 못 넣는 일이 없게 앞뒤를 깎고 **다시 잰다**. 긴 광고는 종전 그대로 둔다.
+if (CARD) {
+  const trimmed = join(WORK, 'v-trim.wav');
+  const sil = 'silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.03';
+  // 피크를 먼저 눌러 둔다. loudnorm 은 3초 미만이면 **선형 이득만** 쓰는데, 선형 이득은
+  //   피크 한계(-1.5 dBTP)에 막힌다. 2026-09-24 실측: 한국어 카드가 -15.7 에서 멈춰 아래 -14 확인에
+  //   걸렸다(일본어는 피크 여유가 있어 통과). 압축 후엔 -14.0 에 맞았다 — 같은 입력으로 재 봤다.
+  const CARD_COMP = 'acompressor=threshold=0.125:ratio=4:attack=5:release=80:makeup=1';
+  const t = spawnSync(ffmpeg, ['-y', '-v', 'error', '-i', voice.path,
+    '-af', `${sil},areverse,${sil},areverse,${CARD_COMP}`, trimmed], { encoding: 'utf8' });
+  const pr = spawnSync(ffmpeg, ['-i', trimmed], { encoding: 'utf8' });
+  const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(String(pr.stderr ?? ''));
+  const secs = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
+  if (t.status !== 0 || !(secs > 0.3)) {
+    console.error(`❌ 대사 앞뒤 무음을 깎지 못했다: ${String(t.stderr ?? '').slice(0, 160)}`); process.exit(2);
+  }
+  console.log(`  무음 깎음 ${voice.durationSec.toFixed(2)} → ${secs.toFixed(2)}초`);
+  voice = { path: trimmed, durationSec: secs };
+}
 console.log(`  음성 ${voice.durationSec.toFixed(1)}초`);
+// 말이 끝나고 0.15초는 조용해야 다음 영상과 이어질 때 말끝이 안 먹힌다.
+if (CARD && voice.durationSec > CARD_SEC - 0.15) {
+  console.error(`❌ 대사(${voice.durationSec.toFixed(2)}초)가 ${CARD_SEC}초 카드에 안 들어간다 — 자르지 않는다.`);
+  console.error('   AISVI_SITE_SPOKEN 으로 더 짧은 대사를 주거나 --sec 를 늘리십시오.');
+  process.exit(2);
+}
 
 // 배경 사진 — 2026-09-10 사용자 "자비스 되는 사진 넣어서".
 //   Flow(Nano Banana)로 만든다: node scripts/flow-image.mjs --prompt "..." --out assets/outro/jarvis.jpg
@@ -256,6 +296,9 @@ if (DEMO) {
   const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(String(pr.stderr ?? ''));
   DEMO_SEC = m ? (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) : 0;
   if (!(DEMO_SEC > 0)) { console.error(`❌ 시연 영상 길이를 못 잰다: ${DEMO}`); process.exit(2); }
+}
+// 카드도 긴 광고의 뒷단계와 **같은 사진**을 쓴다 — 두 광고가 같은 브랜드로 보이게.
+if (DEMO || CARD) {
   // 뒷단계(브랜드 카드) 사진 — 2026-09-17 사용자 "맨 마지막엔 자비스 사진 넣어야지".
   //   처음엔 시연의 마지막 프레임(체크)을 멈춰 뒀다. 자비스 사진은 폰에 대고 말하는 사람이다.
   //   원래의 jarvis.jpg 는 서양인이라, 로케일별 인물 영상(한국인/일본인)에서 한 장을 뽑는다 —
@@ -275,7 +318,7 @@ if (DEMO) {
   if (!y || y.status !== 0 || !existsSync(still)) { console.error(`❌ 마지막 사진을 못 만들었다: ${src}`); process.exit(2); }
   console.log(`  마지막 사진: ${given ? given : `${src.split('/').pop()} 의 1.5초`}`);
 }
-const bgVideo = DEMO ? join(WORK, 'end-photo.mp4')
+const bgVideo = (DEMO || CARD) ? join(WORK, 'end-photo.mp4')
   : (existsSync(resolve(ROOT, BGVID)) ? resolve(ROOT, BGVID) : null);
 const hasPhoto = existsSync(PHOTO);
 const photoB64 = hasPhoto ? readFileSync(PHOTO).toString('base64') : '';
@@ -292,7 +335,7 @@ console.log(hasPhoto ? `  배경 사진: ${PHOTO}` : '  배경 사진 없음 —
 // 2026-09-17: 사용자가 보낸 실제 쇼츠 화면을 재니 채널 이름이 86%, 제목이 90% 에 있었다.
 //   67% 기준은 지나치게 보수적이라 브랜드 카드 아래가 비었다. 두 단계 구성에서는 마지막 사진을
 //   크게(42%) 잡는다 — 주소는 약 70% 로 내려가지만 가려지는 선보다 한참 위다.
-const BAND = Math.round(H * Number(process.env.AISVI_BAND ?? (argOf('demo', process.env.AISVI_DEMO || '') ? 0.42 : 0.34)));
+const BAND = Math.round(H * Number(process.env.AISVI_BAND ?? ((CARD || argOf('demo', process.env.AISVI_DEMO || '')) ? 0.42 : 0.34)));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 await page.setContent(`<!doctype html><meta charset="utf-8"><style>
@@ -338,17 +381,17 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 .s{font-size:46px;font-weight:900;color:#fff;letter-spacing:.01em;margin-top:22px;
   border:3px solid rgba(207,227,255,.55);border-radius:999px;padding:10px 30px}
 </style>
-${hasPhoto ? `<div class="p">${T.line && !DEMO ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
+${hasPhoto ? `<div class="p">${T.line && !DEMO && !CARD ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
 <div class="body">
 <div class="t">${T.tagline}</div>
 <div class="w">AISVI</div><div class="r"></div>
-<div class="d">${T.desc}</div>
+${CARD ? '' : `<div class="d">${T.desc}</div>`}
 <div class="u">aisviagent.com</div>
 <!-- cta 는 주소에 이어 읽히는 꼬리다("aisviagent.com 에서 다운로드").
      무료 안내를 그 사이에 끼웠더니 "에서 다운로드" 만 떨어져 나와 붕 떴다(2026-09-18 눈검증). -->
 <div class="c">${T.cta}</div>
 ${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}
-<div class="c2">${T.note}</div>
+${CARD ? '' : `<div class="c2">${T.note}</div>`}
 ${T.subCta ? `<div class="s">${T.subCta}</div>` : ''}
 </div>`);
 // 영상이면 알파를 살려 찍는다 — 띠 자리가 뚫려야 아래 영상이 보인다.
@@ -439,7 +482,7 @@ await browser.close();
 //   꼬리 여백(TAIL)은 말이 끝난 뒤 화면이 숨 쉬는 시간이다. 소리는 apad 로 sec 까지 채우므로
 //   여기서 줄여도 말이 잘리지는 않는다. 2026-09-19 사용자 "6초 이하" 요청에 0.6 → 0.45.
 const TAIL = Number(process.env.AISVI_TAIL ?? 0.45);
-const sec = Math.max(4, voice.durationSec + TAIL);
+const sec = CARD ? CARD_SEC : Math.max(4, voice.durationSec + TAIL);
 // 영상이 있으면 **두 단계**로 만든다. 한 그래프에 다 넣었더니 필터가 깨졌다
 //   ("Error reinitializing filters" — tpad·trim·overlay 를 한 번에 물리면 불안정하다).
 //   ① 띠 영상을 광고 길이에 맞춰 따로 렌더  ② 그 위에 글자판(알파)을 얹는다.
