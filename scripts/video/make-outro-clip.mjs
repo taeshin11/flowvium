@@ -137,7 +137,9 @@ if (CARD && (process.argv.includes('--demo') || process.env.AISVI_DEMO)) {
 // 한국어판은 종전 경로 그대로다 — make-shorts 가 assets/outro/aisvi.mp4 를 본다.
 //   다른 로케일은 파일을 나눈다(aisvi-ja.mp4). --out 으로 덮어쓸 수 있다.
 //   카드는 이름을 따로 둔다(aisvi-card.mp4) — 쇼츠에 붙는 광고를 실수로 덮지 않게.
-const OUT = resolve(ROOT, argOf('out', `assets/outro/aisvi${CARD ? '-card' : ''}${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
+const OUT = resolve(ROOT, argOf('out', CARD
+  ? `assets/outro/aisvi-card${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`
+  : `assets/outro/aisvi${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
 // 2026-09-17: 바깥에 넘기는 파일만 샘플레이트를 바꾼다(일본 채널 본편이 48kHz).
 //   쇼츠에 붙는 assets/outro/aisvi.mp4 는 AUDIO_SPEC(44.1kHz)을 따라야 concat 이 안전하다 —
 //   그래서 그 파일로 나가는데 이 옵션이 오면 멈춘다.

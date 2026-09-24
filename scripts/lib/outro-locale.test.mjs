@@ -18,6 +18,7 @@
  */
 import { spawnSync } from 'child_process';
 import { join } from 'path';
+import { tmpdir } from 'os';
 import { ROOT } from './project-root.mjs';
 
 let fail = 0;
@@ -25,7 +26,10 @@ const ok  = m => console.log(`  PASS  ${m}`);
 const bad = m => { console.log(`  FAIL  ${m}`); fail++; };
 
 const script = join(ROOT, 'scripts/video/make-outro-clip.mjs');
-const run = (args) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8', timeout: 60_000 });
+// 출력은 **언제나 임시 경로로**. 2026-09-24: 옛 스크립트가 --card 를 몰라 이 테스트의 인자로 실제 렌더를 해
+//   assets/outro/aisvi.mp4(쇼츠에 붙는 광고)를 덮어썼다. 멈춰야 할 입력이 안 멈추는 회귀가 오면 똑같이 된다.
+const SAFE_OUT = join(tmpdir(), `outro-locale-test-${process.pid}.mp4`);
+const run = (args) => spawnSync(process.execPath, [script, ...args, '--out', SAFE_OUT], { encoding: 'utf8', timeout: 60_000 });
 
 // [1] ja 는 **일본어로** 읽는다 — 한국어 경로로 새지 않는다
 //   렌더 전체는 느리니(모델 적재) 소스에서 배선을 본다. 소리가 실제로 일본어인지는
@@ -79,6 +83,34 @@ const run = (args) => spawnSync(process.execPath, [script, ...args], { encoding:
   (r.status === 2 && /시연 영상이 없다/.test(`${r.stdout}${r.stderr}`))
     ? ok('--demo 에 없는 파일을 주면 멈춘다')
     : bad(`없는 시연 영상으로 진행했다 (exit ${r.status})`);
+}
+
+// [신설 2026-09-24] 2초 카드 — 쇼츠에 붙는 광고를 덮지 않고, 시연과 섞이지 않는다
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(script, 'utf8');
+  /assets\/outro\/aisvi-card\$\{LOCALE === 'ko'/.test(src)
+    ? ok('카드는 aisvi-card.mp4 로 따로 나간다')
+    : bad('카드 출력 경로가 쇼츠 광고(aisvi.mp4)와 같다');
+  const r = run(['--card', '--demo', 'assets/outro/aisvi-demo.mp4']);
+  (r.status === 2 && /--card/.test(`${r.stdout}${r.stderr}`))
+    ? ok('--card 와 --demo 를 같이 주면 멈춘다')
+    : bad(`--card 에 시연이 섞였다 (exit ${r.status})`);
+  const s2 = run(['--card', '--sec', '9']);
+  (s2.status === 2 && /--sec/.test(`${s2.stdout}${s2.stderr}`))
+    ? ok('카드 길이 범위 밖(9초)은 멈춘다')
+    : bad(`--sec 9 가 통과했다 (exit ${s2.status})`);
+}
+
+// [신설 2026-09-24] 값 없는 플래그 뒤에 다른 플래그가 와도 그 플래그를 값으로 먹지 않는다
+//   `--demo --out x` 에서 '--out' 을 시연 경로로 먹어 "시연 영상이 없다: .../--out" 으로 멈췄다.
+//   --ar 22050 은 렌더 전에 멈추는 입력이라, 고쳐졌으면 '--ar' 오류로, 아니면 '시연 영상이 없다' 로 멈춘다.
+{
+  const r = run(['--demo', '--ar', '22050']);
+  const out = `${r.stdout}${r.stderr}`;
+  (r.status === 2 && /--ar 는/.test(out) && !/시연 영상이 없다/.test(out))
+    ? ok("'--demo --ar' 에서 --ar 을 시연 경로로 먹지 않는다")
+    : bad(`다음 플래그를 값으로 먹었다: ${out.split('\n').find(Boolean)?.slice(0, 90)}`);
 }
 
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
