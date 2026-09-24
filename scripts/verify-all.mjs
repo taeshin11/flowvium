@@ -158,6 +158,18 @@ const checks = [
     dimensions: ['발행 보고서 페이지 실물 (generatedAt 일치·값 렌더링)'],
   },
   {
+    // 2026-09-24: 비회원이 /ko/report 를 열면 매번 오류 화면이었다(9/18 서버 게이트 도입 이후 6일).
+    //   서버가 지운 필드를 페이지가 그리려다 죽는 경쟁 조건이라 **한 번 열어서는 안 잡힌다** — 여러 번 연다.
+    //   check-report-page 와 같은 이유로 critical 이 아니다(돌아가는 서버의 성질이지 커밋의 성질이 아니다).
+    //   대신 실패하면 이제 logs/verify-all/ 에 사유가 남는다.
+    name: 'check-report-gate-race',
+    script: 'scripts/check-report-gate-race.mjs',
+    args: () => ['--n=3'],
+    desc: '비회원 보고서 페이지가 죽지 않는가 (게이트 경쟁 조건)',
+    critical: false,
+    dimensions: ['비회원 /ko/report 렌더 (서버 gated 필드 제거 vs 클라이언트 판정 경쟁)'],
+  },
+  {
     name: 'check-cron-cost',
     script: 'scripts/check-cron-cost.mjs',
     desc: 'Vercel cron 비용 폭증',

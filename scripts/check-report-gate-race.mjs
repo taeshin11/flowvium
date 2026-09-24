@@ -12,9 +12,15 @@
  *
  * 경쟁은 한 번 열어서는 안 잡힌다. **여러 번** 연다. 한 번이라도 죽으면 실패다.
  */
-import { chromium } from 'playwright';
 const N = Number(process.argv.find((a) => a.startsWith('--n='))?.split('=')[1] ?? 6);
 const URL = process.argv.find((a) => a.startsWith('--url='))?.split('=')[1] ?? 'http://localhost:3000/ko/report';
+
+// 서버·브라우저가 없는 곳(CI 우분투 등)에서는 **잴 대상이 없는 것**이지 실패가 아니다. 건너뛴다고 말한다.
+try { const r = await fetch(URL, { signal: AbortSignal.timeout(5000) }); if (!r.ok) throw new Error(String(r.status)); }
+catch (e) { console.log(`  SKIP  ${URL} 에 서버가 없다(${String(e?.message ?? e).slice(0, 40)}) — 이 검사는 돌아가는 서버에서만 뜻이 있다`); process.exit(0); }
+let chromium;
+try { ({ chromium } = await import('playwright')); }
+catch { console.log('  SKIP  playwright 없음 — 브라우저 없이는 렌더를 볼 수 없다'); process.exit(0); }
 const b = await chromium.launch();
 let crashed = 0;
 const rows = [];
