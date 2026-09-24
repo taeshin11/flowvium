@@ -85,6 +85,24 @@ if (existing.length >= COUNT) {
   process.exit(0);
 }
 
+// 그림은 agy(generate_image)로 만든다 — 2026-09-25 사장님 "flow 차단을 좀 줄일수있나".
+//   같은 Nano Banana 계열 모델을 브라우저 없이 부른다. 워터마크(✦)도 없어 잘라낼 것이 없다(실측).
+//   Flow 는 영상(Veo)에만 쓴다. agy 가 그 장을 못 만들면 건너뛴다 — Flow 로 되돌아가 차단을 부르지 않는다.
+if (KIND === 'image') {
+  const { generateImage } = await import('./lib/agy-image.mjs');
+  let made = 0;
+  for (let i = existing.length; i < COUNT; i++) {
+    const dest = join(OUT, `card-${pad(i)}.${EXT}`);
+    const r = await generateImage({ prompt: PROMPTS[i % PROMPTS.length], out: dest, aspect: '16:9' });
+    if (!r.ok) { console.error(`  ⚠ ${i + 1}번째 생성 실패 — 건너뛴다: ${r.reason}`); continue; }
+    made++;
+    console.log(`  ✅ ${dest} · ${r.width}x${r.height} · ${r.seconds}초 (agy)`);
+  }
+  const total = readdirSync(OUT).filter((f) => new RegExp(`^card-\\d+\\.${EXT}$`).test(f)).length;
+  console.log(`\n  ${made}개 생성 · 총 ${total}개 (${KIND}, agy)`);
+  process.exit(made || existing.length >= COUNT ? 0 : 1);
+}
+
 const { ctx, page } = await openFlow({ headless: false });
 const die = async (msg) => { console.error(`❌ ${msg}`); await ctx.close(); process.exit(1); };
 try {

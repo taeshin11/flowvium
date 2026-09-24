@@ -247,7 +247,8 @@ if (CARD && voice.durationSec > CARD_SEC - 0.15) {
 }
 
 // 배경 사진 — 2026-09-10 사용자 "자비스 되는 사진 넣어서".
-//   Flow(Nano Banana)로 만든다: node scripts/flow-image.mjs --prompt "..." --out assets/outro/jarvis.jpg
+//   Flow(Nano Banana)로 만들었다. 2026-09-25 부터는 agy 로 만든다(Flow 차단 줄이기, 같은 모델 계열):
+//   node scripts/agy-image.mjs --prompt "..." --out assets/outro/jarvis.jpg --aspect 16:9 [--ref 인물사진.jpg]
 //   **없으면 사진 없이 만든다** — 생성이 실패한 날 광고가 통째로 빠지는 편이 더 나쁘다.
 //   setContent 는 about:blank 기준이라 file:// 이 막힐 수 있어 base64 로 심는다.
 //
