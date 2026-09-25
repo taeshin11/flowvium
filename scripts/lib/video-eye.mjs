@@ -132,7 +132,8 @@ export async function inspectFrames(frames, opt = {}) {
   const key = process.env.GEMINI_API_KEY;
   // checked=false 는 "검사를 못 했다" 는 뜻이다. ok=true 와 뜻이 다르다 —
   //   구분하지 않으면 과부하(503)로 못 본 것이 "이상 없음" 으로 보고된다(2026-09-19 실제로 그랬다).
-  if (!key) return { ok: true, checked: false, issues: [], readable: true, notes: 'GEMINI_API_KEY 없음', model: 'none' };
+  // 2026-09-25: 키 검사를 agy 시도 **뒤**로 옮겼다(아래). agy 는 키가 필요 없는데 여기서 먼저 돌려보내면
+  //   키가 없는 곳에선 눈검증이 통째로 빠진다(테크이슈 복제본에서 실제로 "판정 없음 — GEMINI_API_KEY 없음").
   const model = opt.model || MODEL;
   const what = opt.kind === 'ad' ? '세로 광고 영상' : opt.kind === 'thumb' ? '쇼츠 썸네일' : '세로 뉴스 쇼츠';
   const expect = (opt.expect ?? []).length
@@ -157,6 +158,7 @@ ${SCHEMA_HINT}`;
     const viaAgy = agyInspect(frames, prompt, process.env.AGY_EYE_MODEL || 'gemini-3.1-pro-high', opt.timeoutMs ?? 300000);
     if (viaAgy) return viaAgy;
   }
+  if (!key) return { ok: true, checked: false, issues: [], readable: true, notes: `GEMINI_API_KEY 없음${EYE_WHY.length ? ` · ${EYE_WHY.join(' · ')}` : ''}`, model: 'none' };
 
   const parts = [{ text: prompt }];
   for (const f of frames) {

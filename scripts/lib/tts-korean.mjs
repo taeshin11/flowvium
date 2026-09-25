@@ -33,6 +33,7 @@ import { dirname, join, resolve } from 'path';
 import { ROOT } from './project-root.mjs';
 import { speakNumbers } from './kr-number.mjs';
 import { speakLatin } from './kr-latin.mjs';
+import { speakWords } from './kr-pron.mjs';
 import { earCheckAndRepair } from './ear-check.mjs';
 import { createRequire } from 'module';
 
@@ -249,7 +250,7 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
     // 2026-09-25 시청자 댓글 "G20을 <지이영>으로 발음하는 AI가 너무 싫어". 영문 약어도 같은 문제였다
     //   (OECD → "띠" · GDP → "뿐", 되들음 실측). 약어를 한글 글자 이름으로 먼저 바꾸고 숫자를 읽는다 —
     //   순서가 중요하다: G20 이 "지 20" 이 돼야 speakNumbers 가 20 을 "이십" 으로 읽는다.
-    const spoken = texts.map((t) => speakNumbers(speakLatin(t)));
+    const spoken = texts.map((t) => speakNumbers(speakLatin(speakWords(t))));   // 낱말 된소리(kr-pron) → 약어 → 숫자
     const changed = spoken.filter((t, i) => t !== texts[i]).length;
     log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})${changed ? ` · 숫자·약어 한글화 ${changed}/${texts.length}문장` : ''}`);
     const out = synthesizeKoreanMelo(spoken, { ...opts, display: texts });

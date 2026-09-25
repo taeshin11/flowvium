@@ -2143,6 +2143,10 @@ function ensureTopicColumn(db) {
 export function shortsTopicObservations() {
   const db = openDb();
   ensureTopicColumn(db);
+  // 2026-09-25 (테크이슈 세션 공지 5항): 새 DB 에선 shorts_stats 표·retracted_at 열이 아직 없어
+  //   "no such column: p.retracted_at" 로 조회수 성적 반영이 통째로 빠졌다. 읽기 전에 만든다(없을 때만).
+  ensureStatsTable(db);
+  ensureRetractedColumn(db);
   return db.prepare(
     `SELECT s.video_id, s.views, s.age_hours, p.published_at, p.topic
        FROM shorts_stats s JOIN shorts_published p ON p.video_id = s.video_id

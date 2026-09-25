@@ -36,6 +36,10 @@ eq('[2e] LG전자', spoken('LG전자 조사'), '엘지 전자 조사');
 eq('[3] APEC', spoken('APEC 정상회의'), '에이펙 정상회의');
 eq('[3b] KOSPI', spoken('KOSPI 하락'), '코스피 하락');
 eq('[3c] NATO', spoken('NATO 회의'), '나토 회의');
+// [3d] AI·반도체 업계 낱말은 낱말로(테크이슈 세션 공지 2항 실측: NVIDIA → "엔브이아이디아이에이", DRAM → "디알에이엠")
+eq('[3d] NVIDIA', spoken('NVIDIA 실적'), '엔비디아 실적');
+eq('[3e] DRAM', spoken('DRAM 가격'), '디램 가격');
+eq('[3f] NAND·CUDA·ARM', spoken('NAND CUDA ARM'), '낸드 쿠다 암');
 // [4] 건드리지 않는 것 — 대소문자 섞인 영단어·주소·이미 한글
 eq('[4] 영단어', spoken('Tesla 주가'), 'Tesla 주가');
 eq('[4b] 주소', spoken('flowvium.net 에서'), 'flowvium.net 에서');

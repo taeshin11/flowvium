@@ -290,7 +290,10 @@ const DESC = {
     '매일 새 브리핑이 올라옵니다 — 구독해 두시면 놓치지 않습니다.',
     ...donationLines(true),
     '',
-    '영상 소재: 공공 도메인 / CC0 / 아카이브 라이선스.',
+    // 2026-09-25: 종전 "영상 소재: 공공 도메인 / CC0 / 아카이브 라이선스." 는 기사 사진을 쓰는 회차
+    //   (대부분 — 화면 오른쪽 아래 "출처-yna.co.kr")에 사실이 아니었다. 실제로 하는 일을 적는다.
+    //   CC BY 소재가 있으면 video-publish 가 '출처 · 라이선스' 목록을 따로 붙인다.
+    '사진·영상 출처는 각 장면에 표기했습니다.',
     '',
     tags,
   ].join('\n'),
@@ -304,7 +307,7 @@ const DESC = {
     'Subscribe for a new briefing every day.',
     ...donationLines(false),
     '',
-    'Footage: public domain / CC0 / archive licenses.',
+    'Image sources are credited on screen in each scene.',
     '',
     tags,
   ].join('\n'),

@@ -143,6 +143,22 @@ const run = (args, label) => {
   log(`오늘 ${budget.used}/${budget.limit}편 — ${budget.allowance}편 남음`);
 }
 
+// ── 0.5 한 번에 한 회차 (2026-09-25) ──────────────────────────────────────────
+//   정규 회차와 백필이 같은 작업 폴더($TMPDIR/flowvium-shorts — make-shorts 가 시작 때 지운다)와
+//   같은 산출물(shorts-ko.mp4)을 쓴다. 9/24 11:10 정규 렌더 중에 11:15:04 백필이 또 렌더를 시작했다 —
+//   정규가 1초 뒤 끝나 넘어갔을 뿐이다. 모든 경로(정규·백필·수동)가 여기를 지나므로 여기서 잡는다.
+//   정규는 15분까지 기다리고, 백필(VIDEO_LOCK_WAIT_MIN=0)은 바로 물러난다 — 다음 백필이 다시 본다.
+{
+  const { acquireRunLock } = await import('./lib/run-lock.mjs');
+  const waitMin = Number(process.env.VIDEO_LOCK_WAIT_MIN ?? 15);
+  const lock = await acquireRunLock(resolve(ROOT, 'logs/video-publish.lock'), {
+    waitMs: waitMin * 60_000, pollMs: 10_000, label: process.env.SHORTS_PREFER_PROUD === '1' ? 'backfill' : 'regular' });
+  if (!lock.ok) {
+    log(`건너뜀 — 다른 회차(${lock.holder?.label ?? '?'} · pid ${lock.holder?.pid ?? '?'})가 아직 돈다(${waitMin}분 기다림). 같은 작업 폴더를 쓰므로 겹치지 않는다`);
+    process.exit(NOTHING_TO_PUBLISH);
+  }
+}
+
 // ── 1. 렌더 ────────────────────────────────────────────────────────────────
 // 2026-09-03 (사용자 "그냥 쇼츠만 하자"): 기본 포맷이 세로 쇼츠다.
 //   가로 6분짜리는 --format=long 으로 남겨 둔다 — 지운 게 아니라 부르지 않을 뿐이다.

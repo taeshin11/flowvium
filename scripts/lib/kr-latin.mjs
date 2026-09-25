@@ -30,6 +30,8 @@ export const LETTER = {
 const AS_WORD = {
   NATO: '나토', KOSPI: '코스피', KOSDAQ: '코스닥', NASDAQ: '나스닥', OPEC: '오펙', APEC: '에이펙',
   ASEAN: '아세안', NASA: '나사', UNESCO: '유네스코', UNICEF: '유니세프', FIFA: '피파', BRICS: '브릭스',
+  // 2026-09-25 AI·반도체 업계 낱말(테크이슈 세션 실측: NVIDIA → "엔브이아이디아이에이", DRAM → "디알에이엠").
+  NVIDIA: '엔비디아', DRAM: '디램', NAND: '낸드', CUDA: '쿠다', ARM: '암',
 };
 
 /** 약어 뒤에 붙어도 띄우지 않는 조사. 이 밖의 한글이 붙으면 이름의 일부다(SK하이닉스 → "에스케이 하이닉스"). */

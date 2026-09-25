@@ -103,7 +103,7 @@ log(`${elapsed - done}편 모자란다 — 한 편 메운다(한국 성과 우�
 const r = spawnSync(process.execPath, [
   resolve(ROOT, 'scripts/video-publish.mjs'),
   '--shorts', '--locale', 'ko', '--privacy', 'public',
-], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, SHORTS_PREFER_PROUD: '1' } });
+], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, SHORTS_PREFER_PROUD: '1', VIDEO_LOCK_WAIT_MIN: '0' } });   // 정규 회차가 돌고 있으면 바로 물러난다(video-publish 0.5)
 
 // exit 3 = 낼 것이 없다(고장 아님). 백필은 다음 차례에 다시 본다.
 if (r.status === 3) { log('이번엔 낼 것이 없다 — 다음 백필에 다시 본다'); process.exit(0); }
