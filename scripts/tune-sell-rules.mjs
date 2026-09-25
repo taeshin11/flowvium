@@ -91,10 +91,16 @@ console.log(`▶ tune-sell-rules  (${APPLY ? 'APPLY — 파일 갱신' : 'DRY-RU
 // ── [1] sell_outcomes 평가: 매도 추천 후 forward 가격 변화 ─────────────────────────
 console.log('\n▶ [1] sell_outcomes 평가 (매도 후 forward 가격 변화 기반)');
 
+// 2026-09-25: 한 달(20거래일) 판정이 있으면 그것을 쓴다. 판 뒤 5~6일 판정만 쓰면 한 달 안에 오른 매도를
+//   절반쯤 못 본다(놓친 상승 약 9% → 20거래일 20%, analyze-exit-quality ⑦). 컬럼은 evaluate-sell-outcomes 가 만든다 —
+//   아직 없으면(첫 주) 예전 판정만 쓴다.
+const has20 = db.prepare('PRAGMA table_info(sell_outcomes)').all().some((c) => c.name === 'outcome_20d');
 const sellRecs = db.prepare(`
   SELECT s.id, s.ticker, s.market, s.sell_type, s.urgency, s.score,
          s.current_price, s.generated_at, s.evaluate_after,
-         o.price_at_eval, o.price_delta_pct, o.outcome
+         o.price_at_eval,
+         ${has20 ? 'COALESCE(o.price_delta_20d, o.price_delta_pct)' : 'o.price_delta_pct'} AS price_delta_pct,
+         ${has20 ? 'COALESCE(o.outcome_20d, o.outcome)' : 'o.outcome'} AS outcome
   FROM sell_recommendations s
   LEFT JOIN sell_outcomes o ON o.sell_rec_id = s.id
   WHERE s.evaluate_after <= datetime('now')

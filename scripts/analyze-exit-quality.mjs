@@ -220,6 +220,49 @@ console.log('\n⑥ 청산 규칙을 바꿔 보면 (같은 진입, 같은 일봉 
   }
 }
 
+// ⑦ 매도엔진이 판 뒤 (2026-09-25 사장님 "너무 빨리 팔지는 않았는지도")
+//   위 ①~⑥ 은 손절·목표 청산만 일봉으로 다시 판정한다. 실제 청산의 절반 넘게는 **매도엔진 신호**(sold)인데
+//   그건 여기서 한 번도 안 봤다. 실제 판 값(details.exitPrice)과 그 뒤 일봉을 비교한다.
+const soldRaw = db.prepare(`
+  SELECT r.ticker, date(o.evaluated_at) exit_day, o.evaluated_at exit_iso, o.price_at_eval px, o.details_json d
+  FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
+  WHERE r.action = 'buy' AND o.outcome = 'sold' AND date(o.evaluated_at) >= date('now', '-${DAYS_BACK} days')
+`).all();
+// 같은 종목을 같은 날 여러 추천이 함께 판다(한 번 판 것이 9행으로 남는다) — (종목, 판 날) 로 한 건.
+const soldBy = new Map();
+for (const x of soldRaw) {
+  let d = {}; try { d = JSON.parse(x.d ?? '{}'); } catch { /* 없으면 아래 기본값 */ }
+  const key = `${x.ticker}|${x.exit_day}`;
+  if (!soldBy.has(key)) soldBy.set(key, { ticker: x.ticker, exitIso: x.exit_iso, exitPrice: Number(d.exitPrice ?? x.px), sellType: d.sellType ?? '(모름)' });
+}
+const sold = [...soldBy.values()];
+const needBars = [...new Set(sold.map((x) => x.ticker))].filter((t) => !barsBy.has(t));
+const soldOldest = sold.reduce((m, x) => (x.exitIso < m ? x.exitIso : m), new Date().toISOString());
+const q2 = [...needBars];
+await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+  for (;;) { const tk = q2.shift(); if (!tk) return; const r = await fetchBars(tk, soldOldest, new Date().toISOString()); if (r?.bars?.length) barsBy.set(tk, r.bars); }
+}));
+const soldRows = [];
+for (const x of sold) {
+  const bars = barsBy.get(x.ticker);
+  if (!bars?.length) continue;
+  const ex = Date.parse(x.exitIso);
+  let idx = -1;
+  for (let i = 0; i < bars.length; i++) if (bars[i].t <= ex) idx = i;   // 판 날(또는 그 직전 거래일)
+  if (idx < 0) continue;
+  soldRows.push({ ...x, after: afterExit(bars, idx, AFTER_N) });
+}
+const { summarizeSales } = await import('./lib/sell-after.mjs');
+const ss = summarizeSales(soldRows);
+const pct = (v) => (v == null ? '   -  ' : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`);
+console.log(`\n⑦ 매도엔진이 판 뒤 ${AFTER_N}거래일 (판 값 대비, ±5% 밖만 판정) — ${sold.length}건 중 판정 ${ss.n}건`);
+console.log(`   너무 빨랐다(+5%↑) ${ss.early}건 (${ss.n ? Math.round(ss.early / ss.n * 100) : 0}%) · 판 게 맞았다(-5%↓) ${ss.right}건 (${ss.n ? Math.round(ss.right / ss.n * 100) : 0}%) · 차이 없음 ${ss.flat}건`);
+console.log(`   판 뒤 종가 중앙값 ${pct(ss.medianLastPct)} · 최고가 중앙값 ${pct(ss.medianHighPct)}`);
+console.log('   매도 규칙                        건수  성급  맞음  종가중앙   최고중앙');
+for (const t of ss.byType.filter((t) => t.n >= 3)) {
+  console.log(`   ${String(t.sellType).slice(0, 30).padEnd(30)} ${String(t.n).padStart(5)} ${String(t.early).padStart(5)} ${String(t.right).padStart(5)}   ${pct(t.medianLastPct).padStart(7)}   ${pct(t.medianHighPct).padStart(7)}`);
+}
+
 const out = `${ROOT}/reports/exit-quality.json`;
-writeFileSync(out, JSON.stringify({ at: new Date().toISOString(), daysBack: DAYS_BACK, afterN: AFTER_N, rows }, null, 1));
+writeFileSync(out, JSON.stringify({ at: new Date().toISOString(), daysBack: DAYS_BACK, afterN: AFTER_N, rows, sold: { summary: ss, rows: soldRows } }, null, 1));
 console.log(`\n행 단위 결과: ${out}`);
