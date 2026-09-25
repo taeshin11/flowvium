@@ -616,6 +616,10 @@ const MAINT_JOBS = [
   //   대본(hooks)이 남은 편만 쓴다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다.
   //   2026-09-19: agy 전환으로 실측 91초(3블록). 예산은 blog-post 와 같은 이유로 올린다.
   { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --max-items 5',  timeoutMs: 480000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
+  // 2026-09-25 사장님 "우리가 놓친 요소가 없는지 항상 확인해야되. 너무 빨리 팔지는 않았는지도".
+  //   청산 품질(손절·목표·매도엔진 매도 뒤 20거래일)을 손으로 돌릴 때만 봤다 — 마지막이 일주일 전이었다.
+  //   매주 일요일 04:40 KST(토 19:40 UTC): 토요일 tune-sell-rules 뒤, 아침 보고서 준비(05:30~) 전.
+  { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
   //   실증: 평가시점이 지난 추천 220건 적체 · 월별로 보면 2026-06 은 'sold' 708건뿐이고

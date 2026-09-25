@@ -133,7 +133,11 @@ console.log('\n③ 목표에 닿아 판 뒤에 더 갔나 (목표가 너무 가�
   console.log(`   목표 폭 중앙값 ${f1(med(hits, (r) => r.tgtPct))}% · 손절 폭 중앙값 ${f1(med(rows, (r) => r.stopPct))}%`);
   console.log(`   기대 손익비 (목표/손절) ${med(hits, (r) => r.tgtPct) != null && med(rows, (r) => r.stopPct) ? Math.abs(med(hits, (r) => r.tgtPct) / med(rows, (r) => r.stopPct)).toFixed(2) : '-'} : 1`);
   console.log(`   매도 후 ${AFTER_N}거래일 최고가 중앙값 ${f1(med(hits, (r) => r.afterHighPct))}% (목표는 ${f1(med(hits, (r) => r.tgtPct))}%)`);
-  console.log(`   목표보다 5% 이상 더 간 건 : ${n(more)}건 (${pctOf(n(more), n(hits))})  ← 더 기다릴 여지가 있었던 것`);
+  console.log(`   목표보다 5% 이상 더 간 건 : ${n(more)}건 (${pctOf(n(more), n(hits))})  ← 판 뒤 **최고가** 기준이다`);
+  // 2026-09-25: 이 숫자(59%)를 보고 "목표에서 너무 일찍 판다" 고 결론 냈다가 ⑥ 에서 뒤집혔다.
+  //   최고가는 아무도 그 값에 못 판다 — 목표 뒤 추격으로 실제로 팔면 기대값이 -1.94% → -2.28%(5%) · -2.50%(8%)로 **나빠졌다.**
+  //   더 기다릴지는 이 줄이 아니라 ⑥ 의 '목표 뒤 추격' 행으로 판단한다.
+  console.log('   ⚠ 최고가에는 아무도 못 판다 — 더 기다릴지는 ⑥ 의 "목표 뒤 추격" 행으로 판단한다');
 }
 
 console.log('\n④ 실제로 작게 잃고 크게 벌었나');
@@ -189,6 +193,11 @@ console.log('\n⑥ 청산 규칙을 바꿔 보면 (같은 진입, 같은 일봉 
     { name: '추격 손절 8%',             stop: null, target: 'none', be: null, trail: 0.08 },
     { name: '추격 손절 12%',            stop: null, target: 'none', be: null, trail: 0.12 },
     { name: '추격 12% + 본전 손절',      stop: null, target: 'none', be: 1.0,  trail: 0.12 },
+    // 2026-09-25 "너무 빨리 팔지는 않았는지" → 목표는 그대로, 닿은 **뒤에** 파는 방식만 바꾼다(ohlc.simulate)
+    { name: '목표 뒤 추격 5%',           stop: null, target: null, be: null, trail: null, tat: 0.05 },
+    { name: '목표 뒤 추격 8%',           stop: null, target: null, be: null, trail: null, tat: 0.08 },
+    { name: '목표 뒤 추격 12%',          stop: null, target: null, be: null, trail: null, tat: 0.12 },
+    { name: '절반 목표 + 절반 추격 8%',   stop: null, target: null, be: null, trail: null, tat: 0.08, half: true },
   ];
   console.log('   규칙                          승   패   추격청산  보유   기대값/거래   평균이익  평균손실');
   for (const c of cases) {
@@ -207,6 +216,8 @@ console.log('\n⑥ 청산 규칙을 바꿔 보면 (같은 진입, 같은 일봉 
         targetPct: c.target === 'none' ? null : baseTgt,
         breakevenAt: c.be != null ? baseStop * c.be : null,
         trailPct: c.trail,
+        trailAfterTarget: c.tat ?? null,
+        halfAtTarget: !!c.half,
       });
       if (r.kind === 'no_entry') continue;
       pnls.push(r.pnlPct);

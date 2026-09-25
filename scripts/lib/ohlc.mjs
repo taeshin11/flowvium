@@ -81,25 +81,45 @@ export function afterExit(bars, exitIdx, n = 20) {
  *   targetPct:number|null,     // 진입가 대비 목표 폭 (양수). null 이면 목표 없음(추격만)
  *   breakevenAt?:number|null,  // 평가이익이 이만큼(진입가 대비) 넘으면 손절을 본전으로
  *   trailPct?:number|null,     // 고점 대비 이만큼 밀리면 청산 (추격 손절)
+ *   trailAfterTarget?:number|null, // (2026-09-25) 목표에 닿아도 팔지 않고, **다음 날부터** 고점 대비 이만큼 밀리면 판다.
+ *                                  //   바닥은 목표 이익의 절반. 고점은 **전날까지**의 것을 쓴다(같은 날 순서를 모른다 — 부풀리지 않기).
+ *   halfAtTarget?:boolean,         // 절반은 목표에서 팔고 절반만 추격한다(손익은 둘의 평균)
  * }}
  * @returns {{kind:'stop'|'target'|'trail'|'open'|'no_entry', pnlPct:number|null, idx:number|null}}
  */
-export function simulate({ bars, entryHigh, stopPct, targetPct, breakevenAt = null, trailPct = null }) {
+export function simulate({ bars, entryHigh, stopPct, targetPct, breakevenAt = null, trailPct = null,
+  trailAfterTarget = null, halfAtTarget = false }) {
   let entered = false, entry = null, peak = -Infinity;
+  let armed = null;                 // 목표에 닿은 날(추격 시작 전날)
+  const done = (pnl) => (halfAtTarget ? (targetPct * 100 + pnl) / 2 : pnl);
   for (let i = 0; i < bars.length; i++) {
     const { h, l, c } = bars[i];
+    const prevPeak = peak;
     if (!entered) {
       if (entryHigh != null && l <= entryHigh) { entered = true; entry = entryHigh; peak = h; }
       else continue;
     } else if (h > peak) peak = h;
+
+    if (armed != null) {
+      if (i > armed) {
+        const floor = entry * (1 + targetPct / 2);
+        const trail = Math.max(floor, prevPeak * (1 - trailAfterTarget));
+        if (l <= trail) return { kind: 'trail', pnlPct: done((trail - entry) / entry * 100), idx: i };
+      }
+      continue;
+    }
 
     let stop = entry * (1 - stopPct);
     if (breakevenAt != null && peak >= entry * (1 + breakevenAt)) stop = Math.max(stop, entry);
     if (trailPct != null) stop = Math.max(stop, peak * (1 - trailPct));
 
     if (l <= stop) return { kind: stop > entry * (1 - stopPct) ? 'trail' : 'stop', pnlPct: (stop - entry) / entry * 100, idx: i };
-    if (targetPct != null && h >= entry * (1 + targetPct)) return { kind: 'target', pnlPct: targetPct * 100, idx: i };
+    if (targetPct != null && h >= entry * (1 + targetPct)) {
+      if (trailAfterTarget != null) { armed = i; continue; }
+      return { kind: 'target', pnlPct: targetPct * 100, idx: i };
+    }
   }
   if (!entered) return { kind: 'no_entry', pnlPct: null, idx: null };
-  return { kind: 'open', pnlPct: (bars.at(-1).c - entry) / entry * 100, idx: null };
+  const last = (bars.at(-1).c - entry) / entry * 100;
+  return { kind: 'open', pnlPct: armed != null ? done(last) : last, idx: null };
 }
