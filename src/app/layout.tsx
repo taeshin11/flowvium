@@ -2,6 +2,7 @@ import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import ClientErrorReporter from '@/components/ClientErrorReporter';  // 2026-07-04: 브라우저 에러 → /api/client-log 수집
+import { PageViewBeacon } from '@/hooks/usePageView';
 import './globals.css';
 
 const inter = Inter({
@@ -37,6 +38,8 @@ export default function RootLayout({
       >
         {children}
         <ClientErrorReporter />
+        {/* 2026-09-25: 자가호스팅 방문자 측정(쿠키 없음, 우리 DB) — Vercel Analytics 가 꺼진 뒤 측정이 없었다 */}
+        <PageViewBeacon />
         {/* 2026-08-20: Vercel 애널리틱스는 Vercel 위에서만 의미가 있다. 자가호스팅(2026-06-02~)에서는
             /_vercel/insights/script.js 와 /_vercel/speed-insights/script.js 가 404 라
             모든 방문자 콘솔에 에러가 찍히고 요청이 낭비됐다. 코드에서 지우지 않고 환경으로 분기해

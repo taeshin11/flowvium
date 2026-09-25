@@ -993,6 +993,7 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 341b | 섹터간 로테이션 claim (GICS 11, 1w 스프레드≥5%p) | ✅ live | buildFlowNarrativeEvidence sector_rotation_proxy_1w — 가격 proxy 명시, 히어로 자산이동 라인+프롬프트 계약 소비. 실검증: Tech(-2.2%)→Healthcare(+5.2%) 7.4%p 발화 (2026-07-04) |
 | 340 | 외국인 미국채 보유 실측 (국가별 $B, 1m/3m/12m 델타) | 💾 cached | /api/tic-flows — TIC SLT Table 5, 월간 ~6주 지연. 실측 curl: Japan 1209.9(+18.3/1m), China 651.1(-92.5/12m). macro prompt 배경 전용 (2026-07-04, 이연 이행) |
 | 341 | KR 종목별 수급강도 (외인 streak·5d 순매수/거래대금 %) | ✅ live | kr-flow-intensity.mjs frgn.naver 실측 — 매수 micro_kr_smart_flow(streak3+강도1% 또는 강도3%) + 매도 micro_kr_flow_exodus(강도≤-8%). 실검증: 005930 -11.59% → sell 발화 (2026-07-04, 이연 이행) |
+| 342 | flowvium.net 일별 방문자·조회수 (유입처·utm·국가·로케일) | ✅ live | /api/pv ← PageViewBeacon(src/hooks/usePageView, layout 전역, 쿠키 없음) → data/visits.db. 방문자 = 하루짜리 해시(IP 미저장), 봇·자동화 제외. 조회: `node scripts/visits-report.mjs` (2026-09-25 — 자가호스팅 뒤 측정 공백 해소) |
 
 ---
 
@@ -1062,13 +1063,13 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 
 | 상태 | 개수 |
 |------|------|
-| ✅ live | ~102 |
+| ✅ live | ~103 |
 | 💾 cached | ~181 |
 | 🔄 cron | ~20 |
 | 📋 static | ~46 |
 | ⛔ missing | ~5 |
 | 🔒 locked | ~5 |
-| **총 추적 지표** | **336** |
+| **총 추적 지표** | **337** |
 
 **live + cached + cron 활성**: ~312개 (92.9%)
 **미구현 갭**: ~10개 (3.1%)

@@ -131,3 +131,7 @@ logs/verify-all/
 # agy 할당량 소진 기록(런타임, 기계마다 다름)
 logs/agy-quota.json
 logs/ear-check.jsonl
+# 방문자 측정(2026-09-25) — 런타임 산출물
+data/visits.db
+data/visits.db-wal
+data/visits.db-shm
