@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-24T22:23:12.098Z",
+  "generatedAt": "2026-09-25T13:00:52.316Z",
   "universe": "US",
   "scanned": 330,
-  "count": 11,
+  "count": 12,
   "strongCount": 2,
-  "watchCount": 9,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -15,13 +15,13 @@
       "coFire": 3,
       "lead": [
         "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 4.3× 급증(가격 평탄)",
+        "거래량 4.5× 급증(가격 평탄)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -8.2,
-      "runup5dPct": -3.2,
-      "medDollarVolUsd": 641628,
+      "runup20dPct": -6.9,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 668684,
       "smartAccum": false,
       "official": null
     },
@@ -29,32 +29,33 @@
       "ticker": "KELYB",
       "name": "Kelly Services, Inc.",
       "tier": "strong",
-      "score": 37,
+      "score": 42,
       "coFire": 3,
       "lead": [
-        "거래량 추세 35.6× 상승(지속 매집)",
-        "거래량 19.0× 급증(가격 평탄)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+        "거래량 추세 39.9× 상승(지속 매집)",
+        "거래량 7.3× 급증(가격 평탄)",
+        "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)"
       ],
       "runup20dPct": -1.9,
-      "runup5dPct": 1.1,
-      "medDollarVolUsd": 14370,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 16212,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "DSP",
-      "name": "Viant Technology Inc.",
+      "ticker": "RGR",
+      "name": "Sturm, Ruger & Company, Inc.",
       "tier": "watch",
-      "score": 28,
+      "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 5.1× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 0.3,
-      "runup5dPct": -0.2,
-      "medDollarVolUsd": 2766210,
+      "runup20dPct": 9.5,
+      "runup5dPct": 4.4,
+      "medDollarVolUsd": 4386690,
       "smartAccum": false,
       "official": null
     },
@@ -66,45 +67,62 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 4.6× 급증(가격 평탄)"
+        "거래량 4.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -2.4,
-      "runup5dPct": 3.5,
-      "medDollarVolUsd": 5816640,
+      "runup20dPct": -3.1,
+      "runup5dPct": 4.5,
+      "medDollarVolUsd": 5819418,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "SB",
-      "name": "Safe Bulkers, Inc",
+      "ticker": "KRT",
+      "name": "Karat Packaging Inc.",
       "tier": "watch",
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -5.2,
-      "runup5dPct": -5.7,
-      "medDollarVolUsd": 6546388,
+      "runup20dPct": 9.9,
+      "runup5dPct": 7.5,
+      "medDollarVolUsd": 5414136,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "ATLC",
-      "name": "Atlanticus Holdings Corporation",
+      "ticker": "YSS",
+      "name": "York Space Systems Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
+        "거래량 추세 1.6× 상승",
+        "거래량 2.9× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 7.4,
+      "runup5dPct": 12,
+      "medDollarVolUsd": 27270724,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "EDIT",
+      "name": "Editas Medicine, Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.5× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -2.7,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 14653040,
+      "runup20dPct": -13.5,
+      "runup5dPct": 1.1,
+      "medDollarVolUsd": 6351642,
       "smartAccum": false,
       "official": null
     },
@@ -115,29 +133,29 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
       ],
-      "runup20dPct": -3.9,
-      "runup5dPct": -1.7,
-      "medDollarVolUsd": 787150,
+      "runup20dPct": -6,
+      "runup5dPct": -2.3,
+      "medDollarVolUsd": 840694,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NAT",
-      "name": "Nordic American Tankers Limited",
+      "ticker": "SB",
+      "name": "Safe Bulkers, Inc",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 11,
-      "runup5dPct": -4.1,
-      "medDollarVolUsd": 24110100,
+      "runup20dPct": -0.4,
+      "runup5dPct": -8.4,
+      "medDollarVolUsd": 6619320,
       "smartAccum": false,
       "official": null
     },
@@ -148,12 +166,29 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 2.3× 상승(지속 매집)",
         "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.6,
-      "runup5dPct": -4.7,
-      "medDollarVolUsd": 3182565,
+      "runup20dPct": -6.1,
+      "runup5dPct": -5.7,
+      "medDollarVolUsd": 3202836,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NVGS",
+      "name": "Navigator Holdings Ltd.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 8.7,
+      "runup5dPct": -6.9,
+      "medDollarVolUsd": 9275012,
       "smartAccum": false,
       "official": null
     },
@@ -164,28 +199,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -9.2,
-      "runup5dPct": -3.1,
-      "medDollarVolUsd": 3263436,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RGR",
-      "name": "Sturm, Ruger & Company, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 2.5× 상승(지속 매집)",
         "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": 9.1,
-      "runup5dPct": 13,
-      "medDollarVolUsd": 4228835,
+      "runup20dPct": -8.8,
+      "runup5dPct": -3.7,
+      "medDollarVolUsd": 3315006,
       "smartAccum": false,
       "official": null
     }
