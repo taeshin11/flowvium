@@ -1,77 +1,76 @@
 {
-  "generatedAt": "2026-09-25T13:00:52.316Z",
+  "generatedAt": "2026-09-25T22:01:53.387Z",
   "universe": "US",
   "scanned": 330,
   "count": 12,
-  "strongCount": 2,
-  "watchCount": 10,
+  "strongCount": 1,
+  "watchCount": 11,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "SOHU",
-      "name": "Sohu.com Limited",
+      "ticker": "MG",
+      "name": "Mistras Group Inc",
       "tier": "strong",
-      "score": 42,
+      "score": 43,
       "coFire": 3,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -6.9,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 668684,
+      "runup20dPct": 11.8,
+      "runup5dPct": 3.7,
+      "medDollarVolUsd": 3500540,
       "smartAccum": false,
       "official": null
     },
     {
       "ticker": "KELYB",
       "name": "Kelly Services, Inc.",
-      "tier": "strong",
-      "score": 42,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 39.9× 상승(지속 매집)",
-        "거래량 7.3× 급증(가격 평탄)",
-        "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)"
-      ],
-      "runup20dPct": -1.9,
-      "runup5dPct": -1.4,
-      "medDollarVolUsd": 16212,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RGR",
-      "name": "Sturm, Ruger & Company, Inc.",
       "tier": "watch",
-      "score": 31,
+      "score": 30,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 34.4× 상승(지속 매집)",
+        "흡수 매집봉 4개(대량거래·가격억제 — 세력 물량흡수)"
       ],
-      "runup20dPct": 9.5,
-      "runup5dPct": 4.4,
-      "medDollarVolUsd": 4386690,
+      "runup20dPct": -4.6,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 16233,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "SHEN",
-      "name": "Shenandoah Telecommunications C",
+      "ticker": "FLXS",
+      "name": "Flexsteel Industries, Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 4.4× 급증(가격 평탄)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -3.1,
-      "runup5dPct": 4.5,
-      "medDollarVolUsd": 5819418,
+      "runup20dPct": 8.8,
+      "runup5dPct": 12.1,
+      "medDollarVolUsd": 4745278,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SPRU",
+      "name": "Spruce Power Holding Corporatio",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 5.3× 상승(지속 매집)",
+        "거래량 6.2× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 3.2,
+      "runup5dPct": 1.6,
+      "medDollarVolUsd": 89091,
       "smartAccum": false,
       "official": null
     },
@@ -82,63 +81,30 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 80%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 9.9,
-      "runup5dPct": 7.5,
-      "medDollarVolUsd": 5414136,
+      "runup20dPct": 6.6,
+      "runup5dPct": 6.5,
+      "medDollarVolUsd": 5437770,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "YSS",
-      "name": "York Space Systems Inc.",
+      "ticker": "PLAB",
+      "name": "Photronics, Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.9× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7.4,
-      "runup5dPct": 12,
-      "medDollarVolUsd": 27270724,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EDIT",
-      "name": "Editas Medicine, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.5× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -13.5,
-      "runup5dPct": 1.1,
-      "medDollarVolUsd": 6351642,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "TUYA",
-      "name": "Tuya Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6,
-      "runup5dPct": -2.3,
-      "medDollarVolUsd": 840694,
+      "runup20dPct": 0.5,
+      "runup5dPct": 4.4,
+      "medDollarVolUsd": 29229592,
       "smartAccum": false,
       "official": null
     },
@@ -151,44 +117,27 @@
       "lead": [
         "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -0.4,
-      "runup5dPct": -8.4,
-      "medDollarVolUsd": 6619320,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "XZO",
-      "name": "Exzeo Group, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.1,
-      "runup5dPct": -5.7,
-      "medDollarVolUsd": 3202836,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NVGS",
-      "name": "Navigator Holdings Ltd.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 8.7,
-      "runup5dPct": -6.9,
-      "medDollarVolUsd": 9275012,
+      "runup20dPct": -3.3,
+      "runup5dPct": -11.3,
+      "medDollarVolUsd": 6633430,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MHD",
+      "name": "Blackrock MuniHoldings Fund, In",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -8.2,
+      "runup5dPct": -2.1,
+      "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
     },
@@ -199,12 +148,61 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.8,
-      "runup5dPct": -3.7,
+      "runup20dPct": -9.2,
+      "runup5dPct": -3.3,
       "medDollarVolUsd": 3315006,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PLCE",
+      "name": "Children's Place, Inc. (The)",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -11.8,
+      "runup5dPct": 5.9,
+      "medDollarVolUsd": 546516,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AFB",
+      "name": "AllianceBernstein National Muni",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -10.6,
+      "runup5dPct": -3.5,
+      "medDollarVolUsd": 766590,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MMD",
+      "name": "MainStay MacKay DefinedTerm Mun",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -7.7,
+      "runup5dPct": -1.9,
+      "medDollarVolUsd": 742450,
       "smartAccum": false,
       "official": null
     }
