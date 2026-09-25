@@ -32,6 +32,7 @@ import { homedir, tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
 import { ROOT } from './project-root.mjs';
 import { speakNumbers } from './kr-number.mjs';
+import { speakLatin } from './kr-latin.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -244,9 +245,12 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
     //   Melo 의 한국어 g2p 가 여러 자리 숫자를 못 읽는다(실측 10건 중 8건 오독,
     //   "2026년"→"2016년" 처럼 값이 바뀌는 것까지). 소리에는 한글로 읽은 글을 주고
     //   **자막에는 원문을 그대로** 둔다 — 화면의 "6800억" 이 "육천팔백억" 보다 읽기 쉽다.
-    const spoken = texts.map((t) => speakNumbers(t));
+    // 2026-09-25 시청자 댓글 "G20을 <지이영>으로 발음하는 AI가 너무 싫어". 영문 약어도 같은 문제였다
+    //   (OECD → "띠" · GDP → "뿐", 되들음 실측). 약어를 한글 글자 이름으로 먼저 바꾸고 숫자를 읽는다 —
+    //   순서가 중요하다: G20 이 "지 20" 이 돼야 speakNumbers 가 20 을 "이십" 으로 읽는다.
+    const spoken = texts.map((t) => speakNumbers(speakLatin(t)));
     const changed = spoken.filter((t, i) => t !== texts[i]).length;
-    log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})${changed ? ` · 숫자 한글화 ${changed}/${texts.length}문장` : ''}`);
+    log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})${changed ? ` · 숫자·약어 한글화 ${changed}/${texts.length}문장` : ''}`);
     return synthesizeKoreanMelo(spoken, { ...opts, display: texts });
   }
   const qwen = qwenTtsReady();
