@@ -74,6 +74,8 @@ export function curiosityPrompt(headline, context = [], maxLen = 38) {
     '지킬 것:',
     `- ${maxLen}자 이내.`,
     '- **원문에 없는 숫자·인물·기관을 넣지 마라.** 사실을 지어내지 마라. 원문이 말한 것만으로 궁금증을 만들어라.',
+    '- **아직 안 일어난 일(전망·계획·검토)은 제목에서도 그렇게 써라.** "~할 전망"을 "~하는"으로 바꾸면 없는 사실이 된다.',
+    '- 원문에 없는 과장어(전격·충격·경악·초유·역대급·발칵)를 붙이지 마라.',
     '- 따옴표·해시태그·이모지 쓰지 마라.',
     '- 신문 약어(與·野·韓·美·北·中·日)는 풀어 써라(여당·야당·한국·미국·북한·중국·일본).',
     '',
@@ -124,8 +126,19 @@ export async function makeCuriosityTitle(headline, opt = {}) {
   if (added.length) return reject(`원문에 없는 숫자 ${added.join(',')}`, t);
   const ov = overlap(source, t, 2);
   if (ov < MIN_OVERLAP) return reject(`겹침 ${ov.toFixed(2)}<${MIN_OVERLAP}`, t);
+  // 2026-09-26(테크이슈 공지 덧붙임 · UAX3Zyb4RKg): 원문이 **아직 안 일어난 일**(전망·계획·검토…)인데 제목이
+  //   그 말을 떨어뜨리면 일어난 일처럼 들린다 — "1경4000조원 전망" → "1경 4000조원이 쏟아지는 곳". 숫자·겹침은 통과했다.
+  if (FUTURE.test(headline) && !FUTURE_IN_TITLE.test(t)) return reject('전망·계획을 단정으로 바꿨다', t);
+  // 2026-09-26 실측(우리 21:45 회차): "…한국행만 공개" → "…한국행을 전격 공개한 이유". 원문에 없는 과장어는 버린다.
+  const hype = (t.match(HYPE) ?? []).filter((w) => !source.includes(w));
+  if (hype.length) return reject(`원문에 없는 과장어 ${hype.join(',')}`, t);
   return t;
 }
+
+const FUTURE = /전망|예상|예정|계획|추진|검토|가능성|우려|목표|방침|할 듯|될 듯|시사/;
+const FUTURE_IN_TITLE = /전망|예상|예정|계획|추진|검토|가능성|우려|목표|방침|듯|수도|거라|거란|려는|하려|될까|할까|노리|앞둔|나선/;
+/** 사실이 아니라 **말투**를 부풀리는 낱말. 원문에 있으면 괜찮다(인용일 수 있다). */
+const HYPE = /전격|충격|경악|초유|역대급|발칵|대참사|폭탄/g;
 
 /**
  * 발행부가 부르는 한 곳. 이 편의 제목 방식을 정하고, 궁금증 차례인데 선을 못 지키면 헤드라인으로 돌아간다.

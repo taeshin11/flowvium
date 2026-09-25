@@ -97,6 +97,24 @@ const mk = (t) => async () => JSON.stringify({ title: t });
     ? ok(`[12] 모델 하나(${o2.model}) · 상한 ${o2.timeoutMs / 1000}초`) : bad(`[12] model=${o2?.model} timeout=${o2?.timeoutMs}`);
 }
 
+// [13] 아직 안 일어난 일(전망·계획)을 단정으로 바꾸면 버린다 (테크이슈 UAX3Zyb4RKg 실측 — 숫자·겹침은 통과했다)
+{
+  const H3 = '美 AI 데이터센터 투자, 향후 8년간 1경4000조원 전망';
+  const t = await makeCuriosityTitle(H3, { call: mk('미국에서 1경4000조원이 쏟아지는 AI 데이터센터의 정체') });
+  t === null ? ok('[13] "전망" 을 떨어뜨린 제목 → 버린다') : bad(`[13] ${t}`);
+  const t2 = await makeCuriosityTitle(H3, { call: mk('미국 AI 데이터센터에 1경4000조원이 몰릴 전망인 이유') });
+  t2 ? ok(`[13b] 전망을 지킨 제목은 통과: ${t2}`) : bad('[13b] 전망을 지켰는데 버렸다');
+}
+// [14] 원문에 없는 과장어를 붙이면 버린다 (2026-09-26 실측: "…한국행만 공개" → "…한국행을 **전격** 공개한 이유")
+{
+  const H4 = '우크라 "北 포로 비밀이송은 이상했을 것…한국행만 공개"(종합)';
+  const CTX4 = ['우크라이나는 북한군 포로 두 명의 한국행을 공개했다.'];
+  const t = await makeCuriosityTitle(H4, { context: CTX4, call: mk('우크라이나가 북한군 포로 두 명의 한국행을 전격 공개한 이유') });
+  t === null ? ok('[14] 원문에 없는 "전격" → 버린다') : bad(`[14] ${t}`);
+  const t2 = await makeCuriosityTitle(H4, { context: CTX4, call: mk('우크라이나가 북한군 포로 두 명의 한국행만 공개한 이유') });
+  t2 ? ok(`[14b] 과장어 없으면 통과: ${t2}`) : bad('[14b] 멀쩡한 제목을 버렸다');
+}
+
 // [10] 발행부가 쓰는 선택 — 차례·로케일·끄개·실패 시 헤드라인
 {
   let calls = 0;
