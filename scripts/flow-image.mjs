@@ -10,7 +10,8 @@
  *   동영상은 무료 등급 확인이 필요하지만 이 스크립트는 이미지 전용이라 해당 없다.
  *
  * ⚠ 2026-09-25: 그림은 **scripts/agy-image.mjs 를 먼저** 쓴다(사장님 "flow 차단을 좀 줄일수있나").
- *   같은 Nano Banana 계열을 브라우저 없이 부르고 워터마크도 없다. 이 스크립트는 agy 가 막힌 날의 예비다.
+ *   같은 Nano Banana 계열을 브라우저 없이 부르고 워터마크도 없다.
+ *   ⛔ 2026-09-25 Flow 사용 규칙(FLOW_RULES.md): Playwright 로 Flow 조작 금지 — lib/flow.openFlow 가 막는다.
  *
  * 사용: node scripts/flow-image.mjs --prompt "..." --out assets/outro/jarvis.jpg [--wait 600]
  */

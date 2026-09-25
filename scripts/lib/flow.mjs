@@ -32,6 +32,15 @@ export const PROFILE_DIR = resolve(ROOT, 'secrets/flow-profile');
  * @param {{headless?:boolean}} opts headless 는 생성 단계에서만. 로그인은 반드시 headed.
  */
 export async function openFlow(opts = {}) {
+  // 2026-09-25 Flow 사용 규칙(사장님 승인, 드라이브 _bridge/FLOW_RULES.md) 2항: **CDP·Playwright 로 Flow 조작 금지.**
+  //   spinaiceo 계정 하나를 여러 기계가 같이 써서 하루 다섯 번 「비정상적인 활동」 차단을 맞았다.
+  //   이 저장소의 flow-*.mjs 가 전부 여기로 들어온다 — 브라우저를 띄우기 **전에** 멈춘다.
+  //   그림은 scripts/agy-image.mjs, 영상(Veo)은 평소 크롬에서 사람이 만든다(시간표·Dropbox 락 확인).
+  void opts;
+  throw new Error('Flow 자동화 금지 — FLOW_RULES.md(2026-09-25): CDP·Playwright 로 Flow 를 조작하지 않는다.\n'
+    + '  그림: node scripts/agy-image.mjs --prompt … --out …\n'
+    + '  영상(Veo): 평소 크롬에서 사람이, 시간표(18~24시 예비)와 Dropbox `@1 생성동영상/_flow_lock.txt` 를 확인하고.');
+  // eslint-disable-next-line no-unreachable
   mkdirSync(PROFILE_DIR, { recursive: true, mode: 0o700 });
   const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
     channel: 'chrome',
