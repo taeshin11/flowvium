@@ -27,12 +27,13 @@
  *   { path, alignment, durationSec, note }
  */
 import { execFileSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import { homedir, tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
 import { ROOT } from './project-root.mjs';
 import { speakNumbers } from './kr-number.mjs';
 import { speakLatin } from './kr-latin.mjs';
+import { earCheckAndRepair } from './ear-check.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -251,7 +252,25 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
     const spoken = texts.map((t) => speakNumbers(speakLatin(t)));
     const changed = spoken.filter((t, i) => t !== texts[i]).length;
     log(`엔진 melo (속도 ${opts.speed ?? MELO_SPEED})${changed ? ` · 숫자·약어 한글화 ${changed}/${texts.length}문장` : ''}`);
-    return synthesizeKoreanMelo(spoken, { ...opts, display: texts });
+    const out = synthesizeKoreanMelo(spoken, { ...opts, display: texts });
+    // 2026-09-25 귀검증 — 사장님 "왜 자꾸 이런 문제가 생기는 거지 이런 문제 없게 해".
+    //   화면은 매 편 눈검증을 하는데 소리는 아무도 안 들어서, 오독(G20 → "지이영")을 시청자가 먼저 찾았다.
+    //   약어가 든 문장만 되들어 보고, 안 들리면 다른 표기로 다시 만든다(ear-check.mjs). EAR_CHECK=0 으로 끈다.
+    if (process.env.EAR_CHECK === '0') return out;
+    let n = 0;
+    return earCheckAndRepair({
+      texts,
+      out: out.map((o, i) => ({ ...o, spoken: spoken[i] })),
+      synth: (sp, disp) => synthesizeKoreanMelo(sp, { ...opts, display: disp, outPrefix: `${opts.outPrefix}-ear${++n}` }),
+      transcribe: (items) => transcribeKo(items.map((x) => x.path)),
+      log,
+      record: (x) => {
+        try {
+          mkdirSync(join(ROOT, 'logs'), { recursive: true });
+          appendFileSync(join(ROOT, 'logs/ear-check.jsonl'), `${JSON.stringify({ at: new Date().toISOString(), ...x })}\n`);
+        } catch { /* 기록 실패는 발행을 막지 않는다 — 로그 줄은 이미 남았다 */ }
+      },
+    }).out;
   }
   const qwen = qwenTtsReady();
   if (qwen.ok) {
@@ -259,4 +278,25 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
     return synthesizeKoreanBatch(texts, opts);
   }
   throw new Error(`한국어 TTS 없음 — melo: ${melo.reason} / qwen: ${qwen.reason}`);
+}
+
+/**
+ * 한국어 받아쓰기(귀검증용). melo venv 의 faster-whisper small 을 쓴다 — 없으면 던진다(ear-check 가 '판정 없음' 으로 적는다).
+ * @param {string[]} paths wav 경로
+ * @returns {string[]} 같은 순서의 받아쓴 문장
+ */
+export function transcribeKo(paths) {
+  const py = meloPythonPath();
+  const script = resolve(ROOT, 'scripts/tts/ear_asr.py');
+  if (!existsSync(py) || !existsSync(script)) throw new Error(`받아쓰기 도구 없음: ${!existsSync(py) ? py : script}`);
+  const tag = `ear-${process.pid}-${Date.now()}`;
+  const inf = join(tmpdir(), `${tag}.json`);
+  const outf = join(tmpdir(), `${tag}.out.json`);
+  try {
+    writeFileSync(inf, JSON.stringify(paths), 'utf8');
+    execFileSync(py, [script, inf, outf], { timeout: 10 * 60_000, stdio: ['ignore', 'ignore', 'pipe'] });
+    return JSON.parse(readFileSync(outf, 'utf8'));
+  } finally {
+    for (const f of [inf, outf]) { try { unlinkSync(f); } catch { /* noop */ } }
+  }
 }

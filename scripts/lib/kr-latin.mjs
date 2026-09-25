@@ -17,7 +17,7 @@
  */
 
 /** 영문 글자의 한국어 이름. 표준 외래어 표기의 알파벳 이름을 따른다. */
-const LETTER = {
+export const LETTER = {
   A: '에이', B: '비', C: '씨', D: '디', E: '이', F: '에프', G: '지', H: '에이치', I: '아이',
   J: '제이', K: '케이', L: '엘', M: '엠', N: '엔', O: '오', P: '피', Q: '큐', R: '알', S: '에스',
   T: '티', U: '유', V: '브이', W: '더블유', X: '엑스', Y: '와이', Z: '제트',
@@ -36,8 +36,9 @@ const AS_WORD = {
 const PARTICLE = /^(?:이|가|은|는|을|를|의|에|도|만|와|과|로|으로|에서|에게|까지|부터|처럼|보다|이다|이라|라고|이나|나|랑|이랑)(?![가-힣])/;
 
 /** 영숫자 덩어리 하나를 소리로. 대문자가 없거나 소문자·점이 있으면 null(건드리지 않음). */
-function readToken(tok) {
+function readToken(tok, overrides = {}) {
   if (!/[A-Z]/.test(tok) || /[a-z.]/.test(tok)) return null;
+  if (overrides[tok] != null) return overrides[tok];
   if (AS_WORD[tok]) return AS_WORD[tok];
   // 글자 묶음과 숫자 묶음을 나눠 띄운다. 하이픈은 쉼 — 공백으로(F-35 → 에프 35).
   const parts = tok.split('-').filter(Boolean).flatMap((p) => p.match(/[A-Z]+|\d+/g) ?? []);
@@ -52,9 +53,9 @@ function readToken(tok) {
  * @param {string} text
  * @returns {string}
  */
-export function speakLatin(text) {
+export function speakLatin(text, { overrides = {} } = {}) {
   return String(text ?? '').replace(/[A-Za-z0-9][A-Za-z0-9.\-]*/g, (tok, at, whole) => {
-    const read = readToken(tok.replace(/[.\-]+$/, '')) ;
+    const read = readToken(tok.replace(/[.\-]+$/, ''), overrides);
     if (read == null) return tok;
     const tail = tok.slice(tok.replace(/[.\-]+$/, '').length);
     // 바로 뒤에 한글이 붙으면: 조사면 붙여 두고, 이름의 일부면 띄운다(SK하이닉스 · LG전자).
@@ -62,4 +63,21 @@ export function speakLatin(text) {
     const gap = /^[가-힣]/.test(next) && !PARTICLE.test(next) ? ' ' : '';
     return read + tail + gap;
   });
+}
+
+/** 소리를 판정할 약어인가(speakLatin 이 손대는 것과 같은 기준). */
+export function isLatinTerm(tok) {
+  return /[A-Z]/.test(tok) && !/[a-z.]/.test(tok);
+}
+
+/**
+ * 약어 하나를 **다른 표기**로. 되들음에서 기본 읽기가 안 들렸을 때 ear-check 가 차례로 시도한다.
+ *   dot    — 글자 뒤에 마침표 쉼("지. 20")   · spaced — 글자마다 띄움("지 디 피")
+ *   commas — 글자마다 쉼표("지, 디, 피")
+ */
+export function spellTerm(term, style) {
+  const parts = String(term).split('-').filter(Boolean).flatMap((p) => p.match(/[A-Z]+|\d+/g) ?? []);
+  const inner = style === 'spaced' ? ' ' : style === 'commas' ? ', ' : '';
+  const join = style === 'dot' ? '. ' : style === 'commas' ? ', ' : ' ';
+  return parts.map((p) => (/^\d/.test(p) ? p : [...p].map((c) => LETTER[c] ?? c).join(inner))).join(join);
 }
