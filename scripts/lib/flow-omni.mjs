@@ -27,7 +27,8 @@ const kstHour = (d) => (new Date(d).getUTCHours() + 9) % 24;
 
 /**
  * Dropbox 락 파일은 **자식 프로세스로, 시간 한도를 두고** 만진다. (2026-09-26 21:45 사고)
- *   온라인 전용(dataless) 파일을 동기로 열면 내려받을 때까지 막힌다 — make-shorts 가 open() 에서
+ *   원인(9/27 확인): macOS 개인정보 대화상자 「'node'이(가) 'Dropbox'에서 관리하는 파일에 접근하려고 합니다」가
+ *   떠 있는 동안 open() 이 답을 기다린다(온라인 전용 파일을 내려받을 때도 같다) — make-shorts 가 open() 에서
  *   1시간 44분 멈췄고 그 회차가 통째로 안 나갔다(sample 로 main thread 가 open 에 걸린 것 확인).
  *   자식 프로세스는 timeout 에 죽일 수 있다. 못 읽으면 "모름" 이고, 모르면 생성하지 않는다.
  */
