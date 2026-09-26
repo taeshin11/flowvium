@@ -32,7 +32,8 @@ const LOGDIR = join(homedir(), 'flowvium_runtime');
 const LOG = join(LOGDIR, 'video.log');
 
 // "8:30" 과 "8" 을 모두 받는다. 분을 못 받아 손으로 plist 를 고치던 것을 막는다.
-const times = String(arg('--times', '6,10,14,18,22')).split(',').map((t) => {
+// 2026-09-27 기본값을 실제 편성으로(11:10→14:10: 오전 구독 전환이 절반). 종전 기본값 6,10,14,18,22 는 옛 편성이었다.
+const times = String(arg('--times', '10:15,12:10,14:10,15:10,16:20,18:20,21:45')).split(',').map((t) => {
   const [h, m = '0'] = String(t).trim().split(':');
   return { h: Number(h), m: Number(m) };
 }).filter(({ h, m }) => Number.isInteger(h) && h >= 0 && h < 24 && Number.isInteger(m) && m >= 0 && m < 60);

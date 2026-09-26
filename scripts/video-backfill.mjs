@@ -24,9 +24,19 @@ loadEnvLocal();
 const log = (...a) => console.log(
   new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[backfill]', ...a);
 
-/** 편성표. plist 와 같은 값이어야 한다 — 어긋나면 백필이 헛돈다. */
-const SLOTS = (process.env.SHORTS_SLOTS || '07:00,09:00,12:00,13:30,16:00,17:30,19:00,22:00')
-  .split(',').map((s) => s.trim()).filter(Boolean);
+/** 편성표. **plist 에서 읽는다**(2026-09-27) — 종전 기본값은 옛 8슬롯(07:00…22:00)이었고 SHORTS_SLOTS 는 어디에도
+ *  없어서, 실제 7슬롯(10:15…21:45)과 달리 '모자란 편수' 를 틀리게 셌다. 못 읽으면 SHORTS_SLOTS, 그것도 없으면 멈춘다. */
+const SLOTS = await (async () => {
+  try {
+    const { execSync } = await import('child_process');
+    const { slotsFromCalendar } = await import('./lib/slots.mjs');
+    const raw = execSync(`plutil -convert json -o - "${process.env.HOME}/Library/LaunchAgents/com.spinai.flowvium-video.plist"`, { encoding: 'utf8' });
+    const s = slotsFromCalendar(JSON.parse(raw).StartCalendarInterval);
+    if (s.length) return s;
+  } catch { /* 아래 */ }
+  return String(process.env.SHORTS_SLOTS || '').split(',').map((x) => x.trim()).filter(Boolean);
+})();
+if (!SLOTS.length) { console.error('❌ 편성표를 못 읽었다(plist·SHORTS_SLOTS 둘 다 없음) — 백필하지 않는다'); process.exit(1); }
 
 const kst = () => new Date(Date.now() + 9 * 3600_000);
 const nowMin = () => { const d = kst(); return d.getUTCHours() * 60 + d.getUTCMinutes(); };
