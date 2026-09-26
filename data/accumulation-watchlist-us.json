@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-25T22:01:53.387Z",
+  "generatedAt": "2026-09-26T13:00:53.661Z",
   "universe": "US",
   "scanned": 330,
-  "count": 12,
+  "count": 11,
   "strongCount": 1,
-  "watchCount": 11,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -105,23 +105,6 @@
       "runup20dPct": 0.5,
       "runup5dPct": 4.4,
       "medDollarVolUsd": 29229592,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SB",
-      "name": "Safe Bulkers, Inc",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -3.3,
-      "runup5dPct": -11.3,
-      "medDollarVolUsd": 6633430,
       "smartAccum": false,
       "official": null
     },
