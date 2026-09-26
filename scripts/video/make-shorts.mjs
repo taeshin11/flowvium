@@ -506,6 +506,16 @@ if (FORCE_ISSUE) {
   //     응집도 필터가 그 묶음을 지웠다(여러 기사가 섞여 한 사건이 아님). 걸러질 것이 다 걸러진 **뒤**,
   //     소재 확인 **직전**에 정렬해야 실제로 남는 후보가 순서를 받는다.
   //   백필(SHORTS_PREFER_PROUD)은 사장님이 정한 '한국 성과 먼저' 순서가 있어 건드리지 않는다.
+  // 2026-09-27 후속 편(lib/followup): 24~72시간 안에 다룬 이슈면 표시해 둔다 — 대본은 '새로 나온 사실부터',
+  //   정렬은 같은 등급 안에서 지난 편이 그날 중앙 이상이었던 후속을 먼저(실측 12편, 약한 근거라 약하게만).
+  try {
+    const { followupInfo } = await import('../lib/followup.mjs');
+    const { recentEpisodesForFollowup } = await import('../lib/db.mjs');
+    const eps = recentEpisodesForFollowup(72);
+    let n = 0;
+    for (const c of fresh) { c.__followup = followupInfo(c.keyword, eps); if (c.__followup) n++; }
+    if (n) log(`[편성] 후속 편 후보 ${n}건(24~72시간 안에 다룬 이슈)`);
+  } catch (e) { log(`[편성] 후속 편 판정 건너뜀: ${String(e.message).slice(0, 50)}`); }
   if (process.env.SHORTS_PREFER_PROUD !== '1') try {
     const TOP = Number(process.env.SHORTS_TOPIC_POOL || 15);
     const { classifyTopics } = await import('../lib/topic-classify.mjs');
@@ -522,7 +532,8 @@ if (FORCE_ISSUE) {
         const rank = (c) => (tier.get(c.__topic) === 'strong' ? 0 : tier.get(c.__topic) === 'weak' ? 2 : 1);
         const unsafeRank = (c) => (UNSAFE_THUMB && UNSAFE_THUMB(c) ? 1 : 0);
         const before = head[0]?.keyword;
-        const sorted = [...head].sort((a, b) => unsafeRank(a) - unsafeRank(b) || rank(a) - rank(b));
+        const good = (c) => (c.__followup?.good ? 0 : 1);   // 같은 등급 안에서 성적 좋았던 후속을 먼저
+        const sorted = [...head].sort((a, b) => unsafeRank(a) - unsafeRank(b) || rank(a) - rank(b) || good(a) - good(b));
         fresh = [...sorted, ...fresh.slice(TOP)];
         issue = fresh[0];
         // 후보 주제 분포를 남긴다 — "1순위가 안 바뀌었다" 가 '강한 주제가 없어서' 인지 '정렬이 안 먹어서' 인지 가르려면 필요하다.
@@ -799,13 +810,16 @@ ${(BRIEF ?? []).map((p2, i) => {
 - JSON 배열만 출력: [{"hook":"문구","say":"읽을 문장(${Math.round(budget / headlines.length * 0.8)}~${Math.round(budget / headlines.length * 1.2)}자)","visual":""}]
 - 장면 ${headlines.length}개. 총 ${budget}자 안팎.`;
 
+const FOLLOWUP_LINE = issue.__followup ? (await import('../lib/followup.mjs')).followupPromptLine(issue.__followup) : '';
+if (issue.__followup) log(`[대본] 후속 편 — ${issue.__followup.hoursAgo}시간 전에 다룬 이슈. 새로 나온 사실부터 쓰게 한다`);
 const prompt = `너는 한국 뉴스 쇼츠 대본 작가다. 아래 헤드라인만 근거로 ${TARGET_SEC}초 세로 쇼츠 대본을 쓴다.
 
 ${texts.slice(0, 12).map((t) => `- ${t.slice(0, 160)}`).join('\n')}
 ${quote ? `\n(대표 발언: "${quote.text}"${quote.speaker ? ` — ${quote.speaker}` : ''})` : ''}
 
 규칙:
-- 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
+${issue.__followup ? `${FOLLOWUP_LINE}
+` : ''}- 오직 위 헤드라인에 있는 사실만 쓴다. 없는 숫자·인용·배경을 만들지 마라.
 - **집계 기간을 반드시 말하라.** 한 달·한 해를 다 채우지 않은 숫자(1~10일, 1~20일, 상순, 잠정치, 1~3분기)는
   "9월 1~20일 수출" 처럼 **기간을 붙여** 전하고, 월·분기·연간 기록처럼 말하지 마라.
   시청자 지적: "단기 10일짜리 신기록은 허영심일 뿐, 분기·반기 기록으로 알려줘야 한다."

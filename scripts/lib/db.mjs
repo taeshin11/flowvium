@@ -2201,6 +2201,26 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
     subCta === true ? 1 : subCta === false ? 0 : null);
 }
 
+/**
+ * 후속 편 판정용 — 최근 `hours` 시간 편 + 최신 조회수 + 그날(KST) 조회 중앙값. (2026-09-27, lib/followup)
+ * @returns {{issue_key:string, published_at:string, headline:string, views:number, dayMedian:number}[]}
+ */
+export function recentEpisodesForFollowup(hours = 72) {
+  const db = openDb();
+  ensureStatsTable(db);
+  ensureRetractedColumn(db);
+  const rows = db.prepare(`
+    SELECT p.issue_key, p.published_at, p.headline,
+           (SELECT s.views FROM shorts_stats s WHERE s.video_id = p.video_id ORDER BY s.checked_at DESC LIMIT 1) views
+      FROM shorts_published p
+     WHERE p.retracted_at IS NULL AND datetime(p.published_at) >= datetime('now', ?)`).all(`-${Number(hours)} hours`);
+  const day = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().slice(0, 10);
+  const byDay = new Map();
+  for (const r of rows) if (Number.isFinite(r.views)) { const d = day(r.published_at); (byDay.get(d) ?? byDay.set(d, []).get(d)).push(r.views); }
+  const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
+  return rows.map((r) => ({ ...r, views: r.views ?? 0, dayMedian: med(byDay.get(day(r.published_at)) ?? []) ?? Infinity }));
+}
+
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */
 export function shortsPublishedCount() {
   const db = openDb();
