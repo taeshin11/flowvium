@@ -82,7 +82,16 @@ import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-comp
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { emptyCards } from './lib/report-cards.mjs';
+import { trackRecordVeto, recentTrackFromDb } from './lib/track-record.mjs';
 import { openDb, saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
+// 2026-09-26: 종목 성적 veto 가 쓰는 종목별 최근 기록 — 한 번만 읽는다. openDb() 는 싱글턴이라 닫지 않는다.
+let _buyTrackMap = null;
+const buyTrackMap = () => {
+  if (_buyTrackMap) return _buyTrackMap;
+  try { _buyTrackMap = recentTrackFromDb(openDb()); }
+  catch (e) { console.warn(`  [종목 성적] 기록을 못 읽었다 — 이번 회차는 이 veto 없이 간다: ${e.message}`); _buyTrackMap = new Map(); }
+  return _buyTrackMap;
+};
 import { filterConflicts, filterAveragingDown } from './lib/buy-sell-conflict.mjs';
 
 // 2026-07-03 전향연구: stage-2(buildBuyCandidates)에서 발화한 shadow 룰 히트 — reportId 확정 후
@@ -5572,6 +5581,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     const _stage2RiskOff = macroCtx?.riskLevel === 'high' || (macroCtx?.vix ?? 0) >= 25;
     const bVeto = hasHardBuyVeto({ ...ctx, fgScore: ctx.fgScore ?? macroCtx?.fg ?? macroCtx?.fgScore ?? null }, { riskOff: _stage2RiskOff });
     if (bVeto) c._buyVeto = bVeto;
+    // 2026-09-26 종목 성적 veto — 최근 30일 이 종목 판단 3건+ 중 수익 34% 미만이면 신규매수 차단.
+    //   전향 실측: 그런 종목의 다음 추천 41건 수익 34%·평균 -1.33% (그 밖 62~67%·+1.7%). lib/track-record 머리말.
+    else { const tv = trackRecordVeto(buyTrackMap().get(c.ticker)); if (tv) c._buyVeto = tv; }
   }
   const stage2Vetoed = stage2Cands.filter(c => c._buyVeto);
   if (stage2Vetoed.length) console.log(`  [buy-veto] ${stage2Vetoed.length}건 신규매수 차단(칼받기/과열): ${stage2Vetoed.slice(0, 8).map(c => `${c.ticker}(${c._buyVeto.slice(0, 18)})`).join(', ')}`);
@@ -5586,7 +5598,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
       ? `단기 과열 해소 대기 — ${fmtPx(0.95) ?? '-3~-5%'}~${fmtPx(0.97) ?? ''} 눌림 시 분할 진입 재검토`
       : /칼받기|추락|낙폭|falling/i.test(v)
         ? '낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지'
-        : '차단 사유 해소 시 재평가';
+        : /종목 성적 veto/.test(v)
+          ? '최근 판단들이 연속으로 졌다 — 30일 안의 성적이 회복될 때까지(수익 34% 이상) 신규 진입 보류'
+          : '차단 사유 해소 시 재평가';
     // 2026-08-20: 종전 tickerMeta.meta[ticker].name 은 오염돼 있다 — 발간본 눈검증에서
     //   회사명 자리에 제품명이 찍혔다(EPYC Server CPUs=AMD · Networking ASICs=AVGO · Conductor Etch=LRCX).
     //   권위 소스(data/company-names.json)는 정확한 값을 갖고 있었는데 이 경로만 안 썼다.
@@ -7896,6 +7910,9 @@ async function generateViaOllama() {
       const _regimeRiskOff = macroData?.riskLevel === 'high' || (macroCtx?.vix ?? 0) >= 25;
       const pBuyVeto = hasHardBuyVeto(exCtx, { riskOff: _regimeRiskOff });
       if (pBuyVeto) { console.warn(`  [심판/매수veto] ${p.ticker} 탈락: ${pBuyVeto.slice(0, 60)}`); return false; }
+      // 2026-09-26: 종목 성적 veto 도 최종 단계에 — LLM 이 funnel 밖에서 고른 종목도 막는다(두 경로 모두).
+      const pTrack = trackRecordVeto(buyTrackMap().get(p.ticker));
+      if (pTrack) { console.warn(`  [심판/매수veto] ${p.ticker} 탈락: ${pTrack.slice(0, 60)}`); return false; }
       const buyConviction = buyScoreOf.get(p.ticker) ?? 20;
       const buyDiscount = Math.max(0, Math.min(4, (buyConviction - 25) / 5));        // 강한 매수일수록 soft 매도 상쇄
       const hardHit = hits.find(h => h.hard);

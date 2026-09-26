@@ -27,23 +27,31 @@ for (const r of status) console.log(`   ${r.s}: ${r.c}`);
 //   실측: 손익이 기록된 1,231건 중 **786건(63.9%)이 수익**, 평균 +1.79%.
 //   목표 도달만 세면 실제 성과를 여섯 배 낮게 본다.
 //   지표 하나가 틀리면 그 위의 판단이 전부 틀어진다. 둘 다 보여 준다.
-const win = db.prepare(`SELECT COUNT(*) n,
-    SUM(CASE WHEN o.pnl_pct > 0 THEN 1 ELSE 0 END) w,
-    SUM(CASE WHEN o.outcome = 'hit_target' THEN 1 ELSE 0 END) hit,
-    ROUND(AVG(o.pnl_pct), 2) pnl
+// 2026-09-26: **(종목, 추천일) 하나로 센다.** 보고서가 하루 5번 나오며 같은 종목을 매번 다시 추천하므로
+//   한 번의 판단이 여러 행이 된다. 214450.KQ(파마리서치)는 9/1~9/7 한 번의 판단이 22행이 되어 "22건 중 수익 0%" 로
+//   보였고, 그걸 보고 "엔진이 계속 지는 종목을 추천한다" 고 잘못 읽을 뻔했다(실제로 재추천은 성과가 더 좋았다:
+//   매도 뒤 재추천 99건 수익 78%·+1.80% vs 그 밖 177건 62%·+0.68%). 행 수는 괄호로 같이 보여 준다.
+const U = `WITH u AS (SELECT r.ticker, o.pnl_pct, o.outcome,
+    ROW_NUMBER() OVER (PARTITION BY r.ticker, date(r.generated_at) ORDER BY r.generated_at) rn
   FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
-  WHERE r.action = 'buy' AND o.pnl_pct IS NOT NULL`).get();
+  WHERE r.action = 'buy' AND o.pnl_pct IS NOT NULL)`;
+const rawN = db.prepare(`SELECT COUNT(*) n FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
+  WHERE r.action = 'buy' AND o.pnl_pct IS NOT NULL`).get().n;
+const win = db.prepare(`${U} SELECT COUNT(*) n,
+    SUM(CASE WHEN pnl_pct > 0 THEN 1 ELSE 0 END) w,
+    SUM(CASE WHEN outcome = 'hit_target' THEN 1 ELSE 0 END) hit,
+    ROUND(AVG(pnl_pct), 2) pnl
+  FROM u WHERE rn = 1`).get();
 if (win?.n) {
-  console.log(`\n5a) 실제 성과 (손익이 기록된 ${win.n}건):`);
+  console.log(`\n5a) 실제 성과 ((종목,추천일) ${win.n}건 · 행 ${rawN}):`);
   console.log(`   수익 낸 비율   ${(100 * win.w / win.n).toFixed(1)}%   ← 이 시스템의 성과`);
   console.log(`   목표 도달 비율 ${(100 * win.hit / win.n).toFixed(1)}%   ← 목표가에 닿은 것만. 매도엔진이 먼저 파는 편이 많다`);
   console.log(`   평균 손익      ${win.pnl}%`);
-  const worst = db.prepare(`SELECT r.ticker, COUNT(*) n,
-      SUM(CASE WHEN o.pnl_pct > 0 THEN 1 ELSE 0 END) w, ROUND(AVG(o.pnl_pct), 2) pnl
-    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
-    WHERE r.action = 'buy' AND o.pnl_pct IS NOT NULL
-    GROUP BY r.ticker HAVING n >= 8 ORDER BY w * 1.0 / n ASC LIMIT 6`).all();
-  console.log('   — 수익 낸 비율 하위 (n>=8) —');
+  const worst = db.prepare(`${U} SELECT ticker, COUNT(*) n,
+      SUM(CASE WHEN pnl_pct > 0 THEN 1 ELSE 0 END) w, ROUND(AVG(pnl_pct), 2) pnl
+    FROM u WHERE rn = 1
+    GROUP BY ticker HAVING n >= 5 ORDER BY w * 1.0 / n ASC LIMIT 6`).all();
+  console.log('   — 수익 낸 비율 하위 ((종목,추천일) n>=5) —');
   for (const x of worst) {
     console.log(`   ${x.ticker.padEnd(11)} n=${String(x.n).padStart(3)}  수익 ${(100 * x.w / x.n).toFixed(0).padStart(3)}%  평균 ${String(x.pnl).padStart(7)}%`);
   }
