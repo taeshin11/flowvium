@@ -622,6 +622,10 @@ const MAINT_JOBS = [
   // 2026-09-26 사장님 "시간이 지나서 못올린다는게 말이됨? 예비를 계속 뽑아놔야지".
   //   21:45 쇼츠가 렌더 중 멈춰 통째로 안 나갔다. 매시 30분에 예비가 없으면 2순위 이슈로 한 편 만들어 둔다.
   //   정규 회차(:10 :15 :20 :45)·백필(:00 :15 :20 :40)과 엇갈리는 분. 보고서 중·다른 렌더 중이면 스스로 쉰다.
+  // 2026-09-27 사장님 "구독자 올릴수있는건 다 해봐" — 매일 게시물(이미지) 한 편: 최근 24시간 조회 최고 쇼츠.
+  //   이미지 게시물은 쇼츠 피드에서 비구독자에게도 추천된다(공식). API 가 없어 브라우저(전용 프로필)로.
+  //   19:10 KST(10:10 UTC) — 쇼츠 회차(18:20·21:45)와 엇갈림. 하루 한 번(logs/yt-posts.json).
+  { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [],                                     schedules: ['30 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
