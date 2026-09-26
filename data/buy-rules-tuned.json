@@ -1,13 +1,13 @@
 {
   "version": 1,
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-09-20T04:01:46.911Z",
-  "sampleSize": 1768,
+  "tunedAt": "2026-09-26T19:20:00.147Z",
+  "sampleSize": 1880,
   "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
   "rules": [
     {
       "id": "price_oversold_gap",
-      "score": 5,
+      "score": 6,
       "category": "price",
       "condition": {
         "type": "priceGapDown",
@@ -17,7 +17,7 @@
     },
     {
       "id": "price_momentum_52w_high",
-      "score": 8,
+      "score": 9,
       "category": "price",
       "condition": {
         "type": "near52wHigh",
@@ -95,7 +95,7 @@
     },
     {
       "id": "rotation_new_high_after_consolidation",
-      "score": 8,
+      "score": 9,
       "category": "rotation",
       "condition": {
         "type": "newHighAfterFlat",
@@ -269,7 +269,7 @@
     },
     {
       "id": "micro_region_bullish",
-      "score": 4,
+      "score": 3,
       "category": "micro",
       "condition": {
         "type": "regionStance",
@@ -348,7 +348,7 @@
     },
     {
       "id": "micro_options_call_flow",
-      "score": 6,
+      "score": 7,
       "category": "micro",
       "condition": {
         "type": "optionsCallFlow",
@@ -359,7 +359,7 @@
     },
     {
       "id": "micro_volume_burst",
-      "score": 6,
+      "score": 7,
       "category": "micro",
       "condition": {
         "type": "volumeBurst",
@@ -380,7 +380,7 @@
     },
     {
       "id": "fund_backlog_growth",
-      "score": 7,
+      "score": 8,
       "category": "fundamental",
       "condition": {
         "type": "backlogGrowth",
@@ -451,20 +451,20 @@
     }
   ],
   "outcomeStats": {
-    "total": 1768,
+    "total": 1880,
     "hits": 118,
-    "stops": 369,
-    "ne": 263,
-    "holding": 65,
-    "hitRate": 24.2,
-    "avgPnl": 1.3,
-    "avgAlpha": 0.6,
+    "stops": 411,
+    "ne": 270,
+    "holding": 71,
+    "hitRate": 22.3,
+    "avgPnl": 1.2,
+    "avgAlpha": 0.4,
     "bySector": [
       {
         "sector": "Communication Services",
         "hit": 2,
         "stop": 0,
-        "total": 5,
+        "total": 6,
         "hitRate": 100
       },
       {
@@ -513,7 +513,7 @@
         "sector": "industrials",
         "hit": 4,
         "stop": 4,
-        "total": 64,
+        "total": 67,
         "hitRate": 50
       },
       {
@@ -533,9 +533,9 @@
       {
         "sector": "Technology",
         "hit": 33,
-        "stop": 92,
-        "total": 445,
-        "hitRate": 26.400000000000002
+        "stop": 93,
+        "total": 448,
+        "hitRate": 26.190476190476193
       },
       {
         "sector": "defense",
@@ -583,7 +583,7 @@
         "sector": "Industrials",
         "hit": 1,
         "stop": 12,
-        "total": 31,
+        "total": 33,
         "hitRate": 7.6923076923076925
       },
       {
@@ -597,21 +597,21 @@
         "sector": "semiconductors",
         "hit": 2,
         "stop": 37,
-        "total": 263,
+        "total": 268,
         "hitRate": 5.128205128205128
       },
       {
         "sector": "Energy",
         "hit": 0,
         "stop": 0,
-        "total": 9,
+        "total": 11,
         "hitRate": 0
       },
       {
         "sector": "Consumer Staples",
         "hit": 0,
-        "stop": 0,
-        "total": 6,
+        "stop": 14,
+        "total": 34,
         "hitRate": 0
       },
       {
@@ -639,7 +639,7 @@
         "sector": "Healthcare",
         "hit": 0,
         "stop": 22,
-        "total": 38,
+        "total": 40,
         "hitRate": 0
       },
       {
@@ -674,7 +674,7 @@
         "sector": "ETF",
         "hit": 0,
         "stop": 0,
-        "total": 53,
+        "total": 55,
         "hitRate": 0
       },
       {
@@ -708,14 +708,21 @@
       {
         "sector": "Consumer Defensive",
         "hit": 0,
-        "stop": 19,
-        "total": 54,
+        "stop": 46,
+        "total": 107,
         "hitRate": 0
       },
       {
         "sector": "전기제품",
         "hit": 0,
         "stop": 6,
+        "total": 11,
+        "hitRate": 0
+      },
+      {
+        "sector": "Financial Services",
+        "hit": 0,
+        "stop": 0,
         "total": 11,
         "hitRate": 0
       }
@@ -777,11 +784,11 @@
   },
   "ruleEdge": {
     "price_oversold_gap": {
-      "n": 104,
+      "n": 105,
       "hitRate": 6,
-      "winRate": 68,
+      "winRate": 69,
       "avgAlpha": 1.8,
-      "edge": 0.29
+      "edge": 0.3
     },
     "price_support_bounce": {
       "n": 23,
@@ -798,46 +805,46 @@
       "edge": 0.2
     },
     "tech_rsi_oversold": {
-      "n": 142,
+      "n": 205,
       "hitRate": 0,
-      "winRate": 68,
-      "avgAlpha": 1.5,
-      "edge": 0.28
+      "winRate": 59,
+      "avgAlpha": 0.6,
+      "edge": 0.12
     },
     "tech_ma_golden_cross": {
-      "n": 585,
-      "hitRate": 21,
-      "winRate": 61,
-      "avgAlpha": 0.9,
-      "edge": 0.16
+      "n": 677,
+      "hitRate": 17,
+      "winRate": 56,
+      "avgAlpha": 0.5,
+      "edge": 0.1
     },
     "fund_op_margin_expansion": {
-      "n": 325,
-      "hitRate": 4,
-      "winRate": 53,
-      "avgAlpha": 0.4,
-      "edge": 0.05
+      "n": 403,
+      "hitRate": 3,
+      "winRate": 47,
+      "avgAlpha": -0.2,
+      "edge": -0.05
     },
     "fund_revenue_growth": {
-      "n": 452,
-      "hitRate": 21,
-      "winRate": 57,
-      "avgAlpha": 0.2,
-      "edge": 0.09
+      "n": 539,
+      "hitRate": 17,
+      "winRate": 52,
+      "avgAlpha": -0.2,
+      "edge": 0.01
     },
     "fund_high_roe": {
-      "n": 533,
-      "hitRate": 22,
-      "winRate": 62,
-      "avgAlpha": 0.9,
-      "edge": 0.18
+      "n": 623,
+      "hitRate": 18,
+      "winRate": 57,
+      "avgAlpha": 0.5,
+      "edge": 0.1
     },
     "guru_buffett_moat": {
-      "n": 437,
-      "hitRate": 25,
-      "winRate": 61,
-      "avgAlpha": 0.8,
-      "edge": 0.16
+      "n": 515,
+      "hitRate": 20,
+      "winRate": 55,
+      "avgAlpha": 0.2,
+      "edge": 0.07
     },
     "selflearn_boost_list": {
       "n": 89,
@@ -847,42 +854,42 @@
       "edge": -0.03
     },
     "tech_200ma_reclaim": {
-      "n": 100,
+      "n": 158,
       "hitRate": 0,
-      "winRate": 60,
-      "avgAlpha": 0.8,
-      "edge": 0.15
+      "winRate": 47,
+      "avgAlpha": -0.2,
+      "edge": -0.04
     },
     "price_pullback_50ma": {
-      "n": 171,
+      "n": 216,
       "hitRate": 0,
-      "winRate": 60,
-      "avgAlpha": 1,
-      "edge": 0.16
+      "winRate": 50,
+      "avgAlpha": 0.1,
+      "edge": 0.01
     },
     "macro_fg_recovery": {
-      "n": 452,
-      "hitRate": 25,
-      "winRate": 62,
-      "avgAlpha": 0.8,
-      "edge": 0.17
+      "n": 539,
+      "hitRate": 20,
+      "winRate": 56,
+      "avgAlpha": 0.4,
+      "edge": 0.09
     },
     "micro_news_gap": {
-      "n": 111,
-      "hitRate": 89,
-      "winRate": 91,
-      "avgAlpha": 2.3,
-      "edge": 0.58
+      "n": 120,
+      "hitRate": 87,
+      "winRate": 89,
+      "avgAlpha": 2.2,
+      "edge": 0.56
     },
     "price_breakout_high": {
-      "n": 142,
+      "n": 144,
       "hitRate": 23,
       "winRate": 60,
       "avgAlpha": 1.1,
       "edge": 0.16
     },
     "price_momentum_52w_high": {
-      "n": 204,
+      "n": 205,
       "hitRate": 56,
       "winRate": 73,
       "avgAlpha": 1.8,
@@ -896,32 +903,32 @@
       "edge": -0.61
     },
     "fund_backlog_growth": {
-      "n": 139,
+      "n": 150,
       "hitRate": 5,
       "winRate": 75,
       "avgAlpha": 2.1,
       "edge": 0.38
     },
     "micro_options_call_flow": {
-      "n": 21,
+      "n": 23,
       "hitRate": 50,
-      "winRate": 90,
+      "winRate": 91,
       "avgAlpha": 4,
-      "edge": 0.64
+      "edge": 0.66
     },
     "micro_volume_burst": {
-      "n": 84,
+      "n": 89,
       "hitRate": 73,
       "winRate": 82,
-      "avgAlpha": 1.9,
-      "edge": 0.46
+      "avgAlpha": 2,
+      "edge": 0.47
     },
     "rotation_new_high_after_consolidation": {
-      "n": 15,
+      "n": 16,
       "hitRate": 0,
-      "winRate": 73,
-      "avgAlpha": 2.2,
-      "edge": 0.37
+      "winRate": 75,
+      "avgAlpha": 2.1,
+      "edge": 0.38
     },
     "micro_kr_smart_flow": {
       "n": 42,
@@ -938,25 +945,32 @@
       "edge": -0.28
     },
     "tech_volume_surge": {
-      "n": 11,
-      "hitRate": 0,
-      "winRate": 73,
-      "avgAlpha": 1.6,
-      "edge": 0.34
-    },
-    "micro_region_bullish": {
-      "n": 31,
-      "hitRate": 0,
-      "winRate": 45,
-      "avgAlpha": -0.8,
-      "edge": -0.09
-    },
-    "micro_sector_overweight": {
-      "n": 6,
+      "n": 12,
       "hitRate": 0,
       "winRate": 67,
-      "avgAlpha": 1,
-      "edge": 0.24
+      "avgAlpha": 1.4,
+      "edge": 0.26
+    },
+    "micro_region_bullish": {
+      "n": 69,
+      "hitRate": 0,
+      "winRate": 32,
+      "avgAlpha": -1.8,
+      "edge": -0.29
+    },
+    "micro_sector_overweight": {
+      "n": 8,
+      "hitRate": 0,
+      "winRate": 63,
+      "avgAlpha": 0.6,
+      "edge": 0.17
+    },
+    "rotation_defensive": {
+      "n": 1,
+      "hitRate": 0,
+      "winRate": 0,
+      "avgAlpha": -6,
+      "edge": -0.84
     }
   }
 }
