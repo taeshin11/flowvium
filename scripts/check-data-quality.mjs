@@ -564,7 +564,8 @@ async function main() {
       //   endpoint_snapshots 추적 대상 아님(2026-06-19). 자체 검증로그(judge-chat:verify)+폐루프로 별도 추적.
       //   /client-log = 브라우저 에러 수집 파이프(POST 수집 + GET 은 CRON_SECRET 모니터 소비 전용, 2026-07-04)
       //   — 시장 데이터 시계열이 아니고 자체 Redis ring(7d)+runMonitor 폐루프로 추적됨.
-      const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading', '/judge-chat', '/judge-chat/share', '/client-log']);
+      //   /pv = 방문자 측정 비콘(POST 만, 2026-09-25) — 시장 데이터가 아니라 data/visits.db 에 자체 기록(scripts/visits-report.mjs).
+      const ALLOW_UNTRACKED = new Set(['/company-news', '/stock-supply', '/osint/corporate', '/company-kr/list', '/investment-strategy/history', '/paper-trading', '/judge-chat', '/judge-chat/share', '/client-log', '/pv']);
       const untracked = routes.filter(r => !EXCLUDE.test(r) && !trackedSet.has(r) && !ALLOW_UNTRACKED.has(r));
       if (untracked.length) {
         issues.push(`[N] DB 미추적 데이터 엔드포인트 ${untracked.length}개: ${untracked.join(', ')} — TRACKED_ENDPOINTS 추가 필요`);
