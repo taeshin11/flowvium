@@ -81,8 +81,17 @@ const voice = async (src, style, context) => {
 };
 
 const includedItems = [];
+// 2026-09-26: 시간 예산 — 9/24 에 timeout(480초) 4연속, 그 뒤 450·475초. 본문 고쳐쓰기를 하나씩 차례로 하므로
+//   (4B 폴백 배치 사고 때문에 병렬 금지) 담는 편수로 조절한다. 글이 될 만큼(2편) 모였고 예산을 넘으면 그만 담는다.
+const { shouldStopAdding } = await import('./lib/blog-budget.mjs');
+const BUDGET_MS = Number(process.env.SHORTS_BLOG_BUDGET_S || 240) * 1000;   // 한 편(본문 5 × 최대 40초)이 200초까지 걸린다 — 240+200 < 480(한도)
+const T0 = Date.now();
 for (const row of rows) {
   if (includedItems.length >= LIMIT) break;
+  if (shouldStopAdding({ elapsedMs: Date.now() - T0, budgetMs: BUDGET_MS, included: includedItems.length })) {
+    console.log(`시간 예산(${BUDGET_MS / 1000}초)을 넘어 ${includedItems.length}편에서 그만 담는다`);
+    break;
+  }
 
   const heads = (() => { try { return JSON.parse(row.headlines_json ?? '[]'); } catch { return []; } })();
   const hooks = (() => { try { return JSON.parse(row.hooks_json ?? '[]'); } catch { return []; } })();
