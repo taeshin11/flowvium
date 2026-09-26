@@ -21,5 +21,11 @@ const single = src.slice(src.indexOf('const prompt = `'), src.indexOf('`;', src.
 const RULE = /집계 기간/;
 RULE.test(single) ? ok('단일 이슈 프롬프트에 기간 규칙') : bad('단일 이슈 프롬프트에 기간 규칙 없음');
 RULE.test(brief) ? ok('브리핑 프롬프트에 기간 규칙') : bad('브리핑 프롬프트에 기간 규칙 없음');
+// 2026-09-26: 첫 훅은 '무슨 일이 벌어졌나'(갈등·사건·행동)로 — 두 프롬프트 모두.
+//   실측(훅 41편 × 분석 API): 안 넘긴 비율 상위 = 급락·폭발·탄원서·거부·파장·유출 고발(0.47~0.63),
+//   하위 = 기준금리 동결·경제 성장률·ODA 회의(0.12~0.24). engaged 비율이 조회수와 상관 0.56.
+const HOOK = /무슨 일이 벌어졌/;
+HOOK.test(single) ? ok('단일 이슈 프롬프트에 사건형 훅 규칙') : bad('단일 이슈 프롬프트에 사건형 훅 규칙 없음');
+HOOK.test(brief) ? ok('브리핑 프롬프트에 사건형 훅 규칙') : bad('브리핑 프롬프트에 사건형 훅 규칙 없음');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

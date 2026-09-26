@@ -1965,17 +1965,26 @@ function ensureSubsColumn(db) {
   if (!cols.includes('subs_gained')) db.exec('ALTER TABLE shorts_stats ADD COLUMN subs_gained INTEGER');
 }
 
+// 2026-09-26: 첫 순간 안 넘기고 본 비율(engagedViews/views)·평균 시청% — 쇼츠 조회수와 상관 0.56(실측).
+function ensureEngagedColumns(db) {
+  const cols = db.prepare('PRAGMA table_info(shorts_stats)').all().map((c) => c.name);
+  if (!cols.includes('engaged_ratio')) db.exec('ALTER TABLE shorts_stats ADD COLUMN engaged_ratio REAL');
+  if (!cols.includes('avg_view_pct')) db.exec('ALTER TABLE shorts_stats ADD COLUMN avg_view_pct REAL');
+}
+
 export function recordShortsStats(rows) {
   const db = openDb();
   ensureStatsTable(db);
   ensureSubsColumn(db);
+  ensureEngagedColumns(db);
   const ins = db.prepare(
-    `INSERT OR REPLACE INTO shorts_stats (video_id, checked_at, views, likes, age_hours, title, privacy, subs_gained)
-     VALUES (?,?,?,?,?,?,?,?)`);
+    `INSERT OR REPLACE INTO shorts_stats (video_id, checked_at, views, likes, age_hours, title, privacy, subs_gained, engaged_ratio, avg_view_pct)
+     VALUES (?,?,?,?,?,?,?,?,?,?)`);
   const now = new Date().toISOString();
   const tx = db.transaction((list) => {
     for (const r of list) ins.run(r.id, now, r.views, r.likes, r.ageHours, r.title ?? null, r.privacy ?? null,
-      Number.isFinite(r.subs) ? r.subs : null);
+      Number.isFinite(r.subs) ? r.subs : null,
+      Number.isFinite(r.engagedRatio) ? r.engagedRatio : null, Number.isFinite(r.avgViewPct) ? r.avgViewPct : null);
   });
   tx(rows ?? []);
   return (rows ?? []).length;

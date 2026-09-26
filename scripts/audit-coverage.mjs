@@ -94,6 +94,10 @@ const NEW_COLUMNS = {
     why: '기사 본문 보관을 2026-09-20 에 시작 — 그 전 회차는 대본을 쓸 때 읽고 버렸다(쇼츠→블로그의 재료)' },
   'shorts_published.title_style': { since: '2026-09-25T00:24', at: 'published_at',
     why: '제목 방식(궁금증/헤드라인) 기록을 2026-09-25 에 시작 — 그 전 편은 방식을 적지 않았다(전부 헤드라인이었다)' },
+  'shorts_stats.engaged_ratio': { since: '2026-09-26T05:23', at: 'checked_at',
+    why: '안 넘기고 본 비율 수집을 2026-09-26 에 시작 — 분석 API 가 주는 영상만 채워진다(아주 새 영상은 하루 뒤)' },
+  'shorts_stats.avg_view_pct': { since: '2026-09-26T05:23', at: 'checked_at',
+    why: 'engaged_ratio 와 같은 요청으로 2026-09-26 부터 수집' },
   'shorts_stats.subs_gained': { since: '2026-09-18T13:05', at: 'checked_at',
     why: '구독자 증가 수집을 2026-09-18 에 시작 — 그 전 표본은 그 API 를 부르지 않았다' },
 };
