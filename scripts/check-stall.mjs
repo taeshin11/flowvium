@@ -456,11 +456,13 @@ async function checkOnce() {
     if (ageD > 9) {
       issues.push(`전향 연구 결과가 ${ageD.toFixed(0)}일째 갱신 안 됨 — eval-shadow-rules 는 주 1회다`);
     } else {
-      // 승격 기준: n≥30 && (초과수익 ≥ +0.5%p || 승률 ≥ 58%). 충족분은 사람이 옮겨야 한다.
-      const promo = (j.rules ?? []).filter((r) => r.evaluated >= 30 && (r.avgExcess5 >= 0.5 || r.winRate5 >= 58));
+      // 승격 기준은 평가기와 같은 함수(lib/shadow-eval isPromotable — t≥2 · 10일 지속 포함, 2026-09-27).
+      //   예전 기준(초과 ≥0.5 또는 승률 ≥58)은 중복 발화·SPY 비교로 부푼 n 에서 우연을 후보로 올렸다.
+      const { isPromotable } = await import('./lib/shadow-eval.mjs');
+      const promo = (j.rules ?? []).filter(isPromotable);
       if (promo.length) {
         issues.push(`전향 연구 승격 후보 ${promo.length}건 — `
-          + `${promo.map((r) => `${r.ruleId}(n=${r.evaluated}, 초과 ${r.avgExcess5}%p, 승률 ${r.winRate5}%)`).join(' · ')}`
+          + `${promo.map((r) => `${r.ruleId}(n=${r.evaluated}, 초과 ${r.avgExcess5}%p t ${r.t5}, 승률 ${r.winRate5}%, 10일 ${r.avgExcess10}%p)`).join(' · ')}`
           + ' → live 룰셋 이관은 사람이 판단한다');
       } else {
         const worst = [...(j.rules ?? [])].sort((a, b) => a.avgExcess5 - b.avgExcess5)[0];
