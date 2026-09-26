@@ -11,7 +11,7 @@
  *
  * 생성은 scripts/flow-clip.mjs 를 FLOW_PURPOSE=omni-flash-x1 로 부른다 — lib/flow.openFlow 는 그 목적일 때만 연다.
  */
-import { existsSync, readFileSync, writeFileSync, statSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { dirname, resolve, join } from 'path';
 import { homedir } from 'os';
 import { spawnSync } from 'child_process';
@@ -26,6 +26,23 @@ const MIN_GAP_MS = 10 * 60e3;
 const kstHour = (d) => (new Date(d).getUTCHours() + 9) % 24;
 
 /**
+ * Dropbox 락 파일은 **자식 프로세스로, 시간 한도를 두고** 만진다. (2026-09-26 21:45 사고)
+ *   온라인 전용(dataless) 파일을 동기로 열면 내려받을 때까지 막힌다 — make-shorts 가 open() 에서
+ *   1시간 44분 멈췄고 그 회차가 통째로 안 나갔다(sample 로 main thread 가 open 에 걸린 것 확인).
+ *   자식 프로세스는 timeout 에 죽일 수 있다. 못 읽으면 "모름" 이고, 모르면 생성하지 않는다.
+ */
+const FS_TIMEOUT_MS = Number(process.env.FLOW_LOCK_TIMEOUT_MS || 5000);
+function lockFs(op, file, body = '') {
+  const code = `const fs=require('fs');const [op,f,b]=process.argv.slice(1);
+    if(op==='read'){ if(!fs.existsSync(f)){console.log(JSON.stringify({exists:false}));process.exit(0)}
+      const st=fs.statSync(f);console.log(JSON.stringify({exists:true,body:fs.readFileSync(f,'utf8'),mtimeMs:st.mtimeMs}))}
+    else { fs.writeFileSync(f,b); console.log('{"ok":true}') }`;
+  const r = spawnSync(process.execPath, ['-e', code, op, file, body], { encoding: 'utf8', timeout: FS_TIMEOUT_MS, killSignal: 'SIGKILL' });
+  if (r.error || r.status !== 0) return null;
+  try { return JSON.parse(r.stdout); } catch { return null; }
+}
+
+/**
  * 지금 만들어도 되는가. 만들지 않는 이유를 사람 말로 돌려준다.
  * @returns {{ok:boolean, reason?:string}}
  */
@@ -35,9 +52,11 @@ export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFi
   const h = kstHour(now);
   if (!(h >= from && h < to)) return { ok: false, reason: `시간표 밖(${h}시 · FlowVium 은 ${from}~${to}시)` };
   if (!existsSync(dirname(lockFile))) return { ok: false, reason: `Dropbox 락 폴더가 없다: ${dirname(lockFile)}` };
-  if (existsSync(lockFile)) {
-    const body = readFileSync(lockFile, 'utf8').trim();
-    const age = Date.now() - statSync(lockFile).mtimeMs;
+  const lk = lockFs('read', lockFile);
+  if (!lk) return { ok: false, reason: `Dropbox 락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 읽었다 — 모르면 만들지 않는다` };
+  if (lk.exists) {
+    const body = String(lk.body ?? '').replace(/^\uFEFF/, '').trim();
+    const age = Date.now() - lk.mtimeMs;
     if (body && age < STALE_MS) return { ok: false, reason: `다른 곳이 Flow 락을 쥐고 있다: "${body.slice(0, 60)}"` };
   }
   try {
@@ -51,16 +70,19 @@ export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFi
 
 /** 락을 우리 이름으로 잡는다. 이미 누가(내용 있음·신선) 쥐고 있으면 ok:false. 풀 때는 **우리 것일 때만** 비운다. */
 export function takeFlowLock(lockFile, who = 'mac-flowvium') {
-  if (existsSync(lockFile)) {
-    const body = readFileSync(lockFile, 'utf8').trim();
-    if (body && Date.now() - statSync(lockFile).mtimeMs < STALE_MS) return { ok: false, holder: body };
+  const lk = lockFs('read', lockFile);
+  if (!lk) return { ok: false, holder: `(락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 읽음)` };
+  if (lk.exists) {
+    const body = String(lk.body ?? '').replace(/^\uFEFF/, '').trim();
+    if (body && Date.now() - lk.mtimeMs < STALE_MS) return { ok: false, holder: body };
   }
   const mine = `${who}: Omni Flash ×1 쇼츠 소재 1컷 · ${new Date().toISOString()}`;
-  writeFileSync(lockFile, mine);
+  if (!lockFs('write', lockFile, mine)) return { ok: false, holder: `(락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 썼음)` };
   return {
     ok: true,
     release() {
-      try { if (readFileSync(lockFile, 'utf8').trim() === mine) writeFileSync(lockFile, ''); } catch { /* 이미 없음 */ }
+      const now = lockFs('read', lockFile);
+      if (now?.exists && String(now.body ?? '').trim() === mine) lockFs('write', lockFile, '');
     },
   };
 }

@@ -71,5 +71,17 @@ const base = { lockFile, stateFile, env: {} };
 // [6] 모델은 Omni Flash 고정(무료 Lower Priority 자동화는 여전히 금지)
 /omni/i.test(OMNI_MODEL) && !/lower priority/i.test(OMNI_MODEL) ? ok(`[6] 모델 ${OMNI_MODEL}`) : bad(`[6] ${OMNI_MODEL}`);
 
+// [7] ★ 락 파일 열기가 멈춰도 쇼츠가 멈추지 않는다 (2026-09-26 21:45 실측: Dropbox 파일 open 에서 1시간 44분 멈춰
+//   그 회차가 통째로 안 나갔다 — 온라인 전용 파일을 동기로 읽으면 내려받을 때까지 막힌다).
+//   FIFO 는 쓰는 쪽이 없으면 open 이 똑같이 멈춘다 — 그걸로 재현한다.
+{
+  const { spawnSync } = await import('child_process');
+  const fifo = join(dir, 'hang.fifo');
+  spawnSync('mkfifo', [fifo]);
+  const t0 = Date.now();
+  const a = omniAllowed({ ...base, lockFile: fifo, now: kst(20) });
+  const ms = Date.now() - t0;
+  (!a.ok && /못 읽/.test(a.reason) && ms < 15000) ? ok(`[7] 락 읽기가 멈추면 ${ms}ms 안에 포기(${a.reason})`) : bad(`[7] ${ms}ms ${JSON.stringify(a)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

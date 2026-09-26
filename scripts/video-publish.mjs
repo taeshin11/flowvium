@@ -181,6 +181,28 @@ if (USE_EXISTING) {
   const TRIES = Number(process.env.VIDEO_RENDER_TRIES || 3);
   const tried = [];
   let rendered = false;
+  // 2026-09-26 사장님 "시간이 지나서 못올린다는게 말이됨? 예비를 계속 뽑아놔야지".
+  //   21:45 회차가 렌더 중 1시간 44분 멈춰(Dropbox 락 open) 통째로 안 나갔다. 두 가지를 둔다:
+  //   ① 렌더 한 번에 시간 한도(기본 25분 — Omni 생성 10분 + 렌더 12분 여유). 넘으면 죽이고 **다시 시도하지 않는다**
+  //      (또 25분을 쓰면 그 시각이 지나간다). ② 실패·한도 초과·낼 것 없음이면 **예비**(scripts/shorts-spare.mjs 가
+  //      미리 만들어 둔 것, 6시간 안 · 아직 안 나간 이슈)를 올린다. SHORTS_SPARE=0 으로 끈다.
+  const RENDER_TIMEOUT_MS = Number(process.env.VIDEO_RENDER_TIMEOUT_MIN || 25) * 60_000;
+  const useSpare = async (why) => {
+    if (!isShorts || process.env.SHORTS_SPARE === '0') return false;
+    try {
+      const { pickSpare, promoteSpare } = await import('./lib/shorts-spare.mjs');
+      const { recentShortsIssues, normalizeIssueKey } = await import('./lib/db.mjs');
+      const media = resolveMediaRoot({ configured: envValue('MEDIA_ROOT'), localFallback: resolve(ROOT, 'reports/video'),
+        allowLocal: argv.includes('--local-media') });
+      const pub = recentShortsIssues(24);
+      const sp = pickSpare({ dir: join(media.root, 'spares'), maxAgeH: Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6),
+        isPublished: (k) => pub.has(normalizeIssueKey(k)) });
+      if (!sp) { log(`예비 없음 — ${why}`); return false; }
+      const r = promoteSpare(sp, media.root, LOCALE);
+      log(`예비로 올린다 — ${why} · 예비 "${r.keyword}" (${Math.round((Date.now() - sp.createdAt) / 60000)}분 전에 만든 것)`);
+      return true;
+    } catch (e) { log(`예비를 못 썼다: ${String(e?.message ?? e).slice(0, 80)}`); return false; }
+  };
   for (let a = 1; a <= TRIES && !rendered; a++) {
     const args = isShorts
       ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
@@ -189,7 +211,14 @@ if (USE_EXISTING) {
       cwd: ROOT,
       stdio: 'inherit',
       env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}) },
+      timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
+    if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {
+      const why = `렌더가 ${RENDER_TIMEOUT_MS / 60000}분 한도를 넘어 멈췄다(${a}회차)`;
+      if (await useSpare(why)) { rendered = true; break; }
+      log(`건너뜀 — ${why}, 예비도 없다. 다음 슬롯에 다시 시도한다.`);
+      process.exit(NOTHING_TO_PUBLISH);
+    }
     if (r.error) throw new Error(`렌더 실행 실패: ${r.error.message}`);
     if (r.status === 0) { rendered = true; break; }
     // 2026-09-08: 대본을 못 만들면 렌더가 exit 1 로 죽었고, 여기서 **회차를 통째로 버렸다**.
@@ -197,7 +226,10 @@ if (USE_EXISTING) {
     //   한 이슈가 안 된다고 그 시각을 잃을 이유가 없다 — 다른 이슈로 다시 해 본다.
     //   마지막 시도까지 실패하면 그때 진짜 실패로 올린다.
     if (r.status !== NOTHING_TO_PUBLISH) {
-      if (a >= TRIES) throw new Error(`렌더 실패 (exit ${r.status}) — 위 출력을 볼 것`);
+      if (a >= TRIES) {
+        if (await useSpare(`렌더 ${TRIES}번 모두 실패(마지막 exit ${r.status})`)) { rendered = true; break; }
+        throw new Error(`렌더 실패 (exit ${r.status}) — 위 출력을 볼 것`);
+      }
       log(`렌더 ${a}회차가 exit ${r.status} 로 실패했다 — 다른 이슈로 다시 시도한다 (${a + 1}/${TRIES})`);
     }
     // 이번에 시도한 이슈를 빼고 다시 — 무엇을 시도했는지는 렌더가 파일로 남긴다.
@@ -208,6 +240,7 @@ if (USE_EXISTING) {
       log(`렌더 ${a}회차가 "${last || '?'}" 로 낼 것을 못 만들었다 — 다른 이슈로 다시 시도한다 (${a + 1}/${TRIES})`);
     }
   }
+  if (!rendered && await useSpare(`${TRIES}번 시도했지만 낼 것이 없다(시도: ${tried.join(', ') || '없음'})`)) rendered = true;
   if (!rendered) {
     log(`건너뜀 — ${TRIES}번 시도했지만 낼 것이 없다(고장 아님). 시도한 이슈: ${tried.join(', ') || '없음'}`);
     process.exit(NOTHING_TO_PUBLISH);

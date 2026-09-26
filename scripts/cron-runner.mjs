@@ -619,6 +619,10 @@ const MAINT_JOBS = [
   // 2026-09-25 사장님 "우리가 놓친 요소가 없는지 항상 확인해야되. 너무 빨리 팔지는 않았는지도".
   //   청산 품질(손절·목표·매도엔진 매도 뒤 20거래일)을 손으로 돌릴 때만 봤다 — 마지막이 일주일 전이었다.
   //   매주 일요일 04:40 KST(토 19:40 UTC): 토요일 tune-sell-rules 뒤, 아침 보고서 준비(05:30~) 전.
+  // 2026-09-26 사장님 "시간이 지나서 못올린다는게 말이됨? 예비를 계속 뽑아놔야지".
+  //   21:45 쇼츠가 렌더 중 멈춰 통째로 안 나갔다. 매시 30분에 예비가 없으면 2순위 이슈로 한 편 만들어 둔다.
+  //   정규 회차(:10 :15 :20 :45)·백필(:00 :15 :20 :40)과 엇갈리는 분. 보고서 중·다른 렌더 중이면 스스로 쉰다.
+  { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [],                                     schedules: ['30 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.

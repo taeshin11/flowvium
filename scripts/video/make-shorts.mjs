@@ -1946,8 +1946,11 @@ const MEDIA = resolveMediaRoot({
   localFallback: resolve(ROOT, 'reports/video'),
   allowLocal: argv.includes('--local-media'),
 });
-const OUT = join(MEDIA.root, 'shorts-ko.mp4');
-log(`[저장] ${MEDIA.root}`);
+// 2026-09-26: 예비 쇼츠(scripts/shorts-spare.mjs)는 SHORTS_OUT_DIR 로 다른 폴더에 만든다 — 정규 산출물을 덮지 않게.
+const OUT_DIR = process.env.SHORTS_OUT_DIR || MEDIA.root;
+mkdirSync(OUT_DIR, { recursive: true });
+const OUT = join(OUT_DIR, 'shorts-ko.mp4');
+log(`[저장] ${OUT_DIR}`);
 
 // 장면마다 따로 만들고 이어 붙인다 — 한 체인으로 묶으면 필터가 길어져 디버깅이 불가능해진다.
 const parts = [];
@@ -2114,7 +2117,7 @@ if (existsSync(`${WORK}/thumb.png`)) {
     ['-v', 'error', '-i', `${WORK}/thumb.png`, '-vf', 'scale=1:1', '-pix_fmt', 'gray', '-f', 'rawvideo', '-'],
     ffmpegOpts({ timeoutMs: 20000 }));
   const avg = lum.status === 0 && lum.stdout?.length ? lum.stdout[0] : 0;
-  const tj = join(MEDIA.root, 'shorts-ko-thumb.jpg');
+  const tj = join(OUT_DIR, 'shorts-ko-thumb.jpg');
   if (avg < 26) {
     if (existsSync(tj)) unlinkSync(tj);          // 지난 회차 것이 남아 붙는 사고를 막는다
     console.log(`   ⚠ 썸네일이 너무 어둡다(평균 밝기 ${avg}/255) — 올리지 않는다. 유튜브가 자동으로 고른다`);
@@ -2134,7 +2137,7 @@ if (credits.length) {
   console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${cf}`);
 }
 // 업로드가 쓸 메타. 훅을 제목 후보로 넘긴다.
-writeFileSync(join(MEDIA.root, 'shorts-ko-meta.json'), JSON.stringify({
+writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   headlines, hooks: scenes.map((s) => s.hook), bodies, keyword: issue.keyword,
   topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
