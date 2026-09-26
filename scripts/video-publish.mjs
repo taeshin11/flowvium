@@ -187,6 +187,14 @@ if (USE_EXISTING) {
   //      (또 25분을 쓰면 그 시각이 지나간다). ② 실패·한도 초과·낼 것 없음이면 **예비**(scripts/shorts-spare.mjs 가
   //      미리 만들어 둔 것, 6시간 안 · 아직 안 나간 이슈)를 올린다. SHORTS_SPARE=0 으로 끈다.
   const RENDER_TIMEOUT_MS = Number(process.env.VIDEO_RENDER_TIMEOUT_MIN || 25) * 60_000;
+  // 2026-09-27 구독 권유 A/B: 누적 편수 % 4 < 2 → 붙인다(제목 방식 짝홀과 2×2). SHORTS_SUB_CTA 가 주어지면 그 값.
+  let SUB_CTA_ENV = process.env.SHORTS_SUB_CTA ?? '0';
+  if (isShorts && process.env.SHORTS_SUB_CTA == null) {
+    try {
+      const { subCtaFor } = await import('./lib/sub-cta.mjs');
+      SUB_CTA_ENV = subCtaFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0';
+    } catch { /* 모르면 안 붙인다 */ }
+  }
   const useSpare = async (why) => {
     if (!isShorts || process.env.SHORTS_SPARE === '0') return false;
     try {
@@ -210,7 +218,7 @@ if (USE_EXISTING) {
     const r = spawnSync(node, args, {
       cwd: ROOT,
       stdio: 'inherit',
-      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}) },
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV } : {}) },
       timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
     if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {
@@ -440,8 +448,16 @@ if (isShorts && last.keyword) {
       const m = String(probe.stderr).match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
       if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]);
     } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle });
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
+    // 2026-09-27 사장님 "구독자 올릴수있는건 다 해봐" — 주제 재생목록에 넣는다(채널 페이지 정리). 실패해도 발행은 끝났다.
+    if (videoId && last.topic) {
+      try {
+        const { addToTopicPlaylist } = await import('./lib/yt-playlists.mjs');
+        const pl = await addToTopicPlaylist(videoId, last.topic);
+        if (pl) log(`재생목록: "${pl.title}" 에 넣었다`);
+      } catch (e) { log(`⚠ 재생목록에 못 넣었다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
+    }
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
     log(`⚠ 편성 대장 기록 실패 — 다음 편이 같은 뉴스를 고를 수 있다: ${e.message}`);

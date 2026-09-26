@@ -1076,6 +1076,15 @@ log(`[대본] 장면 ${scenes.length}개 · ${scenes.reduce((n, s) => n + s.say.
 for (const s of scenes) log(`   · [${s.hook}] ${s.say.slice(0, 42)}…`);
 if (DRY) { log('--dry — 여기까지'); process.exit(0); }
 
+// 2026-09-27 구독 권유 A/B — video-publish 가 편마다 절반에 SHORTS_SUB_CTA=1 을 준다(lib/sub-cta 머리말).
+//   마지막 내용 장면 끝에 '이유 있는 권유' 한 줄. 자막·소리 모두 나간다. 메타에 남겨 구독 전환을 나눠 잰다.
+const SUB_CTA = process.env.SHORTS_SUB_CTA === '1';
+if (SUB_CTA) {
+  const { withSubCta } = await import('../lib/sub-cta.mjs');
+  scenes = withSubCta(scenes);
+  log('[대본] 구독 권유 한 줄을 끝에 붙인다(A/B)');
+}
+
 // ── 3. 음성 ─────────────────────────────────────────────────────────────────────
 // 2026-09-13: 기본 엔진이 MeloTTS 가 됐다(사용자 비교 청취 "멜로가 낫다").
 //   실측 — 문장당 0.7~0.9초, 실시간 7배. 종전 Qwen3-TTS 는 문장당 15초(실시간 0.26배)라
@@ -2141,5 +2150,6 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   headlines, hooks: scenes.map((s) => s.hook), bodies, keyword: issue.keyword,
   topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
+  subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

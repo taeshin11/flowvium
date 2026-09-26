@@ -56,7 +56,9 @@ const out = join(DIR, new Date().toISOString().replace(/[:.]/g, '-'));
 mkdirSync(out, { recursive: true });
 const t0 = Date.now();
 const r = spawnSync(node, [shorts, '--seconds', '40'], { cwd: ROOT, stdio: 'inherit', timeout: 20 * 60_000, killSignal: 'SIGKILL',
-  env: { ...process.env, SHORTS_OUT_DIR: out, FLOW_OMNI_FALLBACK: '0', ...(top ? { SHORTS_EXCLUDE: top } : {}) } });
+  env: { ...process.env, SHORTS_OUT_DIR: out, FLOW_OMNI_FALLBACK: '0', ...(top ? { SHORTS_EXCLUDE: top } : {}),
+    // 구독 권유 A/B — 예비도 같은 규칙(누적 편수 % 4). 실제로 붙었는지는 메타가 기록한다.
+    SHORTS_SUB_CTA: (await import('./lib/sub-cta.mjs')).subCtaFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0' } });
 const okFiles = existsSync(join(out, 'shorts-ko.mp4')) && existsSync(join(out, 'shorts-ko-meta.json'));
 if (r.status === 0 && okFiles) {
   const kw = JSON.parse(readFileSync(join(out, 'shorts-ko-meta.json'), 'utf8')).keyword;

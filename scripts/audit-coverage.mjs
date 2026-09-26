@@ -92,6 +92,8 @@ const NEW_COLUMNS = {
     why: '대본 보관을 2026-09-18 에 시작 — 그 전 편은 대본이 남지 않았다(shorts-blog 의 소재)' },
   'shorts_published.bodies_json': { since: '2026-09-20T12:00', at: 'published_at',
     why: '기사 본문 보관을 2026-09-20 에 시작 — 그 전 회차는 대본을 쓸 때 읽고 버렸다(쇼츠→블로그의 재료)' },
+  'shorts_published.sub_cta': { since: '2026-09-27T12:00', at: 'published_at',
+    why: '구독 권유 A/B 기록을 2026-09-27 에 시작 — 그 전 편은 권유가 없었다(전부 0 에 해당하나 소급하지 않는다)' },
   'shorts_published.title_style': { since: '2026-09-25T00:24', at: 'published_at',
     why: '제목 방식(궁금증/헤드라인) 기록을 2026-09-25 에 시작 — 그 전 편은 방식을 적지 않았다(전부 헤드라인이었다)' },
   'shorts_stats.engaged_ratio': { since: '2026-09-26T05:23', at: 'checked_at',
