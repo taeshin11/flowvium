@@ -48,6 +48,22 @@ function probe(path) {
   return { width: +d[1], height: +d[2], yavg: +y[1] };
 }
 
+/** 도구 출력의 오류(있으면). 할당량 소진이면 quota:true 와 리셋까지 남은 시간. */
+function toolError(convDir) {
+  const steps = join(convDir, '.system_generated/steps');
+  if (!existsSync(steps)) return null;
+  for (const s of readdirSync(steps)) {
+    const f = join(steps, s, 'output.txt');
+    if (!existsSync(f)) continue;
+    const t = readFileSync(f, 'utf8');
+    if (!/error|429|RESOURCE_EXHAUSTED/i.test(t)) continue;
+    const quota = /RESOURCE_EXHAUSTED|exhausted your capacity|QUOTA_EXHAUSTED|429/i.test(t);
+    const reset = /reset after\s+([0-9hms]+)/i.exec(t)?.[1] ?? null;
+    return { quota, reset, text: t.replace(/\s+/g, ' ').slice(0, 120) };
+  }
+  return null;
+}
+
 /** agy 가 남긴 도구 출력에서 그림 경로를 찾는다. 없으면 대화 폴더의 그림 파일. */
 function findImage(convDir) {
   const steps = join(convDir, '.system_generated/steps');
@@ -118,7 +134,14 @@ export async function generateImage(o) {
   const cleanup = () => { if (!o.keepConversation && resolve(convDir).startsWith(resolve(brainRoot) + '/')) rmSync(convDir, { recursive: true, force: true }); };
 
   const img = findImage(convDir);
-  if (!img) { cleanup(); return { ok: false, reason: '그림을 만들지 않았다(도구 출력에 그림 없음)' }; }
+  if (!img) {
+    // 2026-09-27: 이미지 모델 할당량 소진(429)이면 agy 는 {"done":true} 로 답하고 도구 출력에만 사유가 남는다.
+    //   "그림을 만들지 않았다" 만으로는 다른 세션이 원인을 못 찾았다(/usage 의 Gemini 여유는 글 모델 몫). 사유를 꺼낸다.
+    const why = toolError(convDir);
+    cleanup();
+    if (why?.quota) return { ok: false, quotaExhausted: true, reason: `이미지 모델 할당량 소진 — ${why.reset ? `${why.reset} 뒤 리셋` : '리셋 시각 모름'} (agy 도구 출력 429)` };
+    return { ok: false, reason: `그림을 만들지 않았다(도구 출력에 그림 없음)${why?.text ? ` — ${why.text}` : ''}` };
+  }
   const m = probe(img);
   if (!m) { cleanup(); return { ok: false, reason: `그림을 못 읽는다: ${basename(img)}` }; }
   // 밝기: 새까맣거나(≤8) 하얗게 날아간(≥247) 그림은 빈 그림이다.

@@ -103,6 +103,22 @@ function fakeAgy({ w = 768, h = 1376, color = '0x3366aa', makeImage = true, id =
   (!r2.ok && /3/.test(r2.reason)) ? ok('[5b] 참고 그림 4장 → 거절') : bad(`[5b] ${JSON.stringify(r2)}`);
 }
 
+// [7] 이미지 모델 할당량 소진(429)이면 **그렇게** 말한다 — 리셋 시각까지 (2026-09-27 실측: agy 는 {"done":true} 로 답하고
+//   도구 출력에만 "You have exhausted your capacity on this model. Your quota will reset after 3h15m42s." 가 있었다.
+//   사유가 "그림을 만들지 않았다" 뿐이라 다른 세션이 원인을 못 찾았다. /usage 의 Gemini 여유는 글 모델 몫이다.)
+{
+  const id = '77777777-2222-3333-4444-555555555555';
+  const impl = async () => {
+    const dir = join(brainRoot, id);
+    mkdirSync(join(dir, '.system_generated/steps/2'), { recursive: true });
+    writeFileSync(join(dir, '.system_generated/steps/2/output.txt'),
+      'Encountered error in step execution: failed to generate content: 429 Too Many Requests, body: {"error":{"code":429,"message":"You have exhausted your capacity on this model. Your quota will reset after 3h15m42s.","status":"RESOURCE_EXHAUSTED"}}');
+    return { stdout: JSON.stringify({ conversation_id: id, status: 'SUCCESS', response: '{"done":true}' }) };
+  };
+  const r = await generateImage({ prompt: 'x', out: join(work, 'o7.jpg'), aspect: '1:1', agyImpl: impl, brainRoot });
+  (!r.ok && /할당량/.test(r.reason) && /3h15m42s/.test(r.reason) && r.quotaExhausted === true) ? ok(`[7] 할당량 소진을 사유로(${r.reason})`) : bad(`[7] ${JSON.stringify(r)}`);
+}
+
 // [6] 모르는 비율은 부르기 전에 막는다
 {
   let called = false;
