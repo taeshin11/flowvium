@@ -1687,6 +1687,30 @@ closeGoogleImages();
     if (e.message !== 'skip-clip') log(`[화면] CLIP 검사 건너뜀: ${String(e.message).slice(0, 50)}`);
   }
 
+  // ── 소재가 모자라면 Flow Omni Flash ×1 로 한 컷 (2026-09-26 사장님) ─────────────────────
+  //   "차단 시간에는 영상 부족하면 omni flash ×1로 써서라도 만들어. 크레딧 쓰면은 차단은 안 시키더라"
+  //   되물음 확인: Omni Flash ×1 자동화 허용 · 사건 재현 영상 허용. 그 밖의 Flow 규칙은 lib/flow-omni 가 지킨다
+  //   (Dropbox 락 · 18~24시 · 생성 사이 10분). **한 회차에 한 컷** — 빈 장면이 여럿이면 첫 자리만.
+  //   유튜브 정책상 사실적인 생성 영상은 알려야 한다: 화면 출처 자리에 "AI 생성 영상" 을 찍고,
+  //   메타에 synthetic 을 남겨 업로드 때 '합성 콘텐츠' 로 신고한다(video-publish → youtube-upload --synthetic).
+  {
+    const empty = scenes.findIndex((x) => !x.isOutro && !x.media);
+    if (empty >= 0) {
+      const { generateOmniClip } = await import('../lib/flow-omni.mjs');
+      const x = scenes[empty];
+      const prompt = `Realistic news b-roll video reenacting this news scene: ${String(x.say ?? x.hook ?? '').slice(0, 220)}`
+        + `${x.visual ? ` (${x.visual})` : ''}. Documentary style, natural light. No on-screen text, no captions, no logos, no numbers.`;
+      const g = await generateOmniClip({ prompt, out: `${WORK}/omni${empty}.mp4`, log });
+      if (g.path) {
+        x.media = g.path; x.pick = null; x.generated = true;
+        x.credit = 'AI 생성 영상 · Google Flow';
+        log(`[화면] ${empty + 1} 소재가 없어 Omni Flash ×1 로 만들었다(${g.seconds}초) — "AI 생성 영상" 표기`);
+      } else {
+        log(`[화면] ${empty + 1} 소재 없음 — Omni 생성 안 함: ${g.reason}`);
+      }
+    }
+  }
+
   // 2026-09-06: 빈 자리 채우기를 CLIP 블록 **안에** 뒀더니 중복 제거로 뺀 자리는 안 채워져
   //   또 회색 카드가 나갔다(실측 4번 장면). 어느 검사가 뺐든 마지막에 한 번 채운다.
   {
@@ -2107,5 +2131,6 @@ if (credits.length) {
 writeFileSync(join(MEDIA.root, 'shorts-ko-meta.json'), JSON.stringify({
   headlines, hooks: scenes.map((s) => s.hook), bodies, keyword: issue.keyword,
   topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
+  synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

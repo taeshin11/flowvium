@@ -139,6 +139,27 @@ export function channelMismatch(actual, expected) {
     + ' 아니면 node scripts/youtube-auth.mjs 로 그 채널을 골라 다시 인증할 것.';
 }
 
+/**
+ * 업로드 요청 본문. (2026-09-26 분리 — 합성 콘텐츠 신고를 시험하려고)
+ * o.synthetic: 생성 영상(Omni Flash 등)이 들어간 편 — 유튜브 정책상 사실적인 합성 영상은 알려야 한다.
+ */
+export function uploadRequestBody(o) {
+  return {
+    snippet: {
+      title: String(o.title).slice(0, 100),
+      description: String(o.description ?? '').slice(0, 5000),
+      tags: (o.tags ?? []).slice(0, 30),
+      categoryId: o.categoryId ?? '25',           // 25 = News & Politics
+      defaultLanguage: o.locale ?? 'ko',
+      defaultAudioLanguage: o.locale ?? 'ko',
+    },
+    status: {
+      privacyStatus: o.privacy ?? 'private', selfDeclaredMadeForKids: false,
+      ...(o.synthetic ? { containsSyntheticMedia: true } : {}),
+    },
+  };
+}
+
 export async function upload(o) {
   if (!o?.file || !existsSync(o.file)) throw new Error(`영상 파일 없음: ${o?.file}`);
   if (!o?.title) throw new Error('title 필요');
@@ -150,17 +171,7 @@ export async function upload(o) {
   const yt = google.youtube({ version: 'v3', auth: authorized() });
   const res = await yt.videos.insert({
     part: ['snippet', 'status'],
-    requestBody: {
-      snippet: {
-        title: String(o.title).slice(0, 100),
-        description: String(o.description ?? '').slice(0, 5000),
-        tags: (o.tags ?? []).slice(0, 30),
-        categoryId: o.categoryId ?? '25',           // 25 = News & Politics
-        defaultLanguage: o.locale ?? 'ko',
-        defaultAudioLanguage: o.locale ?? 'ko',
-      },
-      status: { privacyStatus: o.privacy ?? 'private', selfDeclaredMadeForKids: false },
-    },
+    requestBody: uploadRequestBody(o),
     media: { body: createReadStream(o.file) },
   });
   return { id: res.data.id, url: `https://youtu.be/${res.data.id}`, bytes: statSync(o.file).size };

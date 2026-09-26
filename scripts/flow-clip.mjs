@@ -19,7 +19,7 @@ import {
   mediaCardTitles, videoUrlForCard,
   composerVisible, defaultsPanelOpen, typePrompt, dismissDialogs,
   videoUrls, downloadMedia, freshMedia, FREE_VIDEO_MODEL, PROFILE_DIR,
-  isFreeModel, MODEL_RESULT,
+  isFreeModel, MODEL_RESULT, readVideoModel, readComposerChip,
 } from './lib/flow.mjs';
 import { mkdirSync, unlinkSync } from 'fs';
 import { spawnSync } from 'child_process';
@@ -48,6 +48,12 @@ const MODEL = arg('--model', process.env.FLOW_VIDEO_MODEL ?? FREE_VIDEO_MODEL);
 // 유료 등급은 **명시적으로 허용해야** 쓴다. 기본 가드는 0 크레딧 모델이 아니면 생성을 막는다 —
 //   매일 도는 자동화가 실수로 크레딧을 태우지 않게 하려는 것이고, 그 기본값을 유지한다.
 const ALLOW_PAID = argv.includes('--allow-paid');
+// 2026-09-26: 자동화는 **Omni Flash ×1(크레딧)** 목적일 때만 허용된다(lib/flow.openFlow 가 FLOW_PURPOSE 로 가른다).
+//   그 목적이면 모델이 Omni 여야 하고 유료 허용이 있어야 한다 — 아니면 시작도 하지 않는다.
+const OMNI = process.env.FLOW_PURPOSE === 'omni-flash-x1';
+if (OMNI && (!/omni/i.test(MODEL) || !ALLOW_PAID)) {
+  console.error(`❌ omni-flash-x1 목적인데 모델=${MODEL} · 유료허용=${ALLOW_PAID} — 생성하지 않는다`); process.exit(2);
+}
 
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 mkdirSync(dirname(OUT), { recursive: true });
@@ -64,7 +70,14 @@ if (!sessionCookiesPresent()) {
 const { ctx, page } = await openFlow({ headless: false });
 let step = 0;
 const shot = async (l) => { if (!SHOTS) return; step++; await page.screenshot({ path: `${SHOTS}/${step}-${l}.png` }).catch(() => {}); };
-const die = async (msg, label) => { console.error(`❌ ${msg}`); await shot(label); await ctx.close().catch(() => {}); process.exit(1); };
+// 2026-09-26: Omni 목적이면 끝날 때 **기본 모델을 무료(Lower Priority)로 되돌린다.** 모델 선택은 계정 설정이라
+//   그대로 두면 이 계정을 같이 쓰는 다른 기계(사람 손 Flow)가 유료 모델에서 시작한다 — FLOW_RULES 1항은 늘 무료다.
+const restoreFree = async () => {
+  if (!OMNI) return;
+  const rr = await setVideoModel(page, FREE_VIDEO_MODEL).catch((e) => ({ status: `오류 ${e.message}` }));
+  console.log(`  [되돌림] 기본 모델 → ${FREE_VIDEO_MODEL}: ${rr?.status}`);
+};
+const die = async (msg, label) => { console.error(`❌ ${msg}`); await shot(label); await restoreFree(); await ctx.close().catch(() => {}); process.exit(1); };
 
 const t0 = Date.now();
 if (!(await openProject(page))) await die('프로젝트 화면 진입 실패', 'no-project');
@@ -96,6 +109,14 @@ if (!r.ok && !ALLOW_PAID) {
   await die(`0 크레딧을 확인하지 못했다 (${r.status}, 표시="${shown}") — ${r.hint}. 유료로 생성하지 않는다(--allow-paid 로 해제)`, 'model-fail');
 }
 if (!r.ok) console.log(`  ⚠ 0 크레딧 확인 없이 생성한다 — 크레딧이 소모될 수 있다 (표시="${shown}")`);
+// Omni ×1 목적이면 **화면에 실제로 그렇게 걸렸는지** 본다. 모델이 다르거나 개수가 x1 이 아니면 크레딧을 몇 배로 쓴다.
+if (OMNI) {
+  const vm = await readVideoModel(page).catch(() => '');
+  const chip = await readComposerChip(page).catch(() => '');
+  console.log(`  [Omni 확인] 모델 "${vm}" · 칩 "${chip}"`);
+  if (!/omni/i.test(vm)) await die(`Omni Flash 가 걸리지 않았다(모델 "${vm}") — 생성하지 않는다`, 'omni-model');
+  if (!/\bx1\b/.test(chip)) await die(`개수가 x1 이 아니다(칩 "${chip}") — 생성하지 않는다`, 'omni-count');
+}
 
 // 생성 전에 이미 있는 결과를 기억해 둔다. "영상이 보인다" 만으로는 방금 시킨 것인지 알 수 없다.
 const before = new Set(await videoUrls(page));
@@ -209,4 +230,5 @@ catch (e) { await die(`내려받기 실패: ${e.message}`, 'download-fail'); }
 
 console.log(`✅ ${OUT}`);
 console.log(`   ${(bytes / 1048576).toFixed(1)}MB · 전체 ${secs}초 · 모델 ${shown}`);
+await restoreFree();
 await ctx.close().catch(() => {});

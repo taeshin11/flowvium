@@ -49,6 +49,7 @@ try {
   const r = await upload({
     file: arg('--file'), title: arg('--title'),
     description: withSite(arg('--desc', ''), arg('--locale', 'ko')), privacy: arg('--privacy', 'public'),
+    synthetic: a.includes('--synthetic'),   // 2026-09-26: 생성 영상이 든 편 → 합성 콘텐츠 신고
     tags: (arg('--tags', '') || '').split(',').filter(Boolean),
     locale: arg('--locale', 'ko'),
     // 의도한 채널이 아니면 올리지 않는다. .env.local 의 YOUTUBE_CHANNEL_ID 가 기준이다.

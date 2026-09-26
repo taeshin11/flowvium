@@ -36,11 +36,11 @@ export async function openFlow(opts = {}) {
   //   spinaiceo 계정 하나를 여러 기계가 같이 써서 하루 다섯 번 「비정상적인 활동」 차단을 맞았다.
   //   이 저장소의 flow-*.mjs 가 전부 여기로 들어온다 — 브라우저를 띄우기 **전에** 멈춘다.
   //   그림은 scripts/agy-image.mjs, 영상(Veo)은 평소 크롬에서 사람이 만든다(시간표·Dropbox 락 확인).
-  void opts;
-  throw new Error('Flow 자동화 금지 — FLOW_RULES.md(2026-09-25): CDP·Playwright 로 Flow 를 조작하지 않는다.\n'
+  // 2026-09-26 예외(사장님 되물음 확인): **소재가 모자란 회차의 Omni Flash ×1(크레딧)** 만 연다 —
+  //   lib/flow-omni 가 FLOW_PURPOSE=omni-flash-x1 로 flow-clip 을 부를 때. 무료 Veo·그림·그 밖은 그대로 막는다.
+  if (process.env.FLOW_PURPOSE !== 'omni-flash-x1') throw new Error('Flow 자동화 금지 — FLOW_RULES.md(2026-09-25): CDP·Playwright 로 Flow 를 조작하지 않는다.\n'
     + '  그림: node scripts/agy-image.mjs --prompt … --out …\n'
     + '  영상(Veo): 평소 크롬에서 사람이, 시간표(18~24시 예비)와 Dropbox `@1 생성동영상/_flow_lock.txt` 를 확인하고.');
-  // eslint-disable-next-line no-unreachable
   mkdirSync(PROFILE_DIR, { recursive: true, mode: 0o700 });
   const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
     channel: 'chrome',
@@ -351,6 +351,12 @@ async function composerChip(page) {
   const byCrop = page.locator('button:not([role=radio]):has-text("crop_")').last();
   if (await byCrop.count().catch(() => 0)) return byCrop;
   return page.locator('button:has-text("Nano Banana")').last();   // 옛 UI 폴백
+}
+
+/** 작성기 칩의 글자(예: "동영상 · 720p · 8초 crop_16_9 x1"). Omni ×1 확인에 쓴다(2026-09-26). */
+export async function readComposerChip(page) {
+  const c = await composerChip(page);
+  return (await c.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 }
 
 /** 팝오버의 `이미지 | 동영상` 탭. DOM 실측: button[role=radio] "videocam 동영상". */

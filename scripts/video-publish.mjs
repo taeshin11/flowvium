@@ -379,6 +379,8 @@ const upArgs = [resolve(ROOT, 'scripts/youtube-upload.mjs'),
   '--tags', tagWords.join(','), '--locale', LOCALE,
   '--privacy', arg('--privacy', 'public')];
 if (THUMB && existsSync(THUMB)) upArgs.push('--thumb', THUMB);
+// 2026-09-26: 생성 영상(Omni Flash)이 든 편은 유튜브에 '합성 콘텐츠' 로 신고한다 — 사실적인 생성 영상은 알려야 한다.
+if (isShorts && last.synthetic) { upArgs.push('--synthetic'); log('합성 콘텐츠 신고(생성 영상 포함)'); }
 run(upArgs, '업로드');
 
 // 편성 대장에 남긴다 — 다음 편이 같은 뉴스를 다시 고르지 않게 한다(2026-09-03 중복 3편 사건).
