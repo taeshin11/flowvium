@@ -25,6 +25,7 @@ import { envValue } from './lib/footage.mjs';
 import { readLog } from './lib/edition-log.mjs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
 import { loadavg, cpus } from 'node:os';
+import { waitForLoad } from './lib/load-wait.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
@@ -60,6 +61,7 @@ const run = (args, label) => {
   if (r.status !== 0) throw new Error(`${label} 실패 (exit ${r.status}) — 위 출력을 볼 것`);
 };
 
+let LOAD_SPARE_ONLY = null;   // 부하가 끝내 높으면 사유 문자열 — 렌더 없이 예비만 올린다(아래 1. 렌더)
 // ── 0. 기계가 감당할 수 있는가 ──────────────────────────────────────────────
 // 왜 필요한가(2026-08-29): 이 기계는 GPU 가 하나고 보고서·임베딩·웹서버가 같이 산다.
 //   내가 립싱크를 돌렸을 때 부하가 56 까지 올라 **운영 사이트가 502** 를 냈다.
@@ -123,10 +125,15 @@ const run = (args, label) => {
     log(`보고서 종료 확인 — ${Math.round((WAIT_MAX_MS - (until - Date.now())) / 60000)}분 대기 후 진행한다.`);
   }
   if (!skipGuard && load1 > limit) {
-    log(`건너뜀 — 부하 ${load1.toFixed(1)} > 한계 ${limit.toFixed(1)} (코어 ${cores}). --force 로 무시할 수 있다.`);
-    process.exit(0);
+    // 2026-09-28: 종전엔 여기서 바로 나갔다 — 9/27 21:45 회차가 예비가 있는데도 통째로 빠졌다(한 달 3번).
+    //   ① 잠깐(기본 15분) 내려가길 기다린다. ② 그래도 높으면 **렌더 없이 예비만** 올린다 — 예비 업로드는 부하와 무관하다.
+    const waitMin = Number(process.env.VIDEO_LOAD_WAIT_MIN ?? 15);
+    log(`부하 ${load1.toFixed(1)} > 한계 ${limit.toFixed(1)} (코어 ${cores}) — 최대 ${waitMin}분 내려가길 기다린다`);
+    const w = await waitForLoad({ limit, waitMs: waitMin * 60_000 });
+    if (w.ok) log(`부하 ${w.load.toFixed(1)} — ${Math.round(w.waitedMs / 60000)}분 기다린 뒤 진행한다`);
+    else LOAD_SPARE_ONLY = `부하 ${w.load.toFixed(1)} > 한계 ${limit.toFixed(1)} (${waitMin}분 기다림) — 렌더하지 않는다`;
   }
-  log(`시작 가능 — 부하 ${load1.toFixed(1)} / 한계 ${limit.toFixed(1)} · 보고서 ${busy ? '실행중' : '유휴'}`);
+  if (!LOAD_SPARE_ONLY) log(`시작 가능 — 부하 ${load1.toFixed(1)} / 한계 ${limit.toFixed(1)} · 보고서 ${busy ? '실행중' : '유휴'}`);
 }
 
 // 하루 총량을 먼저 본다. 진입점이 슬롯·백필 둘이라 각자 정상 동작하면서 합계가 넘칠 수 있다
@@ -211,6 +218,10 @@ if (USE_EXISTING) {
       return true;
     } catch (e) { log(`예비를 못 썼다: ${String(e?.message ?? e).slice(0, 80)}`); return false; }
   };
+  if (LOAD_SPARE_ONLY) {
+    if (await useSpare(LOAD_SPARE_ONLY)) rendered = true;
+    else { log(`건너뜀 — ${LOAD_SPARE_ONLY} · 예비도 없다. --force 로 무시할 수 있다.`); process.exit(0); }
+  }
   for (let a = 1; a <= TRIES && !rendered; a++) {
     const args = isShorts
       ? [resolve(ROOT, 'scripts/video/make-shorts.mjs'), '--seconds', arg('--seconds', '40')]
