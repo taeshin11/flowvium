@@ -35,12 +35,12 @@ export async function openFlow(opts = {}) {
   // 2026-09-25 Flow 사용 규칙(사장님 승인, 드라이브 _bridge/FLOW_RULES.md) 2항: **CDP·Playwright 로 Flow 조작 금지.**
   //   spinaiceo 계정 하나를 여러 기계가 같이 써서 하루 다섯 번 「비정상적인 활동」 차단을 맞았다.
   //   이 저장소의 flow-*.mjs 가 전부 여기로 들어온다 — 브라우저를 띄우기 **전에** 멈춘다.
-  //   그림은 scripts/agy-image.mjs, 영상(Veo)은 평소 크롬에서 사람이 만든다(시간표·Dropbox 락 확인).
+  //   그림은 scripts/agy-image.mjs, 영상(Veo)은 평소 크롬에서 사람이 만든다(시간표·드라이브 _flow/lock.txt 확인).
   // 2026-09-26 예외(사장님 되물음 확인): **소재가 모자란 회차의 Omni Flash ×1(크레딧)** 만 연다 —
   //   lib/flow-omni 가 FLOW_PURPOSE=omni-flash-x1 로 flow-clip 을 부를 때. 무료 Veo·그림·그 밖은 그대로 막는다.
   if (process.env.FLOW_PURPOSE !== 'omni-flash-x1') throw new Error('Flow 자동화 금지 — FLOW_RULES.md(2026-09-25): CDP·Playwright 로 Flow 를 조작하지 않는다.\n'
     + '  그림: node scripts/agy-image.mjs --prompt … --out …\n'
-    + '  영상(Veo): 평소 크롬에서 사람이, 시간표(18~24시 예비)와 Dropbox `@1 생성동영상/_flow_lock.txt` 를 확인하고.');
+    + '  영상(Veo): 평소 크롬에서 사람이, 시간표(18~24시 예비)와 구글드라이브 `_flow/lock.txt`·`_flow/queue.md` 를 확인하고.');
   mkdirSync(PROFILE_DIR, { recursive: true, mode: 0o700 });
   const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
     channel: 'chrome',

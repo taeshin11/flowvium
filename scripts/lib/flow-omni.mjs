@@ -4,7 +4,10 @@
  * 사장님: "차단 시간에는 영상 부족하면 omni flash ×1로 써서라도 만들어. 크레딧 쓰면은 차단은 안 시키더라"
  *   되물음 결과(9/26): Flow 자동화는 **Omni Flash ×1 만** 허용(9/25 FLOW_RULES 2항의 예외), 사건 재현 영상도 허용.
  * 그 밖의 FLOW_RULES 는 그대로 지킨다:
- *   · Dropbox `@1 생성동영상/_flow_lock.txt` 가 비었을 때만. 남의 락은 덮어쓰지 않는다(5시간 넘게 안 바뀐 락은 낡은 것).
+ *   · 구글드라이브 `내 드라이브/_flow/lock.txt` 가 비었을 때만. 남의 락은 덮어쓰지 않는다(5시간 넘게 안 바뀐 락은 낡은 것).
+ *     2026-09-27 사장님 「구글드라이브로 다 맞춰라」 → Dropbox `_flow_lock.txt` 폐지(다른 기계가 더는 안 본다).
+ *     내용은 queue.md 2항 `<세션> <시작> <예상종료>` + 유료 표시 PAID(5항). 차단 중 다른 세션이 적어 두는
+ *     BLOCKED 줄도 "내용 있음" 이라 그대로 막힌다.
  *   · 시간표: FlowVium 은 18~24시(예비)만. FLOW_OMNI_HOURS 로 바꿀 수 있다.
  *   · 생성 사이 10분 이상(규칙 5항 8~12분). 한 회차에 한 컷.
  * 끄개: FLOW_OMNI_FALLBACK=0.
@@ -18,7 +21,9 @@ import { spawnSync } from 'child_process';
 import { ROOT } from './project-root.mjs';
 
 export const OMNI_MODEL = 'Omni Flash';
-export const DEFAULT_LOCK = join(homedir(), 'Library/CloudStorage/Dropbox/@1 생성동영상/_flow_lock.txt');
+// 드라이브 폴더 이름은 계정(spinaiceo — Flow 공용 계정)에 묶여 있다. 다른 기계·계정이면 FLOW_LOCK_FILE 로.
+export const DEFAULT_LOCK = process.env.FLOW_LOCK_FILE
+  || join(homedir(), 'Library/CloudStorage/GoogleDrive-spinaiceo@gmail.com/내 드라이브/_flow/lock.txt');
 const DEFAULT_STATE = resolve(ROOT, 'logs/flow-omni-last.json');
 const STALE_MS = 5 * 3600e3;
 const MIN_GAP_MS = 10 * 60e3;
@@ -26,7 +31,7 @@ const MIN_GAP_MS = 10 * 60e3;
 const kstHour = (d) => (new Date(d).getUTCHours() + 9) % 24;
 
 /**
- * Dropbox 락 파일은 **자식 프로세스로, 시간 한도를 두고** 만진다. (2026-09-26 21:45 사고)
+ * 공유 락 파일(클라우드 동기 폴더)은 **자식 프로세스로, 시간 한도를 두고** 만진다. (2026-09-26 21:45 사고)
  *   원인(9/27 확인): macOS 개인정보 대화상자 「'node'이(가) 'Dropbox'에서 관리하는 파일에 접근하려고 합니다」가
  *   떠 있는 동안 open() 이 답을 기다린다(온라인 전용 파일을 내려받을 때도 같다) — make-shorts 가 open() 에서
  *   1시간 44분 멈췄고 그 회차가 통째로 안 나갔다(sample 로 main thread 가 open 에 걸린 것 확인).
@@ -52,9 +57,9 @@ export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFi
   const [from, to] = String(env.FLOW_OMNI_HOURS ?? '18-24').split('-').map(Number);
   const h = kstHour(now);
   if (!(h >= from && h < to)) return { ok: false, reason: `시간표 밖(${h}시 · FlowVium 은 ${from}~${to}시)` };
-  if (!existsSync(dirname(lockFile))) return { ok: false, reason: `Dropbox 락 폴더가 없다: ${dirname(lockFile)}` };
+  if (!existsSync(dirname(lockFile))) return { ok: false, reason: `Flow 락 폴더가 없다: ${dirname(lockFile)}` };
   const lk = lockFs('read', lockFile);
-  if (!lk) return { ok: false, reason: `Dropbox 락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 읽었다 — 모르면 만들지 않는다` };
+  if (!lk) return { ok: false, reason: `Flow 락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 읽었다 — 모르면 만들지 않는다` };
   if (lk.exists) {
     const body = String(lk.body ?? '').replace(/^\uFEFF/, '').trim();
     const age = Date.now() - lk.mtimeMs;
@@ -70,14 +75,15 @@ export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFi
 }
 
 /** 락을 우리 이름으로 잡는다. 이미 누가(내용 있음·신선) 쥐고 있으면 ok:false. 풀 때는 **우리 것일 때만** 비운다. */
-export function takeFlowLock(lockFile, who = 'mac-flowvium') {
+const hhmm = (d) => new Date(d).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
+export function takeFlowLock(lockFile, who = 'mac-flowvium', { now = new Date(), minutes = 12 } = {}) {
   const lk = lockFs('read', lockFile);
   if (!lk) return { ok: false, holder: `(락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 읽음)` };
   if (lk.exists) {
     const body = String(lk.body ?? '').replace(/^\uFEFF/, '').trim();
     if (body && Date.now() - lk.mtimeMs < STALE_MS) return { ok: false, holder: body };
   }
-  const mine = `${who}: Omni Flash ×1 쇼츠 소재 1컷 · ${new Date().toISOString()}`;
+  const mine = `${who} ${hhmm(now)} ${hhmm(+now + minutes * 60e3)} PAID Omni ×1 FlowVium 쇼츠 소재 1컷`;
   if (!lockFs('write', lockFile, mine)) return { ok: false, holder: `(락을 ${FS_TIMEOUT_MS / 1000}초 안에 못 썼음)` };
   return {
     ok: true,
@@ -95,7 +101,7 @@ export function takeFlowLock(lockFile, who = 'mac-flowvium') {
 export async function generateOmniClip({ prompt, out, waitS = 420, lockFile = DEFAULT_LOCK, stateFile = DEFAULT_STATE, log = () => {} }) {
   const gate = omniAllowed({ lockFile, stateFile });
   if (!gate.ok) return { path: null, reason: gate.reason };
-  const lock = takeFlowLock(lockFile);
+  const lock = takeFlowLock(lockFile, 'mac-flowvium', { minutes: Math.ceil((waitS + 180) / 60) });
   if (!lock.ok) return { path: null, reason: `락을 못 잡았다: ${lock.holder}` };
   const t0 = Date.now();
   try {

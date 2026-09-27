@@ -4,13 +4,13 @@
  *
  * 사장님: "차단 시간에는 영상 부족하면 omni flash ×1로 써서라도 만들어. 크레딧 쓰면은 차단은 안 시키더라"
  *   → 되물음 결과(9/26): Flow 자동화는 **Omni Flash ×1 만** 허용(9/25 규칙 2항의 예외), 사건 재현 영상도 허용.
- *   나머지 규칙(FLOW_RULES.md)은 그대로: Dropbox 락이 비었을 때만 · 남의 락 덮어쓰기 금지(5시간 넘으면 낡은 것) ·
+ *   나머지 규칙(FLOW_RULES.md)은 그대로: 드라이브 _flow/lock.txt 가 비었을 때만 · 남의 락 덮어쓰기 금지(5시간 넘으면 낡은 것) ·
  *   시간표(FlowVium 은 18~24시 예비) · 생성 사이 10분 이상.
  */
 import { mkdtempSync, writeFileSync, existsSync, readFileSync, utimesSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { omniAllowed, takeFlowLock, OMNI_MODEL } from './flow-omni.mjs';
+import { omniAllowed, takeFlowLock, OMNI_MODEL, DEFAULT_LOCK } from './flow-omni.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -53,7 +53,7 @@ const base = { lockFile, stateFile, env: {} };
 {
   const a = omniAllowed({ ...base, now: kst(20), env: { FLOW_OMNI_FALLBACK: '0' } });
   const b = omniAllowed({ ...base, lockFile: '/nonexistent-dir/_flow_lock.txt', now: kst(20) });
-  (!a.ok && !b.ok && /Dropbox|락 폴더/.test(b.reason)) ? ok('[4] 끄개 · Dropbox 락 폴더 없음 → 막음') : bad(`[4] ${JSON.stringify([a, b])}`);
+  (!a.ok && !b.ok && /락 폴더/.test(b.reason)) ? ok('[4] 끄개 · 락 폴더 없음 → 막음') : bad(`[4] ${JSON.stringify([a, b])}`);
 }
 // [5] 락 잡기·풀기 — 우리 이름으로 쓰고, 끝나면 **우리 것일 때만** 지운다
 {
@@ -61,7 +61,7 @@ const base = { lockFile, stateFile, env: {} };
   const l = takeFlowLock(lockFile, 'mac-flowvium');
   const mine = readFileSync(lockFile, 'utf8');
   const l2 = takeFlowLock(lockFile, 'someone-else');
-  (l.ok && /^mac-flowvium: Omni Flash ×1/.test(mine) && !l2.ok) ? ok('[5] 우리 이름으로 잡고, 잡힌 동안 남은 못 잡는다') : bad(`[5] ${mine} ${JSON.stringify(l2)}`);
+  (l.ok && /^mac-flowvium /.test(mine) && !l2.ok) ? ok('[5] 우리 이름으로 잡고, 잡힌 동안 남은 못 잡는다') : bad(`[5] ${mine} ${JSON.stringify(l2)}`);
   l.release();
   (existsSync(lockFile) ? readFileSync(lockFile, 'utf8').trim() === '' : true) ? ok('[5b] 풀면 비운다') : bad('[5b] 락이 남았다');
   writeFileSync(lockFile, 'kids-pc: 다른 사람');
@@ -82,6 +82,17 @@ const base = { lockFile, stateFile, env: {} };
   const a = omniAllowed({ ...base, lockFile: fifo, now: kst(20) });
   const ms = Date.now() - t0;
   (!a.ok && /못 읽/.test(a.reason) && ms < 15000) ? ok(`[7] 락 읽기가 멈추면 ${ms}ms 안에 포기(${a.reason})`) : bad(`[7] ${ms}ms ${JSON.stringify(a)}`);
+}
+// [8] 락은 구글드라이브 `_flow/lock.txt` 하나(사장님 9/27 「구글드라이브로 다 맞춰라」 · 이 세션 되물음에서 "드라이브 락으로 통일").
+//   Dropbox `_flow_lock.txt` 는 폐지 — 다른 기계는 이제 거기를 안 본다. 내용은 queue.md 2항 형식
+//   `<세션> <시작> <예상종료>` + 유료면 PAID(5항) — 남이 읽고 언제 비는지 알 수 있어야 한다.
+{
+  (/GoogleDrive-.*\/_flow\/lock\.txt$/.test(DEFAULT_LOCK)) ? ok(`[8] 기본 락 = 드라이브 ${DEFAULT_LOCK.split('/').slice(-2).join('/')}`) : bad(`[8] 기본 락 ${DEFAULT_LOCK}`);
+  writeFileSync(lockFile, '');
+  const l = takeFlowLock(lockFile, 'mac-flowvium', { now: kst(20, 5), minutes: 12 });
+  const body = readFileSync(lockFile, 'utf8');
+  (/^mac-flowvium 20:05 20:17 PAID /.test(body)) ? ok(`[8b] 락 내용 "${body}"`) : bad(`[8b] "${body}"`);
+  l.release?.();
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
