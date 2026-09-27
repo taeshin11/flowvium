@@ -359,6 +359,36 @@ export async function readComposerChip(page) {
   return (await c.innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Omni 의 해상도·길이·개수를 고른다(2026-09-27, 사장님 「omni는 4초짜리로」).
+ *   화면(맥미니 history 9/27 13:46 실측): 작성기 칩을 누르면 패널이 열리고, 모델이 Omni 면 그 아래에
+ *   [360p|720p] · [4초|6초|8초|10초] · [x1|x2|x3|x4] 줄이 생긴다. 맨 아래 "생성 시 N 크레딧".
+ *   **정확히 그 글자인 보이는 버튼만** 누른다(부분일치는 "x1" 이 "x10" 류를 집을 수 있다).
+ *   눌렀다고 믿지 않는다 — 호출부가 칩 글자와 크레딧을 다시 읽어 확인한다.
+ * @returns {Promise<{clicked:string[], missing:string[], credits:number|null}>}
+ */
+export async function setOmniOptions(page, wants = ['720p', '4초', 'x1']) {
+  const chip = await composerChip(page);
+  await chip.click({ timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  const clicked = [], missing = [];
+  for (const w of wants) {
+    const hit = await page.evaluate((want) => {
+      const txt = (el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const els = [...document.querySelectorAll('button,[role=radio],[role=option]')]
+        .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2 && txt(el) === want; });
+      if (!els.length) return false;
+      els[els.length - 1].click();
+      return true;
+    }, w).catch(() => false);
+    (hit ? clicked : missing).push(w);
+    await page.waitForTimeout(800);
+  }
+  const credits = await readCreditCost(page);
+  await closeDefaults(page);
+  return { clicked, missing, credits };
+}
+
 /** 팝오버의 `이미지 | 동영상` 탭. DOM 실측: button[role=radio] "videocam 동영상". */
 /** '이미지 생성 기본값' · '동영상 생성 기본값' 구획 제목. 새 배치에서 둘이 동시에 보인다. */
 const sectionHeadRe = (want) => new RegExp(`${want}\\s*생성 기본값|${want === '동영상' ? 'Video' : 'Image'} generation defaults`);

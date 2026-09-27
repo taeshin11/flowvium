@@ -19,7 +19,7 @@ import {
   mediaCardTitles, videoUrlForCard,
   composerVisible, defaultsPanelOpen, typePrompt, dismissDialogs,
   videoUrls, downloadMedia, freshMedia, FREE_VIDEO_MODEL, PROFILE_DIR,
-  isFreeModel, MODEL_RESULT, readVideoModel, readComposerChip,
+  isFreeModel, MODEL_RESULT, readVideoModel, readComposerChip, setOmniOptions,
 } from './lib/flow.mjs';
 import { mkdirSync, unlinkSync } from 'fs';
 import { spawnSync } from 'child_process';
@@ -111,6 +111,12 @@ if (!r.ok && !ALLOW_PAID) {
 if (!r.ok) console.log(`  ⚠ 0 크레딧 확인 없이 생성한다 — 크레딧이 소모될 수 있다 (표시="${shown}")`);
 // Omni ×1 목적이면 **화면에 실제로 그렇게 걸렸는지** 본다. 모델이 다르거나 개수가 x1 이 아니면 크레딧을 몇 배로 쓴다.
 if (OMNI) {
+  // 사장님 9/27 「omni는 4초짜리로」 — 720p·4초·x1(7크레딧). Omni 기본은 360p·8초라 직접 누른다.
+  const { OMNI_CREDITS } = await import('./lib/flow-omni.mjs');
+  const so = await setOmniOptions(page).catch((e) => ({ clicked: [], missing: [`오류 ${e.message}`], credits: null }));
+  console.log(`  [Omni 옵션] 누름 ${so.clicked.join('·') || '-'} · 못 찾음 ${so.missing.join('·') || '-'} · 크레딧 ${so.credits ?? '못 읽음'}`);
+  await shot('omni-options');
+  if (so.credits != null && so.credits !== OMNI_CREDITS) await die(`생성 크레딧이 ${so.credits} — 720p·4초·x1(${OMNI_CREDITS}) 이 아니다. 생성하지 않는다`, 'omni-credits');
   const vm = await readVideoModel(page).catch(() => '');
   const chip = await readComposerChip(page).catch(() => '');
   console.log(`  [Omni 확인] 모델 "${vm}" · 칩 "${chip}"`);

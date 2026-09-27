@@ -21,7 +21,8 @@ import { spawnSync } from 'child_process';
 import ffmpegPath from 'ffmpeg-static';
 import { ROOT } from './project-root.mjs';
 
-export const OMNI_MODEL = 'Omni Flash';
+// 목록의 이름 그대로(맥미니 history 9/27 실측 「Omni 1.1 Flash」). setVideoModel 은 정확 일치로만 고른다.
+export const OMNI_MODEL = 'Omni 1.1 Flash';
 // 드라이브 폴더 이름은 계정(spinaiceo — Flow 공용 계정)에 묶여 있다. 다른 기계·계정이면 FLOW_LOCK_FILE 로.
 export const DEFAULT_LOCK = process.env.FLOW_LOCK_FILE
   || join(homedir(), 'Library/CloudStorage/GoogleDrive-spinaiceo@gmail.com/내 드라이브/_flow/lock.txt');
@@ -109,9 +110,13 @@ export function takeFlowLock(lockFile, who = 'mac-flowvium', { now = new Date(),
  *     칩 모양은 아직 실측 전이라, 길이 표시가 없으면 막지 않는다(받은 파일 길이를 기록해 확인한다).
  */
 export const OMNI_SECONDS = 4;
+export const OMNI_RES = '720p';          // Omni 기본은 360p — 꼭 눌러야 한다(9/27 실측)
+export const OMNI_CREDITS = 7;           // 720p·4초·x1 = "생성 시 7 크레딧"(8초는 12). 읽히면 이 값이어야 한다
 export function omniChipProblem(chip) {
   const c = String(chip ?? '');
   if (!/\bx1\b/.test(c)) return `개수가 x1 이 아니다(칩 "${c}")`;
+  const res = /\b(\d{3,4})p\b/.exec(c);
+  if (res && `${res[1]}p` !== OMNI_RES) return `해상도가 ${OMNI_RES} 가 아니다(${res[1]}p · 칩 "${c}")`;
   const d = /(\d{1,2})\s*(?:s\b|초|sec)/i.exec(c);
   if (d && Number(d[1]) !== OMNI_SECONDS) return `길이가 ${OMNI_SECONDS}초가 아니다(${d[1]}초 · 칩 "${c}")`;
   return null;

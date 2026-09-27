@@ -102,5 +102,14 @@ const base = { lockFile, stateFile, env: {} };
   const r = cases.map(([c, want]) => { const p = omniChipProblem(c); return want ? want.test(p ?? '') : p === null; });
   r.every(Boolean) ? ok('[9] 칩: 4s·x1 통과 · 8s/8초 막음 · x2 막음 · 길이 표시 없음은 통과') : bad(`[9] ${JSON.stringify(cases.map(([c]) => omniChipProblem(c)))}`);
 }
+// [10] 실제 화면(맥미니 history 9/27 13:46 실측): 칩 「동영상 · 720p · 4초 · ▯ · x1」, 기본은 8초. Omni 기본 해상도는 360p.
+//   목록의 모델 이름은 「Omni 1.1 Flash」 — 정확 일치로 고르므로 'Omni Flash' 로는 못 고른다.
+{
+  const good = omniChipProblem('동영상 · 720p · 4초 crop_9_16 x1');
+  const p8 = omniChipProblem('동영상 · 720p · 8초 crop_9_16 x1');
+  const p360 = omniChipProblem('동영상 · 360p · 4초 crop_9_16 x1');
+  (good === null && /4초/.test(p8 ?? '') && /720p/.test(p360 ?? '')) ? ok('[10] 실제 칩: 720p·4초·x1 통과 · 8초 막음 · 360p 막음') : bad(`[10] ${JSON.stringify([good, p8, p360])}`);
+  OMNI_MODEL === 'Omni 1.1 Flash' ? ok(`[10b] 모델 이름 "${OMNI_MODEL}"(목록과 정확 일치)`) : bad(`[10b] "${OMNI_MODEL}" — 목록 이름은 "Omni 1.1 Flash"`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
