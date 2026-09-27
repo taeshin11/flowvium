@@ -33,7 +33,8 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 // [3] flow-clip: Omni 목적이면 모델·개수·유료허용을 확인한다(소스)
 {
   const src = readFileSync(join(ROOT, 'scripts/flow-clip.mjs'), 'utf8');
-  (/omni-flash-x1/.test(src) && /readComposerChip/.test(src) && /\\bx1\\b/.test(src) && /readVideoModel/.test(src))
+  // 2026-09-27: 개수(x1)·길이(4초)·해상도(720p) 판정은 flow-omni.omniChipProblem 으로 옮겼다(flow-omni.test [9][10] 이 잰다).
+  (/omni-flash-x1/.test(src) && /readComposerChip/.test(src) && /omniChipProblem\(chip\)/.test(src) && /readVideoModel/.test(src))
     ? ok('[3] flow-clip 이 Omni 목적일 때 모델(Omni)·개수(x1)를 화면에서 확인한다') : bad('[3] flow-clip 에 Omni ×1 확인이 없다');
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
