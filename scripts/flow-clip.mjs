@@ -115,7 +115,9 @@ if (OMNI) {
   const chip = await readComposerChip(page).catch(() => '');
   console.log(`  [Omni 확인] 모델 "${vm}" · 칩 "${chip}"`);
   if (!/omni/i.test(vm)) await die(`Omni Flash 가 걸리지 않았다(모델 "${vm}") — 생성하지 않는다`, 'omni-model');
-  if (!/\bx1\b/.test(chip)) await die(`개수가 x1 이 아니다(칩 "${chip}") — 생성하지 않는다`, 'omni-count');
+  const { omniChipProblem } = await import('./lib/flow-omni.mjs');
+  const problem = omniChipProblem(chip);   // x1 · 사장님 9/27 「omni는 4초짜리로」
+  if (problem) await die(`${problem} — 생성하지 않는다`, 'omni-chip');
 }
 
 // 생성 전에 이미 있는 결과를 기억해 둔다. "영상이 보인다" 만으로는 방금 시킨 것인지 알 수 없다.

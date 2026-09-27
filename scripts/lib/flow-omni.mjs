@@ -18,6 +18,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { dirname, resolve, join } from 'path';
 import { homedir } from 'os';
 import { spawnSync } from 'child_process';
+import ffmpegPath from 'ffmpeg-static';
 import { ROOT } from './project-root.mjs';
 
 export const OMNI_MODEL = 'Omni Flash';
@@ -27,6 +28,13 @@ export const DEFAULT_LOCK = process.env.FLOW_LOCK_FILE
 const DEFAULT_STATE = resolve(ROOT, 'logs/flow-omni-last.json');
 const STALE_MS = 5 * 3600e3;
 const MIN_GAP_MS = 10 * 60e3;
+
+function probeClip(f) {
+  const r = spawnSync(ffmpegPath, ['-hide_banner', '-i', f], { encoding: 'utf8' });
+  const e = String(r.stderr ?? '');
+  const d = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(e), wh = /,\s(\d{2,5})x(\d{2,5})[,\s]/.exec(e);
+  return d ? { duration: +d[1] * 3600 + +d[2] * 60 + +d[3], width: wh ? +wh[1] : null, height: wh ? +wh[2] : null } : null;
+}
 
 const kstHour = (d) => (new Date(d).getUTCHours() + 9) % 24;
 
@@ -95,6 +103,21 @@ export function takeFlowLock(lockFile, who = 'mac-flowvium', { now = new Date(),
 }
 
 /**
+ * 작성기 칩 글자로 Omni 설정이 맞는지 본다. 문제가 없으면 null.
+ *   · 개수는 x1 이어야 한다(아니면 크레딧이 몇 배).
+ *   · 사장님 9/27 「omni는 4초짜리로 만들어」 — 칩에 길이가 보이면 4초여야 한다.
+ *     칩 모양은 아직 실측 전이라, 길이 표시가 없으면 막지 않는다(받은 파일 길이를 기록해 확인한다).
+ */
+export const OMNI_SECONDS = 4;
+export function omniChipProblem(chip) {
+  const c = String(chip ?? '');
+  if (!/\bx1\b/.test(c)) return `개수가 x1 이 아니다(칩 "${c}")`;
+  const d = /(\d{1,2})\s*(?:s\b|초|sec)/i.exec(c);
+  if (d && Number(d[1]) !== OMNI_SECONDS) return `길이가 ${OMNI_SECONDS}초가 아니다(${d[1]}초 · 칩 "${c}")`;
+  return null;
+}
+
+/**
  * 한 컷 만든다. 조건이 안 맞거나 실패하면 null 과 사유.
  * @returns {Promise<{path:string|null, reason?:string, seconds?:number}>}
  */
@@ -115,7 +138,11 @@ export async function generateOmniClip({ prompt, out, waitS = 420, lockFile = DE
     });
     const tail = `${r.stdout ?? ''}\n${r.stderr ?? ''}`.trim().split('\n').slice(-2).join(' | ').slice(0, 160);
     if (r.status !== 0 || !existsSync(out)) return { path: null, reason: `flow-clip 실패(exit ${r.status}): ${tail}` };
-    return { path: out, seconds: Math.round((Date.now() - t0) / 1000) };
+    // 받은 파일의 실제 길이·크기를 남긴다 — 칩에 길이가 안 보이는 배치라면 이것이 4초 지시를 확인하는 유일한 근거다.
+    const clip = probeClip(out);
+    try { writeFileSync(stateFile, JSON.stringify({ ...JSON.parse(readFileSync(stateFile, 'utf8')), clip })); } catch { /* 기록 실패는 생성 결과와 무관 */ }
+    if (clip && clip.duration > OMNI_SECONDS + 1.5) log(`[Omni] ⚠ 받은 영상이 ${clip.duration.toFixed(1)}초 — ${OMNI_SECONDS}초 지시와 다르다(Flow 기본 길이 확인 필요)`);
+    return { path: out, seconds: Math.round((Date.now() - t0) / 1000), clip };
   } finally {
     lock.release();
   }

@@ -10,7 +10,7 @@
 import { mkdtempSync, writeFileSync, existsSync, readFileSync, utimesSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { omniAllowed, takeFlowLock, OMNI_MODEL, DEFAULT_LOCK } from './flow-omni.mjs';
+import { omniAllowed, takeFlowLock, OMNI_MODEL, DEFAULT_LOCK, omniChipProblem } from './flow-omni.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -93,6 +93,14 @@ const base = { lockFile, stateFile, env: {} };
   const body = readFileSync(lockFile, 'utf8');
   (/^mac-flowvium 20:05 20:17 PAID /.test(body)) ? ok(`[8b] 락 내용 "${body}"`) : bad(`[8b] "${body}"`);
   l.release?.();
+}
+// [9] 사장님 9/27 「omni는 4초짜리로 만들어」(4초·x1 = 7크레딧). 칩에 길이가 보이면 4초가 아닐 때 막는다.
+//   칩 글자 모양은 아직 실측 전이다(이 세션에서 Omni 가 한 번도 돌지 않았다) — 길이 표시가 없으면 막지 않고
+//   받은 파일의 실제 길이를 기록한다(flow-omni-last.json). 개수 x1 은 기존대로 필수.
+{
+  const cases = [['Omni Flash · 9:16 · x1 · 4s', null], ['Omni Flash · x1 · 8s', /4초/], ['x1 8초', /4초/], ['x2 4s', /x1/], ['Omni · x1', null]];
+  const r = cases.map(([c, want]) => { const p = omniChipProblem(c); return want ? want.test(p ?? '') : p === null; });
+  r.every(Boolean) ? ok('[9] 칩: 4s·x1 통과 · 8s/8초 막음 · x2 막음 · 길이 표시 없음은 통과') : bad(`[9] ${JSON.stringify(cases.map(([c]) => omniChipProblem(c)))}`);
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
