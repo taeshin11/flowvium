@@ -9,6 +9,16 @@
  */
 import { existsSync, readdirSync, readFileSync, copyFileSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
+
+/**
+ * 예비 폴더. 2026-09-28: 드라이브(MEDIA_ROOT/spares) → **로컬 임시폴더**. 드라이브 파일은 온라인 전용으로 내려가거나
+ *   동기화 중 잠겨 읽기·복사가 실패하거나(9/28 21:45 EDEADLK) 멈춘다 — 예비는 그럴 때 쓰는 것이라 같은 곳에 두면 안 된다.
+ *   예비는 6시간짜리 중간물이다(미디어 보관 규칙: 중간물은 임시폴더).
+ */
+export function spareDir(env = process.env) {
+  return env.SHORTS_SPARE_DIR || join(tmpdir(), 'flowvium-spares');
+}
 
 export const SPARE_FILES = { video: 'shorts-ko.mp4', thumb: 'shorts-ko-thumb.jpg', meta: 'shorts-ko-meta.json', credits: 'shorts-ko-credits.txt' };
 

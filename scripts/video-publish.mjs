@@ -17,14 +17,14 @@ import { buildTitle, buildDescription, buildTags, orderForTitle } from './lib/vi
 //   안 읽으면 설명란에서 그 줄이 **조용히 빠진 채** 발행된다. 조용한 누락이 제일 나쁘다.
 import { loadEnvLocal } from './lib/llm-config.mjs';
 loadEnvLocal();
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, statSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { ROOT } from './lib/project-root.mjs';
 import { resolveMediaRoot } from './lib/media-root.mjs';
 import { envValue } from './lib/footage.mjs';
 import { readLog } from './lib/edition-log.mjs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
-import { loadavg, cpus } from 'node:os';
+import { loadavg, cpus, tmpdir } from 'node:os';
 import { waitForLoad } from './lib/load-wait.mjs';
 
 const argv = process.argv.slice(2);
@@ -178,6 +178,11 @@ const isShorts = FORMAT === 'shorts';
 //   4B 모델은 같은 프롬프트에도 회차마다 다르게 낸다. 보고 올리려면 그 파일을 올려야 한다.
 //   정기 발행은 확인할 사람이 없으므로 종전대로 새로 만든다(기본값).
 const USE_EXISTING = argv.includes('--use-existing');
+// 2026-09-28: 쇼츠는 **로컬 스테이지**에서 만들고 거기서 올린다. 드라이브는 올린 뒤 보관만(lib/media-stage).
+//   9/28 21:45: 렌더 3번이 드라이브 shorts-ko.mp4 쓰기에서 EDEADLK 로 죽고 예비 복사도 같은 오류 — 회차가 통째로 빠졌다.
+//   --use-existing 은 사람이 확인한 드라이브 파일을 그대로 올리는 것이라 그대로 둔다.
+const STAGE = isShorts && !USE_EXISTING ? mkdtempSync(join(tmpdir(), 'flowvium-stage-')) : null;
+if (STAGE) process.on('exit', () => { try { rmSync(STAGE, { recursive: true, force: true }); } catch { /* 임시폴더 */ } });
 if (USE_EXISTING) {
   log('--use-existing — 이미 만들어 둔 파일을 그대로 올린다(렌더 생략)');
 } else {
@@ -205,15 +210,13 @@ if (USE_EXISTING) {
   const useSpare = async (why) => {
     if (!isShorts || process.env.SHORTS_SPARE === '0') return false;
     try {
-      const { pickSpare, promoteSpare } = await import('./lib/shorts-spare.mjs');
+      const { pickSpare, promoteSpare, spareDir } = await import('./lib/shorts-spare.mjs');
       const { recentShortsIssues, normalizeIssueKey } = await import('./lib/db.mjs');
-      const media = resolveMediaRoot({ configured: envValue('MEDIA_ROOT'), localFallback: resolve(ROOT, 'reports/video'),
-        allowLocal: argv.includes('--local-media') });
       const pub = recentShortsIssues(24);
-      const sp = pickSpare({ dir: join(media.root, 'spares'), maxAgeH: Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6),
+      const sp = pickSpare({ dir: spareDir(), maxAgeH: Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6),
         isPublished: (k) => pub.has(normalizeIssueKey(k)) });
       if (!sp) { log(`예비 없음 — ${why}`); return false; }
-      const r = promoteSpare(sp, media.root, LOCALE);
+      const r = promoteSpare(sp, STAGE, LOCALE);
       log(`예비로 올린다 — ${why} · 예비 "${r.keyword}" (${Math.round((Date.now() - sp.createdAt) / 60000)}분 전에 만든 것)`);
       return true;
     } catch (e) { log(`예비를 못 썼다: ${String(e?.message ?? e).slice(0, 80)}`); return false; }
@@ -229,7 +232,7 @@ if (USE_EXISTING) {
     const r = spawnSync(node, args, {
       cwd: ROOT,
       stdio: 'inherit',
-      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV } : {}) },
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
       timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
     if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {
@@ -270,7 +273,8 @@ const MEDIA = resolveMediaRoot({
   localFallback: resolve(ROOT, 'reports/video'),
   allowLocal: argv.includes('--local-media'),
 });
-const VIDEO = join(MEDIA.root, isShorts ? `shorts-${LOCALE}.mp4` : `issue-${LOCALE}.mp4`);
+const SRC_DIR = STAGE ?? MEDIA.root;   // 이번 회차 파일이 있는 곳(쇼츠 = 로컬 스테이지)
+const VIDEO = join(SRC_DIR, isShorts ? `shorts-${LOCALE}.mp4` : `issue-${LOCALE}.mp4`);
 // 썸네일은 **세로 회차는 세로 것**을 붙인다(2026-09-18).
 //   종전에는 쇼츠에 아무것도 안 붙였다. 이유는 "가로(16:9)를 붙이면 쇼츠 선반에서 잘린다" 였는데,
 //   답은 안 붙이는 게 아니라 세로로 붙이는 것이었다. 안 붙이면 유튜브가 아무 프레임이나 고르고,
@@ -278,7 +282,7 @@ const VIDEO = join(MEDIA.root, isShorts ? `shorts-${LOCALE}.mp4` : `issue-${LOCA
 //   (사용자 2026-09-18: "쇼츠가 썸네일 때문에 조회수가 빵인 게 생겼어").
 //   make-shorts.mjs 가 shorts-{locale}-thumb.jpg(1080x1920)를 같이 굽는다.
 //   ⚠ 옛 가로 회차의 issue-*-thumb.jpg 를 쇼츠에 붙이면 안 된다 — 파일 이름을 나눠 둔 이유다.
-const THUMB = join(MEDIA.root, isShorts ? `shorts-${LOCALE}-thumb.jpg` : `issue-${LOCALE}-thumb.jpg`);
+const THUMB = join(SRC_DIR, isShorts ? `shorts-${LOCALE}-thumb.jpg` : `issue-${LOCALE}-thumb.jpg`);
 if (!existsSync(VIDEO)) throw new Error(`영상이 없다: ${VIDEO}`);
 log(`렌더 완료 · ${(statSync(VIDEO).size / 1048576).toFixed(1)}MB`);
 
@@ -286,7 +290,7 @@ log(`렌더 완료 · ${(statSync(VIDEO).size / 1048576).toFixed(1)}MB`);
 // 편성 기록의 **마지막 항목**이 방금 만든 편이다. 렌더가 성공했을 때만 기록되므로 믿을 수 있다.
 // 쇼츠는 자체 meta.json 을 남긴다(가로 편의 편성 기록과 형식이 다르다).
 const last = isShorts
-  ? JSON.parse(readFileSync(join(MEDIA.root, `shorts-${LOCALE}-meta.json`), 'utf8'))
+  ? JSON.parse(readFileSync(join(SRC_DIR, `shorts-${LOCALE}-meta.json`), 'utf8'))
   : (readLog(resolve(ROOT, `data/video-editions-${LOCALE}.json`)).slice(-1)[0] ?? { headlines: [], keywords: [] });
 const heads = (last.headlines ?? []).filter(Boolean);
 if (!heads.length) throw new Error('편성 기록이 비었다 — 어떤 뉴스를 다뤘는지 모른 채 올릴 수 없다');
@@ -473,5 +477,12 @@ if (isShorts && last.keyword) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
     log(`⚠ 편성 대장 기록 실패 — 다음 편이 같은 뉴스를 고를 수 있다: ${e.message}`);
   }
+}
+// 올린 파일을 드라이브에 보관한다(미디어는 드라이브에). 발행은 이미 끝났다 — 실패해도 사유만 남긴다.
+if (STAGE) {
+  const { archiveToMedia } = await import('./lib/media-stage.mjs');
+  const files = ['', '-thumb', '-meta', '-credits'].map((x) => `shorts-${LOCALE}${x}${x === '-meta' ? '.json' : x === '-credits' ? '.txt' : x === '-thumb' ? '.jpg' : '.mp4'}`);
+  const a = archiveToMedia({ from: STAGE, to: MEDIA.root, files });
+  log(a.ok ? `드라이브 보관: ${a.copied.join(', ')}` : `⚠ 드라이브 보관 실패(발행은 됨): ${a.reason}`);
 }
 log(`끝 · ${((Date.now() - t0) / 60000).toFixed(1)}분`);

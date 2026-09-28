@@ -20,7 +20,7 @@ import { resolve, join } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { resolveMediaRoot } from './lib/media-root.mjs';
 import { envValue } from './lib/footage.mjs';
-import { pickSpare, pruneSpares } from './lib/shorts-spare.mjs';
+import { pickSpare, pruneSpares, spareDir } from './lib/shorts-spare.mjs';
 import { acquireRunLock } from './lib/run-lock.mjs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
 
@@ -28,7 +28,7 @@ const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone:
 if (process.env.SHORTS_SPARE === '0') { log('SHORTS_SPARE=0 — 끔'); process.exit(0); }
 
 const media = resolveMediaRoot({ configured: envValue('MEDIA_ROOT'), localFallback: resolve(ROOT, 'reports/video') });
-const DIR = join(media.root, 'spares');
+const DIR = spareDir();   // 로컬(2026-09-28) — lib/shorts-spare spareDir 머리말
 const MAX_AGE_H = Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6);
 const { recentShortsIssues, normalizeIssueKey } = await import('./lib/db.mjs');
 const pub = recentShortsIssues(24);
