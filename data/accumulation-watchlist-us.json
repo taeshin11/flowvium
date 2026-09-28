@@ -1,43 +1,43 @@
 {
-  "generatedAt": "2026-09-28T13:01:19.689Z",
+  "generatedAt": "2026-09-28T22:23:10.217Z",
   "universe": "US",
-  "scanned": 330,
-  "count": 11,
-  "strongCount": 1,
-  "watchCount": 10,
+  "scanned": 299,
+  "count": 16,
+  "strongCount": 0,
+  "watchCount": 16,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "MG",
-      "name": "Mistras Group Inc",
-      "tier": "strong",
-      "score": 43,
-      "coFire": 3,
+      "ticker": "PLAB",
+      "name": "Photronics, Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
         "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 11.8,
-      "runup5dPct": 3.7,
-      "medDollarVolUsd": 3500540,
+      "runup20dPct": 10,
+      "runup5dPct": 4,
+      "medDollarVolUsd": 29156394,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "KELYB",
-      "name": "Kelly Services, Inc.",
+      "ticker": "IA",
+      "name": "Innovative Solutions and Suppor",
       "tier": "watch",
-      "score": 30,
+      "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 34.4× 상승(지속 매집)",
-        "흡수 매집봉 4개(대량거래·가격억제 — 세력 물량흡수)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -4.6,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 16233,
+      "runup20dPct": -8.5,
+      "runup5dPct": 2.8,
+      "medDollarVolUsd": 4795908,
       "smartAccum": false,
       "official": null
     },
@@ -45,66 +45,32 @@
       "ticker": "FLXS",
       "name": "Flexsteel Industries, Inc.",
       "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.8,
-      "runup5dPct": 12.1,
-      "medDollarVolUsd": 4745278,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SPRU",
-      "name": "Spruce Power Holding Corporatio",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 5.3× 상승(지속 매집)",
-        "거래량 6.2× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 3.2,
-      "runup5dPct": 1.6,
-      "medDollarVolUsd": 89091,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KRT",
-      "name": "Karat Packaging Inc.",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.6,
-      "runup5dPct": 6.5,
-      "medDollarVolUsd": 5437770,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PLAB",
-      "name": "Photronics, Inc.",
-      "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 0.5,
-      "runup5dPct": 4.4,
-      "medDollarVolUsd": 29229592,
+      "runup20dPct": 7,
+      "runup5dPct": 7.8,
+      "medDollarVolUsd": 4745278,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GAB",
+      "name": "Gabelli Equity Trust, Inc. (The",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.4,
+      "runup5dPct": -2.6,
+      "medDollarVolUsd": 4130316,
       "smartAccum": false,
       "official": null
     },
@@ -115,11 +81,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.2,
-      "runup5dPct": -2.1,
+      "runup20dPct": -9.9,
+      "runup5dPct": -6.1,
       "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
@@ -131,29 +97,93 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.2,
-      "runup5dPct": -3.3,
-      "medDollarVolUsd": 3315006,
+      "runup20dPct": -10.8,
+      "runup5dPct": -4.4,
+      "medDollarVolUsd": 3456576,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PLCE",
-      "name": "Children's Place, Inc. (The)",
+      "ticker": "INVA",
+      "name": "Innoviva, Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -11.8,
-      "runup5dPct": 5.9,
-      "medDollarVolUsd": 546516,
+      "runup20dPct": 1.2,
+      "runup5dPct": 0.9,
+      "medDollarVolUsd": 14486041,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "HEPS",
+      "name": "D-Market Electronic Services & ",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 4.5× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -4.9,
+      "runup5dPct": 1.2,
+      "medDollarVolUsd": 381734,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NXP",
+      "name": "Nuveen Select Tax Free Income P",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -8.4,
+      "runup5dPct": -3.3,
+      "medDollarVolUsd": 2260050,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MMD",
+      "name": "MainStay MacKay DefinedTerm Mun",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -10.4,
+      "runup5dPct": -5.2,
+      "medDollarVolUsd": 752703,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PMO",
+      "name": "Putnam Municipal Opportunities ",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -11.4,
+      "runup5dPct": -6.4,
+      "medDollarVolUsd": 624603,
       "smartAccum": false,
       "official": null
     },
@@ -164,28 +194,76 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.6,
-      "runup5dPct": -3.5,
+      "runup20dPct": -12.9,
+      "runup5dPct": -5.5,
       "medDollarVolUsd": 766590,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MMD",
-      "name": "MainStay MacKay DefinedTerm Mun",
+      "ticker": "MSD",
+      "name": "Morgan Stanley Emerging Markets",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -5.6,
+      "runup5dPct": -3.5,
+      "medDollarVolUsd": 390936,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "XZO",
+      "name": "Exzeo Group, Inc.",
+      "tier": "watch",
+      "score": 22,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": -10.7,
+      "runup5dPct": -9.9,
+      "medDollarVolUsd": 3151577,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MFM",
+      "name": "MFS Municipal Income Trust",
       "tier": "watch",
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.7,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 742450,
+      "runup20dPct": -9.3,
+      "runup5dPct": -4.9,
+      "medDollarVolUsd": 1391385,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NMCO",
+      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -10.5,
+      "runup5dPct": -9.3,
+      "medDollarVolUsd": 2200514,
       "smartAccum": false,
       "official": null
     }
