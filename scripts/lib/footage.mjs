@@ -807,6 +807,24 @@ export function preferRecent(cands, { now = new Date().getFullYear() } = {}) {
 }
 
 /**
+ * 제목에 **떨어져 쓰인** 촬영 연도(1850~2049). 못 찾으면 null. (2026-09-29, footage-archival.test 머리말)
+ *   footageYear 는 정렬용이라 1980 이후만 읽는다 — 그래서 "… 18 September 1950" 이 "모름" 으로 새어 나갔다.
+ *   여기는 거르는 용도라 더 엄하게 읽는다: 앞뒤가 글자·숫자·밑줄이 아니어야 한다(IMG_1987 · DSC01950 · 1953x1200 은 번호).
+ */
+export function archivalYear(title) {
+  const m = String(title ?? '').match(/(?<![\p{L}\d_])(18[5-9]\d|19\d\d|20[0-4]\d)(?![\p{L}\d_])/u);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * 오늘 뉴스 장면에 쓸 수 없는 옛 기록사진을 뺀다 — 연도가 적혀 있고 maxAgeY 년보다 오래된 것.
+ *   연도를 모르는 것은 남긴다(대부분의 건물·기관 사진은 연도가 없다. 모름 ≠ 옛날).
+ */
+export function dropArchival(cands, { now = new Date().getFullYear(), maxAgeY = 20 } = {}) {
+  return (cands ?? []).filter((c) => { const y = archivalYear(c?.title); return y == null || now - y <= maxAgeY; });
+}
+
+/**
  * 한국 기사에 다른 나라 기관 사진이 붙는 것을 막는다.
  *
  * 2026-09-03 실측으로 반복해서 걸린 것들:

@@ -23,5 +23,9 @@ const dist = (a, b) => Math.min(Math.abs(a - b), 60 - Math.abs(a - b));
   : bad(`[1] 예비 분 ${scheds} · 보고서 트리거 분 ${triggers}`);
 const spare = readFileSync(new URL('../shorts-spare.mjs', import.meta.url), 'utf8');
 /logs\/shorts-spare\.log/.test(spare) ? ok('[2] 예비 렌더 출력을 logs/shorts-spare.log 에 남긴다') : bad('[2] 예비 렌더 출력이 버려진다');
+// [3] 한 이슈가 거절되면(9/29 00:50 실측: "4장면 중 소재는 1장뿐 — 회색 카드가 절반을 넘는다") 다른 이슈로 다시 —
+//   정규 회차처럼 최대 SHORTS_SPARE_TRIES(기본 3)번, 실패한 이슈는 SHORTS_EXCLUDE 에 쌓는다.
+/SHORTS_SPARE_TRIES/.test(spare) && /exclude\.push\(/.test(spare) && /SHORTS_EXCLUDE:\s*exclude\.join/.test(spare)
+  ? ok('[3] 예비도 거절된 이슈를 빼고 다시 시도한다') : bad('[3] 예비가 한 이슈만 시도하고 끝난다');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

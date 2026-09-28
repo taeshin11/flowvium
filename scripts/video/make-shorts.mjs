@@ -35,7 +35,7 @@ import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
 import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '../lib/youtube-cc.mjs';
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
+import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs} from '../lib/shorts-layout.mjs';
@@ -1385,7 +1385,7 @@ for (let i = 0; i < scenes.length; i++) {
     relevant = preferKorean(relevant, koAnchor);
     // 최신 자료를 앞으로. 아카이브에는 20년 전 사진이 그대로 남아 있다
     //   (실측: '총리' 로 2003년 고건 총리 사진이 잡혔다).
-    const got = pickFootageMany(preferRecent(relevant), 1, { terms, preferFree: true });
+    const got = pickFootageMany(preferRecent(dropArchival(relevant)), 1, { terms, preferFree: true });
     if (got.length) { scenes[i].pick = got[0]; break; }
   }
   // 2026-09-04: **구글 검색을 먼저 쓴다** — 한국어를 그대로 넣을 수 있어서다.
@@ -1512,7 +1512,7 @@ for (let i = 0; i < scenes.length; i++) {
     let rel2 = cands2.filter((c) => !usedMedia.has(c.url) && isRealFootage(c)
       && titleRelevant(c.title, alt));
     rel2 = preferKorean(rel2, koA);
-    const p2 = pickFootageMany(preferRecent(rel2), 1, { terms: alt, preferFree: true });
+    const p2 = pickFootageMany(preferRecent(dropArchival(rel2)), 1, { terms: alt, preferFree: true });
     if (p2.length) { scenes[i].pick = p2[0]; log(`[화면] ${i + 1} 대체 질의 "${alt.join(' ')}" 로 찾음`); }
   }
 
@@ -1540,7 +1540,7 @@ for (let i = 0; i < scenes.length; i++) {
       let rel = ko.filter((c) => !usedMedia.has(c.url) && isRealFootage(c) && titleRelevant(c.title, pair)
         );
       rel = preferKorean(rel, KO_ISSUE);
-      const pick = pickFootageMany(preferRecent(rel), 1, { terms: pair, preferFree: true });
+      const pick = pickFootageMany(preferRecent(dropArchival(rel)), 1, { terms: pair, preferFree: true });
       if (pick.length) {
         scenes[i].pick = pick[0];
         log(`[화면] ${i + 1} 영문 실패 → 한국어 "${kw}" 로 찾음`);
