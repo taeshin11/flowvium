@@ -1,1659 +1,1504 @@
 {
-  "generatedAt": "2026-09-21T19:00:04.192Z",
+  "generatedAt": "2026-09-28T19:00:03.723Z",
   "source": "yahoo-screener",
   "screens": [
     "aggressive_small_caps",
     "small_cap_gainers"
   ],
-  "count": 330,
+  "count": 299,
   "tickers": [
     "JBLU",
-    "GPRO",
+    "GENI",
     "KOS",
+    "GPRO",
     "FLNC",
     "LAC",
-    "TUYA",
-    "GENI",
-    "ORC",
     "COUR",
     "VISN",
-    "IVR",
-    "RC",
+    "ORC",
+    "VNET",
     "NAT",
-    "EVH",
-    "UAMY",
-    "OI",
-    "ANGX",
     "TMC",
-    "KSS",
-    "CAPR",
-    "GRPN",
-    "TBLA",
     "ULCC",
-    "OLN",
-    "CLBK",
-    "DSX",
-    "CMTG",
-    "FUN",
+    "QNST",
+    "IVR",
+    "OI",
+    "UAMY",
     "CWH",
-    "KODK",
-    "KURA",
-    "FIP",
-    "DSP",
-    "CRI",
-    "METC",
-    "PRGO",
-    "ENOV",
-    "SB",
-    "CSIQ",
-    "CTKB",
-    "TYRA",
-    "HAPN",
-    "COLL",
-    "PAL",
-    "SFL",
-    "PMT",
-    "ECVT",
-    "ACCO",
-    "OXSQ",
-    "ACDC",
-    "TROX",
-    "XZO",
-    "INN",
-    "OPTU",
-    "MLCO",
-    "FWRG",
-    "HCSG",
-    "INVA",
-    "TASK",
-    "EFC",
-    "QDEL",
-    "RYZ",
-    "TCPC",
-    "RPC",
     "BRSL",
-    "PSTL",
-    "KRNY",
+    "CLBK",
+    "TBLA",
+    "CMPS",
+    "SRPT",
+    "CTKB",
+    "KREF",
+    "CSIQ",
+    "CAPR",
+    "PMT",
+    "RC",
+    "CLM",
+    "GLAS",
+    "ENOV",
+    "EVH",
+    "KURA",
+    "TROX",
+    "OLN",
+    "HAPN",
+    "METC",
+    "OPTU",
+    "EFC",
+    "SB",
+    "ADAM",
+    "NFE",
     "ARCO",
-    "TTEC",
-    "CNOB",
-    "RVLV",
-    "UIS",
-    "HMN",
+    "GAB",
+    "MLCO",
+    "LINC",
+    "ANGX",
+    "CRI",
+    "CFFN",
+    "SFL",
+    "SMCIP",
+    "JBGS",
+    "MOMO",
+    "QDEL",
+    "ACDC",
+    "MHD",
     "LAR",
     "ZYME",
-    "QNST",
-    "DDL",
-    "SHEN",
-    "TK",
-    "MG",
-    "ADAM",
-    "BHK",
-    "SMCIP",
-    "RIGL",
-    "ZD",
-    "KLC",
-    "MOMO",
-    "DAKT",
-    "GLAS",
-    "CARE",
-    "SOHU",
-    "TWI",
-    "HSHP",
-    "SJT",
-    "TBI",
-    "WBTN",
-    "DCOM",
-    "HFWA",
-    "PLAB",
-    "EZPW",
-    "BJRI",
-    "JKS",
-    "VTEX",
-    "DOLE",
-    "GPRK",
-    "SNDA",
-    "CPF",
-    "JELD",
-    "LENZ",
-    "ALIT",
-    "MQY",
-    "HOPE",
-    "NVGS",
-    "MRX",
-    "HRTG",
-    "TEN",
-    "GNK",
-    "CBL",
-    "VET",
-    "OGI",
-    "GAB",
-    "LINC",
-    "REX",
-    "CFFN",
-    "CMCO",
-    "IA",
-    "GTY",
-    "ASC",
-    "AMTB",
-    "ZUMZ",
-    "SMP",
-    "CLDT",
+    "FUN",
+    "TYRA",
+    "DSX",
     "ACP",
-    "AMSC",
-    "WIW",
-    "JBGS",
-    "AVIR",
-    "SWBI",
-    "GOLD",
-    "FTK",
-    "AMPY",
-    "PDFS",
-    "MHD",
-    "FVRR",
-    "KREF",
-    "MUC",
-    "MYI",
-    "PRGS",
-    "SRI",
-    "XPER",
-    "FWRD",
-    "WWW",
-    "AOD",
-    "RGR",
-    "PERI",
-    "NVRI",
-    "MYE",
-    "SPH",
-    "MOV",
-    "NSLR",
-    "OMCL",
-    "DLX",
-    "NFE",
-    "APEI",
-    "GABC",
-    "CCNE",
-    "VLRS",
-    "NWPX",
-    "TILE",
-    "HCAT",
-    "BOW",
-    "CRESY",
-    "LOB",
-    "NPWR",
-    "PKE",
-    "APOG",
-    "CABO",
-    "BDJ",
-    "ACEL",
-    "OBK",
-    "OPRA",
-    "WHF",
-    "NMCO",
-    "PSFE",
-    "TRS",
-    "STC",
-    "KRT",
-    "NXP",
-    "TWFG",
+    "VET",
     "HIX",
-    "MGPI",
-    "TFIN",
-    "METCB",
+    "FWRG",
+    "GPRK",
+    "FIP",
+    "ECVT",
+    "HOPE",
+    "MQY",
+    "INN",
+    "DOLE",
+    "MFM",
+    "PGNY",
+    "PAL",
+    "OGI",
+    "VTEX",
+    "TEN",
+    "RVLV",
+    "KODK",
+    "MYI",
+    "JKS",
+    "ACCO",
+    "TK",
+    "JELD",
+    "SHEN",
+    "GRPN",
+    "OXSQ",
+    "AMSC",
+    "TBI",
+    "COLL",
+    "MUC",
+    "NMCO",
+    "GTY",
+    "PLAB",
+    "INVA",
+    "EZPW",
+    "AVIR",
+    "KLC",
     "RERE",
-    "SPWH",
-    "GIC",
-    "PLCE",
-    "UVSP",
-    "CAC",
-    "ASG",
-    "HAFC",
-    "AEF",
-    "ASIC",
-    "TSAT",
-    "SPXX",
-    "ATLC",
-    "SND",
-    "MSIF",
-    "LOCO",
-    "BRT",
-    "KE",
-    "MCB",
-    "LEO",
-    "MCS",
-    "ETW",
-    "KELYA",
-    "RM",
-    "CMPR",
-    "GAIN",
-    "TRST",
-    "UVE",
-    "FLXS",
-    "FRD",
-    "WNEB",
-    "WTBA",
-    "SENEA",
-    "BGY",
-    "LMNR",
-    "XRN",
-    "DSGR",
-    "BTT",
-    "CBNK",
-    "AVNW",
-    "GLRE",
-    "RCKY",
-    "CASS",
-    "ACTG",
-    "FSBC",
-    "HQH",
+    "GGN",
+    "TCPC",
+    "HEPS",
+    "OMCL",
+    "RPC",
+    "FVRR",
+    "ZD",
     "KRNT",
-    "CYD",
-    "BOE",
-    "EHI",
-    "CHMG",
-    "UFCS",
-    "TYG",
-    "IRS",
-    "MTLS",
-    "PGC",
-    "ASA",
-    "HBB",
-    "IMKTA",
-    "GLP",
-    "ETV",
-    "BWMX",
-    "SMBK",
-    "SKIL",
-    "THFF",
-    "KELYB",
+    "WWW",
+    "RYZ",
+    "CMCO",
+    "LENZ",
+    "SWBI",
+    "NXP",
     "STKE",
-    "TEI",
-    "IFN",
+    "VLRS",
+    "KRNY",
+    "MTLS",
+    "MRX",
+    "DSP",
+    "TWI",
+    "DAKT",
+    "GNK",
+    "HSHP",
+    "AMPY",
+    "ZBIO",
+    "BHK",
+    "BDJ",
+    "XZO",
+    "CRESY",
+    "FWRD",
+    "NPWR",
+    "SJT",
+    "APEI",
+    "HFWA",
+    "DLX",
+    "ACEL",
+    "CMTG",
+    "FTK",
+    "HCSG",
+    "ACTG",
+    "TUYA",
+    "ASC",
+    "DCOM",
+    "ALIT",
+    "PRGS",
+    "HMN",
+    "NVGS",
+    "MG",
+    "BJRI",
+    "TWFG",
+    "SNDA",
+    "UIS",
+    "SPWH",
+    "TTEC",
+    "WIW",
+    "GOLD",
+    "DDL",
+    "CABO",
+    "CNOB",
+    "RGR",
+    "AMTB",
+    "WBTN",
+    "MGPI",
+    "LEO",
+    "STC",
+    "TRS",
+    "OPRA",
+    "SAH",
+    "NVRI",
+    "XPER",
+    "MYE",
+    "KRT",
+    "SRI",
+    "AOD",
+    "BTT",
+    "PSFE",
+    "TFIN",
+    "PERI",
+    "CLDT",
+    "PKE",
+    "CASS",
+    "IA",
+    "SPXX",
+    "HAFC",
+    "UVSP",
+    "ETW",
+    "MOV",
+    "HRTG",
+    "ASG",
+    "NGL",
+    "PSTL",
+    "CBL",
+    "MCS",
+    "APOG",
+    "REX",
+    "RIGL",
+    "UVE",
+    "SND",
+    "GAIN",
+    "SPH",
+    "CARE",
+    "BGY",
+    "CYD",
     "NRIM",
+    "ZUMZ",
+    "MHF",
+    "LOCO",
+    "EHI",
+    "FSBC",
+    "TASK",
     "MMD",
-    "BSET",
+    "CMPR",
+    "KELYA",
+    "DSGR",
+    "IFN",
+    "PPT",
+    "TYG",
+    "LOB",
+    "HTT",
+    "MSIF",
+    "NSLR",
+    "KE",
+    "CCNE",
+    "TEI",
+    "CEPU",
+    "OBK",
     "AVK",
-    "AGD",
-    "WSBF",
-    "MYFW",
+    "PMO",
+    "CBNK",
+    "HQH",
+    "IRS",
+    "FLXS",
+    "MUJ",
+    "ASIC",
+    "GEOS",
+    "PGC",
+    "NTRSO",
+    "ETV",
+    "ETG",
+    "CPF",
+    "SMBK",
+    "GABC",
+    "AP",
+    "MCB",
+    "LMNR",
+    "HCAT",
+    "RMT",
+    "GLRE",
+    "BOW",
+    "UFCS",
+    "BOE",
     "AFB",
-    "ONIT",
-    "TE",
-    "YSS",
-    "NRGV",
-    "RXT",
-    "SPCE",
-    "TV",
-    "VYX",
-    "NMAX",
-    "LAES",
-    "IMSR",
-    "BKKT",
-    "WOLF",
-    "AMBQ",
-    "EDIT",
-    "XERS",
-    "GCTS",
-    "GTN",
-    "ARHS",
-    "SONO",
-    "ADCT",
-    "EAF",
-    "FOSL",
-    "CRNC",
-    "BKSY",
-    "MNRO",
-    "XPOF",
-    "LILAK",
-    "HUYA",
-    "ASYS",
-    "SSP",
-    "BAND",
-    "CEVA",
-    "SVCO",
-    "SPIR",
-    "GSIT",
-    "SPRU",
-    "AMPH",
+    "ATLC",
+    "GIC",
+    "IMKTA",
+    "TSAT",
+    "THFF",
+    "TRST",
+    "SMP",
+    "JRS",
+    "AVNW",
+    "HBB",
+    "AGNCZ",
+    "SENEA",
+    "RCKY",
+    "RBB",
+    "MSD",
+    "SFIX",
+    "PACB",
+    "ALXO",
+    "ANNX",
+    "TSHA",
+    "ADRX",
     "MX",
-    "HPP",
-    "PICS",
-    "SST",
+    "BUR",
+    "XERS",
+    "ENHA",
+    "ANVS",
+    "MGNX",
+    "PRTA",
+    "TRAX",
+    "VIOT",
     "GOSS",
-    "STRZ",
-    "UP",
-    "LILA",
-    "OWLT",
-    "ZH",
-    "EVCM",
-    "NRC",
-    "SILC",
-    "API",
-    "MCHX",
-    "XYF",
-    "CFND",
-    "CINT",
-    "CORZW",
-    "CORZZ",
-    "IMSRW",
+    "FLX",
+    "BLSM",
+    "CANG",
+    "SEER",
+    "TLYS",
+    "SEAT",
+    "SI",
+    "LFCR",
+    "VALN",
+    "LUCK",
+    "MSB",
+    "NDLS",
+    "CMCM",
     "IQMXW"
   ],
   "meta": {
     "JBLU": {
       "name": "JetBlue Airways Corporation",
-      "marketCap": 1714883968
-    },
-    "GPRO": {
-      "name": "GoPro, Inc.",
-      "marketCap": 270326816
-    },
-    "KOS": {
-      "name": "Kosmos Energy Ltd.",
-      "marketCap": 1578101888
-    },
-    "FLNC": {
-      "name": "Fluence Energy, Inc.",
-      "marketCap": 1365504384
-    },
-    "LAC": {
-      "name": "Lithium Americas Corp.",
-      "marketCap": 1087313536
-    },
-    "TUYA": {
-      "name": "Tuya Inc.",
-      "marketCap": 1072943616
+      "marketCap": 1613009664
     },
     "GENI": {
       "name": "Genius Sports Limited",
-      "marketCap": 1514527744
+      "marketCap": 1698093056
     },
-    "ORC": {
-      "name": "Orchid Island Capital, Inc.",
-      "marketCap": 1203197568
+    "KOS": {
+      "name": "Kosmos Energy Ltd.",
+      "marketCap": 1530403328
+    },
+    "GPRO": {
+      "name": "GoPro, Inc.",
+      "marketCap": 274453984
+    },
+    "FLNC": {
+      "name": "Fluence Energy, Inc.",
+      "marketCap": 1409193088
+    },
+    "LAC": {
+      "name": "Lithium Americas Corp.",
+      "marketCap": 983447040
     },
     "COUR": {
       "name": "Coursera, Inc.",
-      "marketCap": 1359015936
+      "marketCap": 1225494016
     },
     "VISN": {
       "name": "Vistance Networks, Inc.",
-      "marketCap": 1489846656
+      "marketCap": 1407974272
     },
-    "IVR": {
-      "name": "INVESCO MORTGAGE CAPITAL INC",
-      "marketCap": 710832576
+    "ORC": {
+      "name": "Orchid Island Capital, Inc.",
+      "marketCap": 1124234624
     },
-    "RC": {
-      "name": "Ready Capital Corporation",
-      "marketCap": 280541152
+    "VNET": {
+      "name": "VNET Group, Inc.",
+      "marketCap": 1728078336
     },
     "NAT": {
       "name": "Nordic American Tankers Limited",
-      "marketCap": 1682359040
-    },
-    "EVH": {
-      "name": "Evolent Health, Inc",
-      "marketCap": 407013600
-    },
-    "UAMY": {
-      "name": "United States Antimony Corporat",
-      "marketCap": 726644800
-    },
-    "OI": {
-      "name": "O-I Glass, Inc.",
-      "marketCap": 931946368
-    },
-    "ANGX": {
-      "name": "Angel Studios, Inc.",
-      "marketCap": 975801728
+      "marketCap": 1650596352
     },
     "TMC": {
       "name": "TMC the metals company Inc.",
-      "marketCap": 2356710656
-    },
-    "KSS": {
-      "name": "Kohl's Corporation",
-      "marketCap": 2001661312
-    },
-    "CAPR": {
-      "name": "Capricor Therapeutics, Inc.",
-      "marketCap": 522088096
-    },
-    "GRPN": {
-      "name": "Groupon, Inc.",
-      "marketCap": 865967488
-    },
-    "TBLA": {
-      "name": "Taboola.com Ltd.",
-      "marketCap": 972559360
+      "marketCap": 2203934720
     },
     "ULCC": {
       "name": "Frontier Group Holdings, Inc.",
-      "marketCap": 1420408320
-    },
-    "OLN": {
-      "name": "Olin Corporation",
-      "marketCap": 1888689792
-    },
-    "CLBK": {
-      "name": "Columbia Financial, Inc.",
-      "marketCap": 1224245120
-    },
-    "DSX": {
-      "name": "Diana Shipping inc.",
-      "marketCap": 371997024
-    },
-    "CMTG": {
-      "name": "Claros Mortgage Trust, Inc.",
-      "marketCap": 205982944
-    },
-    "FUN": {
-      "name": "Six Flags Entertainment Corpora",
-      "marketCap": 1267187584
-    },
-    "CWH": {
-      "name": "Camping World Holdings, Inc.",
-      "marketCap": 350415456
-    },
-    "KODK": {
-      "name": "Eastman Kodak Company",
-      "marketCap": 958018816
-    },
-    "KURA": {
-      "name": "Kura Oncology, Inc.",
-      "marketCap": 1030163904
-    },
-    "FIP": {
-      "name": "FTAI Infrastructure Inc.",
-      "marketCap": 358681568
-    },
-    "DSP": {
-      "name": "Viant Technology Inc.",
-      "marketCap": 819240768
-    },
-    "CRI": {
-      "name": "Carter's, Inc.",
-      "marketCap": 1128318208
-    },
-    "METC": {
-      "name": "Ramaco Resources, Inc.",
-      "marketCap": 591299200
-    },
-    "PRGO": {
-      "name": "Perrigo Company plc",
-      "marketCap": 1964278656
-    },
-    "ENOV": {
-      "name": "Enovis Corporation",
-      "marketCap": 1022191808
-    },
-    "SB": {
-      "name": "Safe Bulkers, Inc",
-      "marketCap": 1002303744
-    },
-    "CSIQ": {
-      "name": "Canadian Solar Inc.",
-      "marketCap": 794731456
-    },
-    "CTKB": {
-      "name": "Cytek Biosciences, Inc.",
-      "marketCap": 685661696
-    },
-    "TYRA": {
-      "name": "Tyra Biosciences, Inc.",
-      "marketCap": 1764964864
-    },
-    "HAPN": {
-      "name": "Happen, Inc.",
-      "marketCap": 1870754944
-    },
-    "COLL": {
-      "name": "Collegium Pharmaceutical, Inc.",
-      "marketCap": 715306368
-    },
-    "PAL": {
-      "name": "Proficient Auto Logistics, Inc.",
-      "marketCap": 111931168
-    },
-    "SFL": {
-      "name": "SFL Corporation Ltd",
-      "marketCap": 1882449152
-    },
-    "PMT": {
-      "name": "PennyMac Mortgage Investment Tr",
-      "marketCap": 776537024
-    },
-    "ECVT": {
-      "name": "Ecovyst Inc.",
-      "marketCap": 1142302848
-    },
-    "ACCO": {
-      "name": "Acco Brands Corporation",
-      "marketCap": 385845632
-    },
-    "OXSQ": {
-      "name": "Oxford Square Capital Corp.",
-      "marketCap": 136788880
-    },
-    "ACDC": {
-      "name": "ProFrac Holding Corp.",
-      "marketCap": 902418304
-    },
-    "TROX": {
-      "name": "Tronox Holdings plc",
-      "marketCap": 701881664
-    },
-    "XZO": {
-      "name": "Exzeo Group, Inc.",
-      "marketCap": 1502633216
-    },
-    "INN": {
-      "name": "Summit Hotel Properties, Inc.",
-      "marketCap": 608832832
-    },
-    "OPTU": {
-      "name": "Optimum Communications, Inc.",
-      "marketCap": 402410272
-    },
-    "MLCO": {
-      "name": "Melco Resorts & Entertainment L",
-      "marketCap": 1789048320
-    },
-    "FWRG": {
-      "name": "First Watch Restaurant Group, I",
-      "marketCap": 622987072
-    },
-    "HCSG": {
-      "name": "Healthcare Services Group, Inc.",
-      "marketCap": 1476964992
-    },
-    "INVA": {
-      "name": "Innoviva, Inc.",
-      "marketCap": 1530874624
-    },
-    "TASK": {
-      "name": "TaskUs, Inc.",
-      "marketCap": 784840960
-    },
-    "EFC": {
-      "name": "Ellington Financial Inc.",
-      "marketCap": 1657960576
-    },
-    "QDEL": {
-      "name": "QuidelOrtho Corporation",
-      "marketCap": 745414848
-    },
-    "RYZ": {
-      "name": "Ryerson Holding Corporation",
-      "marketCap": 1246086656
-    },
-    "TCPC": {
-      "name": "BlackRock TCP Capital Corp.",
-      "marketCap": 338967200
-    },
-    "RPC": {
-      "name": "Ridgepost Capital, Inc.",
-      "marketCap": 867025280
-    },
-    "BRSL": {
-      "name": "Brightstar Lottery PLC Trading ",
-      "marketCap": 1876764032
-    },
-    "PSTL": {
-      "name": "Postal Realty Trust, Inc.",
-      "marketCap": 947250816
-    },
-    "KRNY": {
-      "name": "Kearny Financial",
-      "marketCap": 608295488
-    },
-    "ARCO": {
-      "name": "Arcos Dorados Holdings Inc.",
-      "marketCap": 1589452800
-    },
-    "TTEC": {
-      "name": "TTEC Holdings, Inc.",
-      "marketCap": 59894568
-    },
-    "CNOB": {
-      "name": "ConnectOne Bancorp, Inc.",
-      "marketCap": 1595138688
-    },
-    "RVLV": {
-      "name": "Revolve Group, Inc.",
-      "marketCap": 1516977536
-    },
-    "UIS": {
-      "name": "Unisys Corporation New",
-      "marketCap": 180466976
-    },
-    "HMN": {
-      "name": "Horace Mann Educators Corporati",
-      "marketCap": 1966731392
-    },
-    "LAR": {
-      "name": "Lithium Argentina AG",
-      "marketCap": 971472000
-    },
-    "ZYME": {
-      "name": "Zymeworks Inc.",
-      "marketCap": 1904648576
+      "marketCap": 1438848640
     },
     "QNST": {
       "name": "QuinStreet, Inc.",
-      "marketCap": 996259264
+      "marketCap": 817722240
     },
-    "DDL": {
-      "name": "Dingdong (Cayman) Limited",
-      "marketCap": 496351648
+    "IVR": {
+      "name": "INVESCO MORTGAGE CAPITAL INC",
+      "marketCap": 682884992
     },
-    "SHEN": {
-      "name": "Shenandoah Telecommunications C",
-      "marketCap": 679324672
+    "OI": {
+      "name": "O-I Glass, Inc.",
+      "marketCap": 894299712
     },
-    "TK": {
-      "name": "Teekay Corporation Ltd.",
-      "marketCap": 1259686528
+    "UAMY": {
+      "name": "United States Antimony Corporat",
+      "marketCap": 644326656
     },
-    "MG": {
-      "name": "Mistras Group Inc",
-      "marketCap": 663910976
+    "CWH": {
+      "name": "Camping World Holdings, Inc.",
+      "marketCap": 334139328
+    },
+    "BRSL": {
+      "name": "Brightstar Lottery PLC Trading ",
+      "marketCap": 1808235648
+    },
+    "CLBK": {
+      "name": "Columbia Financial, Inc.",
+      "marketCap": 1148813312
+    },
+    "TBLA": {
+      "name": "Taboola.com Ltd.",
+      "marketCap": 917177536
+    },
+    "CMPS": {
+      "name": "COMPASS Pathways Plc - American",
+      "marketCap": 1857666432
+    },
+    "SRPT": {
+      "name": "Sarepta Therapeutics, Inc.",
+      "marketCap": 1983675520
+    },
+    "CTKB": {
+      "name": "Cytek Biosciences, Inc.",
+      "marketCap": 750003392
+    },
+    "KREF": {
+      "name": "KKR Real Estate Finance Trust I",
+      "marketCap": 366697952
+    },
+    "CSIQ": {
+      "name": "Canadian Solar Inc.",
+      "marketCap": 710539520
+    },
+    "CAPR": {
+      "name": "Capricor Therapeutics, Inc.",
+      "marketCap": 510460288
+    },
+    "PMT": {
+      "name": "PennyMac Mortgage Investment Tr",
+      "marketCap": 708955200
+    },
+    "RC": {
+      "name": "Ready Capital Corporation",
+      "marketCap": 217646960
+    },
+    "CLM": {
+      "name": "Cornerstone Strategic Value Fd",
+      "marketCap": 1991498624
+    },
+    "GLAS": {
+      "name": "Glass House Brands Inc. Subordi",
+      "marketCap": 622942976
+    },
+    "ENOV": {
+      "name": "Enovis Corporation",
+      "marketCap": 1045547904
+    },
+    "EVH": {
+      "name": "Evolent Health, Inc",
+      "marketCap": 410970688
+    },
+    "KURA": {
+      "name": "Kura Oncology, Inc.",
+      "marketCap": 950988928
+    },
+    "TROX": {
+      "name": "Tronox Holdings plc",
+      "marketCap": 641195584
+    },
+    "OLN": {
+      "name": "Olin Corporation",
+      "marketCap": 1851645568
+    },
+    "HAPN": {
+      "name": "Happen, Inc.",
+      "marketCap": 1732843136
+    },
+    "METC": {
+      "name": "Ramaco Resources, Inc.",
+      "marketCap": 575696768
+    },
+    "OPTU": {
+      "name": "Optimum Communications, Inc.",
+      "marketCap": 381431552
+    },
+    "EFC": {
+      "name": "Ellington Financial Inc.",
+      "marketCap": 1606087680
+    },
+    "SB": {
+      "name": "Safe Bulkers, Inc",
+      "marketCap": 930588672
     },
     "ADAM": {
       "name": "Adamas Trust, Inc.",
-      "marketCap": 801278272
+      "marketCap": 721285248
     },
-    "BHK": {
-      "name": "Blackrock Core Bond Trust Black",
-      "marketCap": 612461376
+    "NFE": {
+      "name": "New Fortress Energy Inc.",
+      "marketCap": 36275600
+    },
+    "ARCO": {
+      "name": "Arcos Dorados Holdings Inc.",
+      "marketCap": 1509400832
+    },
+    "GAB": {
+      "name": "Gabelli Equity Trust, Inc. (The",
+      "marketCap": 1825061632
+    },
+    "MLCO": {
+      "name": "Melco Resorts & Entertainment L",
+      "marketCap": 1775739776
+    },
+    "LINC": {
+      "name": "Lincoln Educational Services Co",
+      "marketCap": 697555328
+    },
+    "ANGX": {
+      "name": "Angel Studios, Inc.",
+      "marketCap": 854410112
+    },
+    "CRI": {
+      "name": "Carter's, Inc.",
+      "marketCap": 1140983552
+    },
+    "CFFN": {
+      "name": "Capitol Federal Financial, Inc.",
+      "marketCap": 1049750592
+    },
+    "SFL": {
+      "name": "SFL Corporation Ltd",
+      "marketCap": 1767352832
     },
     "SMCIP": {
       "name": "Super Micro Computer, Inc. - De",
       "marketCap": null
     },
-    "RIGL": {
-      "name": "Rigel Pharmaceuticals, Inc.",
-      "marketCap": 867007488
-    },
-    "ZD": {
-      "name": "Ziff Davis, Inc.",
-      "marketCap": 1984372224
-    },
-    "KLC": {
-      "name": "KinderCare Learning Companies, ",
-      "marketCap": 268441088
+    "JBGS": {
+      "name": "JBG SMITH Properties",
+      "marketCap": 787363840
     },
     "MOMO": {
       "name": "Hello Group Inc.",
-      "marketCap": 718178432
+      "marketCap": 709560256
     },
-    "DAKT": {
-      "name": "Daktronics, Inc.",
-      "marketCap": 847873344
+    "QDEL": {
+      "name": "QuidelOrtho Corporation",
+      "marketCap": 744043392
     },
-    "GLAS": {
-      "name": "Glass House Brands Inc. Subordi",
-      "marketCap": 748285504
+    "ACDC": {
+      "name": "ProFrac Holding Corp.",
+      "marketCap": 823213120
     },
-    "CARE": {
-      "name": "Carter Bankshares, Inc.",
-      "marketCap": 711364352
+    "MHD": {
+      "name": "Blackrock MuniHoldings Fund, In",
+      "marketCap": 532105184
     },
-    "SOHU": {
-      "name": "Sohu.com Limited",
-      "marketCap": 384837120
+    "LAR": {
+      "name": "Lithium Argentina AG",
+      "marketCap": 894344960
     },
-    "TWI": {
-      "name": "Titan International, Inc. (DE)",
-      "marketCap": 481485952
+    "ZYME": {
+      "name": "Zymeworks Inc.",
+      "marketCap": 1960783360
     },
-    "HSHP": {
-      "name": "Himalaya Shipping Ltd.",
-      "marketCap": 879725248
+    "FUN": {
+      "name": "Six Flags Entertainment Corpora",
+      "marketCap": 1184833152
     },
-    "SJT": {
-      "name": "San Juan Basin Royalty Trust",
-      "marketCap": 140292480
+    "TYRA": {
+      "name": "Tyra Biosciences, Inc.",
+      "marketCap": 1477565056
     },
-    "TBI": {
-      "name": "TrueBlue, Inc.",
-      "marketCap": 282827968
+    "DSX": {
+      "name": "Diana Shipping inc.",
+      "marketCap": 348345984
     },
-    "WBTN": {
-      "name": "WEBTOON Entertainment Inc.",
-      "marketCap": 1490107520
+    "ACP": {
+      "name": "Aberdeen Income Credit Strategi",
+      "marketCap": 555835072
     },
-    "DCOM": {
-      "name": "Dime Commercial Bancshares, Inc",
-      "marketCap": 1812849024
+    "VET": {
+      "name": "Vermilion Energy Inc.",
+      "marketCap": 1771379840
     },
-    "HFWA": {
-      "name": "Heritage Financial Corporation",
-      "marketCap": 1151773056
+    "HIX": {
+      "name": "Western Asset High Income Fund ",
+      "marketCap": 314046080
     },
-    "PLAB": {
-      "name": "Photronics, Inc.",
-      "marketCap": 1735401728
-    },
-    "EZPW": {
-      "name": "EZCORP, Inc.",
-      "marketCap": 1874483712
-    },
-    "BJRI": {
-      "name": "BJ's Restaurants, Inc.",
-      "marketCap": 1297912320
-    },
-    "JKS": {
-      "name": "JinkoSolar Holding Company Limi",
-      "marketCap": 555647680
-    },
-    "VTEX": {
-      "name": "VTEX",
-      "marketCap": 622274304
-    },
-    "DOLE": {
-      "name": "Dole plc",
-      "marketCap": 1234104320
+    "FWRG": {
+      "name": "First Watch Restaurant Group, I",
+      "marketCap": 623912704
     },
     "GPRK": {
       "name": "Geopark Ltd",
-      "marketCap": 702820992
+      "marketCap": 695033536
     },
-    "SNDA": {
-      "name": "Sonida Senior Living, Inc.",
-      "marketCap": 1841439360
+    "FIP": {
+      "name": "FTAI Infrastructure Inc.",
+      "marketCap": 345681568
     },
-    "CPF": {
-      "name": "Central Pacific Financial Corp ",
-      "marketCap": 956774592
-    },
-    "JELD": {
-      "name": "JELD-WEN Holding, Inc.",
-      "marketCap": 146888000
-    },
-    "LENZ": {
-      "name": "LENZ Therapeutics, Inc.",
-      "marketCap": 128980512
-    },
-    "ALIT": {
-      "name": "Alight, Inc.",
-      "marketCap": 442692672
-    },
-    "MQY": {
-      "name": "Blackrock MuniYield Quality Fun",
-      "marketCap": 743837056
+    "ECVT": {
+      "name": "Ecovyst Inc.",
+      "marketCap": 1102894080
     },
     "HOPE": {
       "name": "Hope Bancorp, Inc.",
-      "marketCap": 1777527680
+      "marketCap": 1746230912
     },
-    "NVGS": {
-      "name": "Navigator Holdings Ltd.",
-      "marketCap": 1495512832
+    "MQY": {
+      "name": "Blackrock MuniYield Quality Fun",
+      "marketCap": 712014784
+    },
+    "INN": {
+      "name": "Summit Hotel Properties, Inc.",
+      "marketCap": 628246400
+    },
+    "DOLE": {
+      "name": "Dole plc",
+      "marketCap": 1227492224
+    },
+    "MFM": {
+      "name": "MFS Municipal Income Trust",
+      "marketCap": 199348144
+    },
+    "PGNY": {
+      "name": "Progyny, Inc.",
+      "marketCap": 1954998784
+    },
+    "PAL": {
+      "name": "Proficient Auto Logistics, Inc.",
+      "marketCap": 101972376
+    },
+    "OGI": {
+      "name": "Organigram Global Inc.",
+      "marketCap": 153697088
+    },
+    "VTEX": {
+      "name": "VTEX",
+      "marketCap": 611192704
+    },
+    "TEN": {
+      "name": "Tsakos Energy Navigation Ltd",
+      "marketCap": 1389786368
+    },
+    "RVLV": {
+      "name": "Revolve Group, Inc.",
+      "marketCap": 1504813184
+    },
+    "KODK": {
+      "name": "Eastman Kodak Company",
+      "marketCap": 954582272
+    },
+    "MYI": {
+      "name": "Blackrock MuniYield Quality Fun",
+      "marketCap": 634429952
+    },
+    "JKS": {
+      "name": "JinkoSolar Holding Company Limi",
+      "marketCap": 487566464
+    },
+    "ACCO": {
+      "name": "Acco Brands Corporation",
+      "marketCap": 396922560
+    },
+    "TK": {
+      "name": "Teekay Corporation Ltd.",
+      "marketCap": 1217156224
+    },
+    "JELD": {
+      "name": "JELD-WEN Holding, Inc.",
+      "marketCap": 150764816
+    },
+    "SHEN": {
+      "name": "Shenandoah Telecommunications C",
+      "marketCap": 641123008
+    },
+    "GRPN": {
+      "name": "Groupon, Inc.",
+      "marketCap": 805579520
+    },
+    "OXSQ": {
+      "name": "Oxford Square Capital Corp.",
+      "marketCap": 136885808
+    },
+    "AMSC": {
+      "name": "American Superconductor Corpora",
+      "marketCap": 1427347840
+    },
+    "TBI": {
+      "name": "TrueBlue, Inc.",
+      "marketCap": 289830176
+    },
+    "COLL": {
+      "name": "Collegium Pharmaceutical, Inc.",
+      "marketCap": 703991616
+    },
+    "MUC": {
+      "name": "Blackrock MuniHoldings Californ",
+      "marketCap": 907462080
+    },
+    "NMCO": {
+      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "marketCap": 504594816
+    },
+    "GTY": {
+      "name": "Getty Realty Corporation",
+      "marketCap": 1758269312
+    },
+    "PLAB": {
+      "name": "Photronics, Inc.",
+      "marketCap": 1791744000
+    },
+    "INVA": {
+      "name": "Innoviva, Inc.",
+      "marketCap": 1525824768
+    },
+    "EZPW": {
+      "name": "EZCORP, Inc.",
+      "marketCap": 1899368448
+    },
+    "AVIR": {
+      "name": "Atea Pharmaceuticals, Inc.",
+      "marketCap": 421475680
+    },
+    "KLC": {
+      "name": "KinderCare Learning Companies, ",
+      "marketCap": 239997008
+    },
+    "RERE": {
+      "name": "ATRenew Inc.",
+      "marketCap": 859384576
+    },
+    "GGN": {
+      "name": "GAMCO Global Gold, Natural Reso",
+      "marketCap": 828772352
+    },
+    "TCPC": {
+      "name": "BlackRock TCP Capital Corp.",
+      "marketCap": 334772064
+    },
+    "HEPS": {
+      "name": "D-Market Electronic Services & ",
+      "marketCap": 896635264
+    },
+    "OMCL": {
+      "name": "Omnicell, Inc.",
+      "marketCap": 1529467008
+    },
+    "RPC": {
+      "name": "Ridgepost Capital, Inc.",
+      "marketCap": 820262208
+    },
+    "FVRR": {
+      "name": "Fiverr International Ltd.",
+      "marketCap": 306120448
+    },
+    "ZD": {
+      "name": "Ziff Davis, Inc.",
+      "marketCap": 1925055360
+    },
+    "KRNT": {
+      "name": "Kornit Digital Ltd.",
+      "marketCap": 674144960
+    },
+    "WWW": {
+      "name": "Wolverine World Wide, Inc.",
+      "marketCap": 1581418368
+    },
+    "RYZ": {
+      "name": "Ryerson Holding Corporation",
+      "marketCap": 1252314368
+    },
+    "CMCO": {
+      "name": "Columbus McKinnon Corporation",
+      "marketCap": 472796288
+    },
+    "LENZ": {
+      "name": "LENZ Therapeutics, Inc.",
+      "marketCap": 124424560
+    },
+    "SWBI": {
+      "name": "Smith & Wesson Brands, Inc.",
+      "marketCap": 629773312
+    },
+    "NXP": {
+      "name": "Nuveen Select Tax Free Income P",
+      "marketCap": 816998720
+    },
+    "STKE": {
+      "name": "Sol Strategies Inc.",
+      "marketCap": 65734448
+    },
+    "VLRS": {
+      "name": "Controladora Vuela Compania de ",
+      "marketCap": 780519808
+    },
+    "KRNY": {
+      "name": "Kearny Financial",
+      "marketCap": 580556096
+    },
+    "MTLS": {
+      "name": "Materialise NV",
+      "marketCap": 496276736
     },
     "MRX": {
       "name": "Marex Group Limited",
       "marketCap": null
     },
-    "HRTG": {
-      "name": "Heritage Insurance Holdings, In",
-      "marketCap": 1029633600
+    "DSP": {
+      "name": "Viant Technology Inc.",
+      "marketCap": 821236544
     },
-    "TEN": {
-      "name": "Tsakos Energy Navigation Ltd",
-      "marketCap": 1536507776
+    "TWI": {
+      "name": "Titan International, Inc. (DE)",
+      "marketCap": 445664960
+    },
+    "DAKT": {
+      "name": "Daktronics, Inc.",
+      "marketCap": 827674432
     },
     "GNK": {
       "name": "Genco Shipping & Trading Limite",
-      "marketCap": 1213015168
+      "marketCap": 1122790912
     },
-    "CBL": {
-      "name": "CBL & Associates Properties, In",
-      "marketCap": 1662399488
-    },
-    "VET": {
-      "name": "Vermilion Energy Inc.",
-      "marketCap": 1832071936
-    },
-    "OGI": {
-      "name": "Organigram Global Inc.",
-      "marketCap": 155812176
-    },
-    "GAB": {
-      "name": "Gabelli Equity Trust, Inc. (The",
-      "marketCap": 1859399552
-    },
-    "LINC": {
-      "name": "Lincoln Educational Services Co",
-      "marketCap": 786058304
-    },
-    "REX": {
-      "name": "REX American Resources Corporat",
-      "marketCap": 1460391680
-    },
-    "CFFN": {
-      "name": "Capitol Federal Financial, Inc.",
-      "marketCap": 1095434368
-    },
-    "CMCO": {
-      "name": "Columbus McKinnon Corporation",
-      "marketCap": 449849248
-    },
-    "IA": {
-      "name": "Innovative Solutions and Suppor",
-      "marketCap": 330150208
-    },
-    "GTY": {
-      "name": "Getty Realty Corporation",
-      "marketCap": 1826395264
-    },
-    "ASC": {
-      "name": "Ardmore Shipping Corporation",
-      "marketCap": 759336704
-    },
-    "AMTB": {
-      "name": "Amerant Bancorp Inc.",
-      "marketCap": 1167465856
-    },
-    "ZUMZ": {
-      "name": "Zumiez Inc.",
-      "marketCap": 214168672
-    },
-    "SMP": {
-      "name": "Standard Motor Products, Inc.",
-      "marketCap": 835763520
-    },
-    "CLDT": {
-      "name": "Chatham Lodging Trust (REIT)",
-      "marketCap": 640497472
-    },
-    "ACP": {
-      "name": "Aberdeen Income Credit Strategi",
-      "marketCap": 589712192
-    },
-    "AMSC": {
-      "name": "American Superconductor Corpora",
-      "marketCap": 1471430144
-    },
-    "WIW": {
-      "name": "Western Asset Inflation-Linked ",
-      "marketCap": 494973536
-    },
-    "JBGS": {
-      "name": "JBG SMITH Properties",
-      "marketCap": 867683456
-    },
-    "AVIR": {
-      "name": "Atea Pharmaceuticals, Inc.",
-      "marketCap": 435511488
-    },
-    "SWBI": {
-      "name": "Smith & Wesson Brands, Inc.",
-      "marketCap": 618787584
-    },
-    "GOLD": {
-      "name": "Gold.com, Inc.",
-      "marketCap": 1286162048
-    },
-    "FTK": {
-      "name": "Flotek Industries, Inc.",
-      "marketCap": 1136596992
+    "HSHP": {
+      "name": "Himalaya Shipping Ltd.",
+      "marketCap": 813210816
     },
     "AMPY": {
       "name": "Amplify Energy Corp.",
-      "marketCap": 180335552
+      "marketCap": 175568064
     },
-    "PDFS": {
-      "name": "PDF Solutions, Inc.",
-      "marketCap": 1952586496
+    "ZBIO": {
+      "name": "Zenas BioPharma, Inc.",
+      "marketCap": 1794967040
     },
-    "MHD": {
-      "name": "Blackrock MuniHoldings Fund, In",
-      "marketCap": 567822208
-    },
-    "FVRR": {
-      "name": "Fiverr International Ltd.",
-      "marketCap": 313670112
-    },
-    "KREF": {
-      "name": "KKR Real Estate Finance Trust I",
-      "marketCap": 434349312
-    },
-    "MUC": {
-      "name": "Blackrock MuniHoldings Californ",
-      "marketCap": 954083136
-    },
-    "MYI": {
-      "name": "Blackrock MuniYield Quality Fun",
-      "marketCap": 666001920
-    },
-    "PRGS": {
-      "name": "Progress Software Corporation",
-      "marketCap": 1657538176
-    },
-    "SRI": {
-      "name": "Stoneridge, Inc.",
-      "marketCap": 202512400
-    },
-    "XPER": {
-      "name": "Xperi Inc.",
-      "marketCap": 268001168
-    },
-    "FWRD": {
-      "name": "Forward Air Corporation",
-      "marketCap": 489146880
-    },
-    "WWW": {
-      "name": "Wolverine World Wide, Inc.",
-      "marketCap": 1605217536
-    },
-    "AOD": {
-      "name": "Aberdeen Total Dynamic Dividend",
-      "marketCap": 1113197312
-    },
-    "RGR": {
-      "name": "Sturm, Ruger & Company, Inc.",
-      "marketCap": 660700864
-    },
-    "PERI": {
-      "name": "Perion Network Ltd",
-      "marketCap": 363258912
-    },
-    "NVRI": {
-      "name": "Enviri Corporation",
-      "marketCap": 589173504
-    },
-    "MYE": {
-      "name": "Myers Industries, Inc.",
-      "marketCap": 1180078976
-    },
-    "SPH": {
-      "name": "Suburban Propane Partners, L.P.",
-      "marketCap": 1126438656
-    },
-    "MOV": {
-      "name": "Movado Group Inc.",
-      "marketCap": 733626624
-    },
-    "NSLR": {
-      "name": "Neostellar Capital Corp.",
-      "marketCap": 210991568
-    },
-    "OMCL": {
-      "name": "Omnicell, Inc.",
-      "marketCap": 1477922304
-    },
-    "DLX": {
-      "name": "Deluxe Corporation",
-      "marketCap": 1080832640
-    },
-    "NFE": {
-      "name": "New Fortress Energy Inc.",
-      "marketCap": 64210668
-    },
-    "APEI": {
-      "name": "American Public Education, Inc.",
-      "marketCap": 790443648
-    },
-    "GABC": {
-      "name": "German American Bancorp, Inc.",
-      "marketCap": 1851695872
-    },
-    "CCNE": {
-      "name": "CNB Financial Corporation",
-      "marketCap": 1007406208
-    },
-    "VLRS": {
-      "name": "Controladora Vuela Compania de ",
-      "marketCap": 784543040
-    },
-    "NWPX": {
-      "name": "NWPX Infrastructure, Inc.",
-      "marketCap": 994848384
-    },
-    "TILE": {
-      "name": "Interface, Inc.",
-      "marketCap": 1980243712
-    },
-    "HCAT": {
-      "name": "Health Catalyst, Inc",
-      "marketCap": 135085200
-    },
-    "BOW": {
-      "name": "Bowhead Specialty Holdings Inc.",
-      "marketCap": 1113308800
-    },
-    "CRESY": {
-      "name": "Cresud S.A.C.I.F. y A.",
-      "marketCap": 900750016
-    },
-    "LOB": {
-      "name": "Live Oak Bancshares, Inc.",
-      "marketCap": 1769885696
-    },
-    "NPWR": {
-      "name": "NET Power Inc.",
-      "marketCap": 159707616
-    },
-    "PKE": {
-      "name": "Park Aerospace Corp.",
-      "marketCap": 662541888
-    },
-    "APOG": {
-      "name": "Apogee Enterprises, Inc.",
-      "marketCap": 772544256
-    },
-    "CABO": {
-      "name": "Cable One, Inc.",
-      "marketCap": 102414344
+    "BHK": {
+      "name": "Blackrock Core Bond Trust Black",
+      "marketCap": 596211008
     },
     "BDJ": {
       "name": "Blackrock Enhanced Equity Divid",
-      "marketCap": 1694245376
+      "marketCap": 1676108544
+    },
+    "XZO": {
+      "name": "Exzeo Group, Inc.",
+      "marketCap": 1341379328
+    },
+    "CRESY": {
+      "name": "Cresud S.A.C.I.F. y A.",
+      "marketCap": 849683840
+    },
+    "FWRD": {
+      "name": "Forward Air Corporation",
+      "marketCap": 513469120
+    },
+    "NPWR": {
+      "name": "NET Power Inc.",
+      "marketCap": 141648720
+    },
+    "SJT": {
+      "name": "San Juan Basin Royalty Trust",
+      "marketCap": 171753408
+    },
+    "APEI": {
+      "name": "American Public Education, Inc.",
+      "marketCap": 747068992
+    },
+    "HFWA": {
+      "name": "Heritage Financial Corporation",
+      "marketCap": 1151363840
+    },
+    "DLX": {
+      "name": "Deluxe Corporation",
+      "marketCap": 1104219392
     },
     "ACEL": {
       "name": "Accel Entertainment, Inc.",
-      "marketCap": 907530752
+      "marketCap": 898650816
     },
-    "OBK": {
-      "name": "Origin Bancorp, Inc.",
-      "marketCap": 1662643456
+    "CMTG": {
+      "name": "Claros Mortgage Trust, Inc.",
+      "marketCap": 184114880
     },
-    "OPRA": {
-      "name": "Opera Limited",
-      "marketCap": 1612072064
+    "FTK": {
+      "name": "Flotek Industries, Inc.",
+      "marketCap": 1060534144
     },
-    "WHF": {
-      "name": "WhiteHorse Finance, Inc.",
-      "marketCap": 152590336
+    "HCSG": {
+      "name": "Healthcare Services Group, Inc.",
+      "marketCap": 1425490816
     },
-    "NMCO": {
-      "name": "Nuveen Municipal Credit Opportunities Fund",
-      "marketCap": 555312128
+    "ACTG": {
+      "name": "Acacia Research Corporation",
+      "marketCap": 420111200
     },
-    "PSFE": {
-      "name": "Paysafe Limited",
-      "marketCap": 335484416
+    "TUYA": {
+      "name": "Tuya Inc.",
+      "marketCap": 1048848448
     },
-    "TRS": {
-      "name": "TriMas Corporation",
-      "marketCap": 1367511936
+    "ASC": {
+      "name": "Ardmore Shipping Corporation",
+      "marketCap": 730366784
     },
-    "STC": {
-      "name": "Stewart Information Services Co",
-      "marketCap": 1929159680
+    "DCOM": {
+      "name": "Dime Commercial Bancshares, Inc",
+      "marketCap": 1757211648
     },
-    "KRT": {
-      "name": "Karat Packaging Inc.",
-      "marketCap": 1015919808
+    "ALIT": {
+      "name": "Alight, Inc.",
+      "marketCap": 361332928
     },
-    "NXP": {
-      "name": "Nuveen Select Tax Free Income P",
-      "marketCap": 847428992
+    "PRGS": {
+      "name": "Progress Software Corporation",
+      "marketCap": 1598684544
+    },
+    "HMN": {
+      "name": "Horace Mann Educators Corporati",
+      "marketCap": 1825787648
+    },
+    "NVGS": {
+      "name": "Navigator Holdings Ltd.",
+      "marketCap": 1402658176
+    },
+    "MG": {
+      "name": "Mistras Group Inc",
+      "marketCap": 682767360
+    },
+    "BJRI": {
+      "name": "BJ's Restaurants, Inc.",
+      "marketCap": 1285786240
     },
     "TWFG": {
       "name": "TWFG, Inc.",
-      "marketCap": 333343008
+      "marketCap": 314988544
     },
-    "HIX": {
-      "name": "Western Asset High Income Fund ",
-      "marketCap": 338662112
+    "SNDA": {
+      "name": "Sonida Senior Living, Inc.",
+      "marketCap": 1808045952
     },
-    "MGPI": {
-      "name": "MGP Ingredients, Inc.",
-      "marketCap": 290267808
-    },
-    "TFIN": {
-      "name": "Triumph Financial, Inc.",
-      "marketCap": 1493408512
-    },
-    "METCB": {
-      "name": "Ramaco Resources, Inc.",
-      "marketCap": 316645952
-    },
-    "RERE": {
-      "name": "ATRenew Inc.",
-      "marketCap": 871566528
+    "UIS": {
+      "name": "Unisys Corporation New",
+      "marketCap": 163696304
     },
     "SPWH": {
       "name": "Sportsman's Warehouse Holdings,",
-      "marketCap": 48144000
+      "marketCap": 45795512
     },
-    "GIC": {
-      "name": "Global Industrial Company",
-      "marketCap": 1564879104
+    "TTEC": {
+      "name": "TTEC Holdings, Inc.",
+      "marketCap": 60880488
     },
-    "PLCE": {
-      "name": "Children's Place, Inc. (The)",
-      "marketCap": 48143252
+    "WIW": {
+      "name": "Western Asset Inflation-Linked ",
+      "marketCap": 482137088
     },
-    "UVSP": {
-      "name": "Univest Financial Corporation",
-      "marketCap": 1166390656
+    "GOLD": {
+      "name": "Gold.com, Inc.",
+      "marketCap": 1264296064
     },
-    "CAC": {
-      "name": "Camden National Corporation",
-      "marketCap": 970059520
+    "DDL": {
+      "name": "Dingdong (Cayman) Limited",
+      "marketCap": 479952352
     },
-    "ASG": {
-      "name": "Liberty All-Star Growth Fund, I",
-      "marketCap": 323367200
+    "CABO": {
+      "name": "Cable One, Inc.",
+      "marketCap": 70470720
     },
-    "HAFC": {
-      "name": "Hanmi Financial Corporation",
-      "marketCap": 960042944
+    "CNOB": {
+      "name": "ConnectOne Bancorp, Inc.",
+      "marketCap": 1546580096
     },
-    "AEF": {
-      "name": "27762",
-      "marketCap": 407638304
+    "RGR": {
+      "name": "Sturm, Ruger & Company, Inc.",
+      "marketCap": 678516672
     },
-    "ASIC": {
-      "name": "Ategrity Specialty Insurance Co",
-      "marketCap": 1305529472
+    "AMTB": {
+      "name": "Amerant Bancorp Inc.",
+      "marketCap": 1157668352
     },
-    "TSAT": {
-      "name": "Telesat Corporation",
-      "marketCap": 2651586048
+    "WBTN": {
+      "name": "WEBTOON Entertainment Inc.",
+      "marketCap": 1499607424
     },
-    "SPXX": {
-      "name": "Nuveen S&P 500 Dynamic Overwrit",
-      "marketCap": 338431808
-    },
-    "ATLC": {
-      "name": "Atlanticus Holdings Corporation",
-      "marketCap": 1387451648
-    },
-    "SND": {
-      "name": "Smart Sand, Inc.",
-      "marketCap": 230222656
-    },
-    "MSIF": {
-      "name": "MSC Income Fund, Inc.",
-      "marketCap": 569989504
-    },
-    "LOCO": {
-      "name": "El Pollo Loco Holdings, Inc.",
-      "marketCap": 436103968
-    },
-    "BRT": {
-      "name": "BRT Apartments Corp. (MD)",
-      "marketCap": 261401312
-    },
-    "KE": {
-      "name": "Kimball Electronics, Inc.",
-      "marketCap": 613075776
-    },
-    "MCB": {
-      "name": "Metropolitan Bank Holding Corp.",
-      "marketCap": 1108919296
+    "MGPI": {
+      "name": "MGP Ingredients, Inc.",
+      "marketCap": 272601184
     },
     "LEO": {
       "name": "Dreyfus Strategic Municipals, I",
-      "marketCap": 361598400
+      "marketCap": 343534048
     },
-    "MCS": {
-      "name": "Marcus Corporation (The)",
-      "marketCap": 862221376
+    "STC": {
+      "name": "Stewart Information Services Co",
+      "marketCap": 1756051456
+    },
+    "TRS": {
+      "name": "TriMas Corporation",
+      "marketCap": 1408408192
+    },
+    "OPRA": {
+      "name": "Opera Limited",
+      "marketCap": 1554275840
+    },
+    "SAH": {
+      "name": "Sonic Automotive, Inc.",
+      "marketCap": 1991574400
+    },
+    "NVRI": {
+      "name": "Enviri Corporation",
+      "marketCap": 552244480
+    },
+    "XPER": {
+      "name": "Xperi Inc.",
+      "marketCap": 264348176
+    },
+    "MYE": {
+      "name": "Myers Industries, Inc.",
+      "marketCap": 1193997568
+    },
+    "KRT": {
+      "name": "Karat Packaging Inc.",
+      "marketCap": 1061463744
+    },
+    "SRI": {
+      "name": "Stoneridge, Inc.",
+      "marketCap": 192957232
+    },
+    "AOD": {
+      "name": "Aberdeen Total Dynamic Dividend",
+      "marketCap": 1074174720
+    },
+    "BTT": {
+      "name": "BlackRock Municipal 2030 Target",
+      "marketCap": 1365719424
+    },
+    "PSFE": {
+      "name": "Paysafe Limited",
+      "marketCap": 315903616
+    },
+    "TFIN": {
+      "name": "Triumph Financial, Inc.",
+      "marketCap": 1461270272
+    },
+    "PERI": {
+      "name": "Perion Network Ltd",
+      "marketCap": 350661504
+    },
+    "CLDT": {
+      "name": "Chatham Lodging Trust (REIT)",
+      "marketCap": 658657152
+    },
+    "PKE": {
+      "name": "Park Aerospace Corp.",
+      "marketCap": 646011008
+    },
+    "CASS": {
+      "name": "Cass Information Systems, Inc",
+      "marketCap": 690123392
+    },
+    "IA": {
+      "name": "Innovative Solutions and Suppor",
+      "marketCap": 334983008
+    },
+    "SPXX": {
+      "name": "Nuveen S&P 500 Dynamic Overwrit",
+      "marketCap": 331846976
+    },
+    "HAFC": {
+      "name": "Hanmi Financial Corporation",
+      "marketCap": 941660352
+    },
+    "UVSP": {
+      "name": "Univest Financial Corporation",
+      "marketCap": 1151221248
     },
     "ETW": {
       "name": "Eaton Vance Corporation Eaton V",
-      "marketCap": 1043624640
+      "marketCap": 1032764928
     },
-    "KELYA": {
-      "name": "Kelly Services, Inc.",
-      "marketCap": 567867328
+    "MOV": {
+      "name": "Movado Group Inc.",
+      "marketCap": 743890240
     },
-    "RM": {
-      "name": "Regional Management Corp.",
-      "marketCap": 292134784
+    "HRTG": {
+      "name": "Heritage Insurance Holdings, In",
+      "marketCap": 988900096
     },
-    "CMPR": {
-      "name": "Cimpress PLC",
-      "marketCap": 1944305664
+    "ASG": {
+      "name": "Liberty All-Star Growth Fund, I",
+      "marketCap": 322730048
+    },
+    "NGL": {
+      "name": "NGL ENERGY PARTNERS LP",
+      "marketCap": 1847432960
+    },
+    "PSTL": {
+      "name": "Postal Realty Trust, Inc.",
+      "marketCap": 934912704
+    },
+    "CBL": {
+      "name": "CBL & Associates Properties, In",
+      "marketCap": 1613045888
+    },
+    "MCS": {
+      "name": "Marcus Corporation (The)",
+      "marketCap": 880874816
+    },
+    "APOG": {
+      "name": "Apogee Enterprises, Inc.",
+      "marketCap": 763362240
+    },
+    "REX": {
+      "name": "REX American Resources Corporat",
+      "marketCap": 1421410304
+    },
+    "RIGL": {
+      "name": "Rigel Pharmaceuticals, Inc.",
+      "marketCap": 915482880
+    },
+    "UVE": {
+      "name": "UNIVERSAL INSURANCE HOLDINGS IN",
+      "marketCap": 1180007168
+    },
+    "SND": {
+      "name": "Smart Sand, Inc.",
+      "marketCap": 224291024
     },
     "GAIN": {
       "name": "Gladstone Investment Corporatio",
       "marketCap": null
     },
-    "TRST": {
-      "name": "TrustCo Bank Corp NY",
-      "marketCap": 964621504
+    "SPH": {
+      "name": "Suburban Propane Partners, L.P.",
+      "marketCap": 1105424256
     },
-    "UVE": {
-      "name": "UNIVERSAL INSURANCE HOLDINGS IN",
-      "marketCap": 1220082816
-    },
-    "FLXS": {
-      "name": "Flexsteel Industries, Inc.",
-      "marketCap": 334949920
-    },
-    "FRD": {
-      "name": "Friedman Industries Inc.",
-      "marketCap": 289665696
-    },
-    "WNEB": {
-      "name": "Western New England Bancorp, In",
-      "marketCap": 278637600
-    },
-    "WTBA": {
-      "name": "West Bancorporation",
-      "marketCap": 500233888
-    },
-    "SENEA": {
-      "name": "Seneca Foods Corp.",
-      "marketCap": 1242514304
+    "CARE": {
+      "name": "Carter Bankshares, Inc.",
+      "marketCap": 694223040
     },
     "BGY": {
       "name": "Blackrock Enhanced Internationa",
-      "marketCap": 528735360
-    },
-    "LMNR": {
-      "name": "Limoneira Co",
-      "marketCap": 229007264
-    },
-    "XRN": {
-      "name": "Chiron Real Estate Inc.",
-      "marketCap": 528089856
-    },
-    "DSGR": {
-      "name": "Distribution Solutions Group, I",
-      "marketCap": 1612695424
-    },
-    "BTT": {
-      "name": "BlackRock Municipal 2030 Target",
-      "marketCap": 1409939072
-    },
-    "CBNK": {
-      "name": "Capital Bancorp, Inc.",
-      "marketCap": 585804800
-    },
-    "AVNW": {
-      "name": "Aviat Networks, Inc.",
-      "marketCap": 261535440
-    },
-    "GLRE": {
-      "name": "Greenlight Reinsurance, Ltd.",
-      "marketCap": 500481696
-    },
-    "RCKY": {
-      "name": "Rocky Brands, Inc.",
-      "marketCap": 331264672
-    },
-    "CASS": {
-      "name": "Cass Information Systems, Inc",
-      "marketCap": 706771328
-    },
-    "ACTG": {
-      "name": "Acacia Research Corporation",
-      "marketCap": 426454336
-    },
-    "FSBC": {
-      "name": "Five Star Bancorp",
-      "marketCap": 1095927936
-    },
-    "HQH": {
-      "name": "Tekla Healthcare Investors",
-      "marketCap": 1236496128
-    },
-    "KRNT": {
-      "name": "Kornit Digital Ltd.",
-      "marketCap": 659965952
+      "marketCap": 516502368
     },
     "CYD": {
       "name": "China Yuchai International Limi",
-      "marketCap": 1311265408
-    },
-    "BOE": {
-      "name": "Blackrock Enhanced Global Divid",
-      "marketCap": 679989504
-    },
-    "EHI": {
-      "name": "Western Asset Global High Incom",
-      "marketCap": 168618064
-    },
-    "CHMG": {
-      "name": "Chemung Financial Corp",
-      "marketCap": 398277696
-    },
-    "UFCS": {
-      "name": "United Fire Group, Inc",
-      "marketCap": 1385432960
-    },
-    "TYG": {
-      "name": "Tortoise Energy Infrastructure ",
-      "marketCap": 1084257152
-    },
-    "IRS": {
-      "name": "IRSA Inversiones Y Representaci",
-      "marketCap": 1321021056
-    },
-    "MTLS": {
-      "name": "Materialise NV",
-      "marketCap": 450404224
-    },
-    "PGC": {
-      "name": "Peapack-Gladstone Financial Cor",
-      "marketCap": 806267264
-    },
-    "ASA": {
-      "name": "ASA  Gold and Precious Metals L",
-      "marketCap": 1064693504
-    },
-    "HBB": {
-      "name": "Hamilton Beach Brands Holding C",
-      "marketCap": 428138272
-    },
-    "IMKTA": {
-      "name": "Ingles Markets, Incorporated",
-      "marketCap": 1570644992
-    },
-    "GLP": {
-      "name": "Global Partners LP",
-      "marketCap": 1682632704
-    },
-    "ETV": {
-      "name": "Eaton Vance Corporation Eaton V",
-      "marketCap": 1797786752
-    },
-    "BWMX": {
-      "name": "Betterware de Mexico, S.A.P.I. ",
-      "marketCap": 620856128
-    },
-    "SMBK": {
-      "name": "SmartFinancial, Inc.",
-      "marketCap": 888094592
-    },
-    "SKIL": {
-      "name": "Skillsoft Corp.",
-      "marketCap": 55785724
-    },
-    "THFF": {
-      "name": "First Financial Corporation",
-      "marketCap": 904081408
-    },
-    "KELYB": {
-      "name": "Kelly Services, Inc.",
-      "marketCap": 770701824
-    },
-    "STKE": {
-      "name": "Sol Strategies Inc.",
-      "marketCap": 62755548
-    },
-    "TEI": {
-      "name": "Templeton Emerging Markets Inco",
-      "marketCap": 307693120
-    },
-    "IFN": {
-      "name": "India Fund, Inc. (The)",
-      "marketCap": 478133824
+      "marketCap": 1218220032
     },
     "NRIM": {
       "name": "Northrim BanCorp Inc",
-      "marketCap": 563904832
+      "marketCap": 545664128
+    },
+    "ZUMZ": {
+      "name": "Zumiez Inc.",
+      "marketCap": 215548432
+    },
+    "MHF": {
+      "name": "Western Asset Municipal High In",
+      "marketCap": 133120704
+    },
+    "LOCO": {
+      "name": "El Pollo Loco Holdings, Inc.",
+      "marketCap": 429104416
+    },
+    "EHI": {
+      "name": "Western Asset Global High Incom",
+      "marketCap": 162255120
+    },
+    "FSBC": {
+      "name": "Five Star Bancorp",
+      "marketCap": 1067588032
+    },
+    "TASK": {
+      "name": "TaskUs, Inc.",
+      "marketCap": 738997440
     },
     "MMD": {
       "name": "MainStay MacKay DefinedTerm Mun",
-      "marketCap": 265541456
+      "marketCap": 251362976
     },
-    "BSET": {
-      "name": "Bassett Furniture Industries, I",
-      "marketCap": 149788048
+    "CMPR": {
+      "name": "Cimpress PLC",
+      "marketCap": 1966950656
+    },
+    "KELYA": {
+      "name": "Kelly Services, Inc.",
+      "marketCap": 573771712
+    },
+    "DSGR": {
+      "name": "Distribution Solutions Group, I",
+      "marketCap": 1618708480
+    },
+    "IFN": {
+      "name": "India Fund, Inc. (The)",
+      "marketCap": 459510848
+    },
+    "PPT": {
+      "name": "Putnam Premier Income Trust",
+      "marketCap": 309638816
+    },
+    "TYG": {
+      "name": "Tortoise Energy Infrastructure ",
+      "marketCap": 988949056
+    },
+    "LOB": {
+      "name": "Live Oak Bancshares, Inc.",
+      "marketCap": 1719899264
+    },
+    "HTT": {
+      "name": "High Templar Tech Limited",
+      "marketCap": 371904000
+    },
+    "MSIF": {
+      "name": "MSC Income Fund, Inc.",
+      "marketCap": 549357440
+    },
+    "NSLR": {
+      "name": "Neostellar Capital Corp.",
+      "marketCap": 209535552
+    },
+    "KE": {
+      "name": "Kimball Electronics, Inc.",
+      "marketCap": 663643712
+    },
+    "CCNE": {
+      "name": "CNB Financial Corporation",
+      "marketCap": 1000149120
+    },
+    "TEI": {
+      "name": "Templeton Emerging Markets Inco",
+      "marketCap": 289274048
+    },
+    "CEPU": {
+      "name": "Central Puerto S.A.",
+      "marketCap": 1832831872
+    },
+    "OBK": {
+      "name": "Origin Bancorp, Inc.",
+      "marketCap": 1638580736
     },
     "AVK": {
       "name": "Advent Claymore Convertible Sec",
-      "marketCap": 539285760
+      "marketCap": 505414816
     },
-    "AGD": {
-      "name": "\"abrdn Global Dynamic Dividend ",
-      "marketCap": 317233088
+    "PMO": {
+      "name": "Putnam Municipal Opportunities ",
+      "marketCap": 254207888
     },
-    "WSBF": {
-      "name": "Waterstone Financial, Inc.",
-      "marketCap": 373742432
+    "CBNK": {
+      "name": "Capital Bancorp, Inc.",
+      "marketCap": 587759680
     },
-    "MYFW": {
-      "name": "First Western Financial, Inc.",
-      "marketCap": 298129408
+    "HQH": {
+      "name": "Tekla Healthcare Investors",
+      "marketCap": 1219910400
+    },
+    "IRS": {
+      "name": "IRSA Inversiones Y Representaci",
+      "marketCap": 1212268544
+    },
+    "FLXS": {
+      "name": "Flexsteel Industries, Inc.",
+      "marketCap": 358968448
+    },
+    "MUJ": {
+      "name": "Blackrock MuniHoldings New Jers",
+      "marketCap": 595673088
+    },
+    "ASIC": {
+      "name": "Ategrity Specialty Insurance Co",
+      "marketCap": 1283483136
+    },
+    "GEOS": {
+      "name": "Geospace Technologies Corporati",
+      "marketCap": 64223976
+    },
+    "PGC": {
+      "name": "Peapack-Gladstone Financial Cor",
+      "marketCap": 788007488
+    },
+    "NTRSO": {
+      "name": "Northern Trust Corporation - De",
+      "marketCap": null
+    },
+    "ETV": {
+      "name": "Eaton Vance Corporation Eaton V",
+      "marketCap": 1747815936
+    },
+    "ETG": {
+      "name": "Eaton Vance Tax-Advantaged Glob",
+      "marketCap": 1765264640
+    },
+    "CPF": {
+      "name": "Central Pacific Financial Corp ",
+      "marketCap": 943128448
+    },
+    "SMBK": {
+      "name": "SmartFinancial, Inc.",
+      "marketCap": 856291520
+    },
+    "GABC": {
+      "name": "German American Bancorp, Inc.",
+      "marketCap": 1857520512
+    },
+    "AP": {
+      "name": "Ampco-Pittsburgh Corporation",
+      "marketCap": 183655136
+    },
+    "MCB": {
+      "name": "Metropolitan Bank Holding Corp.",
+      "marketCap": 1105641344
+    },
+    "LMNR": {
+      "name": "Limoneira Co",
+      "marketCap": 218218720
+    },
+    "HCAT": {
+      "name": "Health Catalyst, Inc",
+      "marketCap": 131322392
+    },
+    "RMT": {
+      "name": "Royce Micro-Cap Trust, Inc.",
+      "marketCap": 725082304
+    },
+    "GLRE": {
+      "name": "Greenlight Reinsurance, Ltd.",
+      "marketCap": 491251488
+    },
+    "BOW": {
+      "name": "Bowhead Specialty Holdings Inc.",
+      "marketCap": 1114626560
+    },
+    "UFCS": {
+      "name": "United Fire Group, Inc",
+      "marketCap": 1371065472
+    },
+    "BOE": {
+      "name": "Blackrock Enhanced Global Divid",
+      "marketCap": 659139456
     },
     "AFB": {
       "name": "AllianceBernstein National Muni",
-      "marketCap": 289748960
+      "marketCap": 272789440
     },
-    "ONIT": {
-      "name": "Onity Group Inc.",
-      "marketCap": 265005376
+    "ATLC": {
+      "name": "Atlanticus Holdings Corporation",
+      "marketCap": 1336480384
     },
-    "TE": {
-      "name": "T1 Energy Inc.",
-      "marketCap": 1320727168
+    "GIC": {
+      "name": "Global Industrial Company",
+      "marketCap": 1614235776
     },
-    "YSS": {
-      "name": "York Space Systems Inc.",
-      "marketCap": 1338549760
+    "IMKTA": {
+      "name": "Ingles Markets, Incorporated",
+      "marketCap": 1613002368
     },
-    "NRGV": {
-      "name": "Energy Vault Holdings, Inc.",
-      "marketCap": 862828736
+    "TSAT": {
+      "name": "Telesat Corporation",
+      "marketCap": 2434773504
     },
-    "RXT": {
-      "name": "Rackspace Technology, Inc.",
-      "marketCap": 1029686272
+    "THFF": {
+      "name": "First Financial Corporation",
+      "marketCap": 893913792
     },
-    "SPCE": {
-      "name": "Virgin Galactic Holdings, Inc.",
-      "marketCap": 493444672
+    "TRST": {
+      "name": "TrustCo Bank Corp NY",
+      "marketCap": 944336320
     },
-    "TV": {
-      "name": "Grupo Televisa S.A.B.",
-      "marketCap": 1349273600
+    "SMP": {
+      "name": "Standard Motor Products, Inc.",
+      "marketCap": 842219904
     },
-    "VYX": {
-      "name": "NCR Voyix Corporation",
-      "marketCap": 979605952
+    "JRS": {
+      "name": "Nuveen Real Estate Income Fund ",
+      "marketCap": 211201072
     },
-    "NMAX": {
-      "name": "Newsmax, Inc.",
-      "marketCap": 1420767104
+    "AVNW": {
+      "name": "Aviat Networks, Inc.",
+      "marketCap": 251934288
     },
-    "LAES": {
-      "name": "SEALSQ Corp",
-      "marketCap": 531960768
+    "HBB": {
+      "name": "Hamilton Beach Brands Holding C",
+      "marketCap": 499651456
     },
-    "IMSR": {
-      "name": "Terrestrial Energy Inc.",
-      "marketCap": 584916288
+    "AGNCZ": {
+      "name": "AGNC Investment Corp. - Deposit",
+      "marketCap": null
     },
-    "BKKT": {
-      "name": "Bakkt, Inc.",
-      "marketCap": 408329280
+    "SENEA": {
+      "name": "Seneca Foods Corp.",
+      "marketCap": 1238790528
     },
-    "WOLF": {
-      "name": "Wolfspeed, Inc.",
-      "marketCap": 1470390016
+    "RCKY": {
+      "name": "Rocky Brands, Inc.",
+      "marketCap": 337180096
     },
-    "AMBQ": {
-      "name": "Ambiq Micro, Inc.",
-      "marketCap": 1701382016
+    "RBB": {
+      "name": "RBB Bancorp",
+      "marketCap": 448526784
     },
-    "EDIT": {
-      "name": "Editas Medicine, Inc.",
-      "marketCap": 441542592
+    "MSD": {
+      "name": "Morgan Stanley Emerging Markets",
+      "marketCap": 139595856
     },
-    "XERS": {
-      "name": "Xeris Biopharma Holdings, Inc.",
-      "marketCap": 1590744704
+    "SFIX": {
+      "name": "Stitch Fix, Inc.",
+      "marketCap": 322652896
     },
-    "GCTS": {
-      "name": "GCT Semiconductor Holding, Inc.",
-      "marketCap": 205993792
+    "PACB": {
+      "name": "Pacific Biosciences of Californ",
+      "marketCap": 540876608
     },
-    "GTN": {
-      "name": "Gray Media, Inc.",
-      "marketCap": 485571392
+    "ALXO": {
+      "name": "ALX Oncology Holdings Inc.",
+      "marketCap": 195661936
     },
-    "ARHS": {
-      "name": "Arhaus, Inc.",
-      "marketCap": 1229696256
+    "ANNX": {
+      "name": "Annexon, Inc.",
+      "marketCap": 742202304
     },
-    "SONO": {
-      "name": "Sonos, Inc.",
-      "marketCap": 1934106496
+    "TSHA": {
+      "name": "Taysha Gene Therapies, Inc.",
+      "marketCap": 1630796928
     },
-    "ADCT": {
-      "name": "ADC Therapeutics SA",
-      "marketCap": 143626160
-    },
-    "EAF": {
-      "name": "GrafTech International Ltd.",
-      "marketCap": 243287248
-    },
-    "FOSL": {
-      "name": "Fossil Group, Inc.",
-      "marketCap": 344774848
-    },
-    "CRNC": {
-      "name": "Cerence Inc.",
-      "marketCap": 369078880
-    },
-    "BKSY": {
-      "name": "BlackSky Technology Inc.",
-      "marketCap": 948228736
-    },
-    "MNRO": {
-      "name": "Monro, Inc.",
-      "marketCap": 405740672
-    },
-    "XPOF": {
-      "name": "Xponential Fitness, Inc.",
-      "marketCap": 189650112
-    },
-    "LILAK": {
-      "name": "Liberty Latin America Ltd.",
-      "marketCap": 1739592064
-    },
-    "HUYA": {
-      "name": "HUYA Inc.",
-      "marketCap": 502405408
-    },
-    "ASYS": {
-      "name": "Amtech Systems, Inc.",
-      "marketCap": 264547392
-    },
-    "SSP": {
-      "name": "E.W. Scripps Company (The)",
-      "marketCap": 294687392
-    },
-    "BAND": {
-      "name": "Bandwidth Inc.",
-      "marketCap": 1761093632
-    },
-    "CEVA": {
-      "name": "CEVA, Inc.",
-      "marketCap": 908109632
-    },
-    "SVCO": {
-      "name": "Silvaco Group, Inc.",
-      "marketCap": 253465488
-    },
-    "SPIR": {
-      "name": "Spire Global, Inc.",
-      "marketCap": 473683232
-    },
-    "GSIT": {
-      "name": "GSI Technology, Inc.",
-      "marketCap": 214261696
-    },
-    "SPRU": {
-      "name": "Spruce Power Holding Corporatio",
-      "marketCap": 42354812
-    },
-    "AMPH": {
-      "name": "Amphastar Pharmaceuticals, Inc.",
-      "marketCap": 1066426240
+    "ADRX": {
+      "name": "ADARx Pharmaceuticals, Inc.",
+      "marketCap": null
     },
     "MX": {
       "name": "Magnachip Semiconductor Corpora",
-      "marketCap": 118110208
+      "marketCap": 141476688
     },
-    "HPP": {
-      "name": "Hudson Pacific Properties, Inc.",
-      "marketCap": 1349299072
+    "BUR": {
+      "name": "Burford Capital Limited",
+      "marketCap": 876295872
     },
-    "PICS": {
-      "name": "PicS N.V.",
-      "marketCap": 2115023488
+    "XERS": {
+      "name": "Xeris Biopharma Holdings, Inc.",
+      "marketCap": 1786739072
     },
-    "SST": {
-      "name": "System1, Inc.",
-      "marketCap": 36403292
+    "ENHA": {
+      "name": "Enhanced Group Inc.",
+      "marketCap": 628252352
+    },
+    "ANVS": {
+      "name": "Annovis Bio, Inc.",
+      "marketCap": 59110496
+    },
+    "MGNX": {
+      "name": "MacroGenics, Inc.",
+      "marketCap": 256074752
+    },
+    "PRTA": {
+      "name": "Prothena Corporation plc",
+      "marketCap": 453048800
+    },
+    "TRAX": {
+      "name": "First Tracks Biotherapeutics, I",
+      "marketCap": 1322041216
+    },
+    "VIOT": {
+      "name": "Viomi Technology Co., Ltd",
+      "marketCap": 102886344
     },
     "GOSS": {
       "name": "Gossamer Bio, Inc.",
-      "marketCap": 70430248
+      "marketCap": 71684104
     },
-    "STRZ": {
-      "name": "Starz Entertainment Corp.",
-      "marketCap": 451906880
+    "FLX": {
+      "name": "BINGEX LIMITED",
+      "marketCap": 97262784
     },
-    "UP": {
-      "name": "Wheels Up Experience Inc.",
-      "marketCap": 136578544
+    "BLSM": {
+      "name": "BlossomHill Therapeutics, Inc.",
+      "marketCap": 670661568
     },
-    "LILA": {
-      "name": "Liberty Latin America Ltd.",
-      "marketCap": 1733715072
+    "CANG": {
+      "name": "Cango Inc.",
+      "marketCap": 93530088
     },
-    "OWLT": {
-      "name": "Owlet, Inc.",
-      "marketCap": 145816160
+    "SEER": {
+      "name": "Seer, Inc.",
+      "marketCap": 112682056
     },
-    "ZH": {
-      "name": "Zhihu Inc.",
-      "marketCap": 286913696
+    "TLYS": {
+      "name": "Tilly's, Inc.",
+      "marketCap": 137948560
     },
-    "EVCM": {
-      "name": "EverCommerce Inc.",
-      "marketCap": 1446888320
+    "SEAT": {
+      "name": "Vivid Seats Inc.",
+      "marketCap": 44065484
     },
-    "NRC": {
-      "name": "NRC Health",
-      "marketCap": 481308736
+    "SI": {
+      "name": "Shoulder Innovations, Inc.",
+      "marketCap": 374741216
     },
-    "SILC": {
-      "name": "Silicom Ltd",
-      "marketCap": 279305152
+    "LFCR": {
+      "name": "Lifecore Biomedical, Inc.",
+      "marketCap": 247748288
     },
-    "API": {
-      "name": "Agora, Inc.",
-      "marketCap": 366946080
+    "VALN": {
+      "name": "Valneva SE",
+      "marketCap": 614456000
     },
-    "MCHX": {
-      "name": "Marchex, Inc.",
-      "marketCap": 60742908
+    "LUCK": {
+      "name": "LUCKY STRIKE ENTERTAINMENT CORP",
+      "marketCap": 751167424
     },
-    "XYF": {
-      "name": "X Financial",
-      "marketCap": 191684224
+    "MSB": {
+      "name": "Mesabi Trust",
+      "marketCap": 278669024
     },
-    "CFND": {
-      "name": "C1 Fund Inc.",
-      "marketCap": 21360268
+    "NDLS": {
+      "name": "Noodles & Company",
+      "marketCap": 79028408
     },
-    "CINT": {
-      "name": "CI&T Inc",
-      "marketCap": 403164352
-    },
-    "CORZW": {
-      "name": "Core Scientific, Inc.",
-      "marketCap": null
-    },
-    "CORZZ": {
-      "name": "Core Scientific, Inc. - Tranche",
-      "marketCap": null
-    },
-    "IMSRW": {
-      "name": "Terrestrial Energy Inc.",
-      "marketCap": null
+    "CMCM": {
+      "name": "Cheetah Mobile Inc.",
+      "marketCap": 80700432
     },
     "IQMXW": {
       "name": "IQM Quantum Computers Oyj Warrants to purchase American Depositary Shares",
