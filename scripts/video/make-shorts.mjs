@@ -1716,6 +1716,24 @@ closeGoogleImages();
     if (e.message !== 'skip-clip') log(`[화면] CLIP 검사 건너뜀: ${String(e.message).slice(0, 50)}`);
   }
 
+  // ── 자막의 사람과 다른 얼굴 (2026-09-29, lib/face-check.test 머리말) ─────────────────────
+  //   예비에서 「박윤주 1차관 초치」 아래 젤렌스키 사진이 깔렸다(기사 og:image). CLIP 은 주제만 본다.
+  //   **기사 사진**(pageUrl 이 있는 것)만 본다 — Commons·공공누리는 파일 이름이 제목이라 한국어 주어가 없고,
+  //   그 사진은 장면 문장으로 검색해 고른 것이다. 재사용된 장면은 원래 사진을 낸 기사 제목으로 잰다.
+  try {
+    const { faceCount, personMismatch } = await import('../lib/face-check.mjs');
+    const srcOf = new Map(scenes.filter((x) => x.pick?.pageUrl && x.media).map((x) => [x.media, x.pick.title]));
+    const faces = new Map();
+    for (const [k, x] of scenes.entries()) {
+      if (x.isOutro || !x.media || !srcOf.has(x.media)) continue;
+      if (!faces.has(x.media)) faces.set(x.media, faceCount(clipStill(x.media)));
+      if (personMismatch({ hook: x.hook, sourceTitle: srcOf.get(x.media), faces: faces.get(x.media) })) {
+        log(`[화면] ${k + 1} 얼굴 사진인데 자막 주어 "${String(x.hook).split(/\s+/)[0]}" 가 그 기사 제목에 없다 — 뺀다`);
+        x.media = null; x.pick = null; x.credit = null;
+      }
+    }
+  } catch (e) { log(`[화면] 얼굴·주어 검사 건너뜀: ${String(e.message).slice(0, 50)}`); }
+
   // ── 소재가 모자라면 Flow Omni Flash ×1 로 한 컷 (2026-09-26 사장님) ─────────────────────
   //   "차단 시간에는 영상 부족하면 omni flash ×1로 써서라도 만들어. 크레딧 쓰면은 차단은 안 시키더라"
   //   되물음 확인: Omni Flash ×1 자동화 허용 · 사건 재현 영상 허용. 그 밖의 Flow 규칙은 lib/flow-omni 가 지킨다
