@@ -15,7 +15,7 @@
  * 사용: node scripts/shorts-spare.mjs   (cron-runner 가 매시간 부른다)
  */
 import { spawnSync } from 'child_process';
-import { existsSync, readFileSync, rmSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, rmSync, mkdirSync, openSync, closeSync } from 'fs';
 import { resolve, join } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { resolveMediaRoot } from './lib/media-root.mjs';
@@ -55,16 +55,21 @@ log(`1순위 "${top || '?'}"(고르기 exit ${pick.status}) — 그것을 빼고
 const out = join(DIR, new Date().toISOString().replace(/[:.]/g, '-'));
 mkdirSync(out, { recursive: true });
 const t0 = Date.now();
-const r = spawnSync(node, [shorts, '--seconds', '40'], { cwd: ROOT, stdio: 'inherit', timeout: 20 * 60_000, killSignal: 'SIGKILL',
+// 렌더 출력은 파일로 — cron-runner 가 자식 출력을 버려서 9/28 22:30 실패 사유를 알 수 없었다.
+const LOG = resolve(ROOT, 'logs/shorts-spare.log');
+const logFd = openSync(LOG, 'w');
+const r = spawnSync(node, [shorts, '--seconds', '40'], { cwd: ROOT, stdio: ['ignore', logFd, logFd], timeout: 20 * 60_000, killSignal: 'SIGKILL',
   env: { ...process.env, SHORTS_OUT_DIR: out, FLOW_OMNI_FALLBACK: '0', ...(top ? { SHORTS_EXCLUDE: top } : {}),
     // 구독 권유 A/B — 예비도 같은 규칙(누적 편수 % 4). 실제로 붙었는지는 메타가 기록한다.
     SHORTS_SUB_CTA: (await import('./lib/sub-cta.mjs')).subCtaFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0' } });
+closeSync(logFd);
 const okFiles = existsSync(join(out, 'shorts-ko.mp4')) && existsSync(join(out, 'shorts-ko-meta.json'));
 if (r.status === 0 && okFiles) {
   const kw = JSON.parse(readFileSync(join(out, 'shorts-ko-meta.json'), 'utf8')).keyword;
   log(`✅ 예비 "${kw}" 만들었다 (${Math.round((Date.now() - t0) / 1000)}초) — ${out}`);
 } else {
   rmSync(out, { recursive: true, force: true });
-  log(`예비를 못 만들었다(exit ${r.status}${r.signal ? ` · ${r.signal}` : ''}) — 다음 차례에 다시`);
+  const tail = (() => { try { return readFileSync(LOG, 'utf8').trim().split('\n').filter((x) => /❌|Error|실패|못/.test(x)).slice(-2).join(' | ').slice(0, 200); } catch { return ''; } })();
+  log(`예비를 못 만들었다(exit ${r.status}${r.signal ? ` · ${r.signal}` : ''}) — 다음 차례에 다시${tail ? ` · ${tail}` : ''} (전체: logs/shorts-spare.log)`);
 }
 lock.release();

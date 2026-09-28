@@ -636,7 +636,9 @@ const MAINT_JOBS = [
   //   이미지 게시물은 쇼츠 피드에서 비구독자에게도 추천된다(공식). API 가 없어 브라우저(전용 프로필)로.
   //   19:10 KST(10:10 UTC) — 쇼츠 회차(18:20·21:45)와 엇갈림. 하루 한 번(logs/yt-posts.json).
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
-  { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['30 * * * *'],                 maxAgeH: 24 },
+  //   2026-09-28: :30 → :50. 보고서 트리거(05:30·10:30·14:30·22:30)와 같은 분이라 '보고서 중이면 쉰다' 검사를 먼저 통과해
+  //   보고서와 나란히 렌더했다(9/28 22:30 실패). :50 이면 :30 보고서는 이미 돌고 있어 쉰다(lib/spare-schedule.test).
+  { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
