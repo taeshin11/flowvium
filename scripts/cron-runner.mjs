@@ -411,7 +411,7 @@ async function runMonitor() {
       const j = MAINT_JOBS.find((x) => x.label === staleLabels[0].label);
       if (j) {
         log(`[auto-monitor/self-heal] stale 잡 즉석 소급: ${j.label}`);
-        void runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths);
+        void runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths, j);
       }
     }
   } catch { /* */ }
@@ -528,8 +528,23 @@ log('segments-refresh 등록 안 함 — 수율 0.5%(472회 중 10건, 마지막
 // 2026-06-12: 사라진 유지보수 작업 복원 — 이전 Windows Task Scheduler 의 DART-CorpCodes(02:00)/
 //   DART-Prefetch(03:00)/Tune-Rules(일 04:00) 가 머신 재구성 중 소멸돼 silent 미시행 상태였음
 //   (백엔드 census 중 발견). 자가호스팅 일원화 원칙대로 cron-runner 에 재배선.
-async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
-  if (await isReportPipelineRunning()) { log(`[${label}] skip — 보고서 파이프라인 실행 중`); return; }
+function writeHeartbeat(label) {
+  try {
+    const hbP = resolve(process.cwd(), 'logs/maintenance-heartbeat.json');
+    let hb = {}; try { hb = JSON.parse(readFileSync(hbP, 'utf8')); } catch { /* 최초 */ }
+    hb[label] = new Date().toISOString();
+    writeFileSync(hbP, JSON.stringify(hb, null, 2));
+  } catch { /* heartbeat 실패 비치명 */ }
+}
+
+async function runMaintenance(label, script, timeoutMs, commitPaths = [], opts = {}) {
+  if (await isReportPipelineRunning()) {
+    log(`[${label}] skip — 보고서 파이프라인 실행 중`);
+    // 2026-09-28: 보고서 중 건너뛰는 게 **맞는 동작**인 잡(reportSkipIsRun)은 건너뜀도 '돌았다' 로 남긴다 —
+    //   shorts-spare 가 보고서마다 "잡 미실행 의심" 거짓 경보를 냈다(lib/cron-skip-heartbeat.test 머리말).
+    if (opts.reportSkipIsRun) writeHeartbeat(label);
+    return;
+  }
   // 2026-08-22: 소요시간을 기록한다. check-stall [10] 의 좀비 판정 임계값(기본 100분 등)이
   //   지금은 내가 손으로 정한 값인데, 그걸 실측 분포에서 유도하려고 로그를 뒤져 보니
   //   '시작' 마커가 3건뿐이고 '완료' 가 35건이라 **소요시간을 계산할 데이터가 아예 없었다.**
@@ -549,12 +564,7 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = []) {
     } catch { /* 기록 실패 비치명 */ }
     // 2026-06-17 (전수조사 #6): 잡 실행 heartbeat — 데이터 변경 여부와 무관하게 '돌았다'를 기록.
     //   runMonitor 의 freshness 검사가 이 타임스탬프로 silent 미실행을 감지.
-    try {
-      const hbP = resolve(process.cwd(), 'logs/maintenance-heartbeat.json');
-      let hb = {}; try { hb = JSON.parse(readFileSync(hbP, 'utf8')); } catch { /* 최초 */ }
-      hb[label] = new Date().toISOString();
-      writeFileSync(hbP, JSON.stringify(hb, null, 2));
-    } catch { /* heartbeat 실패 비치명 */ }
+    writeHeartbeat(label);
     // 2026-06-13: 산출물이 tracked 파일이면 자동 커밋+푸시 — 매일 02:05 갱신분이 미커밋으로 남아
     //   wipe-risk 경보 + run-report checkout revert 위험이 반복되던 것 (수동 커밋 toil 제거).
     if (commitPaths.length) {
@@ -626,7 +636,7 @@ const MAINT_JOBS = [
   //   이미지 게시물은 쇼츠 피드에서 비구독자에게도 추천된다(공식). API 가 없어 브라우저(전용 프로필)로.
   //   19:10 KST(10:10 UTC) — 쇼츠 회차(18:20·21:45)와 엇갈림. 하루 한 번(logs/yt-posts.json).
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
-  { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [],                                     schedules: ['30 * * * *'],                 maxAgeH: 24 },
+  { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['30 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
   // 2026-08-20: 매수 추천 결과 평가가 스케줄에 없어서 사람이 손으로 돌릴 때만 실행됐다.
@@ -680,7 +690,7 @@ const MAINT_JOBS = [
   { label: 'snapshot-etf-so',      script: 'scripts/snapshot-etf-so.mjs',            timeoutMs: 120000,  commitPaths: [],                                     schedules: ['15 20 * * 1-5'],              maxAgeH: 4 * 24 },
 ];
 for (const j of MAINT_JOBS) for (const s of j.schedules) {
-  cron.schedule(s, () => runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths), { timezone: TZ });
+  cron.schedule(s, () => runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths, j), { timezone: TZ });
 }
 log(`유지보수 cron 등록: ${MAINT_JOBS.length} 잡 (DART/매집/내부자/튜닝/backlog/재무 — MAINT_JOBS 단일소스)`);
 
@@ -717,7 +727,7 @@ async function startupCatchup() {
     if (ts && (Date.now() - ts) / 3600000 <= j.maxAgeH) continue;
     if (await isReportPipelineRunning()) { log('[catchup-maint] 보고서 파이프라인 실행 중 — 잔여 소급 중단'); return; }
     log(`[catchup-maint] ${j.label} — heartbeat ${ts ? Math.round((Date.now() - ts) / 3600000) + 'h 전' : '무기록'} > ${j.maxAgeH}h, 소급 실행`);
-    await runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths); ran++;
+    await runMaintenance(j.label, j.script, j.timeoutMs, j.commitPaths, j); ran++;
   }
   log(`[catchup] 시작시 소급 완료 — ${ran}개 실행`);
 }
