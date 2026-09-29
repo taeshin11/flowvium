@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-29T07:20:28.019Z",
+  "generatedAt": "2026-09-29T22:20:31.992Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -39,23 +39,6 @@
       "runup20dPct": 2.7,
       "runup5dPct": 2.9,
       "medDollarVolUsd": 45506,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "222080.KQ",
-      "name": "씨아이에스",
-      "tier": "watch",
-      "score": 26,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -5.8,
-      "runup5dPct": -3,
-      "medDollarVolUsd": 2591612,
       "smartAccum": true,
       "official": null
     }
