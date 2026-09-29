@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T23:23:05.175Z",
+  "generatedAt": "2026-09-29T07:20:28.019Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 3,
@@ -15,48 +15,47 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 1.5,
-      "runup5dPct": 1.8,
-      "medDollarVolUsd": 46127,
+      "runup20dPct": 0.8,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 46108,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "205100.KQ",
-      "name": "엑셈",
+      "ticker": "093380.KQ",
+      "name": "풍강",
       "tier": "watch",
-      "score": 33,
+      "score": 29,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 추세 1.9× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -1,
-      "runup5dPct": 12.8,
-      "medDollarVolUsd": 263476,
+      "runup20dPct": 2.7,
+      "runup5dPct": 2.9,
+      "medDollarVolUsd": 45506,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "121600.KQ",
-      "name": "나노신소재",
+      "ticker": "222080.KQ",
+      "name": "씨아이에스",
       "tier": "watch",
-      "score": 33,
+      "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
+        "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 9.6,
-      "runup5dPct": 8.1,
-      "medDollarVolUsd": 1979270,
+      "runup20dPct": -5.8,
+      "runup5dPct": -3,
+      "medDollarVolUsd": 2591612,
       "smartAccum": true,
       "official": null
     }
