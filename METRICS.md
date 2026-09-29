@@ -670,6 +670,8 @@
 | 12-P1 | AI 추천 포트폴리오 (US 6 + KR 6 = 12종목) | 💾 cached | buy-rules-tuned.json 4-stage + LLM ensemble ← 2026-05-29 |
 | 12-P0 | 매수 룰 score top 30 후보 (buyCandidateScoring) | 🔄 cron | 31 룰 multi-factor scoring (7 카테고리, light→OHLCV→financials) |
 | 12-P0b | `buy_candidates` DB 적재 (matched_rules + category JSON) | 🔄 cron | saveBuyCandidates, audit Probe [6] ← 2026-05-29 |
+| 12-ML1 | 아침보고서 메일 수신자 수(동의 active) | ✅ live | Redis `flowvium:mail:subs` ← 2026-09-30 |
+| 12-ML2 | 아침보고서 메일 발송 수(일별) | 🔄 cron | 아침 업로드 후 `send-morning-mail` · Redis `flowvium:mail:sent:<날짜>` ← 2026-09-30 |
 | 12-PT | 매수 룰 학습 (weekly outcome 평가) | 🔄 cron | tune-buy-rules.mjs Sun 04:15 |
 | 12-P2 | 종목별 진입 구간 | 💾 cached | AI 생성 |
 | 12-P3 | 종목별 손절가 | 💾 cached | AI 생성 |

@@ -1228,6 +1228,19 @@ async function uploadFromFile(filePath) {
     child.unref();
     console.log('  [post-publish-recheck] 백그라운드 라이브 재검 시작 → logs/recheck-status.json');
   } catch (e) { console.warn('  [post-publish-recheck] skip:', e?.message); }
+  // 2026-09-30 사장님 "매일매일 아침보고서만 메일로 보내줘" — 아침·한국어만. 수신 동의한 사람에게,
+  //   위 라이브 재검이 이 보고서의 사이트 반영을 확인한 뒤에 보낸다(send-morning-mail 이 기다린다). 같은 날 두 번 안 보낸다.
+  if (session === 'morning' && locale === 'ko' && process.env.MORNING_MAIL !== '0') {
+    try {
+      const { spawn } = await import('child_process');
+      const { openSync } = await import('fs');
+      const out = openSync(resolve(ROOT, 'logs/morning-mail.log'), 'a');
+      const child = spawn(process.execPath, [resolve(ROOT, 'scripts/send-morning-mail.mjs'), '--file', resolved],
+        { detached: true, stdio: ['ignore', out, out], windowsHide: true, env: process.env });
+      child.unref();
+      console.log('  [morning-mail] 백그라운드 발송 대기 시작(재검 확인 후) → logs/morning-mail.log');
+    } catch (e) { console.warn('  [morning-mail] skip:', e?.message); }
+  }
 }
 
 // ── 업로드 검증 ────────────────────────────────────────────────────────────────

@@ -17,7 +17,8 @@ export async function generateMetadata({
   });
 }
 
-export default function PrivacyPolicyPage() {
+export default async function PrivacyPolicyPage({ params }: { params: { locale: string } }) {
+  const tPrivacy = await getTranslations({ locale: params.locale, namespace: 'privacy' });
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
       {/* Header */}
@@ -59,8 +60,9 @@ export default function PrivacyPolicyPage() {
                 When you contact us via email, submit feedback through our feedback widget, or
                 communicate with us in any other manner, you may voluntarily provide us with personal
                 information such as your name, email address, and the content of your message. We only
-                collect personal information that you choose to share with us. Using Flowvium does not
-                require creating an account or providing any personal information. The feedback widget
+                collect personal information that you choose to share with us. Most of Flowvium can be
+                used without creating an account; some reports are available to members who register
+                an email address (see 1.4). The feedback widget
                 on our Site uses a mailto: link to open your default email client, meaning your
                 feedback is sent directly through your own email service and is not processed through
                 our servers.
@@ -93,6 +95,10 @@ export default function PrivacyPolicyPage() {
                 activity and internet usage. For more information on how Google processes your data,
                 please review Google&apos;s Privacy Policy at https://policies.google.com/privacy.
               </p>
+            </div>
+            <div>
+              <h3 className="font-medium text-cf-text-primary mb-2">{tPrivacy('mailTitle')}</h3>
+              <p>{tPrivacy('mailBody')}</p>
             </div>
           </div>
         </section>

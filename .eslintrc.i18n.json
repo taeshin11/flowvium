@@ -8,7 +8,7 @@
       "mode": "all",
       "message": "사용자에게 보이는 문자열은 messages/*.json 또는 런타임 번역을 써야 한다",
       "should-validate-template": false,
-      "words": { "exclude": ["^[^a-zA-Z]*$", "^[a-z-]+$", "^[A-Z_]+$"] },
+      "words": { "exclude": ["^[^a-zA-Z]*$", "^[a-z-]+$", "^[A-Z_]+$", "^[a-z]+(_[a-z0-9]+)+$", "^use (client|server)$"] },
       "jsx-attributes": { "exclude": ["className","href","src","id","key","type","role","aria-label","data-testid","viewBox","d","fill","stroke","xmlns","alt","target","rel","name","value","placeholder"] },
       "callees": { "exclude": ["^(t|t[A-Z]\\w*|localizeLabel|useTranslations|require|import|console\\.\\w+|logger\\.\\w+|Number|String|Boolean|parseInt|parseFloat|Date|JSON\\.\\w+|fetch|Object\\.\\w+|Array\\.\\w+|Math\\.\\w+|encodeURIComponent|classNames|clsx|cn)$"] },
       "object-properties": { "exclude": ["^(className|href|src|id|key|type|role|color|icon|market|sector|locale|method|mode|cache|next|headers|Content-Type)$"] }

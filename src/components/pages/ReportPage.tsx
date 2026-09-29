@@ -1638,11 +1638,13 @@ function MemberGate({ onUnlock, t }: { onUnlock: () => void; t: Tr }) {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(false);
+  // 2026-09-30: 아침보고서 메일 수신 — 선택, 기본 해제(사전 동의는 본인이 체크해야 한다).
+  const [mailOptIn, setMailOptIn] = useState(false);
   const submit = async () => {
     if (busy) return;
     setBusy(true); setErr(false);
     try {
-      const r = await fetch('/api/member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      const r = await fetch('/api/member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, mailOptIn }) });
       if (r.ok) onUnlock(); else setErr(true);
     } catch { setErr(true); }
     setBusy(false);
@@ -1664,6 +1666,10 @@ function MemberGate({ onUnlock, t }: { onUnlock: () => void; t: Tr }) {
           {t('gateSubmit')}
         </button>
       </div>
+      <label className="flex items-center justify-center gap-2 mt-3 text-xs text-gray-600 cursor-pointer select-none">
+        <input type="checkbox" checked={mailOptIn} onChange={e => setMailOptIn(e.target.checked)} className="accent-violet-600" />
+        {t('gateMailOptIn')}
+      </label>
       {err && <p className="text-xs text-red-500 mt-2">{t('gateError')}</p>}
       <p className="text-[10px] text-gray-400 mt-4">{t('gateFreeNote')}</p>
     </div>

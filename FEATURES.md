@@ -764,6 +764,19 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
     지워진 필드를 그리다 죽었다(비회원 6/6 "일시적인 오류") → 서버 표시를 먼저 믿는다.
   - 검증: `scripts/check-report-gate.mjs`(정책 대 응답 본문) · `scripts/check-report-gate-race.mjs`(비회원 N회 렌더)
 
+### 13-0b. 📧 아침보고서 메일 (2026-09-30 신설 — 사장님 "매일매일 아침보고서만 메일로 보내줘")
+- 대상: **수신 동의한 사람만**(정보통신망법 §50). 가입 카드에 선택 체크박스(`report.gateMailOptIn`, 기본 해제) ·
+  기존 가입자는 `scripts/mail-invite.mjs --send` 로 동의 요청 1회(버튼을 눌러야 active). 예약 도메인(example.com 등)은 제외.
+- 기록: Redis `flowvium:mail:subs`(email→{status,token,consentAt,consentSource,invitedAt,unsubAt}) · `flowvium:mail:tokens`(token→email)
+  · `flowvium:mail:sent:<KST날짜>`(같은 날 중복 발송 방지, 7일).
+- 발송: 아침·ko 보고서 업로드 직후 `uploadFromFile` 이 `scripts/send-morning-mail.mjs` 를 띄운다 → 라이브 재검(recheck-status)
+  이 이 보고서 반영을 확인할 때까지 대기(최대 40분) → Resend(`scripts/lib/mailer.mjs`, `RESEND_API_KEY`·`MAIL_FROM`). 로그 `logs/morning-mail.log`.
+  끄기: `MORNING_MAIL=0`. 미리보기: `node scripts/send-morning-mail.mjs --dry --no-wait` → `logs/morning-mail-preview.html`.
+- 본문(`scripts/lib/report-mail.mjs`): 스탠스·위험 · 요지 2문장 · 오늘 지켜볼 것 · 종목 표(의견·진입·목표·손절) · 다가오는 일정 3 · 전체 보고서 링크
+  · 투자 권유 아님 고지 · 수신거부 링크 + List-Unsubscribe 원클릭 헤더(RFC 8058).
+- 페이지 `/[locale]/mail?a=confirm|unsubscribe&t=토큰`(noindex) — 바꾸는 건 버튼(POST)만. API `POST /api/mail/confirm` · `POST /api/mail/unsubscribe`
+  (원클릭은 `?t=` 로 POST). i18n `mail.*` 9키 × ko/en/ja. 개인정보처리방침 1.4 추가.
+
 ### 13-1b. 🚨 거시 급락 조기경보 배너 (2026-06-06 신설)
 - `earlyWarning` 결정론적 composite — 신용 OAS(HY/IG 확대·고위험) / VIX 단계 / 금리커브 역전 / F&G 극단 / USD-KRW 급변 / jobless·PMI 위축 → 0-100 위험점수 + level(low/elevated/high/severe) + drivers.
 - level high/severe 시 보고서 **최상단 강한 시각 배너**(severe=빨강+animate-pulse+shadow, high=주황) + drivers 나열 + 위험점수. LLM riskLevel 과 독립(결정론적, 환각 무관).

@@ -46,7 +46,8 @@
     "paperTrading": "Paper Trading",
     "privacy": "Privacy Policy",
     "share": "Share",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "mail": "Email settings"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
@@ -1379,7 +1380,8 @@
     "conditionalWatchDesc": "High-score candidates blocked by buy discipline (chasing/overheat/falling) — re-evaluated when the condition clears",
     "assetFlowTitle": "Asset Flows",
     "assetFlowMeasured": "Measured",
-    "assetFlowProxy": "Price proxy"
+    "assetFlowProxy": "Price proxy",
+    "gateMailOptIn": "Email me the morning report (optional)"
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",
@@ -2042,5 +2044,20 @@
   "blog": {
     "strategy": "Strategy",
     "read": "Read"
+  },
+  "mail": {
+    "confirmTitle": "Get the morning report by email",
+    "confirmBody": "Would you like to receive the FlowVium morning report at this address every day? You can unsubscribe at any time from the link at the bottom of each email.",
+    "confirmButton": "Subscribe",
+    "confirmed": "You are subscribed. The first email arrives tomorrow morning.",
+    "unsubTitle": "Unsubscribe from morning report emails",
+    "unsubBody": "Stop receiving the morning report by email?",
+    "unsubButton": "Unsubscribe",
+    "unsubscribed": "You have been unsubscribed. We will not email you again.",
+    "invalid": "This link is invalid or has expired."
+  },
+  "privacy": {
+    "mailTitle": "1.4 Membership Email and Morning Report Emails",
+    "mailBody": "If you register as a member, we store your email address to give you access to members-only reports. We send you the daily morning report by email only if you separately agree to receive it, either by ticking the optional box when you register or by pressing the confirmation button in a one-time invitation email. Every morning report email contains an unsubscribe link, and you can stop receiving it at any time. Emails are delivered through our email service provider, Resend, which processes your email address only to deliver our messages. We keep your email address until you unsubscribe or ask us to delete it. These emails are for information only and are not investment advice."
   }
 }

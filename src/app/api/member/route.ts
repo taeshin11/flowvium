@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import { createRedis } from '@/lib/redis';
 import { logger } from '@/lib/logger';
+import { upsertMailSub } from '@/lib/mail-subs';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json() as { email?: string };
+    const { email, mailOptIn } = await req.json() as { email?: string; mailOptIn?: boolean };
     const e = (email ?? '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) || e.length > 254) {
       return NextResponse.json({ error: 'invalid_email' }, { status: 400 });
@@ -92,7 +93,13 @@ export async function POST(req: NextRequest) {
     if (redis) {
       try { await redis.sadd(MEMBERS_KEY, e); } catch (err) { logger.warn('api.member', 'sadd_failed', { error: err }); }
     }
-    logger.info('api.member', 'registered', { domain: e.split('@')[1] });
+    // 2026-09-30: 아침보고서 메일 — **체크한 사람만** 동의로 남긴다(기본 해제, 정보통신망법 §50 사전 동의).
+    //   체크하지 않은 가입은 메일 기록을 건드리지 않는다(예전에 수신거부했던 사람을 되살리지 않게).
+    if (mailOptIn === true) {
+      try { await upsertMailSub(e, { status: 'active', consentAt: new Date().toISOString(), consentSource: 'signup' }); }
+      catch (err) { logger.warn('api.member', 'mail_optin_failed', { error: err }); }
+    }
+    logger.info('api.member', 'registered', { domain: e.split('@')[1], mailOptIn: mailOptIn === true });
     const res = NextResponse.json({ ok: true, member: true });
     // secure: 운영은 HTTPS(cloudflared) → Secure 플래그로 평문 HTTP 전송 차단(best practice).
     res.cookies.set(COOKIE, sign(e), { httpOnly: true, secure: true, sameSite: 'lax', maxAge: COOKIE_MAX_AGE, path: '/' });
