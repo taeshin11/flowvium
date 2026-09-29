@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-28T22:23:10.217Z",
+  "generatedAt": "2026-09-29T15:23:06.274Z",
   "universe": "US",
   "scanned": 299,
-  "count": 16,
+  "count": 8,
   "strongCount": 0,
-  "watchCount": 16,
+  "watchCount": 8,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -18,59 +18,9 @@
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 10,
-      "runup5dPct": 4,
-      "medDollarVolUsd": 29156394,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "IA",
-      "name": "Innovative Solutions and Suppor",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": -8.5,
-      "runup5dPct": 2.8,
-      "medDollarVolUsd": 4795908,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "FLXS",
-      "name": "Flexsteel Industries, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 7,
-      "runup5dPct": 7.8,
-      "medDollarVolUsd": 4745278,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GAB",
-      "name": "Gabelli Equity Trust, Inc. (The",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.4,
-      "runup5dPct": -2.6,
-      "medDollarVolUsd": 4130316,
+      "runup20dPct": 9.2,
+      "runup5dPct": 1,
+      "medDollarVolUsd": 29093674,
       "smartAccum": false,
       "official": null
     },
@@ -81,11 +31,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.9,
-      "runup5dPct": -6.1,
+      "runup20dPct": -11.5,
+      "runup5dPct": -6.7,
       "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
@@ -97,61 +47,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.8,
-      "runup5dPct": -4.4,
-      "medDollarVolUsd": 3456576,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "INVA",
-      "name": "Innoviva, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 1.2,
-      "runup5dPct": 0.9,
-      "medDollarVolUsd": 14486041,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "HEPS",
-      "name": "D-Market Electronic Services & ",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.5× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -4.9,
-      "runup5dPct": 1.2,
-      "medDollarVolUsd": 381734,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "NXP",
-      "name": "Nuveen Select Tax Free Income P",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.4,
-      "runup5dPct": -3.3,
-      "medDollarVolUsd": 2260050,
+      "runup20dPct": -11.2,
+      "runup5dPct": -4.8,
+      "medDollarVolUsd": 3404895,
       "smartAccum": false,
       "official": null
     },
@@ -163,10 +64,10 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)"
+        "거래량 3.2× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.4,
-      "runup5dPct": -5.2,
+      "runup20dPct": -10.2,
+      "runup5dPct": -4.6,
       "medDollarVolUsd": 752703,
       "smartAccum": false,
       "official": null
@@ -178,12 +79,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11.4,
-      "runup5dPct": -6.4,
-      "medDollarVolUsd": 624603,
+      "runup20dPct": -11.8,
+      "runup5dPct": -5.7,
+      "medDollarVolUsd": 623268,
       "smartAccum": false,
       "official": null
     },
@@ -194,44 +95,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -12.9,
-      "runup5dPct": -5.5,
-      "medDollarVolUsd": 766590,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MSD",
-      "name": "Morgan Stanley Emerging Markets",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -5.6,
-      "runup5dPct": -3.5,
-      "medDollarVolUsd": 390936,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "XZO",
-      "name": "Exzeo Group, Inc.",
-      "tier": "watch",
-      "score": 22,
-      "coFire": 2,
-      "lead": [
         "거래량 추세 2.2× 상승(지속 매집)",
-        "종가 일중 상단 60%"
+        "거래량 2.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.7,
-      "runup5dPct": -9.9,
-      "medDollarVolUsd": 3151577,
+      "runup20dPct": -12.6,
+      "runup5dPct": -5,
+      "medDollarVolUsd": 750040,
       "smartAccum": false,
       "official": null
     },
@@ -242,28 +111,28 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 2.5× 급증(가격 평탄)"
+        "거래량 추세 1.9× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
       ],
       "runup20dPct": -9.3,
-      "runup5dPct": -4.9,
+      "runup5dPct": -4.3,
       "medDollarVolUsd": 1391385,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NMCO",
-      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "ticker": "NXP",
+      "name": "Nuveen Select Tax Free Income P",
       "tier": "watch",
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.5× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.5,
-      "runup5dPct": -9.3,
-      "medDollarVolUsd": 2200514,
+      "runup20dPct": -8.4,
+      "runup5dPct": -3.3,
+      "medDollarVolUsd": 2180520,
       "smartAccum": false,
       "official": null
     }
