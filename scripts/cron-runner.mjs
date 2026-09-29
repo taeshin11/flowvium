@@ -638,6 +638,9 @@ const MAINT_JOBS = [
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
   //   2026-09-28: :30 → :50. 보고서 트리거(05:30·10:30·14:30·22:30)와 같은 분이라 '보고서 중이면 쉰다' 검사를 먼저 통과해
   //   보고서와 나란히 렌더했다(9/28 22:30 실패). :50 이면 :30 보고서는 이미 돌고 있어 쉰다(lib/spare-schedule.test).
+  //   2026-09-30: 쇼츠 끝 flowvium.net 2초 카드를 오늘 사이트 화면으로 다시 굽는다(아침보고서 뒤 07:45 KST = 22:45 UTC).
+  //   카드 띠가 보고서 화면 캡처라 날짜가 박힌다 — 고정으로 두면 옛 숫자가 나간다.
+  { label: 'flowvium-card',        script: 'scripts/refresh-flowvium-card.mjs',       timeoutMs: 360000,  commitPaths: [],                                     schedules: ['45 22 * * *'],                maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },

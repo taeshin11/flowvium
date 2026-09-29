@@ -2029,6 +2029,7 @@ for (let i = 0; i < scenes.length; i++) {
   log(`[합성] ${i + 1}/${scenes.length}`);
 }
 
+let PROMO_USED = null;   // 실제로 붙인 광고 카드(aisvi|flowvium) — 메타에 남긴다
 // ── 고정 홍보 클립 붙이기 (2026-09-09 사용자 요청) ─────────────────────────────
 //   "영상마다 맨 마지막에 aisvi 홍보 멘트랑 장면 넣어줘" · "고정 영상 하나 만들어놓고 계속 붙이면될듯"
 //   회차마다 합성하면 같은 문장인데도 소리가 미묘하게 달라지고 매번 TTS 시간을 쓴다.
@@ -2039,12 +2040,16 @@ for (let i = 0; i < scenes.length; i++) {
   // 2026-09-25 사용자 "2초 카드 고". 5.9초 광고 → 2초 브랜드 카드(make-outro-clip --card).
   //   끝 몇 초는 이탈 구간이다. 옆 채널도 같은 날 11초 → 2초로 줄였다.
   //   긴 광고 파일은 지우지 않고 남겨 둔다 — 되돌릴 땐 이 경로만 바꾸면 된다.
-  const promo = resolve(ROOT, 'assets/outro/aisvi-card.mp4');
+  // 2026-09-30 사장님 "flowvium.net 도 2초카드 만들어서 aisviagent.com 광고와 번갈아가면서" —
+  //   video-publish/shorts-spare 가 SHORTS_PROMO 로 고른다(네 편씩, lib/promo-card). 없으면 다른 카드로 대신.
+  const pick = (await import('../lib/promo-card.mjs')).promoPath(process.env.SHORTS_PROMO || 'aisvi', ROOT);
+  PROMO_USED = pick.name;
+  const promo = pick.path ?? resolve(ROOT, 'assets/outro/aisvi-card.mp4');
   // 2026-09-17: 광고만 따로 재면 -17.3 LUFS 라 본편(-22)보다 크게 튈 줄 알았다. 실제 쇼츠를 재 보니
   //   안에 든 광고는 -23.0 · 본편 -22.5 로 차이 0.5dB — 뒤의 배경음 단계(amix)가 둘을 같이 낮춘다.
   //   파일 하나만 잰 오판이었다. 그래서 여기서 크기를 따로 맞추지 않는다(맨 끝의 최종 음량만 맞춘다).
-  if (existsSync(promo)) { parts.push(promo); log('[화면] 고정 홍보 클립을 끝에 붙인다 (aisviagent.com)'); }
-  else log('[화면] 고정 홍보 클립이 없다 — 없이 간다 (node scripts/video/make-outro-clip.mjs 로 만든다)');
+  if (existsSync(promo)) { parts.push(promo); log(`[화면] 2초 광고 카드를 끝에 붙인다 (${PROMO_USED === 'flowvium' ? 'flowvium.net' : 'aisviagent.com'}${pick.fallback ? ' — 원한 카드가 없어 대신' : ''})`); }
+  else { PROMO_USED = null; log('[화면] 광고 카드가 없다 — 없이 간다 (node scripts/video/make-outro-clip.mjs --card [--brand flowvium] 로 만든다)'); }
 }
 writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));
 const cat = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`,
@@ -2183,5 +2188,6 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
+  promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

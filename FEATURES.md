@@ -1222,6 +1222,7 @@ Copernicus 자격증명(.env.local)은 보존(추후 재활용 대비).
 | `blog-post` (cron-runner 로컬, 2026-09-18) | 07:10 KST (하루 1회) | 발간 직후 보고서를 블로그 글로 정리 → `reports/blog/YYYY-MM-DD-session.md` (제목 후보 + 본문 + flowvium.net·유튜브 안내 + 투자 고지). 문장은 web 레인(:8001)이 존댓말로 고쳐 쓰되 **원문에 없는 숫자나 바뀐 단위가 있으면 버리고 원문 유지**(`scripts/lib/blog-voice.mjs`). **게시는 사람이 한다** — 네이버는 글쓰기 API 를 2020-05, 티스토리는 오픈 API 를 2024-02 종료했고 자동 게재는 약관 위반 |
 | `blog-publish` (cron-runner 로컬, 2026-09-18) | 07:15 · 12:45 · 21:45 KST | 아직 안 올린 글을 오래된 것부터 Blogger 에 올린다(회당 최대 3편). 광고(flowvium.net)·투자 고지가 없으면 올리지 않고, **같은 날 시장 브리핑은 한 편만** 올린다. 이미 올린 글은 새로 만들지 않고 수정 |
 | `shorts-blog` (cron-runner 로컬, 2026-09-18) | 12:40 · 21:40 KST (하루 2편) | 올린 쇼츠를 블로그 글로 푼다 — 그 편이 **실제로 말한 대본**(shorts_published.hooks_json)이 알맹이다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다. 하루 전편(9편)을 쓰지 않는 이유는 대량 생성 콘텐츠 강등 위험 |
+| `flowvium-card` (cron-runner 로컬, 2026-09-30) | 07:45 KST | 쇼츠 끝 2초 광고를 aisviagent.com · flowvium.net 카드로 **네 편씩 번갈아** 붙인다(`lib/promo-card`, 제목·구독 권유 실험과 2×2×2). flowvium 카드는 띠가 사이트 보고서 화면 캡처라 매일 아침 다시 굽는다(`refresh-flowvium-card`, 길이·규격·밝기 재고 바꿔 끼움). 붙은 카드는 `shorts_published.promo` |
 
 ---
 

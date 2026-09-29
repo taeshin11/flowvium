@@ -89,8 +89,9 @@ const run = (args) => spawnSync(process.execPath, [script, ...args, '--out', SAF
 {
   const { readFileSync } = await import('fs');
   const src = readFileSync(script, 'utf8');
-  /assets\/outro\/aisvi-card\$\{LOCALE === 'ko'/.test(src)
-    ? ok('카드는 aisvi-card.mp4 로 따로 나간다')
+  // 2026-09-30: 브랜드(aisvi|flowvium)마다 `<브랜드>-card.mp4` — 어느 쪽이든 긴 광고(aisvi.mp4)와 이름이 다르다.
+  (/assets\/outro\/aisvi-card\$\{LOCALE === 'ko'/.test(src) || /assets\/outro\/\$\{B\.out\}-card\$\{LOCALE === 'ko'/.test(src))
+    ? ok('카드는 <브랜드>-card.mp4 로 따로 나간다')
     : bad('카드 출력 경로가 쇼츠 광고(aisvi.mp4)와 같다');
   const r = run(['--card', '--demo', 'assets/outro/aisvi-demo.mp4']);
   (r.status === 2 && /--card/.test(`${r.stdout}${r.stderr}`))

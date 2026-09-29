@@ -118,7 +118,25 @@ const argOf = (k, d = '') => {
   return v && !v.startsWith('--') ? v : d;
 };
 const LOCALE = argOf('locale', process.env.AISVI_LOCALE || 'ko');
-const T = COPY[LOCALE];
+// ── 브랜드 (2026-09-30 사장님 "광고를 flowvium.net 도 2초카드 만들어서 aisviagent.com 광고와 번갈아가면서 하자") ──
+//   같은 틀(사진 띠 + 이름 + 주소 + 구독 안내)에 브랜드만 갈아 끼운다. flowvium 은 2초 카드(--card)·한국어만.
+//   태그라인 "AI 투자 종목 추천" 은 사장님이 정했다(9/30). 나머지 문구는 사이트가 스스로 쓰는 말(
+//   homeDescription "하루 5번 시장 리포트 … 전부 무료"). 읽는 소리는 채널이 쓰는 "플로비움 닷넷".
+//   사진 띠는 지어낸 그림 대신 **사이트 보고서 화면**을 그 자리에서 찍어 쓴다.
+const BRAND = argOf('brand', process.env.OUTRO_BRAND || 'aisvi');
+const BRANDS = {
+  aisvi: { word: 'AISVI', site: 'aisviagent.com', out: 'aisvi', tag: '#7fd4ff', r1: '#38bdf8', r2: '#2563eb' },
+  flowvium: { word: 'FLOWVIUM', site: 'flowvium.net', out: 'flowvium', tag: '#c4b5fd', r1: '#a78bfa', r2: '#7c3aed',
+    shot: 'https://flowvium.net/ko/report' },
+};
+const B = BRANDS[BRAND];
+if (!B) { console.error(`❌ 모르는 브랜드: ${BRAND} (가능: ${Object.keys(BRANDS).join(', ')})`); process.exit(2); }
+const FLOWVIUM_COPY = {
+  ko: { spoken: '플로비움', siteSpoken: '플로비움 닷넷', tagline: 'AI 투자 종목 추천', cta: '',
+    freeCta: '하루 5번 AI 시장 리포트 · 무료', subCta: COPY.ko.subCta },
+};
+if (BRAND === 'flowvium' && !process.argv.includes('--card')) { console.error('❌ flowvium 브랜드는 --card(2초 카드)만 만든다'); process.exit(2); }
+const T = BRAND === 'flowvium' ? FLOWVIUM_COPY[LOCALE] : COPY[LOCALE];
 if (!T) {
   console.error(`❌ 모르는 로케일: ${LOCALE} (가능: ${Object.keys(COPY).join(', ')})`);
   process.exit(2);
@@ -138,7 +156,7 @@ if (CARD && (process.argv.includes('--demo') || process.env.AISVI_DEMO)) {
 //   다른 로케일은 파일을 나눈다(aisvi-ja.mp4). --out 으로 덮어쓸 수 있다.
 //   카드는 이름을 따로 둔다(aisvi-card.mp4) — 쇼츠에 붙는 광고를 실수로 덮지 않게.
 const OUT = resolve(ROOT, argOf('out', CARD
-  ? `assets/outro/aisvi-card${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`
+  ? `assets/outro/${B.out}-card${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`
   : `assets/outro/aisvi${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
 // 2026-09-17: 바깥에 넘기는 파일만 샘플레이트를 바꾼다(일본 채널 본편이 48kHz).
 //   쇼츠에 붙는 assets/outro/aisvi.mp4 는 AUDIO_SPEC(44.1kHz)을 따라야 concat 이 안전하다 —
@@ -310,7 +328,19 @@ if (DEMO || CARD) {
   mkdirSync(WORK, { recursive: true });
   const still = join(WORK, 'end-photo.mp4');
   const endPng = join(WORK, 'end-photo.png');
-  const given = process.env.AISVI_END_PHOTO ? resolve(ROOT, process.env.AISVI_END_PHOTO) : null;
+  let given = process.env.AISVI_END_PHOTO ? resolve(ROOT, process.env.AISVI_END_PHOTO) : null;
+  // flowvium: 사이트 보고서 화면을 찍어 띠 사진으로(540×403 @2x = 띠 1080×806 비율).
+  if (!given && B.shot) {
+    const shotPath = join(WORK, 'site-shot.png');
+    const bw = await chromium.launch({ headless: true });
+    const sp = await bw.newPage({ viewport: { width: 540, height: 403 }, deviceScaleFactor: 2 });
+    await sp.goto(B.shot, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {});
+    await sp.waitForTimeout(2500);
+    await sp.screenshot({ path: shotPath });
+    await bw.close();
+    if (!existsSync(shotPath)) { console.error(`❌ 사이트 화면을 못 찍었다: ${B.shot}`); process.exit(2); }
+    given = shotPath;
+  }
   const src = given ?? resolve(ROOT, BGVID);
   let x;
   if (given) x = spawnSync(ffmpeg, ['-y', '-v', 'error', '-i', given, '-frames:v', '1', endPng], { encoding: 'utf8' });
@@ -368,9 +398,9 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 /* 남은 아래 공간 전체를 쓰고 그 안에서 가운데 정렬 — 아래가 휑하게 비지 않는다. */
 .body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:26px;text-align:center;padding:0 70px ${Math.round(H * 0.32)}px}
-.t{font-size:64px;font-weight:800;color:#7fd4ff;letter-spacing:.04em}
+.t{font-size:64px;font-weight:800;color:${B.tag};letter-spacing:.04em}
 .w{font-size:112px;font-weight:900;letter-spacing:.20em;text-indent:.20em;color:#fff}
-.r{width:150px;height:8px;background:linear-gradient(90deg,#38bdf8,#2563eb)}
+.r{width:150px;height:8px;background:linear-gradient(90deg,${B.r1},${B.r2})}
 .d{font-size:48px;font-weight:700;line-height:1.45;color:#dbe6ff}
 .u{font-size:66px;font-weight:900;color:#ffd400;letter-spacing:.01em;
   -webkit-text-stroke:5px #0a0a0a;paint-order:stroke fill;margin-top:6px}
@@ -387,12 +417,12 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 ${hasPhoto ? `<div class="p">${T.line && !DEMO && !CARD ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
 <div class="body">
 <div class="t">${T.tagline}</div>
-<div class="w">AISVI</div><div class="r"></div>
+<div class="w">${B.word}</div><div class="r"></div>
 ${CARD ? '' : `<div class="d">${T.desc}</div>`}
-<div class="u">aisviagent.com</div>
+<div class="u">${B.site}</div>
 <!-- cta 는 주소에 이어 읽히는 꼬리다("aisviagent.com 에서 다운로드").
      무료 안내를 그 사이에 끼웠더니 "에서 다운로드" 만 떨어져 나와 붕 떴다(2026-09-18 눈검증). -->
-<div class="c">${T.cta}</div>
+${T.cta ? `<div class="c">${T.cta}</div>` : ''}
 ${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}
 ${CARD ? '' : `<div class="c2">${T.note}</div>`}
 ${T.subCta ? `<div class="s">${T.subCta}</div>` : ''}

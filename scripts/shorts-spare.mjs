@@ -51,6 +51,8 @@ log(`1순위 "${top || '?'}"(고르기 exit ${pick.status}) — 그것을 빼고
 // ② 2순위로 렌더 — 정규 산출물을 덮지 않게 예비 폴더에
 const LOG = resolve(ROOT, 'logs/shorts-spare.log');   // 렌더 출력(cron-runner 가 자식 출력을 버려 9/28 22:30 사유를 몰랐다)
 const subCta = (await import('./lib/sub-cta.mjs')).subCtaFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0';
+// 끝 광고 카드도 같은 규칙(누적 편수 기준, lib/promo-card). 실제로 붙은 것은 메타 promo 가 기록한다.
+const promo = (await import('./lib/promo-card.mjs')).promoFor((await import('./lib/db.mjs')).shortsPublishedCount());
 // 2026-09-29: 한 이슈가 거절되면(00:50 "4장면 중 소재는 1장뿐") 그 이슈를 빼고 다시 — 정규 회차와 같은 방식.
 const TRIES = Number(process.env.SHORTS_SPARE_TRIES || 3);
 const exclude = top ? [top] : [];
@@ -64,7 +66,7 @@ for (let a = 1; a <= TRIES && !made; a++) {
   const r = spawnSync(node, [shorts, '--seconds', '40'], { cwd: ROOT, stdio: ['ignore', logFd, logFd], timeout: 20 * 60_000, killSignal: 'SIGKILL',
     env: { ...process.env, SHORTS_OUT_DIR: out, FLOW_OMNI_FALLBACK: '0', ...(exclude.length ? { SHORTS_EXCLUDE: exclude.join(',') } : {}),
       // 구독 권유 A/B — 예비도 같은 규칙(누적 편수 % 4). 실제로 붙었는지는 메타가 기록한다.
-      SHORTS_SUB_CTA: subCta } });
+      SHORTS_SUB_CTA: subCta, SHORTS_PROMO: promo } });
   closeSync(logFd);
   if (r.status === 0 && existsSync(join(out, 'shorts-ko.mp4')) && existsSync(join(out, 'shorts-ko-meta.json'))) { made = out; break; }
   rmSync(out, { recursive: true, force: true });
