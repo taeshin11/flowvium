@@ -33,6 +33,14 @@ const w = mkdtempSync(join(tmpdir(), 'media-stage-test-'));
   const r = archiveToMedia({ from, to, files: ['shorts-ko.mp4', 'shorts-ko-meta.json', 'shorts-ko-thumb.jpg'] });
   (r.ok && readFileSync(join(to, 'shorts-ko.mp4'), 'utf8') === 'VID' && r.copied.length === 2) ? ok(`[2] 보관 ${r.copied.join(', ')}`) : bad(`[2] ${JSON.stringify(r)}`);
 }
+// [2b] 임시 이름으로 쓰고 바꿔 끼운다 — 드라이브의 온라인 전용 자리표시 위에 cp 가 실패했다(9/29 meta.json 7회)
+{
+  const src = readFileSync(new URL('./media-stage.mjs', import.meta.url), 'utf8');
+  /tmp-\$\{process\.pid\}/.test(src) && /'mv', \['-f'/.test(src) ? ok('[2b] 임시 파일 → rename') : bad('[2b] 기존 파일 위에 바로 쓴다');
+  const { readdirSync } = await import('fs');
+  const left = readdirSync(join(w, 'media')).filter((n) => n.includes('.tmp-'));
+  left.length === 0 ? ok('[2c] 임시 파일이 남지 않는다') : bad(`[2c] ${left}`);
+}
 // [3] 보관 대상이 멈추면(클라우드 파일 open 이 안 돌아옴) 시간 한도 안에 포기한다 — FIFO 로 흉내
 {
   const from = join(w, 'stage3'), to = join(w, 'media3'); mkdirSync(from); mkdirSync(to);
