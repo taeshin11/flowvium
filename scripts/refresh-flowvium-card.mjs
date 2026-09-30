@@ -15,8 +15,18 @@ const OUT = resolve(ROOT, 'assets/outro/flowvium-card.mp4');
 const TMP = resolve(ROOT, 'assets/outro/.flowvium-card.tmp.mp4');
 const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[flowvium-card]', ...a);
 rmSync(TMP, { force: true });
+// 카드 띠: 추천 기록의 **실제** 최고 적중(앞뒤가 맞는 기록만, lib/best-hit). 없으면 사이트 화면으로.
+let HIT = null;
+try {
+  const { openDb } = await import('./lib/db.mjs');
+  const { pickBestHit } = await import('./lib/best-hit.mjs');
+  HIT = pickBestHit(openDb().prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
+    r.entry_low, r.entry_high, r.price_at_gen, o.high_seen, o.low_seen
+    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all());
+  log(HIT.best ? `실제 최고 적중 ${HIT.best.ticker} +${HIT.best.pnl}% (평가 ${HIT.evaluated}건 중)` : '쓸 만한 적중 기록이 없다 — 사이트 화면으로');
+} catch (e) { log(`추천 기록을 못 읽었다 — 사이트 화면으로: ${String(e?.message ?? e).slice(0, 80)}`); }
 const r = spawnSync(process.execPath, [resolve(ROOT, 'scripts/video/make-outro-clip.mjs'), '--card', '--brand', 'flowvium', '--out', TMP],
-  { cwd: ROOT, encoding: 'utf8', timeout: 5 * 60_000, killSignal: 'SIGKILL' });
+  { cwd: ROOT, encoding: 'utf8', timeout: 5 * 60_000, killSignal: 'SIGKILL', env: { ...process.env, ...(HIT?.best ? { FLOWVIUM_HIT: JSON.stringify(HIT) } : {}) } });
 if (r.status !== 0 || !existsSync(TMP)) { log(`만들지 못했다(exit ${r.status}) — 어제 카드를 그대로 쓴다: ${String(r.stderr || r.stdout).trim().split('\n').slice(-2).join(' | ').slice(0, 200)}`); process.exit(1); }
 const info = String(spawnSync(ffmpegPath, ['-hide_banner', '-i', TMP], { encoding: 'utf8' }).stderr);
 const d = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(info);

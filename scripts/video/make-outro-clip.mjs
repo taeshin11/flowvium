@@ -330,6 +330,36 @@ if (DEMO || CARD) {
   const endPng = join(WORK, 'end-photo.png');
   let given = process.env.AISVI_END_PHOTO ? resolve(ROOT, process.env.AISVI_END_PHOTO) : null;
   // flowvium: 사이트 보고서 화면을 찍어 띠 사진으로(540×403 @2x = 띠 1080×806 비율).
+  // 2026-09-30 사장님 "포토를 수익률 … AI투자계좌 이런거여야" → 되물음 결과 **실제 최고 적중**(지어낸 수익률은 쓰지 않는다).
+  //   refresh-flowvium-card 가 추천 기록에서 앞뒤가 맞는 최고 적중(lib/best-hit)을 FLOWVIUM_HIT 로 준다.
+  //   가장 좋은 것만 보이면 오해를 사므로 "추천 N건 중 최고 기록" 과 과거 수익 고지를 같은 띠에 적는다.
+  const hit = (() => { try { return JSON.parse(process.env.FLOWVIUM_HIT || 'null'); } catch { return null; } })();
+  if (!given && BRAND === 'flowvium' && hit?.best) {
+    const h = hit.best;
+    const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+    const esc = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const panel = join(WORK, 'hit-panel.png');
+    const bw = await chromium.launch({ headless: true });
+    const hp = await bw.newPage({ viewport: { width: 1080, height: 806 } });
+    await hp.setContent(`<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1080px;height:806px;background:radial-gradient(120% 90% at 50% 20%,#1d1b3a 0%,#0b0a1a 60%,#05070f 100%);
+  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.k{font-size:44px;font-weight:800;color:#c4b5fd;letter-spacing:.02em}
+.n{font-size:210px;font-weight:900;color:#22c55e;line-height:1;letter-spacing:-.02em;text-shadow:0 8px 40px rgba(34,197,94,.35)}
+.t{font-size:52px;font-weight:800}
+.d{font-size:38px;font-weight:700;color:#cbd5e1}
+.f{font-size:28px;color:#94a3b8;margin-top:14px}
+</style>
+<div class="k">AI 추천 실제 수익</div>
+<div class="n">+${esc(h.pnl)}%</div>
+<div class="t">${esc(h.name)} <span style="color:#94a3b8;font-weight:700">${esc(h.ticker.replace(/\.(KS|KQ)$/, ''))}</span></div>
+<div class="d">${md(h.from)} 추천 → ${md(h.to)} ${h.outcome === 'hit_target' ? '목표가 도달' : '매도'}</div>
+<div class="f">추천 ${Number(hit.evaluated).toLocaleString('ko-KR')}건 중 최고 기록 · 과거 수익이 미래 수익을 보장하지 않습니다</div>`);
+    await hp.screenshot({ path: panel });
+    await bw.close();
+    given = panel;
+  }
   if (!given && B.shot) {
     const shotPath = join(WORK, 'site-shot.png');
     const bw = await chromium.launch({ headless: true });
