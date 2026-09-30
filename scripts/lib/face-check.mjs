@@ -34,9 +34,37 @@ const squash = (s) => String(s ?? '').replace(/[\s·,.…"'“”‘’]/g, '');
  * 얼굴이 있는 사진이 **다른 사람**일 가능성이 큰가 — 훅의 첫 말(주어)이 그 사진을 낸 기사 제목에 없으면 그렇다.
  * 얼굴 수·출처 제목을 모르면 false(막지 않는다).
  */
-export function personMismatch({ hook, sourceTitle, faces }) {
+export function personMismatch({ hook, sourceTitle, faces, isPerson }) {
+  // 2026-09-30: 첫 말이 **사람 이름일 때만**(personLeads). "부동산"·"선정된" 으로 사진을 빼 예비가 회색 카드로 거절됐다.
+  if (isPerson !== true) return false;
   if (!faces || faces < 1 || !sourceTitle) return false;
   const lead = String(hook ?? '').trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{N}]/gu, '') ?? '';
   if (lead.length < 2) return false;
   return !squash(sourceTitle).includes(lead);
+}
+
+/**
+ * 훅마다 첫 말이 **특정 인물의 이름**인가 — agy 에 한 번 묻는다. 못 물으면 null(그때 얼굴 검사는 아무것도 빼지 않는다).
+ *   흔한 성씨로 시작하는 보통 말(부동산·선정된·당정협의)이 많아 규칙으로는 못 가른다(9/30 실측).
+ */
+export async function personLeads(hooks, { call } = {}) {
+  const lead = (h) => String(h ?? '').trim().split(/\s+/)[0] ?? '';
+  const list = hooks.map((h, i) => `${i}|${lead(h)}|${String(h ?? '').slice(0, 60)}`).join('\n');
+  const prompt = ['아래는 뉴스 자막 목록이다(번호|첫 말|자막 전체).',
+    '각 줄의 **첫 말**이 실존하는 특정 인물의 이름(예: 김여정, 트럼프, 이재명)인지 판단해라.',
+    '직책·기관·일반 명사·형용사·동사(예: 대통령실, 부동산, 선정된, 당정협의)는 false 다.', '', list, '',
+    'JSON 으로만 답해라: {"p": {"0": true|false, ...}} — 모든 번호를 빠짐없이.'].join('\n');
+  const doCall = call ?? (async (pp) => (await import('./agy-report.mjs')).agyReport(pp, {
+    label: 'person-lead', timeoutMs: 120_000,
+    schema: { type: 'object', properties: { p: { type: 'object' } }, required: ['p'] },
+    accept: (out) => { try { const o = JSON.parse(out)?.p; return !!o && hooks.every((_, i) => typeof (o[i] ?? o[String(i)]) === 'boolean'); } catch { return false; } },
+  }));
+  let out;
+  try { out = await doCall(prompt); } catch { return null; }
+  try {
+    const raw = JSON.parse(out)?.p;
+    const o = Object.fromEntries(Object.entries(raw ?? {}).map(([k, v]) => [String(k).replace(/['"\s]/g, ''), v]));
+    const r = hooks.map((_, i) => o[String(i)]);
+    return r.every((x) => typeof x === 'boolean') ? r : null;
+  } catch { return null; }
 }

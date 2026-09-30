@@ -1734,13 +1734,19 @@ closeGoogleImages();
   //   **기사 사진**(pageUrl 이 있는 것)만 본다 — Commons·공공누리는 파일 이름이 제목이라 한국어 주어가 없고,
   //   그 사진은 장면 문장으로 검색해 고른 것이다. 재사용된 장면은 원래 사진을 낸 기사 제목으로 잰다.
   try {
-    const { faceCount, personMismatch } = await import('../lib/face-check.mjs');
+    const { faceCount, personMismatch, personLeads } = await import('../lib/face-check.mjs');
     const srcOf = new Map(scenes.filter((x) => x.pick?.pageUrl && x.media).map((x) => [x.media, x.pick.title]));
     const faces = new Map();
-    for (const [k, x] of scenes.entries()) {
-      if (x.isOutro || !x.media || !srcOf.has(x.media)) continue;
-      if (!faces.has(x.media)) faces.set(x.media, faceCount(clipStill(x.media)));
-      if (personMismatch({ hook: x.hook, sourceTitle: srcOf.get(x.media), faces: faces.get(x.media) })) {
+    const checkIdx = [...scenes.entries()].filter(([, x]) => !x.isOutro && x.media && srcOf.has(x.media)).map(([k]) => k);
+    for (const k of checkIdx) { const m = scenes[k].media; if (!faces.has(m)) faces.set(m, faceCount(clipStill(m))); }
+    // 얼굴 있는 장면이 있을 때만 "첫 말이 사람 이름인가" 를 agy 에 묻는다(2026-09-30 — 보통 말로 사진을 빼던 것을 막는다).
+    const faceIdx = checkIdx.filter((k) => (faces.get(scenes[k].media) ?? 0) > 0);
+    const leads = faceIdx.length ? await personLeads(faceIdx.map((k) => scenes[k].hook)) : [];
+    const isPersonAt = new Map(faceIdx.map((k, i) => [k, leads?.[i] ?? null]));
+    if (faceIdx.length && !leads) log('[화면] 사람 이름 판정 실패(agy) — 얼굴·주어 검사는 아무것도 빼지 않는다');
+    for (const k of checkIdx) {
+      const x = scenes[k];
+      if (personMismatch({ hook: x.hook, sourceTitle: srcOf.get(x.media), faces: faces.get(x.media), isPerson: isPersonAt.get(k) ?? null })) {
         log(`[화면] ${k + 1} 얼굴 사진인데 자막 주어 "${String(x.hook).split(/\s+/)[0]}" 가 그 기사 제목에 없다 — 뺀다`);
         x.media = null; x.pick = null; x.credit = null;
       }
