@@ -5,6 +5,12 @@
  * @returns {{best: {ticker,name,pnl,from,to,outcome}|null, evaluated:number}}
  */
 export function pickBestHit(rows) {
+  const { hits, evaluated } = pickHits(rows, { min: 0 });
+  return { evaluated, best: hits[0] ?? null };
+}
+
+/** 앞뒤가 맞는 실제 수익 min% 이상, 종목당 하나, 높은 순. (2026-09-30 사장님 "최소 20% 넘는거로 다") */
+export function pickHits(rows, { min = 20 } = {}) {
   const done = (rows ?? []).filter((r) => r && r.outcome !== 'not_entered' && r.outcome !== 'unknown' && Number.isFinite(Number(r.pnl_pct)));
   const sane = done.filter((r) => {
     if (!['hit_target', 'sold'].includes(r.outcome)) return false;
@@ -23,10 +29,9 @@ export function pickBestHit(rows) {
     const cur = byTicker.get(r.ticker);
     if (!cur || Number(r.pnl_pct) > Number(cur.pnl_pct)) byTicker.set(r.ticker, r);
   }
-  const top = [...byTicker.values()].sort((a, b) => Number(b.pnl_pct) - Number(a.pnl_pct))[0];
-  return {
-    evaluated: done.length,
-    best: top ? { ticker: top.ticker, name: top.name, pnl: Number(Number(top.pnl_pct).toFixed(1)),
-      from: String(top.generated_at).slice(0, 10), to: String(top.evaluated_at).slice(0, 10), outcome: top.outcome } : null,
-  };
+  const hits = [...byTicker.values()].filter((r) => Number(r.pnl_pct) >= min)
+    .sort((a, b) => Number(b.pnl_pct) - Number(a.pnl_pct))
+    .map((r) => ({ ticker: r.ticker, name: r.name, pnl: Number(Number(r.pnl_pct).toFixed(1)),
+      from: String(r.generated_at).slice(0, 10), to: String(r.evaluated_at).slice(0, 10), outcome: r.outcome }));
+  return { evaluated: done.length, hits };
 }

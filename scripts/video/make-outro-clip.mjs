@@ -355,7 +355,7 @@ body{width:1080px;height:806px;background:radial-gradient(120% 90% at 50% 20%,#1
 <div class="n">+${esc(h.pnl)}%</div>
 <div class="t">${esc(h.name)} <span style="color:#94a3b8;font-weight:700">${esc(h.ticker.replace(/\.(KS|KQ)$/, ''))}</span></div>
 <div class="d">${md(h.from)} 추천 → ${md(h.to)} ${h.outcome === 'hit_target' ? '목표가 도달' : '매도'}</div>
-<div class="f">추천 ${Number(hit.evaluated).toLocaleString('ko-KR')}건 중 최고 기록 · 과거 수익이 미래 수익을 보장하지 않습니다</div>`);
+<div class="f">추천 ${Number(hit.evaluated).toLocaleString('ko-KR')}건 중 ${hit.of > 1 ? `수익 20% 이상 ${hit.of}건 중 하나` : '최고 기록'} · 과거 수익이 미래 수익을 보장하지 않습니다</div>`);
     await hp.screenshot({ path: panel });
     await bw.close();
     given = panel;

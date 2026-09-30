@@ -19,11 +19,15 @@ rmSync(TMP, { force: true });
 let HIT = null;
 try {
   const { openDb } = await import('./lib/db.mjs');
-  const { pickBestHit } = await import('./lib/best-hit.mjs');
-  HIT = pickBestHit(openDb().prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
+  const { pickHits } = await import('./lib/best-hit.mjs');
+  // 사장님 9/30 "최소 20% 넘는거로 다 해놔" — 실제 수익 20% 이상 전부를 날마다 하나씩 돌린다.
+  const MIN = Number(process.env.FLOWVIUM_HIT_MIN || 20);
+  const { hits, evaluated } = pickHits(openDb().prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
     r.entry_low, r.entry_high, r.price_at_gen, o.high_seen, o.low_seen
-    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all());
-  log(HIT.best ? `실제 최고 적중 ${HIT.best.ticker} +${HIT.best.pnl}% (평가 ${HIT.evaluated}건 중)` : '쓸 만한 적중 기록이 없다 — 사이트 화면으로');
+    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all(), { min: MIN });
+  const day = Math.floor((Date.now() + 9 * 3600e3) / 864e5);
+  HIT = hits.length ? { evaluated, best: hits[day % hits.length], rank: (day % hits.length) + 1, of: hits.length } : null;
+  log(HIT ? `실제 수익 ${MIN}% 이상 ${hits.length}건 — 오늘은 ${HIT.best.ticker} +${HIT.best.pnl}% (평가 ${evaluated}건 중)` : `실제 수익 ${MIN}% 이상 기록이 없다 — 사이트 화면으로`);
 } catch (e) { log(`추천 기록을 못 읽었다 — 사이트 화면으로: ${String(e?.message ?? e).slice(0, 80)}`); }
 const r = spawnSync(process.execPath, [resolve(ROOT, 'scripts/video/make-outro-clip.mjs'), '--card', '--brand', 'flowvium', '--out', TMP],
   { cwd: ROOT, encoding: 'utf8', timeout: 5 * 60_000, killSignal: 'SIGKILL', env: { ...process.env, ...(HIT?.best ? { FLOWVIUM_HIT: JSON.stringify(HIT) } : {}) } });

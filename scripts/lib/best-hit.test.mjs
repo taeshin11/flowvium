@@ -9,7 +9,7 @@
  *     진입 중간값×(1+수익률) 이 그 기간 최저~최고가 안에 있는 것. 같은 종목은 하나로.
  * 가장 좋은 것만 보여 주면 오해를 산다 — "최근 90일 평가 N건 중 최고" 를 같이 적는다(N 도 여기서 센다).
  */
-import { pickBestHit } from './best-hit.mjs';
+import { pickBestHit, pickHits } from './best-hit.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
@@ -31,5 +31,14 @@ const r = pickBestHit(rows);
 (r?.evaluated === 8) ? ok(`[2] 평가 건수(진입 못 한 것 제외) ${r.evaluated}`) : bad(`[2] ${r?.evaluated}`);
 (r?.best?.from === '2026-06-02' || r?.best?.from === '2026-07-01') ? ok(`[3] 날짜 ${r.best.from} → ${r.best.to}`) : bad(`[3] ${JSON.stringify(r?.best)}`);
 (pickBestHit([row({ outcome: 'stop_loss', pnl_pct: 20 })]).best === null) ? ok('[4] 쓸 만한 게 없으면 null — 지어내지 않는다') : bad('[4]');
+// [5] 사장님 9/30 "최소 20% 넘는거로 다 해놔" — **실제로 낸** 수익 20% 이상을 전부, 종목당 하나, 높은 순.
+//   날마다 하나씩 돌려 쓴다(카드는 하루 한 번 새로 굽는다). 20% 넘는 게 없으면 빈 목록 — 낮은 걸 끌어올리지 않는다.
+{
+  const rs = [row({ ticker: 'A', pnl_pct: 26.8, high_seen: 140 }), row({ ticker: 'B', pnl_pct: 21, high_seen: 130 }), row({ ticker: 'B', pnl_pct: 20.5, high_seen: 130 }),
+    row({ ticker: 'C', pnl_pct: 17.3, high_seen: 130 }), row({ ticker: 'D', outcome: 'stop_loss', pnl_pct: 44 })];
+  const h = pickHits(rs, { min: 20 });
+  (h.hits.map((x) => x.ticker).join() === 'A,B' && h.evaluated === 5) ? ok(`[5] 20% 이상 실제 수익만(${h.hits.map((x) => `${x.ticker} +${x.pnl}%`).join(', ')})`) : bad(`[5] ${JSON.stringify(h)}`);
+  (pickHits([row({ pnl_pct: 12 })], { min: 20 }).hits.length === 0) ? ok('[5b] 없으면 빈 목록') : bad('[5b]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
