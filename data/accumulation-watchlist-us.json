@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-30T13:00:39.549Z",
+  "generatedAt": "2026-09-30T22:03:37.347Z",
   "universe": "US",
   "scanned": 299,
-  "count": 15,
+  "count": 16,
   "strongCount": 0,
-  "watchCount": 15,
+  "watchCount": 16,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,47 +14,29 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -7.1,
-      "runup5dPct": -2,
+      "runup20dPct": -5.3,
+      "runup5dPct": 1.9,
       "medDollarVolUsd": 2260050,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MSD",
-      "name": "Morgan Stanley Emerging Markets",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -4.5,
-      "runup5dPct": -2.1,
-      "medDollarVolUsd": 390936,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PLAB",
-      "name": "Photronics, Inc.",
+      "ticker": "SFIX",
+      "name": "Stitch Fix, Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)"
+        "거래량 추세 3.8× 상승(지속 매집)",
+        "거래량 4.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": 10.4,
-      "runup5dPct": 2.1,
-      "medDollarVolUsd": 29093674,
+      "runup20dPct": -15,
+      "runup5dPct": -9.2,
+      "medDollarVolUsd": 5077380,
       "smartAccum": false,
       "official": null
     },
@@ -66,11 +48,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.9× 상승",
-        "거래량 2.7× 급증(가격 평탄)",
+        "거래량 2.8× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -10.9,
-      "runup5dPct": -5.8,
+      "runup20dPct": -10.7,
+      "runup5dPct": -4.1,
       "medDollarVolUsd": 406557,
       "smartAccum": false,
       "official": null
@@ -82,11 +64,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)"
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11.2,
-      "runup5dPct": -6.4,
+      "runup20dPct": -9.9,
+      "runup5dPct": -3.4,
       "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
@@ -99,11 +81,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 2.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.4,
-      "runup5dPct": -5,
-      "medDollarVolUsd": 4927758,
+      "runup20dPct": -9.4,
+      "runup5dPct": -2.7,
+      "medDollarVolUsd": 5062512,
       "smartAccum": false,
       "official": null
     },
@@ -114,11 +96,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 추세 2.4× 상승(지속 매집)",
         "거래량 3.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.5,
-      "runup5dPct": -4.5,
+      "runup20dPct": -9.2,
+      "runup5dPct": -3.4,
       "medDollarVolUsd": 1391385,
       "smartAccum": false,
       "official": null
@@ -131,28 +113,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)"
+        "거래량 3.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11.1,
-      "runup5dPct": -4.8,
-      "medDollarVolUsd": 3456576,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "INVA",
-      "name": "Innoviva, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 1.6,
-      "runup5dPct": 0.6,
-      "medDollarVolUsd": 14416479,
+      "runup20dPct": -9.2,
+      "runup5dPct": -1.8,
+      "medDollarVolUsd": 3533544,
       "smartAccum": false,
       "official": null
     },
@@ -164,10 +129,10 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)"
+        "거래량 3.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.9,
-      "runup5dPct": -5.4,
+      "runup20dPct": -8.9,
+      "runup5dPct": -2.3,
       "medDollarVolUsd": 752703,
       "smartAccum": false,
       "official": null
@@ -182,9 +147,41 @@
         "거래량 추세 2.9× 상승(지속 매집)",
         "거래량 3.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11.5,
-      "runup5dPct": -5.4,
+      "runup20dPct": -10.2,
+      "runup5dPct": -3,
       "medDollarVolUsd": 638575,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CBNK",
+      "name": "Capital Bancorp, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 9.3,
+      "runup5dPct": 10.4,
+      "medDollarVolUsd": 1812222,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NTRSO",
+      "name": "Northern Trust Corporation - De",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 681728,
       "smartAccum": false,
       "official": null
     },
@@ -195,11 +192,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 추세 2.6× 상승(지속 매집)",
         "거래량 3.2× 급증(가격 평탄)"
       ],
-      "runup20dPct": -14,
-      "runup5dPct": -6.6,
+      "runup20dPct": -11.8,
+      "runup5dPct": -3.4,
       "medDollarVolUsd": 766590,
       "smartAccum": false,
       "official": null
@@ -211,12 +208,12 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 1.8× 상승",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.5,
-      "runup5dPct": -8.5,
-      "medDollarVolUsd": 2200514,
+      "runup20dPct": -8.8,
+      "runup5dPct": -4.2,
+      "medDollarVolUsd": 2235519,
       "smartAccum": false,
       "official": null
     },
@@ -228,10 +225,10 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.8× 상승",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.7,
-      "runup5dPct": -3.8,
+      "runup20dPct": -6.2,
+      "runup5dPct": -0.7,
       "medDollarVolUsd": 1071012,
       "smartAccum": false,
       "official": null
@@ -243,12 +240,28 @@
       "score": 15,
       "coFire": 2,
       "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 4.4,
+      "runup5dPct": 5.3,
+      "medDollarVolUsd": 5643020,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BTT",
+      "name": "BlackRock Municipal 2030 Target",
+      "tier": "watch",
+      "score": 15,
+      "coFire": 2,
+      "lead": [
         "거래량 추세 1.5× 상승",
         "종가 일중 상단 60%"
       ],
-      "runup20dPct": 1,
-      "runup5dPct": 3.5,
-      "medDollarVolUsd": 5643020,
+      "runup20dPct": -3.4,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 1577480,
       "smartAccum": false,
       "official": null
     }
