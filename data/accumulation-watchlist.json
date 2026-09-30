@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-09-29T22:20:31.992Z",
+  "generatedAt": "2026-09-30T08:03:24.262Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
-  "strongCount": 0,
+  "count": 3,
+  "strongCount": 1,
   "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "093380.KQ",
+      "name": "풍강",
+      "tier": "strong",
+      "score": 45,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 4.7,
+      "runup5dPct": 3.4,
+      "medDollarVolUsd": 45506,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "065690.KQ",
       "name": "파커스",
@@ -15,30 +33,30 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)",
+        "종가 일중 상단 90%(강한 매수 흡수)",
+        "아래꼬리 매집 6개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 0.8,
-      "runup5dPct": 2.4,
+      "runup20dPct": 0.7,
+      "runup5dPct": 1.2,
       "medDollarVolUsd": 46108,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "093380.KQ",
-      "name": "풍강",
+      "ticker": "199480.KQ",
+      "name": "뱅크웨어글로벌",
       "tier": "watch",
-      "score": 29,
+      "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
         "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 2.7,
-      "runup5dPct": 2.9,
-      "medDollarVolUsd": 45506,
+      "runup20dPct": -2,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 55251,
       "smartAccum": true,
       "official": null
     }
