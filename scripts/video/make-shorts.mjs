@@ -336,6 +336,9 @@ let BRIEF_POOL = [];
 let RECENT_HEADS = [];
 /** 반응 약한 갈래인가. 성적을 못 읽으면 아무도 약하지 않다(판단하지 않는다). */
 let IS_WEAK = () => false;
+// 2026-09-30 실험 칸(lib/explore-slot) — video-publish 가 여섯 편에 한 편 SHORTS_EXPLORE=1 을 준다.
+//   이 편은 조회수 성적(약한 갈래·주제 등급)으로 뒤로 미는 것을 하지 않고, 최근 14일에 적게 다룬 주제를 앞으로 둔다.
+const EXPLORE = process.env.SHORTS_EXPLORE === '1';
 /** 헤드라인 자극도. 브리핑 순서(=썸네일)를 정하는 데도 쓴다. */
 let AROUSAL = () => 0;
 /** 썸네일로 세우면 안 되는 헤드라인인가(남을 규정하는 인용). */
@@ -404,7 +407,8 @@ if (FORCE_ISSUE) {
     //   목표가 사이트 유입이므로 조회수 쪽이 목표에 더 가깝다(topic-score.weakByViews 주석).
     const perf = shortsPerformance({ minAgeHours: 8 });
     const weak = new Set([...weakCategories(perf), ...weakByViews(perf)]);
-    if (weak.size) {
+    if (weak.size && EXPLORE) log('[편성] 실험 칸 — 약한 갈래를 뒤로 밀지 않는다(검증 안 된 쪽을 재 보려는 편)');
+    if (weak.size && !EXPLORE) {
       const isWeak = (c) => weak.has(categoryOf((c.headlines ?? [])[0] ?? ''));
       IS_WEAK = isWeak;   // 아래 소재 기준 재선택에서도 같은 판단을 쓴다
       const back = fresh.filter(isWeak);
@@ -528,7 +532,16 @@ if (FORCE_ISSUE) {
     if (topics) {
       head.forEach((c, i) => { c.__topic = topics[i]; });
       const tier = topicTier(topicLift(shortsTopicObservations(), { minSamples: 8 }));
-      if (tier.size) {
+      if (EXPLORE) {
+        // 실험 칸: 등급 대신 최근 14일에 적게 다룬 주제부터(위험 썸네일 규칙은 먼저). 영상 "Why No One Makes 'Original' Videos".
+        const { exploreOrder } = await import('../lib/explore-slot.mjs');
+        const { recentTopicCounts } = await import('../lib/db.mjs');
+        const counts = recentTopicCounts(14);
+        const before = head[0]?.keyword;
+        fresh = [...exploreOrder(head, counts, { unsafe: (c) => !!(UNSAFE_THUMB && UNSAFE_THUMB(c)) }), ...fresh.slice(TOP)];
+        issue = fresh[0];
+        log(`[편성] 실험 칸 — 최근 14일 주제별 편수 ${[...counts].map(([k, v]) => `${k} ${v}`).join(' · ')} · 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
+      } else if (tier.size) {
         const rank = (c) => (tier.get(c.__topic) === 'strong' ? 0 : tier.get(c.__topic) === 'weak' ? 2 : 1);
         const unsafeRank = (c) => (UNSAFE_THUMB && UNSAFE_THUMB(c) ? 1 : 0);
         const before = head[0]?.keyword;
@@ -2189,5 +2202,6 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
   promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것
+  explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

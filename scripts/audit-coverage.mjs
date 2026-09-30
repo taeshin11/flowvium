@@ -92,6 +92,8 @@ const NEW_COLUMNS = {
     why: '대본 보관을 2026-09-18 에 시작 — 그 전 편은 대본이 남지 않았다(shorts-blog 의 소재)' },
   'shorts_published.bodies_json': { since: '2026-09-20T12:00', at: 'published_at',
     why: '기사 본문 보관을 2026-09-20 에 시작 — 그 전 회차는 대본을 쓸 때 읽고 버렸다(쇼츠→블로그의 재료)' },
+  'shorts_published.explore': { since: '2026-09-30T16:00', at: 'published_at',
+    why: '실험 칸(여섯 편에 한 편) 기록을 2026-09-30 에 시작 — 그 전 편은 실험 칸이 없었다(소급하지 않는다)' },
   'shorts_published.promo': { since: '2026-09-30T10:00', at: 'published_at',
     why: '끝 광고 카드(aisvi|flowvium) 번갈아 넣기를 2026-09-30 에 시작 — 그 전 편은 전부 aisvi 였다(소급하지 않는다)' },
   'shorts_published.sub_cta': { since: '2026-09-27T12:00', at: 'published_at',
