@@ -1223,6 +1223,7 @@ Copernicus 자격증명(.env.local)은 보존(추후 재활용 대비).
 | `blog-publish` (cron-runner 로컬, 2026-09-18) | 07:15 · 12:45 · 21:45 KST | 아직 안 올린 글을 오래된 것부터 Blogger 에 올린다(회당 최대 3편). 광고(flowvium.net)·투자 고지가 없으면 올리지 않고, **같은 날 시장 브리핑은 한 편만** 올린다. 이미 올린 글은 새로 만들지 않고 수정 |
 | `shorts-blog` (cron-runner 로컬, 2026-09-18) | 12:40 · 21:40 KST (하루 2편) | 올린 쇼츠를 블로그 글로 푼다 — 그 편이 **실제로 말한 대본**(shorts_published.hooks_json)이 알맹이다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다. 하루 전편(9편)을 쓰지 않는 이유는 대량 생성 콘텐츠 강등 위험 |
 | `flowvium-card` (cron-runner 로컬, 2026-09-30) | 07:45 KST | 쇼츠 끝 2초 광고를 aisviagent.com · flowvium.net 카드로 **네 편씩 번갈아** 붙인다(`lib/promo-card`, 제목·구독 권유 실험과 2×2×2). flowvium 카드는 띠가 사이트 보고서 화면 캡처라 매일 아침 다시 굽는다(`refresh-flowvium-card`, 길이·규격·밝기 재고 바꿔 끼움). 붙은 카드는 `shorts_published.promo` |
+| 사이트 소개 롱폼 · 관련 동영상 (2026-10-02) | 발행마다 | 쇼츠 설명·댓글 링크는 2023-08-31 부터 안 눌린다 → `make-site-tour`(실제 사이트 화면 7장면, 101초) 롱폼 OwRQLZ8DHzU(설명란 utm 링크·챕터) · `yt-related-video` 가 쇼츠 '관련 동영상' 을 그 롱폼으로(스튜디오 화면, 프로필 잠금 `logs/youtube-profile.lock`). 새 쇼츠는 video-publish 가 업로드 뒤 띄운다(`RELATED_VIDEO=0` 끔). 채널 링크 2개(flowvium.net/ko/report·aisviagent.com, utm medium=channel) |
 
 ---
 

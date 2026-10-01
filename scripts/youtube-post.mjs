@@ -59,6 +59,11 @@ log(`이미지 ${got.name} ${got.w}x${got.h}`);
 
 // ③ 게시(브라우저)
 const shots = join(work, 'shots'); mkdirSync(shots, { recursive: true });
+// 2026-10-02: 같은 프로필을 쓰는 관련 동영상 걸기(yt-related-video)와 겹치지 않게.
+const { YT_PROFILE_LOCK } = await import('./lib/site-tour-video.mjs');
+const plock = await (await import('./lib/run-lock.mjs')).acquireRunLock(resolve(ROOT, YT_PROFILE_LOCK), { waitMs: 20 * 60_000, pollMs: 10_000, label: 'yt-post' });
+if (!plock.ok) { log(`유튜브 프로필을 다른 작업이 쓰고 있다 — 다음에 한다`); process.exit(0); }
+process.on('exit', () => plock.release());
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
   channel: 'chrome', headless: true, viewport: { width: 1280, height: 1000 }, args: ['--disable-blink-features=AutomationControlled'] });
 const page = ctx.pages()[0] ?? await ctx.newPage();

@@ -485,6 +485,16 @@ if (isShorts && last.keyword) {
         if (pl) log(`재생목록: "${pl.title}" 에 넣었다`);
       } catch (e) { log(`⚠ 재생목록에 못 넣었다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
     }
+    // 2026-10-02 '관련 동영상' 을 사이트 소개 롱폼으로(쇼츠 화면에서 눌리는 유일한 링크 자리). 스튜디오 화면이라 뒤에서 따로 돈다.
+    if (videoId && isShorts && process.env.RELATED_VIDEO !== '0') {
+      try {
+        const { spawn } = await import('node:child_process');
+        const { openSync } = await import('node:fs');
+        const out = openSync(resolve(ROOT, 'logs/related-new.log'), 'a');
+        spawn(process.execPath, [resolve(ROOT, 'scripts/yt-related-video.mjs'), '--ids', videoId], { detached: true, stdio: ['ignore', out, out] }).unref();
+        log('관련 동영상(사이트 소개 롱폼) 걸기를 뒤에서 시작했다 → logs/related-new.log');
+      } catch (e) { log(`⚠ 관련 동영상 걸기를 못 띄웠다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
+    }
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
     log(`⚠ 편성 대장 기록 실패 — 다음 편이 같은 뉴스를 고를 수 있다: ${e.message}`);
