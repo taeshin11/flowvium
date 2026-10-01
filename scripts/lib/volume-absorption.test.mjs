@@ -35,5 +35,15 @@ const flatCloses = Array.from({ length: 100 }, () => 100);
   (r[0] && !r[1] && r[2] && !r[3] && !r[4] && r[5] && !r[6])
     ? ok(`[2] 발화: 매집형 O · 오름 X · 폭락(그대로판 O / 보합판 X) · 스파이크 없음 X · 모름 X — "${r[0]}"`) : bad(`[2] ${JSON.stringify(r)}`);
 }
+// [3] 10/2 실측: 신호 계산을 **매도 신호 함수(fetchSellSignals)** 에 넣었다(같은 줄이 두 함수에 있어 첫 것에 붙었다).
+//   매수 후보에는 필드가 안 채워져 BA(3.17배·-10%)·TRGP·196170 가 조건을 만족했는데 발화 0건. stage2-ctx 테스트는
+//   '선언' 만 봐서 통과했다 — 여기서는 **매수 신호 함수 본문이 실제로 채우는지** 본다.
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(new URL('../generate-report-local.mjs', import.meta.url), 'utf8');
+  const body = (name) => { const i = src.indexOf(`async function ${name}(`); const j = src.indexOf('\nasync function ', i + 10); return i < 0 ? '' : src.slice(i, j < 0 ? undefined : j); };
+  (/volumeAbsorptionSignals\(/.test(body('fetchBuyTechSignals')) && !/volumeAbsorptionSignals\(/.test(body('fetchSellSignals')))
+    ? ok('[3] 매수 신호 함수가 volSpike20·ret20 을 채운다(매도 쪽 아님)') : bad('[3] volumeAbsorptionSignals 가 매수 신호 함수 본문에 없다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

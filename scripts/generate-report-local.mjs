@@ -5272,8 +5272,6 @@ async function fetchSellSignals(tickers) {
         sig.sma50 = computeSMA(oh.closes, 50);
         sig.sma200 = computeSMA(oh.closes, 200);
         if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
-        // 2026-10-01 전향 후보 volumeAbsorption 용(live 채점 미참여) — 거래량 스파이크·20일 수익률
-        if (oh.volumes?.length) Object.assign(sig, volumeAbsorptionSignals(closes, oh.volumes));
       }
     } catch { /* skip */ }
     try {
@@ -5333,6 +5331,8 @@ async function fetchBuyTechSignals(tickers) {
         sig.sma50 = computeSMA(closes, 50);
         sig.sma200 = computeSMA(closes, 200);
         if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
+        // 2026-10-01(10/2 자리 바로잡음 — 매도 신호 함수에 붙어 있었다) 전향 후보 volumeAbsorption 용(live 채점 미참여) — 거래량 스파이크·20일 수익률
+        if (oh.volumes?.length) Object.assign(sig, volumeAbsorptionSignals(closes, oh.volumes));
         // 52w + 20d high / low
         sig.high52w = Math.max(...closes);
         sig.low52w = Math.min(...closes);
