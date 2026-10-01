@@ -175,7 +175,7 @@ L.push('### 매일 5회, 시장을 정리합니다');
 L.push('');
 L.push(`**${SITE}** 에서 하루 다섯 번 시장 보고서를 만듭니다. 종목별 진입·손절 근거와 지난 추천의 성적표까지 그대로 볼 수 있습니다.`);
 L.push('');
-L.push(`👉 **https://${SITE}**`);
+L.push(`👉 **${(await import('./lib/site-link.mjs')).trackedUrl({ source: 'blog', medium: 'shorts-blog' })}**`);   // 2026-10-02 출처 꼬리표 — 블로그가 사람을 보내는지 잰다
 L.push('');
 if (CH) {
   L.push('### 채널');

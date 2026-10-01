@@ -41,7 +41,7 @@ const sent = await sentSet(today);
 const to = recipientsFor(subs, sent);
 log(`받을 사람 ${to.length}명 (동의 ${subs.filter((s) => s.status === 'active').length} · 오늘 이미 ${sent.size})`);
 const links = (token) => ({
-  reportUrl: `${SITE}/ko/report`,
+  reportUrl: `${SITE}/ko/report?utm_source=email&utm_medium=morning-mail`,   // 2026-10-02 출처 꼬리표
   unsubUrl: `${SITE}/ko/mail?a=unsubscribe&t=${encodeURIComponent(token)}`,
   oneClickUrl: `${SITE}/api/mail/unsubscribe?t=${encodeURIComponent(token)}`,
 });

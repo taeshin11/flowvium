@@ -220,7 +220,7 @@ L.push('### 이 정리는 어디서 나오나');
 L.push('');
 L.push(`**${SITE}** 에서 하루 다섯 번 시장을 정리하고 있습니다. 종목별 상세, 진입·손절 근거, 지난 추천의 성적표까지 사이트에서 그대로 볼 수 있습니다.`);
 L.push('');
-L.push(`👉 **https://${SITE}**`);
+L.push(`👉 **${(await import('./lib/site-link.mjs')).trackedUrl({ source: 'blog', medium: 'daily-blog' })}**`);   // 2026-10-02 출처 꼬리표
 L.push('');
 if (CH) {
   L.push('### 1분 영상으로도 올립니다');
