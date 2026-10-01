@@ -1,27 +1,28 @@
 {
-  "generatedAt": "2026-09-30T22:20:25.098Z",
+  "generatedAt": "2026-10-01T07:20:28.126Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
-  "strongCount": 1,
-  "watchCount": 1,
+  "strongCount": 0,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "093380.KQ",
-      "name": "풍강",
-      "tier": "strong",
-      "score": 35,
-      "coFire": 3,
+      "ticker": "010280.KQ",
+      "name": "아이티센엔텍",
+      "tier": "watch",
+      "score": 39,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+        "거래량 추세 1.9× 상승",
+        "거래량 4.4× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 4.7,
-      "runup5dPct": 3.4,
-      "medDollarVolUsd": 45506,
-      "smartAccum": false,
+      "runup20dPct": 7.4,
+      "runup5dPct": 14.2,
+      "medDollarVolUsd": 94848,
+      "smartAccum": true,
       "official": null
     },
     {
@@ -33,11 +34,11 @@
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 90%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)",
+        "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 0.7,
-      "runup5dPct": 1.2,
+      "runup20dPct": -0.8,
+      "runup5dPct": 0.5,
       "medDollarVolUsd": 46108,
       "smartAccum": true,
       "official": null
