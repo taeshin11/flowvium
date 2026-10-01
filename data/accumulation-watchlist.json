@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T07:20:28.126Z",
+  "generatedAt": "2026-10-01T22:20:26.094Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
@@ -7,24 +7,6 @@
   "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "010280.KQ",
-      "name": "아이티센엔텍",
-      "tier": "watch",
-      "score": 39,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 4.4× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 7.4,
-      "runup5dPct": 14.2,
-      "medDollarVolUsd": 94848,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "065690.KQ",
       "name": "파커스",
@@ -40,6 +22,23 @@
       "runup20dPct": -0.8,
       "runup5dPct": 0.5,
       "medDollarVolUsd": 46108,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "199480.KQ",
+      "name": "뱅크웨어글로벌",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -3.6,
+      "runup5dPct": 0.5,
+      "medDollarVolUsd": 43429,
       "smartAccum": true,
       "official": null
     }
