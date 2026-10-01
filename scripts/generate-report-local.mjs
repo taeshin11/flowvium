@@ -76,7 +76,7 @@ import { earningsMissSignal } from './lib/earnings-miss.mjs';
 import { reconcileCompanyYoY, isMeasuredYoY } from './lib/yoy-reconcile.mjs';
 import { inspectContextSections, formatContextCoverage, describeContextShapes } from './lib/context-coverage.mjs';
 import { isTicker } from './lib/ticker.mjs';
-import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto } from '../src/lib/buy-sell-engine.mjs';
+import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto, volumeAbsorptionSignals } from '../src/lib/buy-sell-engine.mjs';
 // 이름은 sec-name-clean 의 sameCompany(회사 '이름' 비교)와 겹친다 — 이쪽은 **티커**로 본다.
 import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-company.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
@@ -5272,6 +5272,8 @@ async function fetchSellSignals(tickers) {
         sig.sma50 = computeSMA(oh.closes, 50);
         sig.sma200 = computeSMA(oh.closes, 200);
         if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
+        // 2026-10-01 전향 후보 volumeAbsorption 용(live 채점 미참여) — 거래량 스파이크·20일 수익률
+        if (oh.volumes?.length) Object.assign(sig, volumeAbsorptionSignals(closes, oh.volumes));
       }
     } catch { /* skip */ }
     try {
@@ -5322,7 +5324,7 @@ function loadBuyRules() {
 async function fetchBuyTechSignals(tickers) {
   const out = new Map();
   await Promise.all(tickers.slice(0, 100).map(async ticker => {
-    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, high52w: null, low52w: null, high20d: null, consolidationWeeks: null };
+    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, high52w: null, low52w: null, high20d: null, consolidationWeeks: null, volSpike20: null, ret20: null };
     try {
       const oh = await fetchOHLCV(ticker, '1y');
       if (oh?.closes?.length) {

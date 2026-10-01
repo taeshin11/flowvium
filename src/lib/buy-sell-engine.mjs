@@ -273,6 +273,12 @@ export function evaluateBuyRule(rule, ctx) {
         return `정배열 눌림목 (1d ${ctx.change1d}%, RSI ${ctx.rsi})`;
       }
       break;
+    case 'volumeAbsorption':  // 2026-10-01 전향 후보: 거래량 터졌는데 주가 안 오름(매집 가설) — scripts/lib/volume-absorption.test 머리말
+      if (ctx.volSpike20 != null && ctx.ret20 != null && ctx.volSpike20 >= (c.spike_gte ?? 3) && ctx.ret20 < (c.ret_lt ?? 3)
+          && (c.ret_gt == null || ctx.ret20 > c.ret_gt)) {
+        return `20일 내 거래량 ${ctx.volSpike20}배 · 20일 수익률 ${ctx.ret20}% (물량을 받아내는 중?)`;
+      }
+      break;
     case 'breakoutVolume':  // 20일 신고가 돌파 + 강한 수급 동반 — above20dHigh 의 수급확인 강화판
       if (ctx.price != null && ctx.high20d != null && ctx.volPct != null &&
           ctx.price > ctx.high20d && ctx.volPct >= (c.vol_pct_gte ?? 80)) {
@@ -611,4 +617,20 @@ export function hasHardBuyVeto(ctx, opts = {}) {
     return `과열 추격 veto${lvTag}: 200MA 대비 +${((price / sma200 - 1) * 100).toFixed(0)}% 과확장(parabolic) — 신규 추격매수 금지`;
   }
   return null;
+}
+
+/**
+ * 거래량 흡수(매집 가설) 신호 — volSpike20 = 최근 20거래일 최대 거래량 ÷ 그 앞 60거래일 평균, ret20 = 최근 20거래일 수익률(%).
+ * 80거래일 미만이거나 평균이 0이면 null(모르면 발화하지 않는다). (2026-10-01)
+ */
+export function volumeAbsorptionSignals(closes, volumes) {
+  const v = (volumes ?? []).map(Number), c = (closes ?? []).map(Number);
+  if (v.length < 80 || c.length < 21) return { volSpike20: null, ret20: null };
+  const prior = v.slice(-80, -20).filter((x) => Number.isFinite(x));
+  const avg = prior.reduce((a, x) => a + x, 0) / (prior.length || 1);
+  const recent = v.slice(-20).filter((x) => Number.isFinite(x));
+  const spike = avg > 0 && recent.length ? Math.max(...recent) / avg : null;
+  const p0 = c[c.length - 21], p1 = c[c.length - 1];
+  const ret = p0 > 0 && Number.isFinite(p1) ? (p1 / p0 - 1) * 100 : null;
+  return { volSpike20: spike == null ? null : Number(spike.toFixed(2)), ret20: ret == null ? null : Number(ret.toFixed(2)) };
 }

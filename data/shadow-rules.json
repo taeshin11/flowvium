@@ -46,6 +46,29 @@
       },
       "description": "200MA +35% 과확장 + RSI ≥70 + 거래량 감소 3중 고점징후",
       "hypothesis": "과확장·과매수에 수급이탈이 겹치면 단기 하락 우위 — TER 484 붕괴 직전 패턴의 일반화 [백테스트 2026-07-03: 기각 방향 — 69종목 2y, 발화 후 평균 +2.9%/5d 상승(모멘텀 지속>평균회귀), 승률 46%. 매도신호 아닌 변동성확대 신호로 재해석. 약세장 표본 확보 위해 전향 수집은 계속]"
+    },
+    {
+      "id": "shadow_buy_volume_absorption",
+      "side": "buy",
+      "condition": {
+        "type": "volumeAbsorption",
+        "spike_gte": 3,
+        "ret_lt": 3
+      },
+      "description": "20일 내 하루 거래량이 앞 60일 평균의 3배 이상인데 20일 수익률 3% 미만",
+      "hypothesis": "사장님 공유 쇼츠(QtG0BNW0Wn4, 2026-10-01) 주장 그대로 — 거래량이 터져도 값이 안 오르면 누군가 물량을 받아내는 중(매집)"
+    },
+    {
+      "id": "shadow_buy_volume_absorption_flat",
+      "side": "buy",
+      "condition": {
+        "type": "volumeAbsorption",
+        "spike_gte": 3,
+        "ret_lt": 3,
+        "ret_gt": -3
+      },
+      "description": "위 조건 + 20일 수익률 -3%~+3%(같은 가격대에서 받아냄)",
+      "hypothesis": "폭락하며 쏟아진 거래량은 매집이 아니다 — 보합에서 터진 거래량만 매집 신호로 본다"
     }
   ]
 }
