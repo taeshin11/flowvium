@@ -405,7 +405,9 @@ async function main() {
       'company-signals': '/api/company-signals/NVDA',    // 2026-06-13: [ticker] 동적 — base path 는 404
       'manipulation-risk': '/api/manipulation-risk/NVDA', // 2026-06-13: [ticker] 동적 작전주 스코어
     };
-    const SKIP = new Set(['company-desc', 'investment-strategy']);
+    // 2026-09-30 'mail' = 아침보고서 메일 동의·수신거부(POST 만, /api/mail/confirm·/unsubscribe). GET 데이터가 없다 —
+    //   /member 와 같은 부류. 그대로 두면 'mail(empty body)' DEAD 로 매 사이클 경보가 났다.
+    const SKIP = new Set(['company-desc', 'investment-strategy', 'mail']);
     const probeOne = async (ep) => {
       if (SKIP.has(ep)) return { ep, skip: true };
       const path = SAMPLE[ep] ?? `/api/${ep}`;
@@ -558,7 +560,7 @@ async function main() {
       walk(apiDir, '');
       const trackedSet = new Set(TRACKED_ENDPOINTS.map(e => e.replace(/^\/api/, '').split('?')[0]));
       // admin/cron(쓰기), 유틸, per-ticker([) 제외
-      const EXCLUDE = /^\/(admin|cron)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|member)$|\[/;
+      const EXCLUDE = /^\/(admin|cron|mail)(\/|$)|^\/(ai|translate|collect|institutional-refresh|batch-prices|member)$|\[/;   // 2026-09-30 mail: 메일 동의·수신거부 POST(데이터 아님)
       // param 필수(per-ticker 성격) 또는 시계열 불필요(list/history) — 의도적 미추적.
       //   /judge-chat·/judge-chat/share = 심판엔진 채팅 POST(per-user 대화·스냅샷) — 시계열 데이터 소스가 아니라
       //   endpoint_snapshots 추적 대상 아님(2026-06-19). 자체 검증로그(judge-chat:verify)+폐루프로 별도 추적.
