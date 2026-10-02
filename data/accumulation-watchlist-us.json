@@ -1,21 +1,22 @@
 {
-  "generatedAt": "2026-10-01T22:04:07.367Z",
+  "generatedAt": "2026-10-02T13:00:52.021Z",
   "universe": "US",
   "scanned": 299,
   "count": 16,
-  "strongCount": 0,
-  "watchCount": 16,
+  "strongCount": 1,
+  "watchCount": 15,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "MG",
       "name": "Mistras Group Inc",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
+      "tier": "strong",
+      "score": 43,
+      "coFire": 3,
       "lead": [
         "거래량 추세 2.6× 상승(지속 매집)",
         "변동성 수축(coiling) — 돌파 압축",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
       "runup20dPct": 6.4,
@@ -66,7 +67,7 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)",
+        "거래량 3.6× 급증(가격 평탄)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
       "runup20dPct": 7.8,
