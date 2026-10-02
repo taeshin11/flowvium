@@ -43,6 +43,20 @@ for (const r of rules) {
   if (n) console.log(`       ${r.why}`);
   if (n && !DRY) { const ch = db.prepare(r.fix).run().changes; console.log(`       → ${ch}건 손익 제거(라벨은 유지)`); total += ch; }
 }
+// 2026-10-02 ③ 그 기간 실제로 불가능한 손익(lib/realized-pnl implausibleReason — 손절가가 진입가 위·청산가가 기간 범위 밖).
+//   SQL 로 못 쓰는 계산이라 줄마다 판정한다. 저장하는 곳(saveOutcome)도 같은 판정을 쓴다 — 새 줄은 다시 안 섞인다.
+{
+  const { implausibleReason } = await import('./lib/realized-pnl.mjs');
+  const rows = db.prepare(`SELECT o.id, o.outcome, o.pnl_pct, o.low_seen, o.high_seen, o.details_json, r.entry_low, r.price_at_gen, r.stop_loss
+    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id WHERE o.pnl_pct IS NOT NULL`).all();
+  const bad = rows.map((x) => ({ x, why: implausibleReason({ outcome: x.outcome, entry: x.entry_low ?? x.price_at_gen, stop: x.stop_loss, pnl: x.pnl_pct, lowSeen: x.low_seen, highSeen: x.high_seen }) })).filter((b) => b.why);
+  console.log(`  ${bad.length ? '🔧' : '✅'} 그 기간 불가능한 손익: ${bad.length}건`);
+  if (bad.length && !DRY) {
+    const up = db.prepare(`UPDATE recommendation_outcomes SET pnl_pct = NULL, quality_score = NULL, details_json = ? WHERE id = ?`);
+    db.transaction(() => { for (const { x, why } of bad) { let d = {}; try { d = JSON.parse(x.details_json ?? '{}') ?? {}; } catch { d = {}; } up.run(JSON.stringify({ ...d, implausible: why, implausiblePnl: x.pnl_pct }), x.id); } })();
+    console.log(`       → ${bad.length}건 손익 제거(라벨·원래 값은 details 에 남김)`); total += bad.length;
+  }
+}
 console.log(DRY ? '\n  (dry — 변경 없음)' : `\n  총 ${total}건 정리`);
 
 // 남은 복사 손익은 데이터로 못 고친다(원래 진입가별 청산가를 알 수 없음) — 규모만 보고한다.

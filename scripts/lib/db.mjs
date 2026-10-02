@@ -10,6 +10,7 @@
  * 모든 mjs 스크립트가 이 라이브러리로 공통 인터페이스 사용.
  * Vercel build 에는 들어가지 않음 (devDependency + scripts/ 외부 import 없음).
  */
+import { implausibleReason } from './realized-pnl.mjs';
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -1365,6 +1366,14 @@ export function computeOutcomeQuality({ pnl_pct, spy_return, bench_return, outco
 
 export function saveOutcome(rec) {
   const db = openDb();
+  // 2026-10-02: 그 기간 실제로 불가능한 손익은 저장하지 않는다(라벨은 남기고 손익만 거둔다 — enforce-outcome-invariants 원칙).
+  //   손절가가 진입가 위·청산가가 기간 가격 범위 밖 → 269/1,732건이 평균·알파·광고 카드에 섞여 있었다(lib/outcome-plausible.test).
+  if (rec.pnl_pct != null) {
+    const r = db.prepare(`SELECT entry_low, price_at_gen, stop_loss FROM recommendations WHERE id = ?`).get(rec.recommendation_id);
+    const why = implausibleReason({ outcome: rec.outcome, entry: r?.entry_low ?? r?.price_at_gen, stop: r?.stop_loss,
+      pnl: rec.pnl_pct, lowSeen: rec.low_seen, highSeen: rec.high_seen });
+    if (why) rec = { ...rec, pnl_pct: null, quality_score: null, details: { ...(rec.details ?? {}), implausible: why } };
+  }
   // 2026-06-05: per-outcome 품질을 성과(alpha)로 산출 — caller 값 > 성과계산 > 보고서점수 순.
   //   (이전엔 보고서 전체 score 만 복사해 추천별 변별이 없었고, 그마저 join 실패로 100% NULL.)
   let qs = rec.quality_score ?? computeOutcomeQuality(rec);

@@ -41,3 +41,19 @@ export function markToMarketPnlPct({ entry, lastClose }) {
   if (!Number.isFinite(e) || e === 0 || !Number.isFinite(c)) return null;
   return parseFloat(((c - e) / e * 100).toFixed(2));
 }
+
+/**
+ * 실현 손익이 그 기간 실제로 가능한 값인가. 불가능하면 사유, 가능하거나 판단할 수 없으면 null. (2026-10-02)
+ *   근거는 outcome-plausible.test.mjs 머리말(1,732건 중 269건 — 손절가가 진입가 위, 청산가가 기간 가격 범위 밖).
+ */
+export function implausibleReason({ outcome, entry, stop, pnl, lowSeen, highSeen }) {
+  const e = Number(entry), p = Number(pnl);
+  if (!Number.isFinite(e) || e <= 0 || !Number.isFinite(p)) return null;
+  if (stop != null && Number(stop) >= e) return `손절가(${stop})가 진입가(${e}) 이상`;
+  if (!['stop_loss', 'hit_target', 'sold'].includes(outcome)) return null;
+  const lo = Number(lowSeen), hi = Number(highSeen);
+  if (!(lo > 0) || !(hi > 0)) return null;
+  const exit = e * (1 + p / 100);
+  if (exit > hi * 1.01 || exit < lo * 0.99) return `청산가 ${exit.toFixed(2)} 가 그 기간 가격 범위(${lo}~${hi}) 밖`;
+  return null;
+}
