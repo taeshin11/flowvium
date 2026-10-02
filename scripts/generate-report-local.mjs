@@ -5323,7 +5323,7 @@ function loadBuyRules() {
 async function fetchBuyTechSignals(tickers) {
   const out = new Map();
   await Promise.all(tickers.slice(0, 100).map(async ticker => {
-    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, high52w: null, low52w: null, high20d: null, consolidationWeeks: null, volSpike20: null, ret20: null };
+    const sig = { rsi: null, sma50: null, sma200: null, volPct: null, high52w: null, low52w: null, high20d: null, consolidationWeeks: null, volSpike20: null, ret20: null, daysSinceSpike: null, holdSinceSpike: null };
     try {
       const oh = await fetchOHLCV(ticker, '1y');
       if (oh?.closes?.length) {

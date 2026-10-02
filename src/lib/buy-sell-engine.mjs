@@ -279,6 +279,12 @@ export function evaluateBuyRule(rule, ctx) {
         return `20일 내 거래량 ${ctx.volSpike20}배 · 20일 수익률 ${ctx.ret20}% (물량을 받아내는 중?)`;
       }
       break;
+    case 'volumeSpikeHold':  // 2026-10-02 전향 후보: 거래량 터진 뒤 터진 날 종가 아래로 안 밀림 — volume-absorption.test [4]
+      if (ctx.volSpike20 != null && ctx.holdSinceSpike != null && ctx.daysSinceSpike != null && ctx.volSpike20 >= (c.spike_gte ?? 3)
+          && ctx.daysSinceSpike >= (c.days_gte ?? 2) && ctx.holdSinceSpike >= (c.hold_gte ?? -3)) {
+        return `거래량 ${ctx.volSpike20}배 터진 뒤 ${ctx.daysSinceSpike}일 · 최저 종가 ${ctx.holdSinceSpike}% (버팀)`;
+      }
+      break;
     case 'breakoutVolume':  // 20일 신고가 돌파 + 강한 수급 동반 — above20dHigh 의 수급확인 강화판
       if (ctx.price != null && ctx.high20d != null && ctx.volPct != null &&
           ctx.price > ctx.high20d && ctx.volPct >= (c.vol_pct_gte ?? 80)) {
@@ -625,12 +631,23 @@ export function hasHardBuyVeto(ctx, opts = {}) {
  */
 export function volumeAbsorptionSignals(closes, volumes) {
   const v = (volumes ?? []).map(Number), c = (closes ?? []).map(Number);
-  if (v.length < 80 || c.length < 21) return { volSpike20: null, ret20: null };
+  const none = { volSpike20: null, ret20: null, daysSinceSpike: null, holdSinceSpike: null };
+  if (v.length < 80 || c.length < 21) return none;
   const prior = v.slice(-80, -20).filter((x) => Number.isFinite(x));
   const avg = prior.reduce((a, x) => a + x, 0) / (prior.length || 1);
   const recent = v.slice(-20).filter((x) => Number.isFinite(x));
   const spike = avg > 0 && recent.length ? Math.max(...recent) / avg : null;
   const p0 = c[c.length - 21], p1 = c[c.length - 1];
   const ret = p0 > 0 && Number.isFinite(p1) ? (p1 / p0 - 1) * 100 : null;
-  return { volSpike20: spike == null ? null : Number(spike.toFixed(2)), ret20: ret == null ? null : Number(ret.toFixed(2)) };
+  // 2026-10-02: 터진 날 이후 가격이 버텼는가(볼륨 스파이크 후 홀드 가설). 종가는 거래량과 같은 날짜로 끝에서 맞춘다.
+  let daysSinceSpike = null, holdSinceSpike = null;
+  if (spike != null) {
+    const tail = v.slice(-20);
+    const k = tail.lastIndexOf(Math.max(...recent));
+    daysSinceSpike = tail.length - 1 - k;
+    const ci = c.length - tail.length + k, base = c[ci];
+    const after = c.slice(ci + 1).filter((x) => Number.isFinite(x));
+    if (base > 0 && after.length) holdSinceSpike = Number(((Math.min(...after) / base - 1) * 100).toFixed(2));
+  }
+  return { volSpike20: spike == null ? null : Number(spike.toFixed(2)), ret20: ret == null ? null : Number(ret.toFixed(2)), daysSinceSpike, holdSinceSpike };
 }

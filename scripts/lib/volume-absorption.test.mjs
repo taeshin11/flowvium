@@ -45,5 +45,23 @@ const flatCloses = Array.from({ length: 100 }, () => 100);
   (/volumeAbsorptionSignals\(/.test(body('fetchBuyTechSignals')) && !/volumeAbsorptionSignals\(/.test(body('fetchSellSignals')))
     ? ok('[3] 매수 신호 함수가 volSpike20·ret20 을 채운다(매도 쪽 아님)') : bad('[3] volumeAbsorptionSignals 가 매수 신호 함수 본문에 없다');
 }
+// [4] 10/2 사장님 공유 쇼츠 2(머니파워 4N5A1nltBjw): "거래량 3배 이상 터진 뒤 **가격이 다시 눌리지 않고 버티면** 산다".
+//   위 매집형(안 오름)과 다른 가설이다 — 터진 날 종가 아래로 밀리지 않는가를 본다. 영상 인물은 설명란에 '가상 인물' 로 적혀 있다.
+//   holdSinceSpike = 터진 다음 날부터 오늘까지 가장 낮은 종가 ÷ 터진 날 종가 - 1 (%),  daysSinceSpike = 터진 뒤 지난 거래일 수
+{
+  const vols = [...base, ...Array.from({ length: 20 }, (_, i) => (i === 10 ? 4000 : 1000))];   // 끝에서 10번째 날 4배
+  const held = [...Array.from({ length: 90 }, () => 100), ...Array.from({ length: 10 }, (_, i) => 101 + i * 0.2)];   // 터진 날 100 → 이후 101~
+  const s = volumeAbsorptionSignals(held, vols);
+  (s.daysSinceSpike === 9 && s.holdSinceSpike >= 0) ? ok(`[4a] 터진 뒤 ${s.daysSinceSpike}일 · 최저 ${s.holdSinceSpike}%`) : bad(`[4a] ${JSON.stringify(s)}`);
+  const pushed = [...Array.from({ length: 90 }, () => 100), ...Array.from({ length: 10 }, (_, i) => (i === 4 ? 90 : 100))];
+  const s2 = volumeAbsorptionSignals(pushed, vols);
+  (Math.abs(s2.holdSinceSpike + 10) < 0.01) ? ok(`[4b] 중간에 -10% 밀림 → ${s2.holdSinceSpike}%`) : bad(`[4b] ${JSON.stringify(s2)}`);
+  const rule = { id: 'z', condition: { type: 'volumeSpikeHold', spike_gte: 3, hold_gte: -3, days_gte: 2 } };
+  const r = [evaluateBuyRule(rule, s), evaluateBuyRule(rule, s2), evaluateBuyRule(rule, { ...s, daysSinceSpike: 0 }), evaluateBuyRule(rule, { ...s, volSpike20: 2 }), evaluateBuyRule(rule, { volSpike20: 4, holdSinceSpike: null, daysSinceSpike: 5 })];
+  (r[0] && !r[1] && !r[2] && !r[3] && !r[4]) ? ok(`[4c] 버팀 O · 밀림 X · 오늘 터짐 X · 스파이크 없음 X · 모름 X — "${r[0]}"`) : bad(`[4c] ${JSON.stringify(r)}`);
+  const { readFileSync } = await import('fs');
+  const sr = JSON.parse(readFileSync(new URL('../../data/shadow-rules.json', import.meta.url), 'utf8')).rules;
+  sr.some((x) => x.condition?.type === 'volumeSpikeHold' && x.side === 'buy') ? ok('[4d] 전향 룰 등록') : bad('[4d] shadow-rules.json 에 없다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

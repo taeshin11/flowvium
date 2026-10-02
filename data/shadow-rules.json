@@ -69,6 +69,18 @@
       },
       "description": "위 조건 + 20일 수익률 -3%~+3%(같은 가격대에서 받아냄)",
       "hypothesis": "폭락하며 쏟아진 거래량은 매집이 아니다 — 보합에서 터진 거래량만 매집 신호로 본다"
+    },
+    {
+      "id": "shadow_buy_volume_spike_hold",
+      "side": "buy",
+      "condition": {
+        "type": "volumeSpikeHold",
+        "spike_gte": 3,
+        "hold_gte": -3,
+        "days_gte": 2
+      },
+      "description": "20일 내 하루 거래량이 앞 60일 평균의 3배 이상, 터진 뒤 2거래일 이상 지났고 그 사이 최저 종가가 터진 날 종가의 -3% 안",
+      "hypothesis": "사장님 공유 쇼츠(머니파워 4N5A1nltBjw, 2026-10-02) — 거래량이 터진 뒤 가격이 밀리지 않으면 사는 사람이 계속 있다는 신호. 영상 인물은 설명란에 '가상 인물' 로 적혀 있어 출처 신뢰는 없다 — 규칙만 잰다"
     }
   ]
 }
