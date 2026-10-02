@@ -641,6 +641,8 @@ const MAINT_JOBS = [
   //   2026-09-30: 쇼츠 끝 flowvium.net 2초 카드를 오늘 사이트 화면으로 다시 굽는다(아침보고서 뒤 07:45 KST = 22:45 UTC).
   //   카드 띠가 보고서 화면 캡처라 날짜가 박힌다 — 고정으로 두면 옛 숫자가 나간다.
   { label: 'flowvium-card',        script: 'scripts/refresh-flowvium-card.mjs',       timeoutMs: 360000,  commitPaths: [],                                     schedules: ['45 22 * * *'],                maxAgeH: 30 },
+  // 2026-10-02 사장님 지시: 주 1회(월 09:20 KST) 스튜디오 트렌드 탭 → 주제어(logs/yt-trends.json) + 칸별 48h 성적 보고
+  { label: 'yt-trend-topics',      script: 'scripts/yt-trend-topics.mjs',             timeoutMs: 360000,  commitPaths: [],                                     schedules: ['20 0 * * 1' ],                maxAgeH: 170 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },

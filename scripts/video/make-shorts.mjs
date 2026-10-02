@@ -339,6 +339,9 @@ let IS_WEAK = () => false;
 // 2026-09-30 실험 칸(lib/explore-slot) — video-publish 가 여섯 편에 한 편 SHORTS_EXPLORE=1 을 준다.
 //   이 편은 조회수 성적(약한 갈래·주제 등급)으로 뒤로 미는 것을 하지 않고, 최근 14일에 적게 다룬 주제를 앞으로 둔다.
 const EXPLORE = process.env.SHORTS_EXPLORE === '1';
+// 2026-10-02 트렌드 칸(lib/explore-slot trendFor) — 여섯 편에 한 편, 주 1회 모은 스튜디오 트렌드 주제어(logs/yt-trends.json)가 겹치는 후보를 앞으로.
+const TREND = process.env.SHORTS_TREND === '1';
+let TREND_USED = false;
 /** 헤드라인 자극도. 브리핑 순서(=썸네일)를 정하는 데도 쓴다. */
 let AROUSAL = () => 0;
 /** 썸네일로 세우면 안 되는 헤드라인인가(남을 규정하는 인용). */
@@ -559,6 +562,22 @@ if (FORCE_ISSUE) {
       } else log('[편성] 조회수 성적 — 유의한 강·약 주제 없음(표본 부족 또는 차이가 우연 범위) — 순서 유지');
     } else log(`[편성] 주제 분류 실패(agy: ${classifyWhy || '사유 없음'}) — 조회수 성적 반영 건너뜀, 순서 유지`);
   } catch (e) { log(`[편성] 조회수 성적 반영 건너뜀: ${String(e.message).slice(0, 60)}`); }
+  if (TREND) try {
+    const tr = JSON.parse(readFileSync(resolve(ROOT, 'logs/yt-trends.json'), 'utf8'));
+    const ageD = (Date.now() - Date.parse(tr.at)) / 86400000;
+    if (!(ageD <= 8) || !tr.terms?.length) log(`[편성] 트렌드 칸 — 주제어가 없거나 묵었다(${Number.isFinite(ageD) ? ageD.toFixed(1) : '?'}일) — 순서 유지`);
+    else {
+      const { trendOrder } = await import('../lib/explore-slot.mjs');
+      const TOP = Number(process.env.SHORTS_TOPIC_POOL || 15);
+      const before = fresh[0]?.keyword;
+      fresh = [...trendOrder(fresh.slice(0, TOP), tr.terms), ...fresh.slice(TOP)];
+      issue = fresh[0];
+      const s = [issue.keyword, ...(issue.headlines ?? [])].join(' ').toLowerCase();
+      const hit = tr.terms.filter((w) => s.includes(w));
+      TREND_USED = hit.length > 0;
+      log(`[편성] 트렌드 칸 — 주제어 ${tr.terms.slice(0, 8).join('·')} · 1순위 ${before} → ${issue.keyword}${hit.length ? ` (겹침 ${hit.join('·')})` : ' (겹치는 후보 없음 — 보통 편으로 기록)'}`);
+    }
+  } catch (e) { log(`[편성] 트렌드 칸 건너뜀: ${String(e.message).slice(0, 60)}`); }
 
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
@@ -2209,5 +2228,6 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
   promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것
   explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
+  trend: TREND_USED,   // 2026-10-02: 트렌드 칸에서 트렌드 주제어가 겹친 후보로 갔는가 — 48h 성적 따로
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));
