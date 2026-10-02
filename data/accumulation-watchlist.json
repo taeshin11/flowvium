@@ -1,43 +1,25 @@
 {
-  "generatedAt": "2026-10-01T22:20:26.094Z",
+  "generatedAt": "2026-10-02T07:20:25.685Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "065690.KQ",
-      "name": "파커스",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 90%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -0.8,
-      "runup5dPct": 0.5,
-      "medDollarVolUsd": 46108,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "199480.KQ",
       "name": "뱅크웨어글로벌",
       "tier": "watch",
-      "score": 26,
+      "score": 30,
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -3.6,
-      "runup5dPct": 0.5,
+      "runup20dPct": 0.4,
+      "runup5dPct": 0.1,
       "medDollarVolUsd": 43429,
       "smartAccum": true,
       "official": null
