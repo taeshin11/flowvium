@@ -1,12 +1,29 @@
 {
-  "generatedAt": "2026-10-02T07:20:25.685Z",
+  "generatedAt": "2026-10-02T23:23:27.473Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "054620.KQ",
+      "name": "APS",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 5.9× 상승(지속 매집)",
+        "거래량 7.4× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 2.5,
+      "runup5dPct": 3.6,
+      "medDollarVolUsd": 77027,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "199480.KQ",
       "name": "뱅크웨어글로벌",
