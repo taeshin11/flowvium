@@ -77,6 +77,7 @@ import { reconcileCompanyYoY, isMeasuredYoY } from './lib/yoy-reconcile.mjs';
 import { inspectContextSections, formatContextCoverage, describeContextShapes } from './lib/context-coverage.mjs';
 import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto, volumeAbsorptionSignals } from '../src/lib/buy-sell-engine.mjs';
+import { HARD_SELL_IDS, finalGateHardVeto } from './lib/funnel-hard-veto.mjs';
 // 이름은 sec-name-clean 의 sameCompany(회사 '이름' 비교)와 겹친다 — 이쪽은 **티커**로 본다.
 import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-company.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
@@ -5572,6 +5573,7 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     }
     if (_shadowHitsPending.length) console.log(`  [shadow] 전향연구 룰 발화 ${_shadowHitsPending.length}건 기록 대기 (live 채점 미참여)`);
   } catch (e) { console.warn('  [shadow] skip(비치명):', e?.message); }
+  const _sellRulesForFunnel = loadSellRules()?.rules ?? [];
   for (const c of stage2Cands) {
     const sig = techSignals.get(c.ticker) ?? {};
     const ctx = { ...c, ...sig };
@@ -5599,6 +5601,10 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     // 2026-09-26 종목 성적 veto — 최근 30일 이 종목 판단 3건+ 중 수익 34% 미만이면 신규매수 차단.
     //   전향 실측: 그런 종목의 다음 추천 41건 수익 34%·평균 -1.33% (그 밖 62~67%·+1.7%). lib/track-record 머리말.
     else { const tv = trackRecordVeto(buyTrackMap().get(c.ticker)); if (tv) c._buyVeto = tv; }
+    // 2026-10-02: 최종 심판의 hard 매도신호(데드크로스·200MA 이탈 등)를 여기서도 본다. 위 매수 veto 는
+    //   RSI≤35 를 분할매수 앵커로 면제하지만 심판은 앵커와 무관하게 떨군다 — 어차피 떨어질 종목이
+    //   top30 을 차지해 10/02 오후판 KR 9종 전원 탈락, 발간 2종이 됐다. lib/funnel-hard-veto.test.mjs
+    if (!c._buyVeto) { const hv = finalGateHardVeto(ctx, _sellRulesForFunnel, evaluateSellRule); if (hv) c._buyVeto = `최종심판 hard(${hv.id}): ${hv.reason}`; }
   }
   const stage2Vetoed = stage2Cands.filter(c => c._buyVeto);
   if (stage2Vetoed.length) console.log(`  [buy-veto] ${stage2Vetoed.length}건 신규매수 차단(칼받기/과열): ${stage2Vetoed.slice(0, 8).map(c => `${c.ticker}(${c._buyVeto.slice(0, 18)})`).join(', ')}`);
@@ -7820,7 +7826,7 @@ async function generateViaOllama() {
     const VETO_CATS = new Set(['fundamental', 'technical', 'guru', 'micro']);
     const vetoRules = (loadSellRules()?.rules ?? []).filter(r => VETO_CATS.has(r.category));
     // hard-sell: 매수확신 무관 즉시 탈락(리스크관리 우선). 나머지 soft 는 매수확신으로 상쇄 가능.
-    const HARD_IDS = new Set(['price_stop_breach', 'tech_dead_cross', 'tech_200ma_breach', 'fund_margin_decline', 'micro_insider_selling', 'micro_supply_contract_loss']);
+    const HARD_IDS = HARD_SELL_IDS;  // 깔때기 Stage 2 도 같은 목록으로 미리 거른다(lib/funnel-hard-veto)
     const sellSig = await fetchSellSignals(dedupedPortfolio.map(p => p.ticker));
     const buyScoreOf = new Map((buyCandidates ?? []).map(c => [c.ticker, c.stage1Score ?? 0]));
     // 신호크기 가중: 정의 명확한 신호만 magnitude bump(최대 +3). 과추정 방지 위해 보수적.
