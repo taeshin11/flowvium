@@ -28,8 +28,11 @@
  *   비율을 바꾸면 **모든 영상의 생김새가 바뀐다** — 기본값은 그대로 두고 환경변수로 시험한다.
  *     SHORTS_HOOK_H=440 SHORTS_MEDIA_H=1040   (사진 54%)
  */
-const HOOK_H = Number(process.env.SHORTS_HOOK_H || 560);
-const MEDIA_H = Number(process.env.SHORTS_MEDIA_H || 760);
+// 2026-10-03 A/B(lib/shorts-layout-ab.test 머리말): classic = 지금 그대로, zoom = 위 띠 440 · 사진 영역 820 · 4:3 까지 가운데 자르기.
+//   video-publish 가 SHORTS_LAYOUT 으로 고른다(반반). 블러 채우기는 쓰지 않는다(9/21 사장님).
+export const LAYOUT = process.env.SHORTS_LAYOUT === 'zoom' ? 'zoom' : 'classic';
+const HOOK_H = Number(process.env.SHORTS_HOOK_H || (LAYOUT === 'zoom' ? 440 : 560));
+const MEDIA_H = Number(process.env.SHORTS_MEDIA_H || (LAYOUT === 'zoom' ? 820 : 760));
 
 export const SHORTS = {
   W: 1080,
@@ -223,9 +226,11 @@ export function mediaFilter(inLabel, outLabel) {
   const trim = (t.bottom || t.top || t.side)
     ? `crop=iw*${keepW.toFixed(4)}:ih*${keepH.toFixed(4)}:iw*${t.side.toFixed(4)}:ih*${t.top.toFixed(4)},`
     : '';
+  // zoom: 영역 비율(약 4:3)까지만 가운데를 잘라 사진을 키운다. 폭은 70% 아래로 안 자른다(가장자리 인물 보호).
+  const zoom = LAYOUT === 'zoom' ? `crop='max(iw*0.7\\,min(iw\\,ih*${(W / MH).toFixed(4)}))':ih,` : '';
   return [
     // 소재가 잘리지 않게 영역 안에 넣고, 남는 자리는 검정으로 채워 가운데 정렬한다.
-    `[${inLabel}]${trim}scale=${W}:${MH}:force_original_aspect_ratio=decrease,pad=${W}:${MH}:(ow-iw)/2:(oh-ih)/2:black[mrg]`,
+    `[${inLabel}]${trim}${zoom}scale=${W}:${MH}:force_original_aspect_ratio=decrease,pad=${W}:${MH}:(ow-iw)/2:(oh-ih)/2:black[mrg]`,
     // 소재 영역을 화면의 제자리에 앉힌다. 위아래는 오버레이의 검은 띠가 덮는다.
     `[mrg]pad=${W}:${g.H}:0:${g.media.top}:black,fps=${g.FPS},setsar=1[${outLabel}]`,
   ].join(';');

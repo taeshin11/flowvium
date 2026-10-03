@@ -71,13 +71,21 @@ async function report() {
   const db = openDb();
   const cols = new Set(db.prepare('PRAGMA table_info(shorts_published)').all().map((c) => c.name));
   if (!cols.has('trend')) db.exec('ALTER TABLE shorts_published ADD COLUMN trend INTEGER');
-  const rows = db.prepare(`SELECT s.video_id, s.views, s.age_hours, p.published_at, p.trend, p.explore
+  if (!cols.has('layout')) db.exec('ALTER TABLE shorts_published ADD COLUMN layout TEXT');
+  const rows = db.prepare(`SELECT s.video_id, s.views, s.age_hours, s.engaged_ratio, s.avg_view_pct, p.published_at, p.trend, p.explore, p.layout
       FROM shorts_stats s JOIN shorts_published p ON p.video_id = s.video_id
      WHERE p.retracted_at IS NULL AND datetime(p.published_at) >= datetime('now', '-28 days')`).all()
     .map((r) => ({ ...r, slot: r.trend === 1 ? '트렌드 칸' : r.explore === 1 ? '실험 칸' : '보통' }));
   const m = slotLift(rows);
   const line = [...m].map(([k, v]) => `${k} ${v.n}편 · 48h 조회수 같은 날 중앙값의 ${v.lift}배 · 또래보다 잘 된 비율 ${Math.round(v.beat * 100)}%`).join(' | ');
   log(`최근 28일 칸별 성적 — ${line || '표본 없음'}`);
+  // 2026-10-03 화면 배분 A/B — 조회수 말고 **계속 시청 비율·평균 시청 비율**(48h 근처 관측)로 본다. 그걸 올리려는 실험이다.
+  const near = new Map();
+  for (const r of rows) { if (!r.layout) continue; const p = near.get(r.video_id); if (!p || Math.abs(r.age_hours - 48) < Math.abs(p.age_hours - 48)) near.set(r.video_id, r); }
+  const med = (a) => { const s = a.filter((x) => x != null).sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
+  const by = { classic: [], zoom: [] };
+  for (const r of near.values()) by[r.layout]?.push(r);
+  log(`화면 배분 A/B — ${Object.entries(by).map(([k, a]) => `${k} ${a.length}편 · 계속시청 ${med(a.map((r) => r.engaged_ratio))?.toFixed(2) ?? '-'} · 평균시청 ${med(a.map((r) => r.avg_view_pct))?.toFixed(0) ?? '-'}%`).join(' | ')}`);
   return m;
 }
 

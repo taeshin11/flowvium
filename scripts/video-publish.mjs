@@ -214,6 +214,12 @@ if (USE_EXISTING) {
     try { TREND_ENV = (await import('./lib/explore-slot.mjs')).trendFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0'; }
     catch { /* 모르면 안 함 */ }
   }
+  // 2026-10-03 화면 배분 A/B(classic|zoom). SHORTS_LAYOUT 이 주어지면 그 값.
+  let LAYOUT_ENV = process.env.SHORTS_LAYOUT ?? 'classic';
+  if (isShorts && process.env.SHORTS_LAYOUT == null) {
+    try { LAYOUT_ENV = (await import('./lib/explore-slot.mjs')).layoutFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
+    catch { /* 모르면 지금 모습 */ }
+  }
   let PROMO_ENV = process.env.SHORTS_PROMO ?? 'aisvi';
   if (isShorts && process.env.SHORTS_PROMO == null) {
     try { PROMO_ENV = (await import('./lib/promo-card.mjs')).promoFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
@@ -250,7 +256,7 @@ if (USE_EXISTING) {
     const r = spawnSync(node, args, {
       cwd: ROOT,
       stdio: 'inherit',
-      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
       timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
     if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {
@@ -481,7 +487,7 @@ if (isShorts && last.keyword) {
       const m = String(probe.stderr).match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
       if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]);
     } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null });
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null, layout: last.layout ?? null });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
     // 2026-09-27 사장님 "구독자 올릴수있는건 다 해봐" — 주제 재생목록에 넣는다(채널 페이지 정리). 실패해도 발행은 끝났다.
     if (videoId && last.topic) {

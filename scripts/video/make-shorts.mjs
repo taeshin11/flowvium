@@ -38,7 +38,7 @@ import { measure as measureLoudness, normalize as normalizeLoudness } from '../l
 import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
-import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs} from '../lib/shorts-layout.mjs';
+import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
 import { attributionIssues } from '../lib/attribution.mjs';
@@ -2228,6 +2228,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
   promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것
   explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
+  layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
   trend: TREND_USED,   // 2026-10-02: 트렌드 칸에서 트렌드 주제어가 겹친 후보로 갔는가 — 48h 성적 따로
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

@@ -55,3 +55,6 @@ export function slotLift(rows) {
   }
   return new Map([...groups].map(([k, a]) => [k, { lift: Number(med(a).toFixed(2)), beat: Number((a.filter((x) => x > 1).length / a.length).toFixed(2)), n: a.length }]));
 }
+
+// ── 화면 배분 A/B(2026-10-03) — classic|zoom 반반. 근거는 shorts-layout-ab.test.mjs 머리말.
+export const layoutFor = (seed) => (((mix(Number(seed) + 7919) >>> 3) & 1) ? 'zoom' : 'classic');

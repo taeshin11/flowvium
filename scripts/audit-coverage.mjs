@@ -92,6 +92,8 @@ const NEW_COLUMNS = {
     why: '대본 보관을 2026-09-18 에 시작 — 그 전 편은 대본이 남지 않았다(shorts-blog 의 소재)' },
   'shorts_published.bodies_json': { since: '2026-09-20T12:00', at: 'published_at',
     why: '기사 본문 보관을 2026-09-20 에 시작 — 그 전 회차는 대본을 쓸 때 읽고 버렸다(쇼츠→블로그의 재료)' },
+  'shorts_published.layout': { since: '2026-10-03T12:00', at: 'published_at',
+    why: '화면 배분 A/B(classic|zoom) 기록을 2026-10-03 에 시작 — 그 전 편은 전부 classic 이었다(소급하지 않는다)' },
   'shorts_published.trend': { since: '2026-10-03T00:00', at: 'published_at',
     why: '트렌드 칸(스튜디오 트렌드 주제어, 여섯 편에 한 편) 기록을 2026-10-02 밤에 시작 — 그 전 편은 트렌드 칸이 없었다(소급하지 않는다)' },
   'shorts_published.explore': { since: '2026-09-30T16:00', at: 'published_at',
