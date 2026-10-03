@@ -73,8 +73,12 @@ let step = 0;
 const shot = async (l) => { if (!SHOTS) return; step++; await page.screenshot({ path: `${SHOTS}/${step}-${l}.png` }).catch(() => {}); };
 // 2026-09-26: Omni 목적이면 끝날 때 **기본 모델을 무료(Lower Priority)로 되돌린다.** 모델 선택은 계정 설정이라
 //   그대로 두면 이 계정을 같이 쓰는 다른 기계(사람 손 Flow)가 유료 모델에서 시작한다 — FLOW_RULES 1항은 늘 무료다.
+// 2026-10-03 사장님(Mac mini2 경유): 36h 예비 미만 세션들이 Omni 를 동시에 쓰는 기간 — 모델 Omni 고정, Lite 로 되돌리지 말 것.
+//   모델은 계정 전역이라 우리가 Lite 로 바꾸면 남의 다음 생성이 Lite 로 나간다. .env.local FLOW_KEEP_OMNI=1 이면 되돌리지 않는다.
+const KEEP_OMNI = (await import('./lib/footage.mjs')).envValue('FLOW_KEEP_OMNI') === '1';
 const restoreFree = async () => {
   if (!OMNI) return;
+  if (KEEP_OMNI) { console.log('  [되돌림] 건너뜀 — FLOW_KEEP_OMNI=1(Omni 고정 기간)'); return; }
   const rr = await setVideoModel(page, FREE_VIDEO_MODEL).catch((e) => ({ status: `오류 ${e.message}` }));
   console.log(`  [되돌림] 기본 모델 → ${FREE_VIDEO_MODEL}: ${rr?.status}`);
 };

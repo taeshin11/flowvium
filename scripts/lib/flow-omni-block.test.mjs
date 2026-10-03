@@ -46,5 +46,10 @@ const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
   /^BLOCKED mac-flowvium /.test(readFileSync(lf, 'utf8')) ? ok(`[5c] lock.txt 에 "${readFileSync(lf, 'utf8').trim().slice(0, 50)}"`) : bad(`[5c] ${readFileSync(lf, 'utf8')}`);
   /markBlockedInLock\(/.test(src('lib/flow-omni.mjs').slice(src('lib/flow-omni.mjs').indexOf('r.status === 3'))) ? ok('[5d] 차단 경로가 lock.txt 에도 쓴다') : bad('[5d]');
 }
+{
+  // [6] 10/03 사장님(Mac mini2 경유): Omni 동시 사용 기간 — 모델 Omni 고정, Lite 로 되돌리지 말 것(모델은 계정 전역).
+  const fc = src('flow-clip.mjs'), body = fc.slice(fc.indexOf('const restoreFree'), fc.indexOf('const restoreFree') + 400);
+  /if \(KEEP_OMNI\)[^\n]*return;/.test(body) && /envValue\('FLOW_KEEP_OMNI'\)/.test(fc) ? ok('[6] FLOW_KEEP_OMNI=1 이면 Lite 로 되돌리지 않는다') : bad('[6] 되돌림이 고정 기간을 무시한다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
