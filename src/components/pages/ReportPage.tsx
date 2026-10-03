@@ -23,6 +23,7 @@ function TName({ text }: { text: string }) {
 function TBizSummary({ text }: { text: string }) {
   return <>{String(text)}</>;
 }
+import { outlookStance } from '@/lib/market-outlook.mjs';
 import type { InvestmentStrategy, PortfolioItem, SectorWeight, RiskEvent } from '@/app/api/investment-strategy/route';
 import type { HistoryMeta } from '@/app/api/investment-strategy/history/route';
 
@@ -721,7 +722,11 @@ export default function ReportPage() {
     );
   }
 
-  const stanceCfg = data ? stanceConfig(data.stance) : null;
+  // 2026-10-03: 맨 위 시장 전망은 아래 종합 판단(결정론)과 같은 말을 한다 — "미국 주식 중립 · 한국 주식 분할 매수".
+  //   종전엔 LLM stance('매수 우위')라 바로 아래 '미국·거시 종합 판단: 중립' 과 어긋났다(40개 중 38개). lib/market-outlook
+  const outlookMv = data ? (data as unknown as { marketVerdict?: { verdict?: string; krVerdict?: { verdict?: string } } }).marketVerdict : undefined;
+  const heroStance = (outlookMv && outlookStance(outlookMv)) ?? data?.stance ?? 'neutral';
+  const stanceCfg = data ? stanceConfig(heroStance) : null;
   const riskCfg = data ? riskConfig(data.riskLevel) : null;
   const stanceLabel = data ? (data.stance === 'bullish' ? t('stanceBullish') : data.stance === 'bearish' ? t('stanceBearish') : t('stanceNeutral')) : '';
   const riskLevelLabel = data ? (data.riskLevel === 'high' ? t('riskHigh') : data.riskLevel === 'low' ? t('riskLow') : t('riskMedium')) : '';
@@ -892,7 +897,9 @@ export default function ReportPage() {
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <div className={`flex items-center gap-2 font-bold text-lg ${stanceCfg!.color}`}>
                 {stanceCfg!.icon}
-                <span>{stanceLabel}</span>
+                <span>{outlookMv?.verdict
+                  ? `${t('outlookUs')} ${t(`verdict_${outlookMv.verdict}`)}${outlookMv.krVerdict?.verdict ? ` · ${t('outlookKr')} ${t(`verdict_${outlookMv.krVerdict.verdict}`)}` : ''}`
+                  : stanceLabel}</span>
               </div>
               <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${riskCfg!.bg} ${riskCfg!.color}`}>
                 {t('riskLabel')} {riskLevelLabel}

@@ -78,6 +78,7 @@ import { inspectContextSections, formatContextCoverage, describeContextShapes } 
 import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto, volumeAbsorptionSignals } from '../src/lib/buy-sell-engine.mjs';
 import { HARD_SELL_IDS, finalGateHardVeto } from './lib/funnel-hard-veto.mjs';
+import { outlookStance } from '../src/lib/market-outlook.mjs';
 // 이름은 sec-name-clean 의 sameCompany(회사 '이름' 비교)와 겹친다 — 이쪽은 **티커**로 본다.
 import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-company.mjs';
 import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
@@ -8300,7 +8301,10 @@ async function generateViaOllama() {
   const fearBuySig = computeFearBuy(ctxRaw, analogData);
   const marketVerdict = computeMarketVerdict(earlyWarning, reboundWatch, fearBuySig, analogData, ctxRaw);
   console.log(`  [verdict] ${marketVerdict.verdict} — ${marketVerdict.reasons[0] ?? ''}${analogData?.matches ? ` (유사국면 ${analogData.matches}회, 3m 중앙값 ${analogData.med3m}%)` : ''}`);
-  let gatedStance = portfolioData.stance ?? 'neutral';
+  // 2026-10-03: 맨 위 시장 전망은 결정론 판정(미국·한국)에서 — LLM stance 는 바로 아래 종합 판단과 40개 중 38개가 어긋났다.
+  //   판정이 없을 때만 LLM 값. 아래 조기경보·risk-off 게이트는 그대로 덮는다. lib/market-outlook.test
+  if (outlookStance(marketVerdict) && outlookStance(marketVerdict) !== portfolioData.stance) console.log(`  [stance] LLM ${portfolioData.stance} → 종합 판단 기준 ${outlookStance(marketVerdict)}`);
+  let gatedStance = outlookStance(marketVerdict) ?? portfolioData.stance ?? 'neutral';
   let gatedRiskLevel = macroData?.riskLevel ?? 'medium';
   if (earlyWarning.level === 'severe') {
     if (gatedStance !== 'bearish' || gatedRiskLevel !== 'high') console.log(`  [stance-gate] earlyWarning severe(${earlyWarning.score}) → stance ${gatedStance}→bearish, risk ${gatedRiskLevel}→high`);

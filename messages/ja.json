@@ -1224,6 +1224,8 @@
     "riskEventsTitle": "主要リスクイベント",
     "disclaimer": "本レポートはAIが公開データをもとに生成した参考資料です。投資判断の責任はご自身にあり、投資損失を保証するものではありません。",
     "error": "レポートの読み込みに失敗しました — しばらくしてから再試行してください",
+    "outlookUs": "米国株",
+    "outlookKr": "韓国株",
     "stanceBullish": "買い優位",
     "stanceBearish": "守りの姿勢",
     "stanceNeutral": "中立維持",

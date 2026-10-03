@@ -1224,6 +1224,8 @@
     "riskEventsTitle": "Key Risk Events",
     "disclaimer": "This report is AI-generated reference material based on public data. Investment decisions are solely your responsibility; returns are not guaranteed.",
     "error": "Failed to load report — please try again later",
+    "outlookUs": "US stocks",
+    "outlookKr": "Korean stocks",
     "stanceBullish": "Buy Bias",
     "stanceBearish": "Defensive",
     "stanceNeutral": "Neutral",
