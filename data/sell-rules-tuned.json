@@ -1,8 +1,8 @@
 {
   "version": 2,
   "source": "initial-seed-with-guru-tech-fund",
-  "tunedAt": "2026-09-26T19:05:00.132Z",
-  "sampleSize": 1451,
+  "tunedAt": "2026-10-03T19:05:00.121Z",
+  "sampleSize": 1610,
   "note": "tune-sell-rules.mjs 가 매주 sell_outcomes 평가 후 임계값 자동 조정. 가격 + 기술 + 기본 + 구루 framework 통합. | 2026-06-06: micro_insider_selling 추가(매수·매도 대칭). | 2026-06-19: selflearn/guru 매도 갭 보강 3룰 추가(banListSell·marksEuphoria·druckTrendBreak).",
   "rules": [
     {
@@ -422,14 +422,14 @@
       "precisionPct": 69
     },
     "rotation_loss": {
-      "n": 19,
-      "evaluated": 19,
-      "goodCall": 15,
+      "n": 26,
+      "evaluated": 26,
+      "goodCall": 16,
       "missedUpside": 0,
-      "neutral": 4,
-      "avgDelta": -17,
-      "deltaSum": -322.3000000000001,
-      "precisionPct": 79
+      "neutral": 10,
+      "avgDelta": -12.8,
+      "deltaSum": -333.50000000000006,
+      "precisionPct": 62
     },
     "dead_cross": {
       "n": 5,
@@ -452,24 +452,24 @@
       "precisionPct": 100
     },
     "price_stop_near": {
-      "n": 10,
-      "evaluated": 10,
+      "n": 13,
+      "evaluated": 13,
       "goodCall": 4,
-      "missedUpside": 1,
-      "neutral": 5,
-      "avgDelta": -5.7,
-      "deltaSum": -56.8,
-      "precisionPct": 40
+      "missedUpside": 2,
+      "neutral": 7,
+      "avgDelta": -4,
+      "deltaSum": -52.49999999999999,
+      "precisionPct": 31
     },
     "price_target_near": {
       "n": 28,
       "evaluated": 27,
-      "goodCall": 17,
+      "goodCall": 18,
       "missedUpside": 0,
-      "neutral": 10,
-      "avgDelta": -13.6,
-      "deltaSum": -366.90000000000003,
-      "precisionPct": 63
+      "neutral": 9,
+      "avgDelta": -13.7,
+      "deltaSum": -371.20000000000005,
+      "precisionPct": 67
     },
     "rotation_profit": {
       "n": 2,
@@ -482,14 +482,14 @@
       "precisionPct": 0
     },
     "tech_200ma_breach": {
-      "n": 14,
-      "evaluated": 14,
-      "goodCall": 6,
+      "n": 18,
+      "evaluated": 18,
+      "goodCall": 8,
       "missedUpside": 3,
-      "neutral": 5,
-      "avgDelta": -2.7,
-      "deltaSum": -37.5,
-      "precisionPct": 43
+      "neutral": 7,
+      "avgDelta": -2.2,
+      "deltaSum": -39.00000000000001,
+      "precisionPct": 44
     },
     "tech_dead_cross": {
       "n": 4,
@@ -512,44 +512,44 @@
       "precisionPct": 100
     },
     "macro_high_risk": {
-      "n": 88,
-      "evaluated": 87,
-      "goodCall": 35,
-      "missedUpside": 9,
-      "neutral": 43,
-      "avgDelta": -4.5,
-      "deltaSum": -388.70000000000005,
-      "precisionPct": 40
+      "n": 104,
+      "evaluated": 103,
+      "goodCall": 40,
+      "missedUpside": 15,
+      "neutral": 48,
+      "avgDelta": -3.5,
+      "deltaSum": -355.79999999999995,
+      "precisionPct": 39
     },
     "tech_volume_dry": {
       "n": 5,
       "evaluated": 5,
-      "goodCall": 1,
-      "missedUpside": 1,
-      "neutral": 3,
-      "avgDelta": 0,
-      "deltaSum": 0.20000000000000018,
-      "precisionPct": 20
+      "goodCall": 2,
+      "missedUpside": 2,
+      "neutral": 1,
+      "avgDelta": 1.4,
+      "deltaSum": 6.8,
+      "precisionPct": 40
     },
     "price_stop_breach": {
-      "n": 11,
-      "evaluated": 11,
+      "n": 13,
+      "evaluated": 13,
       "goodCall": 11,
-      "missedUpside": 0,
-      "neutral": 0,
-      "avgDelta": -20.2,
-      "deltaSum": -221.7,
-      "precisionPct": 100
+      "missedUpside": 1,
+      "neutral": 1,
+      "avgDelta": -16.1,
+      "deltaSum": -209.89999999999998,
+      "precisionPct": 85
     },
     "micro_options_put_flow": {
-      "n": 3,
-      "evaluated": 3,
+      "n": 4,
+      "evaluated": 4,
       "goodCall": 3,
       "missedUpside": 0,
-      "neutral": 0,
-      "avgDelta": -5,
-      "deltaSum": -15.1,
-      "precisionPct": 100
+      "neutral": 1,
+      "avgDelta": -3.5,
+      "deltaSum": -14,
+      "precisionPct": 75
     },
     "tech_rsi_overbought": {
       "n": 10,
@@ -557,19 +557,19 @@
       "goodCall": 2,
       "missedUpside": 4,
       "neutral": 4,
-      "avgDelta": 2.7,
-      "deltaSum": 27.2,
+      "avgDelta": 3.2,
+      "deltaSum": 31.599999999999998,
       "precisionPct": 20
     },
     "guru_drucken_trend_break": {
-      "n": 57,
-      "evaluated": 57,
-      "goodCall": 17,
-      "missedUpside": 3,
-      "neutral": 37,
-      "avgDelta": -3.5,
-      "deltaSum": -200.40000000000012,
-      "precisionPct": 30
+      "n": 77,
+      "evaluated": 77,
+      "goodCall": 21,
+      "missedUpside": 9,
+      "neutral": 47,
+      "avgDelta": -2.1,
+      "deltaSum": -165.2000000000001,
+      "precisionPct": 27
     },
     "forensic_overextended_200ma": {
       "n": 7,
@@ -582,14 +582,14 @@
       "precisionPct": 86
     },
     "micro_region_bearish": {
-      "n": 29,
-      "evaluated": 29,
-      "goodCall": 15,
-      "missedUpside": 5,
-      "neutral": 9,
-      "avgDelta": -4.2,
-      "deltaSum": -121.3,
-      "precisionPct": 52
+      "n": 42,
+      "evaluated": 42,
+      "goodCall": 16,
+      "missedUpside": 8,
+      "neutral": 18,
+      "avgDelta": -2.2,
+      "deltaSum": -94.4,
+      "precisionPct": 38
     },
     "rotation_neutral": {
       "n": 7,
@@ -617,8 +617,8 @@
       "goodCall": 2,
       "missedUpside": 1,
       "neutral": 3,
-      "avgDelta": -1.3,
-      "deltaSum": -7.8,
+      "avgDelta": -1.7,
+      "deltaSum": -10.3,
       "precisionPct": 33
     }
   },
@@ -627,81 +627,81 @@
       {
         "threshold": 0.85,
         "truePos": 69,
-        "falsePos": 331,
+        "falsePos": 352,
         "missed": 29,
-        "total": 429,
-        "precision": 0.1725,
+        "total": 450,
+        "precision": 0.16389548693586697,
         "recall": 0.7040816326530612
       },
       {
         "threshold": 0.88,
         "truePos": 69,
-        "falsePos": 316,
+        "falsePos": 336,
         "missed": 29,
-        "total": 414,
-        "precision": 0.17922077922077922,
+        "total": 434,
+        "precision": 0.17037037037037037,
         "recall": 0.7040816326530612
       },
       {
         "threshold": 0.9,
         "truePos": 69,
-        "falsePos": 290,
+        "falsePos": 310,
         "missed": 29,
-        "total": 388,
-        "precision": 0.19220055710306408,
+        "total": 408,
+        "precision": 0.1820580474934037,
         "recall": 0.7040816326530612
       },
       {
         "threshold": 0.92,
         "truePos": 69,
-        "falsePos": 202,
+        "falsePos": 222,
         "missed": 29,
-        "total": 300,
-        "precision": 0.25461254612546125,
+        "total": 320,
+        "precision": 0.23711340206185566,
         "recall": 0.7040816326530612
       },
       {
         "threshold": 0.95,
         "truePos": 69,
-        "falsePos": 73,
+        "falsePos": 75,
         "missed": 29,
-        "total": 171,
-        "precision": 0.4859154929577465,
+        "total": 173,
+        "precision": 0.4791666666666667,
         "recall": 0.7040816326530612
       }
     ],
     "stop_near": [
       {
         "threshold": 1.02,
-        "truePos": 171,
+        "truePos": 191,
         "falsePos": 0,
-        "missed": 208,
+        "missed": 209,
         "precision": 1,
-        "recall": 0.45118733509234826
+        "recall": 0.4775
       },
       {
         "threshold": 1.05,
-        "truePos": 171,
+        "truePos": 191,
         "falsePos": 18,
-        "missed": 208,
-        "precision": 0.9047619047619048,
-        "recall": 0.45118733509234826
+        "missed": 209,
+        "precision": 0.9138755980861244,
+        "recall": 0.4775
       },
       {
         "threshold": 1.08,
-        "truePos": 171,
+        "truePos": 191,
         "falsePos": 88,
-        "missed": 208,
-        "precision": 0.6602316602316602,
-        "recall": 0.45118733509234826
+        "missed": 209,
+        "precision": 0.6845878136200717,
+        "recall": 0.4775
       },
       {
         "threshold": 1.1,
-        "truePos": 171,
+        "truePos": 191,
         "falsePos": 92,
-        "missed": 208,
-        "precision": 0.6501901140684411,
-        "recall": 0.45118733509234826
+        "missed": 209,
+        "precision": 0.6749116607773852,
+        "recall": 0.4775
       }
     ],
     "best": {
@@ -716,9 +716,9 @@
     "proposals": [
       {
         "id": "price_stop_breach",
-        "fired": 162,
-        "evaluated": 162,
-        "edge": 0.32,
+        "fired": 164,
+        "evaluated": 164,
+        "edge": 0.31,
         "current": 10,
         "applied": 10,
         "changed": false
@@ -734,18 +734,18 @@
       },
       {
         "id": "tech_200ma_breach",
-        "fired": 14,
-        "evaluated": 14,
-        "edge": 0.1,
+        "fired": 18,
+        "evaluated": 18,
+        "edge": 0.09,
         "current": 9,
         "applied": 9,
         "changed": false
       },
       {
         "id": "price_stop_near",
-        "fired": 45,
-        "evaluated": 45,
-        "edge": 0.59,
+        "fired": 48,
+        "evaluated": 48,
+        "edge": 0.52,
         "current": 6,
         "applied": 6,
         "changed": false
@@ -754,7 +754,7 @@
         "id": "tech_rsi_overbought",
         "fired": 11,
         "evaluated": 11,
-        "edge": -0.28,
+        "edge": -0.3,
         "current": 4,
         "applied": 4,
         "changed": false
@@ -772,7 +772,7 @@
         "id": "price_target_near",
         "fired": 103,
         "evaluated": 97,
-        "edge": 0.43,
+        "edge": 0.44,
         "current": 7,
         "applied": 7,
         "changed": false
@@ -815,9 +815,9 @@
       },
       {
         "id": "rotation_loss",
-        "fired": 19,
-        "evaluated": 19,
-        "edge": 0.83,
+        "fired": 26,
+        "evaluated": 26,
+        "edge": 0.69,
         "current": 10,
         "applied": 10,
         "changed": false
@@ -826,16 +826,16 @@
         "id": "tech_volume_dry",
         "fired": 5,
         "evaluated": 5,
-        "edge": -0.24,
+        "edge": -0.16,
         "current": 4,
         "applied": 4,
         "changed": false
       },
       {
         "id": "macro_high_risk",
-        "fired": 88,
-        "evaluated": 87,
-        "edge": 0.19,
+        "fired": 104,
+        "evaluated": 103,
+        "edge": 0.12,
         "current": 8,
         "applied": 8,
         "changed": false
@@ -862,16 +862,16 @@
         "id": "micro_sector_underweight",
         "fired": 6,
         "evaluated": 6,
-        "edge": -0.06,
+        "edge": -0.03,
         "current": 5,
         "applied": 5,
         "changed": false
       },
       {
         "id": "micro_region_bearish",
-        "fired": 29,
-        "evaluated": 29,
-        "edge": 0.26,
+        "fired": 42,
+        "evaluated": 42,
+        "edge": 0.04,
         "current": 10,
         "applied": 10,
         "changed": false
@@ -914,12 +914,12 @@
       },
       {
         "id": "micro_options_put_flow",
-        "fired": 3,
-        "evaluated": 3,
-        "edge": 0.7,
-        "current": 4,
+        "fired": 4,
+        "evaluated": 4,
+        "edge": 0.41,
+        "current": 5,
         "applied": 5,
-        "changed": true
+        "changed": false
       },
       {
         "id": "micro_supply_contract_loss",
@@ -950,9 +950,9 @@
       },
       {
         "id": "guru_drucken_trend_break",
-        "fired": 57,
-        "evaluated": 57,
-        "edge": 0.05,
+        "fired": 77,
+        "evaluated": 77,
+        "edge": -0.05,
         "current": 3,
         "applied": 3,
         "changed": false
