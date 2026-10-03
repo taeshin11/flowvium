@@ -14,6 +14,7 @@
  *
  * 사용: node scripts/flow-clip.mjs --prompt "..." --out <mp4> [--wait 600]
  */
+import { isBlockedText } from './lib/flow-omni.mjs';
 import {
   openFlow, sessionCookiesPresent, setVideoModel, openProject, inProject,
   mediaCardTitles, videoUrlForCard,
@@ -77,7 +78,16 @@ const restoreFree = async () => {
   const rr = await setVideoModel(page, FREE_VIDEO_MODEL).catch((e) => ({ status: `오류 ${e.message}` }));
   console.log(`  [되돌림] 기본 모델 → ${FREE_VIDEO_MODEL}: ${rr?.status}`);
 };
-const die = async (msg, label) => { console.error(`❌ ${msg}`); await shot(label); await restoreFree(); await ctx.close().catch(() => {}); process.exit(1); };
+// 2026-10-03: 실패할 때 화면이 Flow 차단(「비정상적인 활동」)인지 본다 — 차단이면 exit 3. 호출부(lib/flow-omni)가
+//   즉시 멈추고(표지) 공용 대기열에 알린다. 일반 실패(exit 1)와 섞이면 10분 뒤 또 시도해 차단이 길어진다.
+const die = async (msg, label) => {
+  let blocked = false;
+  try { blocked = isBlockedText(await page.locator('body').innerText({ timeout: 3000 })); } catch { /* 화면을 못 읽으면 일반 실패 */ }
+  console.error(`❌ ${blocked ? 'FLOW_BLOCKED 「비정상적인 활동」 화면 — ' : ''}${msg}`);
+  await shot(label); await restoreFree(); await ctx.close().catch(() => {});
+  if (blocked) process.exit(3);
+  process.exit(1);
+};
 
 const t0 = Date.now();
 if (!(await openProject(page))) await die('프로젝트 화면 진입 실패', 'no-project');

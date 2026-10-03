@@ -27,6 +27,22 @@ export const OMNI_MODEL = 'Omni 1.1 Flash';
 export const DEFAULT_LOCK = process.env.FLOW_LOCK_FILE
   || join(homedir(), 'Library/CloudStorage/GoogleDrive-spinaiceo@gmail.com/내 드라이브/_flow/lock.txt');
 const DEFAULT_STATE = resolve(ROOT, 'logs/flow-omni-last.json');
+// 2026-10-03 사장님 결정(Mac mini2 경유): 차단 뜨면 즉시 멈추고 알린다. 이 표지가 있으면 **사람이 지울 때까지** 생성하지 않는다.
+const DEFAULT_BLOCK = resolve(ROOT, 'logs/flow-omni-blocked.json');
+/** Flow 차단 화면 문구(「비정상적인 활동」). 일반 실패와 가른다 — 차단은 다시 시도하면 더 길어진다. */
+export const isBlockedText = (t) => /비정상적인\s*활동|unusual\s+activity|일시적으로\s*(차단|제한)|temporarily\s+(blocked|restricted|limited)/i.test(String(t ?? ''));
+export function markBlocked({ blockFile = DEFAULT_BLOCK, reason = '', now = new Date() } = {}) {
+  mkdirSync(dirname(blockFile), { recursive: true });
+  writeFileSync(blockFile, JSON.stringify({ at: now.toISOString(), reason: String(reason).slice(0, 200), clear: `확인 후 이 파일을 지우면 다시 생성한다: ${blockFile}` }, null, 2));
+}
+/** 공용 대기열(드라이브 _flow/queue.md) 맨 위에 차단 한 줄. 자식 프로세스·시간 한도(lockFs). 성공하면 true. */
+export function postBlockNotice({ queueFile = join(dirname(DEFAULT_LOCK), 'queue.md'), who = 'mac-flowvium', reason = '', now = new Date() } = {}) {
+  const cur = lockFs('read', queueFile);
+  if (!cur) return false;
+  const t = new Date(now).toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16);
+  const line = `> **⛔ ${t} 차단 — ${who}** Omni 생성 중 「${String(reason).slice(0, 60)}」. ${who} 는 즉시 멈췄다(사람이 확인할 때까지 재시도 없음). Mac mini2 확인 바람.\n\n`;
+  return !!lockFs('write', queueFile, line + (cur.exists ? String(cur.body ?? '') : ''));
+}
 const STALE_MS = 5 * 3600e3;
 const MIN_GAP_MS = 10 * 60e3;
 
@@ -61,8 +77,12 @@ function lockFs(op, file, body = '') {
  * 지금 만들어도 되는가. 만들지 않는 이유를 사람 말로 돌려준다.
  * @returns {{ok:boolean, reason?:string}}
  */
-export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFile = DEFAULT_STATE, env = process.env } = {}) {
+export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFile = DEFAULT_STATE, env = process.env, blockFile = DEFAULT_BLOCK } = {}) {
   if (env.FLOW_OMNI_FALLBACK === '0') return { ok: false, reason: 'FLOW_OMNI_FALLBACK=0 으로 꺼져 있다' };
+  if (existsSync(blockFile)) {
+    let b = {}; try { b = JSON.parse(readFileSync(blockFile, 'utf8')); } catch { /* 표지만 있어도 멈춘다 */ }
+    return { ok: false, reason: `Flow 차단 표지(${b.at ?? '?'} ${String(b.reason ?? '').slice(0, 40)}) — 사람이 ${blockFile} 를 지울 때까지 생성 안 함` };
+  }
   const [from, to] = String(env.FLOW_OMNI_HOURS ?? '18-24').split('-').map(Number);
   const h = kstHour(now);
   if (!(h >= from && h < to)) return { ok: false, reason: `시간표 밖(${h}시 · FlowVium 은 ${from}~${to}시)` };
@@ -142,6 +162,13 @@ export async function generateOmniClip({ prompt, out, waitS = 420, lockFile = DE
       env: { ...process.env, FLOW_PURPOSE: 'omni-flash-x1' },
     });
     const tail = `${r.stdout ?? ''}\n${r.stderr ?? ''}`.trim().split('\n').slice(-2).join(' | ').slice(0, 160);
+    if (r.status === 3) {
+      // 차단 화면(flow-clip 이 「비정상적인 활동」 을 봤다) — 즉시 멈추고 알린다. 재시도는 차단을 늘린다.
+      markBlocked({ reason: tail });
+      const posted = postBlockNotice({ reason: '비정상적인 활동' });
+      log(`[Omni] ⛔ Flow 차단 — 생성 중지(표지 logs/flow-omni-blocked.json) · 대기열 알림 ${posted ? '올림' : '실패(드라이브)'}`);
+      return { path: null, reason: `Flow 차단 — 중지·알림${posted ? '' : '(대기열 쓰기 실패)'}` };
+    }
     if (r.status !== 0 || !existsSync(out)) return { path: null, reason: `flow-clip 실패(exit ${r.status}): ${tail}` };
     // 받은 파일의 실제 길이·크기를 남긴다 — 칩에 길이가 안 보이는 배치라면 이것이 4초 지시를 확인하는 유일한 근거다.
     const clip = probeClip(out);
