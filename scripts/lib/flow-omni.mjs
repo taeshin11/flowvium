@@ -36,6 +36,11 @@ export function markBlocked({ blockFile = DEFAULT_BLOCK, reason = '', now = new 
   writeFileSync(blockFile, JSON.stringify({ at: now.toISOString(), reason: String(reason).slice(0, 200), clear: `확인 후 이 파일을 지우면 다시 생성한다: ${blockFile}` }, null, 2));
 }
 /** 공용 대기열(드라이브 _flow/queue.md) 맨 위에 차단 한 줄. 자식 프로세스·시간 한도(lockFs). 성공하면 true. */
+/** 차단을 lock.txt 에도 적는다 — Mac mini2 는 queue.md 동기화가 멈춰 lock.txt 만 2분마다 본다(10/03). 내용이 있으니 다른 세션도 락을 못 잡는다. */
+export function markBlockedInLock({ lockFile = DEFAULT_LOCK, who = 'mac-flowvium', now = new Date() } = {}) {
+  const t = new Date(now).toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16);
+  return !!lockFs('write', lockFile, `BLOCKED ${who} ${t} Flow 「비정상적인 활동」 — 즉시 중지, Mac mini2 확인 바람`);
+}
 export function postBlockNotice({ queueFile = join(dirname(DEFAULT_LOCK), 'queue.md'), who = 'mac-flowvium', reason = '', now = new Date() } = {}) {
   const cur = lockFs('read', queueFile);
   if (!cur) return false;
@@ -45,6 +50,8 @@ export function postBlockNotice({ queueFile = join(dirname(DEFAULT_LOCK), 'queue
 }
 const STALE_MS = 5 * 3600e3;
 const MIN_GAP_MS = 10 * 60e3;
+// 2026-10-03 Mac mini2: 남이 락을 비운 뒤 8분은 띄운다(계정 단위 간격 — 남의 마지막 전송 뒤 8분).
+const AFTER_RELEASE_MS = 8 * 60e3;
 
 function probeClip(f) {
   const r = spawnSync(ffmpegPath, ['-hide_banner', '-i', f], { encoding: 'utf8' });
@@ -93,6 +100,7 @@ export function omniAllowed({ now = new Date(), lockFile = DEFAULT_LOCK, stateFi
     const body = String(lk.body ?? '').replace(/^\uFEFF/, '').trim();
     const age = Date.now() - lk.mtimeMs;
     if (body && age < STALE_MS) return { ok: false, reason: `다른 곳이 Flow 락을 쥐고 있다: "${body.slice(0, 60)}"` };
+    if (!body && age < AFTER_RELEASE_MS) return { ok: false, reason: `락이 비워진 지 ${Math.floor(age / 60e3)}분 — 8분 뒤에 쓴다(직전 사용자 간격)` };
   }
   try {
     const last = Date.parse(JSON.parse(readFileSync(stateFile, 'utf8')).at);
@@ -165,7 +173,9 @@ export async function generateOmniClip({ prompt, out, waitS = 420, lockFile = DE
     if (r.status === 3) {
       // 차단 화면(flow-clip 이 「비정상적인 활동」 을 봤다) — 즉시 멈추고 알린다. 재시도는 차단을 늘린다.
       markBlocked({ reason: tail });
-      const posted = postBlockNotice({ reason: '비정상적인 활동' });
+      lock.keep = true;   // 아래 finally 가 BLOCKED 줄을 지우지 않게
+      const inLock = markBlockedInLock({ lockFile });
+      const posted = postBlockNotice({ reason: '비정상적인 활동' }) || inLock;
       log(`[Omni] ⛔ Flow 차단 — 생성 중지(표지 logs/flow-omni-blocked.json) · 대기열 알림 ${posted ? '올림' : '실패(드라이브)'}`);
       return { path: null, reason: `Flow 차단 — 중지·알림${posted ? '' : '(대기열 쓰기 실패)'}` };
     }
@@ -176,6 +186,6 @@ export async function generateOmniClip({ prompt, out, waitS = 420, lockFile = DE
     if (clip && clip.duration > OMNI_SECONDS + 1.5) log(`[Omni] ⚠ 받은 영상이 ${clip.duration.toFixed(1)}초 — ${OMNI_SECONDS}초 지시와 다르다(Flow 기본 길이 확인 필요)`);
     return { path: out, seconds: Math.round((Date.now() - t0) / 1000), clip };
   } finally {
-    lock.release();
+    if (!lock.keep) lock.release();
   }
 }

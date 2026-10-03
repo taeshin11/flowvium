@@ -31,5 +31,20 @@ const body = readFileSync(q, 'utf8');
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 (/isBlockedText\(/.test(src('flow-clip.mjs')) && /process\.exit\(3\)/.test(src('flow-clip.mjs'))) ? ok('[4a] flow-clip 이 화면에서 차단을 보면 exit 3') : bad('[4a]');
 /r\.status === 3/.test(src('lib/flow-omni.mjs')) ? ok('[4b] exit 3 이면 표지+알림') : bad('[4b]');
+{
+  // [5] Mac mini2(10/03): 그 맥은 queue.md 동기화가 9/30 부터 멈춰 lock.txt 만 2분마다 본다 → 차단 줄을 lock.txt 에도.
+  //     또 FlowVium Omni 는 저녁 순서와 겹친다 — 락이 비었을 때만, **비워진 지 8분 뒤**에.
+  const { utimesSync } = await import('node:fs');
+  const lf = join(d, 'lock2.txt'); writeFileSync(lf, '');
+  const sf = join(d, 'last2.json'), bf = join(d, 'blk2.json');
+  const g1 = omniAllowed({ env, lockFile: lf, stateFile: sf, blockFile: bf });
+  (!g1.ok && /8분/.test(g1.reason)) ? ok(`[5a] 방금 비워진 락 → 거부: ${g1.reason}`) : bad(`[5a] ${JSON.stringify(g1)}`);
+  const old = new Date(Date.now() - 9 * 60e3); utimesSync(lf, old, old);
+  omniAllowed({ env, lockFile: lf, stateFile: sf, blockFile: bf }).ok ? ok('[5b] 비워진 지 9분 → 허용') : bad('[5b]');
+  const { markBlockedInLock } = await import('./flow-omni.mjs');
+  markBlockedInLock({ lockFile: lf, now: new Date('2026-10-03T12:00:00Z') });
+  /^BLOCKED mac-flowvium /.test(readFileSync(lf, 'utf8')) ? ok(`[5c] lock.txt 에 "${readFileSync(lf, 'utf8').trim().slice(0, 50)}"`) : bad(`[5c] ${readFileSync(lf, 'utf8')}`);
+  /markBlockedInLock\(/.test(src('lib/flow-omni.mjs').slice(src('lib/flow-omni.mjs').indexOf('r.status === 3'))) ? ok('[5d] 차단 경로가 lock.txt 에도 쓴다') : bad('[5d]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

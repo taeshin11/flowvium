@@ -38,8 +38,11 @@ const base = { lockFile, stateFile, env: {} };
   const b = omniAllowed({ ...base, now: kst(20) });
   b.ok ? ok('[2b] 6시간 묵은 락 → 낡은 것으로 본다') : bad(`[2b] ${JSON.stringify(b)}`);
   writeFileSync(lockFile, '');
+  // 2026-10-03 Mac mini2: 비워진 직후는 8분 기다린다(직전 사용자 간격) — 비워진 지 9분 된 빈 락이 허용.
+  const fresh = omniAllowed({ ...base, now: kst(20) });
+  const nine = (Date.now() - 9 * 60e3) / 1000; utimesSync(lockFile, nine, nine);
   const c = omniAllowed({ ...base, now: kst(20) });
-  c.ok ? ok('[2c] 빈 락 파일 → 허용') : bad(`[2c] ${JSON.stringify(c)}`);
+  (!fresh.ok && c.ok) ? ok('[2c] 빈 락 — 방금 비워짐 → 막음 · 9분 전 → 허용') : bad(`[2c] ${JSON.stringify([fresh, c])}`);
 }
 // [3] 생성 사이 10분 이상 (FLOW_RULES 5항: 생성 사이 8~12분)
 {
