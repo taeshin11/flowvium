@@ -1,26 +1,60 @@
 {
-  "generatedAt": "2026-10-05T13:00:52.118Z",
+  "generatedAt": "2026-10-05T22:04:07.026Z",
   "universe": "US",
-  "scanned": 299,
-  "count": 17,
-  "strongCount": 0,
+  "scanned": 332,
+  "count": 18,
+  "strongCount": 1,
   "watchCount": 17,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "NXP",
-      "name": "Nuveen Select Tax Free Income P",
+      "ticker": "ABUS",
+      "name": "Arbutus Biopharma Corporation",
+      "tier": "strong",
+      "score": 32,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -9.3,
+      "runup5dPct": -3.9,
+      "medDollarVolUsd": 13989555,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "EPRX",
+      "name": "Eupraxia Pharmaceuticals Inc.",
+      "tier": "watch",
+      "score": 36,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 4.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -7.8,
+      "runup5dPct": -5.7,
+      "medDollarVolUsd": 2012654,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ARCO",
+      "name": "Arcos Dorados Holdings Inc.",
       "tier": "watch",
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -5.7,
-      "runup5dPct": 1.8,
-      "medDollarVolUsd": 2260050,
+      "runup20dPct": -0.9,
+      "runup5dPct": 13.4,
+      "medDollarVolUsd": 8524607,
       "smartAccum": false,
       "official": null
     },
@@ -31,46 +65,81 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -7.1,
-      "runup5dPct": 2,
+      "runup20dPct": -9.2,
+      "runup5dPct": 1.8,
       "medDollarVolUsd": 406557,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "XERS",
-      "name": "Xeris Biopharma Holdings, Inc.",
+      "ticker": "AFYA",
+      "name": "Afya Limited",
       "tier": "watch",
       "score": 31,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 2.9× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 5.7,
-      "runup5dPct": -0.2,
-      "medDollarVolUsd": 14169760,
+      "runup20dPct": -9.3,
+      "runup5dPct": 10.5,
+      "medDollarVolUsd": 1897416,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CBNK",
-      "name": "Capital Bancorp, Inc.",
+      "ticker": "UTSI",
+      "name": "UTStarcom Holdings Corp",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 6.4× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 0.9,
+      "runup5dPct": -0.8,
+      "medDollarVolUsd": 12189,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PLAB",
+      "name": "Photronics, Inc.",
       "tier": "watch",
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "거래량 6.1× 급증(가격 평탄)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 10.4,
-      "runup5dPct": 12.2,
-      "medDollarVolUsd": 1812222,
+      "runup20dPct": 6.7,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 27746466,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "VSECU",
+      "name": "VSE Corporation - Tangible Equi",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -15,
+      "runup5dPct": -2.2,
+      "medDollarVolUsd": 730445,
       "smartAccum": false,
       "official": null
     },
@@ -82,46 +151,29 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 6개(저가 매수받침)"
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 7개(저가 매수받침)"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": 12.4,
+      "runup20dPct": 10.2,
+      "runup5dPct": 13.9,
       "medDollarVolUsd": 4137738,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MG",
-      "name": "Mistras Group Inc",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.3,
-      "runup5dPct": -4,
-      "medDollarVolUsd": 3500540,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PLAB",
-      "name": "Photronics, Inc.",
+      "ticker": "SID",
+      "name": "Companhia Siderurgica Nacional ",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 1.9× 상승",
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 11.7,
-      "runup5dPct": 3.6,
-      "medDollarVolUsd": 27814536,
+      "runup20dPct": 1.6,
+      "runup5dPct": 11.7,
+      "medDollarVolUsd": 3908962,
       "smartAccum": false,
       "official": null
     },
@@ -133,10 +185,10 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.9× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)"
+        "거래량 2.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8,
-      "runup5dPct": -1.9,
+      "runup20dPct": -10,
+      "runup5dPct": -1.7,
       "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
@@ -148,11 +200,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.7,
-      "runup5dPct": -1.2,
+      "runup20dPct": -9.4,
+      "runup5dPct": -1.6,
       "medDollarVolUsd": 5143788,
       "smartAccum": false,
       "official": null
@@ -164,76 +216,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.1,
-      "runup5dPct": -0.4,
-      "medDollarVolUsd": 1408268,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MYI",
-      "name": "Blackrock MuniYield Quality Fun",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -7,
-      "runup5dPct": -0.1,
-      "medDollarVolUsd": 3540344,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MMD",
-      "name": "MainStay MacKay DefinedTerm Mun",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
         "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.5,
-      "runup5dPct": -0.5,
-      "medDollarVolUsd": 783300,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PMO",
-      "name": "Putnam Municipal Opportunities ",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -9.4,
-      "runup5dPct": -0.9,
-      "medDollarVolUsd": 638575,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MUJ",
-      "name": "Blackrock MuniHoldings New Jers",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.4,
-      "runup5dPct": 0.1,
-      "medDollarVolUsd": 1101620,
+      "runup20dPct": -9.5,
+      "runup5dPct": -1.8,
+      "medDollarVolUsd": 1408268,
       "smartAccum": false,
       "official": null
     },
@@ -244,44 +232,76 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -3.5,
-      "runup5dPct": -1.6,
+      "runup20dPct": -3.1,
+      "runup5dPct": -1.4,
       "medDollarVolUsd": 822250,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NMCO",
-      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "ticker": "PMO",
+      "name": "Putnam Municipal Opportunities ",
       "tier": "watch",
-      "score": 16,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 추세 3.4× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -14.1,
-      "runup5dPct": -4,
-      "medDollarVolUsd": 2468042,
+      "runup20dPct": -10.4,
+      "runup5dPct": 0.1,
+      "medDollarVolUsd": 638575,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "INN",
-      "name": "Summit Hotel Properties, Inc.",
+      "ticker": "NIM",
+      "name": "Nuveen Select Maturities Munici",
       "tier": "watch",
-      "score": 15,
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.0× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.3,
+      "runup5dPct": -0.5,
+      "medDollarVolUsd": 155144,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "OLN",
+      "name": "Olin Corporation",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -6.3,
+      "runup5dPct": 1.4,
+      "medDollarVolUsd": 54606391,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "XZO",
+      "name": "Exzeo Group, Inc.",
+      "tier": "watch",
+      "score": 16,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%"
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": 5.2,
-      "runup5dPct": 4.9,
-      "medDollarVolUsd": 5643020,
+      "runup20dPct": -7,
+      "runup5dPct": 2,
+      "medDollarVolUsd": 3087054,
       "smartAccum": false,
       "official": null
     }
