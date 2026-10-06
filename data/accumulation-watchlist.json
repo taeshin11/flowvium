@@ -1,44 +1,28 @@
 {
-  "generatedAt": "2026-10-06T07:20:29.292Z",
+  "generatedAt": "2026-10-06T22:20:26.552Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "054620.KQ",
-      "name": "APS",
+      "ticker": "056730.KQ",
+      "name": "CNT85",
       "tier": "watch",
-      "score": 38,
-      "coFire": 2,
+      "score": 40,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 6.1× 상승(지속 매집)",
-        "거래량 7.7× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 7,
-      "runup5dPct": 6.6,
-      "medDollarVolUsd": 77027,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "199480.KQ",
-      "name": "뱅크웨어글로벌",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
+        "거래량 추세 1.6× 상승",
+        "거래량 2.7× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 8,
-      "runup5dPct": 2.4,
-      "medDollarVolUsd": 55251,
+      "runup20dPct": -7.8,
+      "runup5dPct": -2.3,
+      "medDollarVolUsd": 11026,
       "smartAccum": true,
       "official": null
     },
