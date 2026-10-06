@@ -42,6 +42,19 @@ do {
   pageToken = pageToken === null ? null : r.data.nextPageToken;
 } while (pageToken);
 
+// 2026-10-06: 업로드 목록에는 롱폼(사이트 소개·뉴스 총정리)도 있다 — 길이를 보고 쇼츠만 원장에 둔다(lib/shorts-reconcile-filter).
+//   종전엔 전부 넣어 롱폼이 '오늘의 쇼츠' 로 뽑혔고 첫 총정리 발행이 실패했다.
+{
+  const { isShortUpload, isoDurationSec } = await import('./lib/shorts-reconcile-filter.mjs');
+  const dur = new Map();
+  for (let i = 0; i < items.length; i += 50) {
+    const r = await yt.videos.list({ part: ['contentDetails'], id: items.slice(i, i + 50).map((x) => x.id) });
+    for (const v of r.data.items ?? []) dur.set(v.id, isoDurationSec(v.contentDetails?.duration));
+  }
+  const before = items.length;
+  for (let i = items.length - 1; i >= 0; i--) if (!isShortUpload({ durationSec: dur.get(items[i].id) ?? null })) items.splice(i, 1);
+  if (items.length !== before) console.log(`롱폼·길이 모름 ${before - items.length}편은 쇼츠 원장 대상에서 뺐다`);
+}
 const db = openDb();
 const known = new Set(db.prepare('SELECT video_id FROM shorts_published WHERE video_id IS NOT NULL').all().map((r) => r.video_id));
 const missing = items.filter((x) => !known.has(x.id));
