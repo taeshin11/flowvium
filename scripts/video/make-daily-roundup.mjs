@@ -37,7 +37,11 @@ const rows = openDb().prepare(`SELECT p.video_id, p.headline, p.headlines_json, 
    AND date(datetime(p.published_at, '+9 hours')) = ?`).all(DATE);
 if (rows.length < MIN) { log(`${DATE} 쇼츠 ${rows.length}편 — ${MIN}편 미만이면 만들지 않는다`); process.exit(0); }
 // 쇼츠 한 편은 2~4꼭지 브리핑이다 — 대표 제목만 쓰면 화면(둘째 꼭지)과 목록이 어긋난다(첫 시험판 눈검증). 꼭지 제목을 같이 싣는다.
-const items = (r) => { try { const a = JSON.parse(r.headlines_json ?? '[]').map(cleanHeadline).filter(Boolean); return a.length ? a : [cleanHeadline(r.headline)]; } catch { return [cleanHeadline(r.headline)]; } };
+// 같은 사건의 (종합)·속보판이 꼭지로 겹쳐 들어온다(10/06 첫 공개판 06번) — 앞 12자가 같으면 한 꼭지로 본다.
+const sameStory = (a, b) => a.replace(/\s/g, '').slice(0, 12) === b.replace(/\s/g, '').slice(0, 12);
+const items = (r) => { let a; try { a = JSON.parse(r.headlines_json ?? '[]').map(cleanHeadline).filter(Boolean); } catch { a = []; }
+  if (!a.length) a = [cleanHeadline(r.headline)];
+  return a.filter((x, i) => !a.slice(0, i).some((y) => sameStory(x, y))); };
 const list = orderByViews(rows).map((r) => { const it = items(r); return { ...r, items: it, title: it[0] }; });
 rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true });
 log(`${DATE} 쇼츠 ${list.length}편 → ${OUT}`);
