@@ -8052,6 +8052,16 @@ async function generateViaOllama() {
     //   같은 veto 게이트로 재심해 시장별 최소 2석 충원. 전원 저촉 시 명시 노트(침묵 금지).
     const MIN_PER_MARKET = 2;
     const isKRt = (t) => /\.(KS|KQ)$/.test(t ?? '');
+    // 2026-10-06 사장님 "수익률 제일 높이는 방향으로": 보충 편입을 시장별 실적으로 연다(lib/refill-gate).
+    //   실측 KR 보충 76건 평균 −1.87%·손절 58%(KR 정규 +0.90%, t=−3.6) · US 보충은 정규와 같음. 실적이 회복되면 저절로 열린다.
+    let _refillStats = null;
+    try {
+      const { refillStats } = await import('./lib/refill-gate.mjs');
+      _refillStats = refillStats(openDb().prepare(`SELECT r.ticker, substr(r.generated_at,1,10) day, r.rationale, o.pnl_pct
+        FROM recommendations r JOIN recommendation_outcomes o ON o.recommendation_id = r.id
+        WHERE o.outcome IN ('hit_target','sold','stop_loss')`).all());
+    } catch (e) { console.warn('  [경합심사/재충원] 보충 실적을 못 읽었다 — 종전대로 보충:', e?.message); }
+    const { refillAllowed } = await import('./lib/refill-gate.mjs');
     for (const mkt of ['kr', 'us']) {
       const want = mkt === 'kr';
       const inMkt = dedupedPortfolio.filter(p => isKRt(p.ticker) === want).length;
@@ -8062,6 +8072,8 @@ async function generateViaOllama() {
         || (buyCandidates ?? []).some(c => isKRt(c.ticker) === want);
       if (inMkt >= MIN_PER_MARKET) continue;
       if (!hadCands) { console.log(`  [경합심사/재충원] ${mkt} 후보 풀 자체 공백 — skip`); continue; }
+      const gate = refillAllowed(mkt, _refillStats);
+      if (!gate.ok) { console.log(`  [경합심사/재충원] ${gate.reason}`); (adjudication.refillBlocked ??= []).push({ market: mkt, reason: gate.reason }); continue; }
       const have = new Set(dedupedPortfolio.map(p => p.ticker));
       const tried = new Set(adjudication.candidates.map(c => c.ticker));
       // 2026-09-15: 티커 문자열만 보면 **같은 회사의 다른 종류주**가 들어온다.
