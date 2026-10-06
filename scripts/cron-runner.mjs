@@ -643,6 +643,8 @@ const MAINT_JOBS = [
   { label: 'flowvium-card',        script: 'scripts/refresh-flowvium-card.mjs',       timeoutMs: 360000,  commitPaths: [],                                     schedules: ['45 22 * * *'],                maxAgeH: 30 },
   // 2026-10-02 사장님 지시: 주 1회(월 09:20 KST) 스튜디오 트렌드 탭 → 주제어(logs/yt-trends.json) + 칸별 48h 성적 보고
   { label: 'yt-trend-topics',      script: 'scripts/yt-trend-topics.mjs',             timeoutMs: 360000,  commitPaths: [],                                     schedules: ['20 0 * * 1' ],                maxAgeH: 170 },
+  // 2026-10-06 사장님 "숏폼 묶어 롱폼" → 시험판 확인 뒤 "고": 하루치 쇼츠를 묶은 가로 롱폼 '뉴스 총정리'(22:10 KST, 마지막 쇼츠 21:45 뒤·22:30 보고서 전). 4편 미만이면 안 만든다.
+  { label: 'daily-roundup',        script: 'scripts/video/make-daily-roundup.mjs --upload public', timeoutMs: 900000, commitPaths: [],                                     schedules: ['10 13 * * *'],                maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
