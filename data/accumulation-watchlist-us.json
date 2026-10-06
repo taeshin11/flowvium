@@ -1,29 +1,12 @@
 {
-  "generatedAt": "2026-10-06T13:01:13.874Z",
+  "generatedAt": "2026-10-06T22:03:26.062Z",
   "universe": "US",
   "scanned": 332,
-  "count": 18,
-  "strongCount": 1,
-  "watchCount": 17,
+  "count": 15,
+  "strongCount": 0,
+  "watchCount": 15,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "ABUS",
-      "name": "Arbutus Biopharma Corporation",
-      "tier": "strong",
-      "score": 32,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 3.4× 급증(가격 평탄)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -9.3,
-      "runup5dPct": -3.9,
-      "medDollarVolUsd": 13989555,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "EPRX",
       "name": "Eupraxia Pharmaceuticals Inc.",
@@ -31,13 +14,13 @@
       "score": 36,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 4.3× 급증(가격 평탄)",
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -7.8,
-      "runup5dPct": -5.7,
-      "medDollarVolUsd": 2012654,
+      "runup20dPct": -6.2,
+      "runup5dPct": -6.8,
+      "medDollarVolUsd": 2092418,
       "smartAccum": false,
       "official": null
     },
@@ -48,81 +31,13 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -0.9,
-      "runup5dPct": 13.4,
-      "medDollarVolUsd": 8524607,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MHF",
-      "name": "Western Asset Municipal High In",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -9.2,
-      "runup5dPct": 1.8,
-      "medDollarVolUsd": 406557,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "AFYA",
-      "name": "Afya Limited",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 3.5× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -9.3,
-      "runup5dPct": 10.5,
-      "medDollarVolUsd": 1897416,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "UTSI",
-      "name": "UTStarcom Holdings Corp",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 6.4× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 0.9,
-      "runup5dPct": -0.8,
-      "medDollarVolUsd": 12189,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PLAB",
-      "name": "Photronics, Inc.",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.7,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 27746466,
+      "runup20dPct": -0.7,
+      "runup5dPct": 14,
+      "medDollarVolUsd": 8524607,
       "smartAccum": false,
       "official": null
     },
@@ -139,7 +54,7 @@
       ],
       "runup20dPct": -15,
       "runup5dPct": -2.2,
-      "medDollarVolUsd": 730445,
+      "medDollarVolUsd": 772116,
       "smartAccum": false,
       "official": null
     },
@@ -154,26 +69,26 @@
         "종가 일중 상단 80%(강한 매수 흡수)",
         "아래꼬리 매집 7개(저가 매수받침)"
       ],
-      "runup20dPct": 10.2,
-      "runup5dPct": 13.9,
-      "medDollarVolUsd": 4137738,
+      "runup20dPct": 11.1,
+      "runup5dPct": 9.7,
+      "medDollarVolUsd": 4169600,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "SID",
-      "name": "Companhia Siderurgica Nacional ",
+      "ticker": "PLAB",
+      "name": "Photronics, Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 3.2× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 1.6,
-      "runup5dPct": 11.7,
-      "medDollarVolUsd": 3908962,
+      "runup20dPct": 5,
+      "runup5dPct": -0.8,
+      "medDollarVolUsd": 27233307,
       "smartAccum": false,
       "official": null
     },
@@ -184,11 +99,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10,
-      "runup5dPct": -1.7,
+      "runup20dPct": -8.6,
+      "runup5dPct": 0.2,
       "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
@@ -200,28 +115,45 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.4,
-      "runup5dPct": -1.6,
-      "medDollarVolUsd": 5143788,
+      "runup20dPct": -8.2,
+      "runup5dPct": 0.3,
+      "medDollarVolUsd": 5153467,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "MFM",
-      "name": "MFS Municipal Income Trust",
+      "ticker": "NMCO",
+      "name": "Nuveen Municipal Credit Opportunities Fund",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.5,
-      "runup5dPct": -1.8,
-      "medDollarVolUsd": 1408268,
+      "runup20dPct": -12.9,
+      "runup5dPct": -0.9,
+      "medDollarVolUsd": 2468042,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "INVA",
+      "name": "Innoviva, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -2.4,
+      "runup5dPct": -1.3,
+      "medDollarVolUsd": 14486041,
       "smartAccum": false,
       "official": null
     },
@@ -232,12 +164,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.4× 급증(가격 평탄)"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -3.1,
-      "runup5dPct": -1.4,
-      "medDollarVolUsd": 822250,
+      "runup20dPct": -4.1,
+      "runup5dPct": -2.2,
+      "medDollarVolUsd": 830736,
       "smartAccum": false,
       "official": null
     },
@@ -248,28 +180,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)"
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -10.4,
-      "runup5dPct": 0.1,
+      "runup20dPct": -7.5,
+      "runup5dPct": 2.5,
       "medDollarVolUsd": 638575,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NIM",
-      "name": "Nuveen Select Maturities Munici",
+      "ticker": "ABUS",
+      "name": "Arbutus Biopharma Corporation",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -6.3,
-      "runup5dPct": -0.5,
-      "medDollarVolUsd": 155144,
+      "runup20dPct": -13.5,
+      "runup5dPct": -4.5,
+      "medDollarVolUsd": 14163361,
       "smartAccum": false,
       "official": null
     },
@@ -280,12 +212,12 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
+        "거래량 추세 1.9× 상승",
         "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -6.3,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 54606391,
+      "runup20dPct": -9.4,
+      "runup5dPct": 5.1,
+      "medDollarVolUsd": 56652082,
       "smartAccum": false,
       "official": null
     },
@@ -296,12 +228,28 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 1.6× 상승",
+        "거래량 3.2× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7,
-      "runup5dPct": 2,
+      "runup20dPct": -6.8,
+      "runup5dPct": 3.4,
       "medDollarVolUsd": 3087054,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "APOG",
+      "name": "Apogee Enterprises, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 3.3,
+      "runup5dPct": 11.6,
+      "medDollarVolUsd": 7907700,
       "smartAccum": false,
       "official": null
     }
