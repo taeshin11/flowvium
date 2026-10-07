@@ -574,11 +574,11 @@
     "fy": "2026"
   },
   "COST": {
-    "revUsd": 275235000000,
-    "revYoYPct": 8.2,
-    "opMarginPct": 3.8,
-    "roePct": 27.8,
-    "fy": "2025"
+    "revUsd": 303154000000,
+    "revYoYPct": 10.1,
+    "opMarginPct": 3.9,
+    "roePct": 25.8,
+    "fy": "2026"
   },
   "JPM": {
     "revUsd": 182447000000,
@@ -1103,6 +1103,13 @@
     "revYoYPct": 2.4,
     "opMarginPct": null,
     "roePct": null,
+    "fy": "2025"
+  },
+  "PSA": {
+    "revUsd": 4824113000,
+    "revYoYPct": 2.7,
+    "opMarginPct": null,
+    "roePct": 19.3,
     "fy": "2025"
   },
   "O": {
