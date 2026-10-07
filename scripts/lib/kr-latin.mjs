@@ -56,7 +56,9 @@ function readToken(tok, overrides = {}) {
  * @returns {string}
  */
 export function speakLatin(text, { overrides = {} } = {}) {
-  return String(text ?? '').replace(/[A-Za-z0-9][A-Za-z0-9.\-]*/g, (tok, at, whole) => {
+  // 2026-10-07: '&' 는 Melo 기호표에 없다 — 남으면 KeyError 로 편 전체가 Piper 목소리로 나갔다(20:40 편 "S&P").
+  //   S&P·M&A·AT&T·R&D 처럼 읽는 그대로 "앤" 으로 바꾼 뒤 약어를 읽는다.
+  return String(text ?? '').replace(/\s*&\s*/g, ' 앤 ').replace(/[A-Za-z0-9][A-Za-z0-9.\-]*/g, (tok, at, whole) => {
     const read = readToken(tok.replace(/[.\-]+$/, ''), overrides);
     if (read == null) return tok;
     const tail = tok.slice(tok.replace(/[.\-]+$/, '').length);

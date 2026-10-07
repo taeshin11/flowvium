@@ -46,5 +46,11 @@ eq('[4b] 주소', spoken('flowvium.net 에서'), 'flowvium.net 에서');
 eq('[4c] 한글', spoken('코스피 2,610'), '코스피 이천륙백십');
 eq('[4d] iPhone', spoken('iPhone 판매'), 'iPhone 판매');
 
+// [5] 2026-10-07 20:40 편: 대본의 "S&P" 가 Melo 기호표에 없는 '&' 로 남아 KeyError: '&' → 편 전체가 Piper 목소리로 나갔다.
+eq('[5a] S&P', speakLatin('S&P500 지수'), '에스 앤 피, 500 지수');
+eq('[5b] M&A', speakLatin('M&A 추진'), '엠 앤 에이 추진');
+eq('[5c] 띄운 &', speakLatin('삼성 & LG'), '삼성 앤 엘지');
+!/&/.test(spoken('AT&T와 R&D 투자, S&P 하락')) ? (console.log('  PASS  [5d] 소리 대본에 & 가 남지 않는다'), 0) : eq('[5d]', spoken('AT&T와 R&D 투자, S&P 하락'), '(& 없음)');
+
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
