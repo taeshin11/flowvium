@@ -1,28 +1,46 @@
 {
-  "generatedAt": "2026-10-06T22:20:26.552Z",
+  "generatedAt": "2026-10-07T07:20:27.072Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
-  "strongCount": 0,
+  "count": 3,
+  "strongCount": 1,
   "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "056730.KQ",
       "name": "CNT85",
-      "tier": "watch",
-      "score": 40,
+      "tier": "strong",
+      "score": 52,
       "coFire": 3,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.7× 급증(가격 평탄)",
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -7.8,
-      "runup5dPct": -2.3,
-      "medDollarVolUsd": 11026,
+      "runup20dPct": 5.7,
+      "runup5dPct": 11.1,
+      "medDollarVolUsd": 11214,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "065690.KQ",
+      "name": "파커스",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 90%(강한 매수 흡수)",
+        "아래꼬리 매집 7개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 3.8,
+      "runup5dPct": 3.5,
+      "medDollarVolUsd": 46127,
       "smartAccum": true,
       "official": null
     },
@@ -38,8 +56,8 @@
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 8.1,
-      "runup5dPct": 9.4,
+      "runup20dPct": 7.6,
+      "runup5dPct": 8.6,
       "medDollarVolUsd": 260707,
       "smartAccum": true,
       "official": null
