@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-07T07:20:27.072Z",
+  "generatedAt": "2026-10-07T22:20:24.233Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 5,
   "strongCount": 1,
-  "watchCount": 2,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -45,6 +45,24 @@
       "official": null
     },
     {
+      "ticker": "199480.KQ",
+      "name": "뱅크웨어글로벌",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 5.7,
+      "runup5dPct": 2.1,
+      "medDollarVolUsd": 57064,
+      "smartAccum": true,
+      "official": null
+    },
+    {
       "ticker": "078130.KQ",
       "name": "국일제지",
       "tier": "watch",
@@ -59,6 +77,23 @@
       "runup20dPct": 7.6,
       "runup5dPct": 8.6,
       "medDollarVolUsd": 260707,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "397030.KQ",
+      "name": "에이프릴바이오",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "거래량 2.9× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -11.5,
+      "runup5dPct": -15.7,
+      "medDollarVolUsd": 3036380,
       "smartAccum": true,
       "official": null
     }
