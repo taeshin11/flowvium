@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-07T13:01:05.665Z",
+  "generatedAt": "2026-10-07T22:01:46.145Z",
   "universe": "US",
   "scanned": 332,
-  "count": 14,
+  "count": 12,
   "strongCount": 0,
-  "watchCount": 14,
+  "watchCount": 12,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,13 +14,13 @@
       "score": 36,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
-        "거래량 4.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 4.3× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -6.2,
-      "runup5dPct": -6.8,
-      "medDollarVolUsd": 2092418,
+      "runup20dPct": -3.7,
+      "runup5dPct": -14.5,
+      "medDollarVolUsd": 2161202,
       "smartAccum": false,
       "official": null
     },
@@ -31,12 +31,12 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)",
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.9× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -0.7,
-      "runup5dPct": 14,
+      "runup20dPct": -2.3,
+      "runup5dPct": 10.5,
       "medDollarVolUsd": 8524607,
       "smartAccum": false,
       "official": null
@@ -49,35 +49,35 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -14.8,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 730445,
+      "runup20dPct": -11.4,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 705704,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "KRNT",
-      "name": "Kornit Digital Ltd.",
+      "ticker": "XZO",
+      "name": "Exzeo Group, Inc.",
       "tier": "watch",
-      "score": 27,
+      "score": 24,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 7개(저가 매수받침)"
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 11.1,
-      "runup5dPct": 9.7,
-      "medDollarVolUsd": 4169600,
+      "runup20dPct": -4.9,
+      "runup5dPct": 5.2,
+      "medDollarVolUsd": 3087054,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PLAB",
-      "name": "Photronics, Inc.",
+      "ticker": "SWBI",
+      "name": "Smith & Wesson Brands, Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
@@ -86,9 +86,25 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 5,
-      "runup5dPct": -0.8,
-      "medDollarVolUsd": 27233307,
+      "runup20dPct": 8.3,
+      "runup5dPct": 3.2,
+      "medDollarVolUsd": 6498828,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "OLN",
+      "name": "Olin Corporation",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -8.8,
+      "runup5dPct": 2.7,
+      "medDollarVolUsd": 56652082,
       "smartAccum": false,
       "official": null
     },
@@ -100,27 +116,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.6,
-      "runup5dPct": 0.2,
+      "runup20dPct": -9.5,
+      "runup5dPct": -2.1,
       "medDollarVolUsd": 3824900,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MQY",
-      "name": "Blackrock MuniYield Quality Fun",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.2,
-      "runup5dPct": 0.3,
-      "medDollarVolUsd": 5153467,
       "smartAccum": false,
       "official": null
     },
@@ -132,10 +132,10 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -12.9,
-      "runup5dPct": -0.9,
+      "runup20dPct": -12.7,
+      "runup5dPct": -3.8,
       "medDollarVolUsd": 2468042,
       "smartAccum": false,
       "official": null
@@ -147,12 +147,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)"
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 3.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -4.1,
-      "runup5dPct": -2.2,
-      "medDollarVolUsd": 830736,
+      "runup20dPct": -6,
+      "runup5dPct": -4.5,
+      "medDollarVolUsd": 842490,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AGNCP",
+      "name": "AGNC Investment Corp. - Deposit",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -5,
+      "runup5dPct": -4.6,
+      "medDollarVolUsd": 1082466,
       "smartAccum": false,
       "official": null
     },
@@ -163,76 +179,29 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.3× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.5,
-      "runup5dPct": 2.5,
-      "medDollarVolUsd": 638575,
+      "runup20dPct": -8.5,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 669288,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "ABUS",
-      "name": "Arbutus Biopharma Corporation",
+      "ticker": "LSAK",
+      "name": "Lesaka Technologies, Inc.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -13.5,
-      "runup5dPct": -4.5,
-      "medDollarVolUsd": 14163361,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "OLN",
-      "name": "Olin Corporation",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -9.4,
-      "runup5dPct": 5.1,
-      "medDollarVolUsd": 56652082,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "XZO",
-      "name": "Exzeo Group, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
         "거래량 추세 1.6× 상승",
-        "거래량 3.2× 급증(가격 평탄)"
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -6.8,
-      "runup5dPct": 3.4,
-      "medDollarVolUsd": 3087054,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "APOG",
-      "name": "Apogee Enterprises, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 3.3,
-      "runup5dPct": 11.6,
-      "medDollarVolUsd": 7907700,
+      "runup20dPct": 2.2,
+      "runup5dPct": 8.3,
+      "medDollarVolUsd": 453356,
       "smartAccum": false,
       "official": null
     }
