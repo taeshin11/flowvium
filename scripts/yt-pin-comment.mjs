@@ -18,14 +18,16 @@ import { ROOT } from './lib/project-root.mjs';
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const DRY = argv.includes('--dry');
-const VERIFY_ONLY = argv.includes('--verify-only');   // 달지 않고 시청자 화면 재확인만(--then-verify 초 뒤, 기본 0)
+const VERIFY_ONLY = argv.includes('--verify-only');
+const FIX = argv.includes('--fix-long-url');   // 달지 않고 시청자 화면 재확인만(--then-verify 초 뒤, 기본 0)
 const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[pin]', ...a);
 const STATE = resolve(ROOT, 'logs/yt-pinned.json');
 const state = (() => { try { return JSON.parse(readFileSync(STATE, 'utf8')); } catch { return {}; } })();
 
-const { trackedUrl } = await import('./lib/site-link.mjs');
+// 2026-10-08 사장님 "권장대로": 긴 주소(utm 붙은)는 링크 댓글 스팸 필터에 걸리기 쉽다 — 롱폼도 도메인만 짧게.
+//   (유입은 aisviagent.com 쪽 리퍼러/직접 방문으로 본다. 쇼츠 댓글 링크는 원래 안 눌린다.)
 export const commentFor = (kind) => kind === 'long'
-  ? `🤖 나만의 AI 비서 AISVI — 무료로 내 AI 비서를 만들어 보세요\n👉 ${trackedUrl({ source: 'youtube', medium: 'comment', campaign: 'flowvium', path: '/', site: 'https://aisviagent.com' })}`
+  ? '🤖 나만의 AI 비서 AISVI — 무료로 내 AI 비서를 만들어 보세요\n👉 aisviagent.com'
   : '🤖 나만의 AI 비서 AISVI — 무료로 만들어 보세요\n👉 aisviagent.com (주소창에 입력)';
 
 let targets = [];
@@ -42,7 +44,7 @@ else {
     try { const r = JSON.parse(readFileSync(resolve(ROOT, `logs/roundup-${day}.json`), 'utf8')); if (r.privacy === 'public' && r.id) targets.push({ id: r.id, kind: 'long' }); } catch { /* 그날 총정리 없음 */ }
   }
 }
-targets = targets.filter((t) => DRY || VERIFY_ONLY || !state[t.id]);
+targets = targets.filter((t) => DRY || VERIFY_ONLY || FIX || !state[t.id]);
 log(`대상 ${targets.length}편${DRY ? ' (dry — 글만 채우고 안 올림)' : ''}`);
 if (!targets.length) process.exit(0);
 
@@ -69,6 +71,23 @@ try {
       const pinnedVisible = async () => page.evaluate((sel) => [...document.querySelectorAll('ytd-comment-thread-renderer')]
         .some((th) => /@flowvium/.test(th.innerText) && /aisviagent/.test(th.innerText) && [...th.querySelectorAll('#pinned-comment-badge')].some((b) => b.offsetWidth || b.offsetHeight)), mineSel);
       let mine = page.locator(mineSel).first();
+      // --fix-long-url: 예전 긴 주소(utm_) 댓글을 짧은 판으로 고친다(⋮ → 수정 → 저장). 지우지 않는다.
+      if (FIX && await mine.count() && /utm_/.test(await mine.innerText())) {
+        await mine.hover(); await mine.locator('button[aria-label="작업 메뉴"]').first().click(); await page.waitForTimeout(1500);
+        const ed = page.getByRole('menuitem', { name: '수정' }).filter({ visible: true }).first();
+        if (!(await ed.count())) throw new Error('메뉴에 "수정" 이 없다');
+        await ed.click(); await page.waitForTimeout(1500);
+        const box = page.locator('ytd-comment-view-model #contenteditable-root, #contenteditable-root').filter({ visible: true }).first();
+        await box.click(); await page.keyboard.press('Meta+A'); await page.keyboard.press('Backspace');
+        await page.keyboard.insertText(commentFor(t.kind)); await page.waitForTimeout(800);
+        await page.locator('#submit-button:not([disabled])').filter({ visible: true }).first().click(); await page.waitForTimeout(4000);
+        await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(5000);
+        for (let k = 0; k < 6 && !(await page.locator(mineSel).count()); k++) { await page.mouse.wheel(0, 900); await page.waitForTimeout(1500); }
+        mine = page.locator(mineSel).first();
+        const txt = (await mine.count()) ? await mine.innerText() : '';
+        if (/utm_/.test(txt) || !/aisviagent\.com/.test(txt)) throw new Error(`고친 뒤 글이 "${txt.replace(/\s+/g, ' ').slice(0, 60)}"`);
+        log(`${t.id} ✏️ 짧은 주소로 고침`);
+      }
       if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = { at: new Date().toISOString(), kind: t.kind, skipped: 'already' }; writeFileSync(STATE, JSON.stringify(state, null, 1)); continue; }
       if (!(await mine.count())) {
         await ph.scrollIntoViewIfNeeded(); await ph.click(); await page.waitForTimeout(1200);
