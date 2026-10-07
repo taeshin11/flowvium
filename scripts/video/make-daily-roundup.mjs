@@ -133,4 +133,11 @@ if (UPLOAD) {
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
   writeFileSync(join(ROOT, 'logs', `roundup-${DATE}.json`), JSON.stringify({ ...u, privacy: UPLOAD, title, at: new Date().toISOString() }, null, 2));
+  // 2026-10-08 홍보 댓글 — 롱폼은 링크가 눌린다(utm 판). 달기·고정·되읽기 + 10분 뒤 시청자 화면 재확인.
+  if (UPLOAD === 'public') {
+    const { spawn } = await import('child_process'); const { openSync } = await import('fs');
+    const out = openSync(join(ROOT, 'logs/pin-comment.log'), 'a');
+    spawn(process.execPath, [join(ROOT, 'scripts/yt-pin-comment.mjs'), '--ids', u.id, '--kind', 'long', '--then-verify', '600'], { detached: true, stdio: ['ignore', out, out] }).unref();
+    log('홍보 댓글 달기·고정·확인을 뒤에서 시작했다 → logs/pin-comment.log');
+  }
 }

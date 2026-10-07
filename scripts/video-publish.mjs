@@ -507,6 +507,17 @@ if (isShorts && last.keyword) {
         log('관련 동영상(사이트 소개 롱폼) 걸기를 뒤에서 시작했다 → logs/related-new.log');
       } catch (e) { log(`⚠ 관련 동영상 걸기를 못 띄웠다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
     }
+    // 2026-10-08 사장님: aisviagent.com 홍보 댓글(쿠팡파트너스처럼) + "업로드 후 댓글 달렸는지 바로바로 체크".
+    //   달기·고정·되읽기 → 10분 뒤 시청자 화면(로그아웃)에서 재확인. 결과는 logs/pin-comment.log · logs/yt-pinned.json.
+    if (videoId && isShorts && process.env.PIN_COMMENT !== '0') {
+      try {
+        const { spawn } = await import('node:child_process');
+        const { openSync } = await import('node:fs');
+        const out = openSync(resolve(ROOT, 'logs/pin-comment.log'), 'a');
+        spawn(process.execPath, [resolve(ROOT, 'scripts/yt-pin-comment.mjs'), '--ids', videoId, '--kind', 'short', '--then-verify', '600'], { detached: true, stdio: ['ignore', out, out] }).unref();
+        log('홍보 댓글(aisviagent.com) 달기·고정·확인을 뒤에서 시작했다 → logs/pin-comment.log (10분 뒤 시청자 화면 재확인)');
+      } catch (e) { log(`⚠ 홍보 댓글 단계를 못 띄웠다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
+    }
   } catch (e) {
     // 대장 기록 실패가 발행을 되돌릴 이유는 없다. 다만 조용히 넘기면 중복이 다시 난다.
     log(`⚠ 편성 대장 기록 실패 — 다음 편이 같은 뉴스를 고를 수 있다: ${e.message}`);
