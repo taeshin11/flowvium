@@ -27,7 +27,10 @@ const logPath = join(homedir(), 'flowvium_runtime/video.log');
 const tail = existsSync(logPath) ? readFileSync(logPath, 'utf8').slice(-200000) : '';
 const f = recentFailures(tail, { hours: 3 });
 const behind = passed - published;
-const bad = behind >= 1 || f.auth > 0 || f.upload > 0;
-console.log(`${bad ? '❌' : '✅'} ${day} 쇼츠 ${published}편 발행 / 지난 슬롯 ${passed}${behind > 0 ? ` (${behind}편 모자람)` : ''}`
+// 오탐을 줄인다(Mac mini2: 푸시는 정말 문제일 때만). 한 회차 건너뜀은 평소에도 난다(보고서 겹침·부하 — 예비가 메운다).
+//   알릴 것: 두 회차 이상 모자람, 또는 인증 실패(사람·코드가 손대야 풀린다). 나머지는 ⚠ 로만 찍는다.
+const bad = behind >= 2 || f.auth > 0;
+const warn = !bad && (behind >= 1 || f.upload > 0);
+console.log(`${bad ? '❌' : warn ? '⚠️' : '✅'} ${day} 쇼츠 ${published}편 발행 / 지난 슬롯 ${passed}${behind > 0 ? ` (${behind}편 모자람)` : ''}`
   + `${f.auth ? ` · 인증 실패 ${f.auth}` : ''}${f.upload ? ` · 업로드 실패 ${f.upload}` : ''}${f.lastLine ? ` · ${f.lastLine.slice(0, 80)}` : ''}`);
 process.exit(bad ? 1 : 0);
