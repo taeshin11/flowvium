@@ -1,30 +1,12 @@
 {
-  "generatedAt": "2026-10-08T07:20:26.601Z",
+  "generatedAt": "2026-10-08T22:20:25.490Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
-  "strongCount": 1,
-  "watchCount": 2,
+  "count": 1,
+  "strongCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "056730.KQ",
-      "name": "CNT85",
-      "tier": "strong",
-      "score": 46,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 4.2× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -2.2,
-      "runup5dPct": 2,
-      "medDollarVolUsd": 11214,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "065690.KQ",
       "name": "파커스",
@@ -40,24 +22,6 @@
       "runup20dPct": 6.8,
       "runup5dPct": 4.5,
       "medDollarVolUsd": 46127,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "199480.KQ",
-      "name": "뱅크웨어글로벌",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 5.6,
-      "runup5dPct": 3.8,
-      "medDollarVolUsd": 57064,
       "smartAccum": true,
       "official": null
     }
