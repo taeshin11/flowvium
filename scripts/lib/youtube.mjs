@@ -86,6 +86,24 @@ export async function exchangeCode(code) {
 
 export function authorizedClient() { return authorized(); }
 
+/**
+ * 유튜브 쓰기 요청의 간헐 401 을 다시 시도한다(2026-10-09, lib/youtube-retry.test 머리말).
+ *   같은 유효 토큰으로도 업로드 엔드포인트가 10번 중 5번 401 을 냈다(유튜브 쪽 일시 거부). 401 만, 최대 tries 번,
+ *   간격을 늘리며(waitMs·2^n), **매번 로그를 남긴다**. 다른 오류는 바로 던진다. fn 은 매번 새 요청(새 스트림)을 만들어야 한다.
+ */
+export async function with401Retry(fn, { tries = 5, waitMs = 3000, label = 'youtube', log = (m) => console.warn(m) } = {}) {
+  let last;
+  for (let i = 1; i <= tries; i++) {
+    try { return await fn(); } catch (e) {
+      const st = e?.status ?? e?.code ?? e?.response?.status;
+      if (Number(st) !== 401) throw e;
+      last = e;
+      if (i < tries) { log(`   ⚠ ${label} 401(유튜브 일시 거부) — ${i}/${tries}, ${Math.round(waitMs * 2 ** (i - 1) / 1000)}초 뒤 다시`); await new Promise((r) => setTimeout(r, waitMs * 2 ** (i - 1))); }
+    }
+  }
+  throw last;
+}
+
 // 2026-10-08: 프로세스당 클라이언트 하나. 채널 확인(클라이언트 1) 뒤 새로 만든 클라이언트 2로 videos.insert 를
 //   하면 401(invalid authentication credentials) — 쇼츠 7편이 업로드에서 전부 막혔다. lib/youtube-client.test 머리말.
 let _client = null;
@@ -174,11 +192,11 @@ export async function upload(o) {
   if (bad) throw new Error(bad);
   console.log(`   채널: ${ch.title} (${ch.id}, 영상 ${ch.videos}개·구독자 ${ch.subs}명)`);
   const yt = google.youtube({ version: 'v3', auth: authorized() });
-  const res = await yt.videos.insert({
+  const res = await with401Retry(() => yt.videos.insert({
     part: ['snippet', 'status'],
     requestBody: uploadRequestBody(o),
-    media: { body: createReadStream(o.file) },
-  });
+    media: { body: createReadStream(o.file) },   // 매 시도 새 스트림(한 번 읽은 스트림은 다시 못 보낸다)
+  }), { label: '업로드' });
   return { id: res.data.id, url: `https://youtu.be/${res.data.id}`, bytes: statSync(o.file).size };
 }
 
@@ -195,7 +213,7 @@ export async function setThumbnail(videoId, file) {
   if (bytes > 2 * 1024 * 1024) return { ok: false, reason: `2MB 초과 (${(bytes / 1048576).toFixed(2)}MB)` };
   const yt = google.youtube({ version: 'v3', auth: authorized() });
   try {
-    await yt.thumbnails.set({ videoId, media: { body: createReadStream(file) } });
+    await with401Retry(() => yt.thumbnails.set({ videoId, media: { body: createReadStream(file) } }), { label: '썸네일' });
     return { ok: true, bytes };
   } catch (e) {
     const msg = e?.errors?.[0]?.reason ?? e?.message ?? String(e);

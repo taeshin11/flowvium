@@ -42,7 +42,7 @@ export function youtubePlaylistApi() {
       return r.data.id;
     },
     async add(playlistId, videoId) {
-      await yt.playlistItems.insert({ part: ['snippet'], requestBody: { snippet: { playlistId, resourceId: { kind: 'youtube#video', videoId } } } });
+      await (await import('./youtube.mjs')).with401Retry(() => yt.playlistItems.insert({ part: ['snippet'], requestBody: { snippet: { playlistId, resourceId: { kind: 'youtube#video', videoId } } } }), { label: '재생목록' });
     },
   };
 }
