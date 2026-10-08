@@ -9,7 +9,8 @@
  */
 
 /** 인증 실패는 사람이 손대야 풀린다 — 재시도로 낫지 않으므로 따로 센다. */
-const AUTH_FAIL = /invalid_grant|invalid_credentials|unauthorized_client|Token has been expired or revoked/i;
+// 2026-10-08: 401 문구 "Request had invalid authentication credentials" 도 — 그날 7편이 이것으로 막혔는데 '업로드 실패' 로만 셌다.
+const AUTH_FAIL = /invalid_grant|invalid_credentials|invalid authentication credentials|unauthorized_client|Token has been expired or revoked/i;
 const UPLOAD_FAIL = /업로드 실패|upload failed/i;
 
 /**

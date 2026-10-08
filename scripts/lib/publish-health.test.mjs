@@ -40,5 +40,12 @@ missedSlots({ slots: SLOTS, lastPublishedAt: null, now: NOW }).missed === 2
 missedSlots({ slots: SLOTS, lastPublishedAt: null, now: new Date('2026-09-18T23:00:00Z') }).expected === 0
   ? ok('[7] 첫 회차 전에는 셀 것이 없다') : bad('[7] 미래 회차를 셌다');
 
+{
+  // 2026-10-08: 오늘 문구 "Request had invalid authentication credentials" 는 인증 실패로 안 잡혔다(invalid_credentials 만 봄).
+  const { recentFailures: rf2 } = await import('./publish-health.mjs');
+  const log = '2026-10-08 12:16:36 [publish] [눈검증] ✅\n❌ Request had invalid authentication credentials. Expected OAuth 2 access token\nError: 업로드 실패 (exit 1)';
+  const f = rf2(log, { hours: 6, now: new Date('2026-10-08T05:00:00Z') });
+  f.auth >= 1 ? ok('[auth-401] 401 invalid authentication credentials 를 인증 실패로 센다') : bad(`[auth-401] ${JSON.stringify(f)}`);
+}
 console.log(fail ? `\n❌ ${fail} 실패` : '\n✅ publish-health 통과');
 process.exit(fail ? 1 : 0);
