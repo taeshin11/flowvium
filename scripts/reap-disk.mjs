@@ -69,6 +69,9 @@ for (const f of readdirSync(tmpdir())) {
   if (/^playwright-artifacts-/.test(f)) add(join(tmpdir(), f), 'playwright 잔재', { minAge: 0.02 });
   if (/^(pip-unpack-|pip-build-env-|pip-install-)/.test(f)) add(join(tmpdir(), f), 'pip 잔재', { minAge: 1 });
   if (/^flowvium-(shorts|video)/.test(f)) add(join(tmpdir(), f), '렌더 중간물', { minAge: 0.02 });
+  // 2026-10-09 사장님 원칙(공개 끝난 편 작업 파일 정리): 뉴스 총정리 작업 폴더 — 공개 업로드 뒤엔 쓸 일이 없다(밤마다 새로 만든다).
+  //   반나절(0.5일) 지난 것만 — 22:10 회차가 아직 올리는 중일 수 있다.
+  if (f === 'flowvium-roundup') add(join(tmpdir(), f), '총정리 작업본(공개 끝)', { minAge: 0.5 });
 }
 
 // ③ 검증용 스크린샷·렌더 작업본. 매 회차 새로 생긴다.
@@ -79,6 +82,12 @@ for (const f of readdirSync(tmpdir())) {
   const shots = join(ROOT, 'logs/screenshots');
   if (existsSync(shots)) {
     for (const f of readdirSync(shots)) add(join(shots, f), '검증 스크린샷', { minAge: KEEP_DAYS });
+  }
+  // 2026-10-09: 홍보 댓글 단계 스크린샷(logs/pin-shots) · 관련 동영상 실패 스크린샷 — 확인용, 며칠 지나면 쓸 일 없다.
+  {
+    const ps = join(ROOT, 'logs/pin-shots');
+    if (existsSync(ps)) for (const f of readdirSync(ps)) add(join(ps, f), '댓글 확인 스크린샷', { minAge: KEEP_DAYS });
+    for (const f of readdirSync(join(ROOT, 'logs'))) if (/^related-fail-.*\.png$/.test(f)) add(join(ROOT, 'logs', f), '관련 동영상 실패 스크린샷', { minAge: KEEP_DAYS });
   }
 }
 for (const d of ['reports/video', 'reports/preview']) {
