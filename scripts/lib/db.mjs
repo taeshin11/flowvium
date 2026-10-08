@@ -2165,8 +2165,9 @@ export function shortsTopicObservations() {
   //   "no such column: p.retracted_at" 로 조회수 성적 반영이 통째로 빠졌다. 읽기 전에 만든다(없을 때만).
   ensureStatsTable(db);
   ensureRetractedColumn(db);
+  ensureEngagedColumns(db);   // 2026-10-09: 주제별 계속 시청(topic-lift topicStay)도 같은 관측으로
   return db.prepare(
-    `SELECT s.video_id, s.views, s.age_hours, p.published_at, p.topic
+    `SELECT s.video_id, s.views, s.age_hours, s.engaged_ratio, p.published_at, p.topic
        FROM shorts_stats s JOIN shorts_published p ON p.video_id = s.video_id
       WHERE p.retracted_at IS NULL`,
   ).all();

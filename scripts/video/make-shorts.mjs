@@ -723,11 +723,17 @@ if (!FORCE_ISSUE) {
             const { isQuoted, quoteLift } = await import('../lib/topic-score.mjs');
             const LIFT = quoteLift(await import('../lib/db.mjs').then((m) => m.shortsPerformance({ minAgeHours: 8 })));
             const qBonus = (p) => (LIFT > 1.2 && isQuoted((p.it.headlines ?? [])[0]) ? 1 : 0);
+            // 2026-10-09 1번 꼭지(=첫 화면)는 '계속 시청' 이 높은 주제부터(lib/topic-lift topicStay, topic-stay.test 머리말).
+            //   실측 국내정치·IT 0.44 vs 증시 0.31·기업 0.30·사회 0.30. DB 실측 중앙값, 0.05 단위 칸 — 모르는 주제는 순서 안 바꿈.
+            const { topicStay, stayKey } = await import('../lib/topic-lift.mjs');
+            const STAY = topicStay((await import('../lib/db.mjs')).shortsTopicObservations(), { minSamples: 8 });
             BRIEF.sort((a, b) => (UNSAFE_THUMB(a.it) ? 1 : 0) - (UNSAFE_THUMB(b.it) ? 1 : 0)
               || (echoes(a) ? 1 : 0) - (echoes(b) ? 1 : 0)
               || qBonus(b) - qBonus(a)
+              || stayKey(STAY, b.it.__topic) - stayKey(STAY, a.it.__topic)
               || AROUSAL(b.it) - AROUSAL(a.it) || rate(b) - rate(a));
             if (LIFT > 1.2) log(`[편성] 인용 헤드라인을 앞세운다 (조회수 ${LIFT.toFixed(2)}배 — 실측)`);
+            if (STAY.size) log(`[편성] 주제별 계속 시청 ${[...STAY].map(([k, v]) => `${k} ${v}`).join(' · ')} — 1번 꼭지는 높은 주제부터`);
             log(`[편성] 브리핑 순서를 성적으로 정한다 — 1번 "${((BRIEF[0].it.headlines ?? [])[0] ?? '').slice(0, 34)}" (${(rate(BRIEF[0]) * 100).toFixed(2)}%)`);
           }
         } catch (e) { log(`[편성] 브리핑 순서 조정 건너뜀: ${String(e.message).slice(0, 40)}`); }

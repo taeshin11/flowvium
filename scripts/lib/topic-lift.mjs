@@ -95,3 +95,30 @@ export function topicTier(liftMap, { z = 1.645 } = {}) {
   }
   return out;
 }
+
+/**
+ * 주제별 '계속 시청'(스와이프 안 한 비율) 중앙값. 2026-10-09 — 브리핑 첫 꼭지(첫 화면) 고르기에 쓴다. 근거는 topic-stay.test.mjs.
+ *   영상마다 engaged_ratio 가 채워진 가장 늦은 관측 하나. 주제당 minSamples 편 미만은 판단하지 않는다(결과에 없음).
+ * @returns {Map<string, number>}
+ */
+export function topicStay(rows, { minSamples = 8 } = {}) {
+  const last = new Map();
+  for (const r of rows ?? []) {
+    if (!r?.video_id || !r.topic || r.engaged_ratio == null) continue;
+    const p = last.get(r.video_id);
+    if (!p || Number(r.age_hours) > Number(p.age_hours)) last.set(r.video_id, r);
+  }
+  const by = new Map();
+  for (const r of last.values()) (by.get(r.topic) ?? by.set(r.topic, []).get(r.topic)).push(Number(r.engaged_ratio));
+  const out = new Map();
+  for (const [t, a] of by) if (a.length >= minSamples) out.set(t, Number(median(a).toFixed(3)));
+  return out;
+}
+
+/** 정렬 키 — 0.05 단위로 묶는다(잡음으로 순서가 흔들리지 않게). 모르는 주제는 모두 같은 값(전체 중앙 칸). */
+export function stayKey(stay, topic) {
+  const vals = [...(stay ?? new Map()).values()];
+  const mid = vals.length ? median(vals) : 0;
+  const v = stay?.get?.(topic) ?? mid;
+  return Math.floor(v / 0.05);
+}
