@@ -25,7 +25,9 @@ const published = openDb().prepare(`SELECT COUNT(*) n FROM shorts_published WHER
   AND date(datetime(published_at, '+9 hours')) = ?`).get(day).n;
 const logPath = join(homedir(), 'flowvium_runtime/video.log');
 const tail = existsSync(logPath) ? readFileSync(logPath, 'utf8').slice(-200000) : '';
-const f = recentFailures(tail, { hours: 3 });
+// 실패는 '오늘(KST) 안의 최근 3시간' 만 센다 — 10/09 00:17 첫 점검이 자정 전(10/08 21:52, 고치기 전) 실패를 세어 오탐했다.
+const sinceMidnightH = nowMin / 60;
+const f = recentFailures(tail, { hours: Math.min(3, sinceMidnightH) });
 const behind = passed - published;
 // 오탐을 줄인다(Mac mini2: 푸시는 정말 문제일 때만). 한 회차 건너뜀은 평소에도 난다(보고서 겹침·부하 — 예비가 메운다).
 //   알릴 것: 두 회차 이상 모자람, 또는 인증 실패(사람·코드가 손대야 풀린다). 나머지는 ⚠ 로만 찍는다.
