@@ -48,12 +48,13 @@ do {
   const { isShortUpload, isoDurationSec } = await import('./lib/shorts-reconcile-filter.mjs');
   const dur = new Map();
   for (let i = 0; i < items.length; i += 50) {
-    const r = await yt.videos.list({ part: ['contentDetails'], id: items.slice(i, i + 50).map((x) => x.id) });
-    for (const v of r.data.items ?? []) dur.set(v.id, isoDurationSec(v.contentDetails?.duration));
+    const r = await yt.videos.list({ part: ['contentDetails', 'status'], id: items.slice(i, i + 50).map((x) => x.id) });
+    // 공개 영상만 원장 대상 — 비공개 시험 업로드(10/08 업로드 401 진단용 2초 영상)가 쇼츠로 잡히면 총정리가 또 깨진다.
+    for (const v of r.data.items ?? []) dur.set(v.id, v.status?.privacyStatus === 'public' ? isoDurationSec(v.contentDetails?.duration) : null);
   }
   const before = items.length;
   for (let i = items.length - 1; i >= 0; i--) if (!isShortUpload({ durationSec: dur.get(items[i].id) ?? null })) items.splice(i, 1);
-  if (items.length !== before) console.log(`롱폼·길이 모름 ${before - items.length}편은 쇼츠 원장 대상에서 뺐다`);
+  if (items.length !== before) console.log(`롱폼·비공개·길이 모름 ${before - items.length}편은 쇼츠 원장 대상에서 뺐다`);
 }
 const db = openDb();
 const known = new Set(db.prepare('SELECT video_id FROM shorts_published WHERE video_id IS NOT NULL').all().map((r) => r.video_id));

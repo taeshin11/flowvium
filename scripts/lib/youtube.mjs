@@ -86,7 +86,11 @@ export async function exchangeCode(code) {
 
 export function authorizedClient() { return authorized(); }
 
+// 2026-10-08: 프로세스당 클라이언트 하나. 채널 확인(클라이언트 1) 뒤 새로 만든 클라이언트 2로 videos.insert 를
+//   하면 401(invalid authentication credentials) — 쇼츠 7편이 업로드에서 전부 막혔다. lib/youtube-client.test 머리말.
+let _client = null;
 function authorized() {
+  if (_client) return _client;
   const o = loadClient();
   if (!existsSync(TOKEN)) throw new Error(`토큰 없음 — node scripts/youtube-auth.mjs 를 먼저 실행하라`);
   o.setCredentials(JSON.parse(readFileSync(TOKEN, 'utf8')));
@@ -97,6 +101,7 @@ function authorized() {
       writeFileSync(TOKEN, JSON.stringify({ ...cur, ...t }, null, 1), { mode: 0o600 });
     } catch { /* 비치명 */ }
   });
+  _client = o;
   return o;
 }
 
