@@ -16,7 +16,7 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync } from 'fs';
 import { join, resolve } from 'path';
 import { tmpdir, homedir } from 'os';
 import { ROOT } from '../lib/project-root.mjs';
-import { orderByViews, chapterLines, roundupTitle, cleanHeadline } from '../lib/roundup.mjs';
+import { orderByViews, chapterLines, roundupTitle, cleanHeadline, thumbText } from '../lib/roundup.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -31,7 +31,7 @@ const ff = (args, what) => { const r = spawnSync(ffmpegPath, ['-hide_banner', '-
 const dur = (f) => { const r = spawnSync(ffmpegPath, ['-hide_banner', '-i', f], { encoding: 'utf8' }); const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(r.stderr ?? ''); return m ? +m[1] * 3600 + +m[2] * 60 + +m[3] : null; };
 
 const { openDb } = await import('../lib/db.mjs');
-const rows = openDb().prepare(`SELECT p.video_id, p.headline, p.headlines_json, p.published_at,
+const rows = openDb().prepare(`SELECT p.video_id, p.headline, p.headlines_json, p.hooks_json, p.published_at,
     (SELECT s.views FROM shorts_stats s WHERE s.video_id = p.video_id ORDER BY s.checked_at DESC LIMIT 1) views
   FROM shorts_published p WHERE p.retracted_at IS NULL AND p.video_id IS NOT NULL
    AND date(datetime(p.published_at, '+9 hours')) = ?`).all(DATE);
@@ -109,16 +109,42 @@ const description = [`${M}월 ${D}일 Flowvium 쇼츠 ${list.length}편(뉴스 $
   ...chapterLines(chapters), '',
   `📈 매일 AI 투자 리포트(무료): ${trackedUrl({ source: 'youtube', medium: 'roundup', campaign: DATE })}`,
   '', '※ 뉴스 요약이며 특정 종목의 매수·매도 권유가 아닙니다.', '#뉴스 #오늘의뉴스 #뉴스총정리 #경제뉴스'].join('\n');
-// 썸네일: 첫 꼭지(가장 많이 본) 첫 화면 + 큰 글씨
+// 썸네일(2026-10-08 개정 — 첫 두 편 CTR 0.9%·1.5%): 숫자 하나 + 큰 글 2줄 + 작은 날짜 꼬리표(Mac mini2 제안).
+//   글은 그날 상위 3편 쇼츠의 훅(쇼츠 첫 화면에 쓴 12자 이내 두 줄)에서 agy 가 고르고, 숫자는 그날 제목에서.
+//   lib/roundup thumbText 가 '실제로 있는 말인가' 를 검사한다 — 아니면 1위 편 훅·제목 숫자.
+const top3 = list.slice(0, 3).map((s) => { let h = []; try { h = JSON.parse(s.hooks_json ?? '[]'); } catch { /* 없음 */ } return { title: s.title, hooks: h.filter(Boolean).slice(0, 4), raw: s.raw }; });
+let choice = null;
+try {
+  const { agyReport } = await import('../lib/agy-report.mjs');
+  const prompt = ['유튜브 뉴스 총정리 영상의 썸네일 글을 고른다. 아래는 그날 많이 본 쇼츠 3편(번호|제목|훅 목록)이다.',
+    ...top3.map((s, i) => `${i}|${s.title}|${s.hooks.join(' / ')}`), '',
+    '클릭하고 싶게 만드는 편 하나를 골라(pick), 그 편의 훅 목록에서 **그대로** 두 줄(line1, line2)을 고르고,',
+    '위 제목들 안에 **그대로 있는** 숫자+단위 하나(number, 예: 37.4% · 478명 · 10억달러)를 골라라. 없으면 빈 문자열. 지어내지 마라.',
+    'JSON 으로만: {"pick":0,"line1":"...","line2":"...","number":"..."}'].join('\n');
+  const out = await agyReport(prompt, { label: 'roundup-thumb', timeoutMs: 120_000,
+    schema: { type: 'object', properties: { pick: { type: 'integer' }, line1: { type: 'string' }, line2: { type: 'string' }, number: { type: 'string' } }, required: ['pick', 'line1', 'line2', 'number'] } });
+  choice = JSON.parse(out);
+} catch (e) { log(`썸네일 글 agy 실패 — 1위 편 훅으로: ${String(e?.message ?? e).slice(0, 60)}`); }
+const NEWS2 = list.reduce((a, s) => a + s.items.length, 0);
+const tt = thumbText(top3, choice, NEWS2);
+log(`썸네일 글(${tt.src}): ${tt.number} · ${tt.line1} / ${tt.line2}`);
 const frame = join(OUT, 'lead.jpg');
 // 쇼츠 화면 전체(위 제목 띠·아래 자막 포함)를 쓰면 글자가 겹쳐 지저분하다 — 사진 자리(세로 30~64%)만 오린다(classic·zoom 둘 다 그 안).
-ff(['-ss', '0.4', '-i', list[0].raw, '-frames:v', '1', '-vf', 'crop=iw:ih*0.34:0:ih*0.30', frame], '썸네일 원화');
+ff(['-ss', '0.4', '-i', top3[tt.pick]?.raw ?? list[0].raw, '-frames:v', '1', '-vf', 'crop=iw:ih*0.34:0:ih*0.30', frame], '썸네일 원화');
 const tb = await chromium.launch({ headless: true }); const tp = await tb.newPage({ viewport: { width: 1280, height: 720 } });
 await tp.setContent(`<!doctype html><meta charset="utf-8"><style>*{margin:0}body{width:1280px;height:720px;background:#06090f;font-family:'Apple SD Gothic Neo',sans-serif;position:relative;overflow:hidden}
-img{position:absolute;right:0;top:0;width:640px;height:720px;object-fit:cover}
-.g{position:absolute;right:640px;top:0;width:160px;height:720px;background:linear-gradient(90deg,#06090f,rgba(6,9,15,0))}.t{position:absolute;left:56px;top:120px;width:760px;font-weight:900;line-height:1.08}
-.a{font-size:96px;color:#ffd400;-webkit-text-stroke:4px #000;paint-order:stroke fill}.b{font-size:120px;color:#ff3b30;-webkit-text-stroke:5px #000;paint-order:stroke fill}.c{font-size:40px;color:#fff;margin-top:24px;width:560px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style>
-<img src="data:image/jpeg;base64,${readFileSync(frame).toString('base64')}"><div class="g"></div><div class="t"><div class="a">${M}월 ${D}일</div><div class="b">뉴스 ${NEWS}건</div><div class="a">총정리</div><div class="c">${esc(list[0].title)}</div></div>`);
+img{position:absolute;right:0;top:0;width:600px;height:720px;object-fit:cover}
+.g{position:absolute;right:600px;top:0;width:140px;height:720px;background:linear-gradient(90deg,#06090f,rgba(6,9,15,0))}
+.t{position:absolute;left:52px;top:70px;width:600px;font-weight:900;line-height:1.05}
+.n{font-size:150px;color:#ff3b30;-webkit-text-stroke:6px #000;paint-order:stroke fill;letter-spacing:-4px;white-space:nowrap}
+.a{font-size:96px;color:#ffd400;-webkit-text-stroke:4px #000;paint-order:stroke fill;margin-top:18px;white-space:nowrap}
+.b{font-size:96px;color:#fff;-webkit-text-stroke:4px #000;paint-order:stroke fill;margin-top:8px;white-space:nowrap}
+.d{position:absolute;left:52px;bottom:44px;font-size:36px;font-weight:800;color:#06090f;background:#ffd400;padding:8px 18px;border-radius:8px}</style>
+<img src="data:image/jpeg;base64,${readFileSync(frame).toString('base64')}"><div class="g"></div>
+<div class="t"><div class="n">${esc(tt.number)}</div><div class="a">${esc(tt.line1)}</div><div class="b">${esc(tt.line2)}</div></div>
+<div class="d">${M}월 ${D}일 뉴스 총정리 · ${NEWS2}건</div>`);
+// 글이 길면 칸에 맞게 줄인다(넘치면 사진을 덮는다)
+await tp.evaluate(() => { for (const el of document.querySelectorAll('.n,.a,.b')) { let f = parseFloat(getComputedStyle(el).fontSize); while (el.scrollWidth > 600 && f > 40) { f -= 4; el.style.fontSize = `${f}px`; } } });
 const THUMB = join(OUT, 'roundup-thumb.jpg');
 await tp.screenshot({ path: THUMB, type: 'jpeg', quality: 88 }); await tb.close();
 writeFileSync(join(OUT, 'roundup-meta.json'), JSON.stringify({ date: DATE, title, description, seconds: total, videos: list.map((s) => s.video_id) }, null, 2));

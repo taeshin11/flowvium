@@ -28,7 +28,21 @@ const ch = chapterLines([{ title: 'A', start: 0 }, { title: 'B', start: 47.6 }, 
 let threw = false; try { chapterLines([{ title: 'x', start: 0 }, { title: 'y', start: 5 }]); } catch { threw = true; }
 threw ? ok('[3b] 3개 미만·10초 미만 장은 거부(유튜브가 챕터로 안 받는다)') : bad('[3b]');
 const t = roundupTitle({ lead: o[0].headline, n: 3, date: '2026-10-05' });
-(/^\[뉴스 총정리\] 李대통령 지지율/.test(t) && /外 2건/.test(t) && /10월 5일/.test(t) && t.length <= 100) ? ok(`[4] 제목 "${t}"`) : bad(`[4] ${t}`);
+// 10/08 개정(Mac mini2 제안·CTR 0.9~1.5%): 앞머리에 그날 핵심 이슈, '뉴스 총정리' 는 뒤로.
+(/^李대통령 지지율/.test(t) && /外 2건 \| 10월 5일 뉴스 총정리$/.test(t) && t.length <= 100) ? ok(`[4] 제목 "${t}"`) : bad(`[4] ${t}`);
 cleanHeadline("지지율 37.4% '오차內'[리얼미터]") === "지지율 37.4% '오차內'" ? ok('[2c] 끝 출처 꼬리표 제거') : bad('[2c]');
+{
+  // [5] 썸네일 글: agy 가 고른 줄·숫자가 실제 훅·제목에 있어야 한다(지어낸 말 금지). 아니면 1위 편 훅으로.
+  const { thumbText } = await import('./roundup.mjs');
+  const shorts2 = [{ title: '李대통령 지지율 37.4%…민주 42.5%', hooks: ['지지율 37.4%', '3주 만에 하락', '오차 범위'] }, { title: '어선 사고 사망 478명', hooks: ['어선 사고', '사망 478명'] }];
+  const good = thumbText(shorts2, { pick: 1, line1: '어선 사고', line2: '사망 478명', number: '478명' }, 25);
+  (good.line1 === '어선 사고' && good.number === '478명' && good.src === 'agy') ? ok(`[5a] agy 선택 채택 ${JSON.stringify(good)}`) : bad(`[5a] ${JSON.stringify(good)}`);
+  const made = thumbText(shorts2, { pick: 0, line1: '대통령 탄핵', line2: '지지율 폭락', number: '99%' }, 25);
+  (made.src === 'fallback' && made.line1 === '지지율 37.4%' && made.number === '37.4%') ? ok(`[5b] 지어낸 말이면 1위 편 훅·제목 숫자로 ${JSON.stringify(made)}`) : bad(`[5b] ${JSON.stringify(made)}`);
+  const half = thumbText(shorts2, { pick: 1, line1: '어선 사고', line2: '사망 478명', number: '첫날' }, 25);
+  (half.src === 'agy-lines' && half.line1 === '어선 사고' && half.number === '478명') ? ok(`[5d] 숫자만 틀리면 줄은 살리고 숫자는 제목에서 ${JSON.stringify(half)}`) : bad(`[5d] ${JSON.stringify(half)}`);
+  const nonum = thumbText([{ title: '국감 첫날 소환조사', hooks: ['국감 첫날', '소환조사'] }], null, 19);
+  (nonum.number === '19건') ? ok('[5c] 제목에 숫자가 없으면 꼭지 수') : bad(`[5c] ${JSON.stringify(nonum)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
