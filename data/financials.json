@@ -2268,11 +2268,11 @@
     "fy": "2025"
   },
   "MU": {
-    "revUsd": 37378000000,
-    "revYoYPct": 48.9,
-    "opMarginPct": 26.1,
-    "roePct": 15.8,
-    "fy": "2025"
+    "revUsd": 133188000000,
+    "revYoYPct": 256.3,
+    "opMarginPct": 74.6,
+    "roePct": 61.4,
+    "fy": "2026"
   },
   "AMAT": {
     "revUsd": 28368000000,
@@ -5590,13 +5590,6 @@
     "revYoYPct": 20.3,
     "opMarginPct": -0.7,
     "roePct": -1.5,
-    "fy": "2025"
-  },
-  "190510.KQ": {
-    "revUsd": 317158405,
-    "revYoYPct": 2.1,
-    "opMarginPct": 6.1,
-    "roePct": 14.6,
     "fy": "2025"
   },
   "065500.KQ": {
