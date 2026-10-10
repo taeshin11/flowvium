@@ -1,13 +1,13 @@
 {
   "version": 1,
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-10-03T19:20:00.125Z",
-  "sampleSize": 2080,
+  "tunedAt": "2026-10-10T19:20:00.133Z",
+  "sampleSize": 2207,
   "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
   "rules": [
     {
       "id": "price_oversold_gap",
-      "score": 7,
+      "score": 8,
       "category": "price",
       "condition": {
         "type": "priceGapDown",
@@ -47,7 +47,7 @@
     },
     {
       "id": "price_mean_reversion",
-      "score": 4,
+      "score": 5,
       "category": "price",
       "condition": {
         "type": "below200MA",
@@ -105,7 +105,7 @@
     },
     {
       "id": "tech_rsi_oversold",
-      "score": 7,
+      "score": 8,
       "category": "technical",
       "condition": {
         "type": "rsiOversold",
@@ -115,7 +115,7 @@
     },
     {
       "id": "tech_ma_golden_cross",
-      "score": 7,
+      "score": 8,
       "category": "technical",
       "condition": {
         "type": "goldenCross"
@@ -145,7 +145,7 @@
     },
     {
       "id": "fund_high_roe",
-      "score": 7,
+      "score": 8,
       "category": "fundamental",
       "condition": {
         "type": "roeAbove",
@@ -228,7 +228,7 @@
     },
     {
       "id": "macro_low_risk",
-      "score": 4,
+      "score": 5,
       "category": "macro",
       "condition": {
         "type": "macroRisk",
@@ -248,7 +248,7 @@
     },
     {
       "id": "macro_fg_recovery",
-      "score": 5,
+      "score": 6,
       "category": "macro",
       "condition": {
         "type": "fgRecovery",
@@ -269,7 +269,7 @@
     },
     {
       "id": "micro_region_bullish",
-      "score": 3,
+      "score": 4,
       "category": "micro",
       "condition": {
         "type": "regionStance",
@@ -320,7 +320,7 @@
     },
     {
       "id": "micro_cascade_upstream",
-      "score": 6,
+      "score": 5,
       "category": "micro",
       "condition": {
         "type": "cascadeUpstream"
@@ -348,7 +348,7 @@
     },
     {
       "id": "micro_options_call_flow",
-      "score": 8,
+      "score": 9,
       "category": "micro",
       "condition": {
         "type": "optionsCallFlow",
@@ -359,7 +359,7 @@
     },
     {
       "id": "micro_volume_burst",
-      "score": 8,
+      "score": 9,
       "category": "micro",
       "condition": {
         "type": "volumeBurst",
@@ -380,7 +380,7 @@
     },
     {
       "id": "fund_backlog_growth",
-      "score": 9,
+      "score": 10,
       "category": "fundamental",
       "condition": {
         "type": "backlogGrowth",
@@ -451,12 +451,12 @@
     }
   ],
   "outcomeStats": {
-    "total": 2080,
+    "total": 2207,
     "hits": 118,
-    "stops": 432,
-    "ne": 309,
+    "stops": 451,
+    "ne": 363,
     "holding": 71,
-    "hitRate": 21.5,
+    "hitRate": 20.7,
     "avgPnl": 1.6,
     "avgAlpha": 0.6,
     "bySector": [
@@ -464,7 +464,7 @@
         "sector": "Communication Services",
         "hit": 2,
         "stop": 0,
-        "total": 27,
+        "total": 29,
         "hitRate": 100
       },
       {
@@ -541,7 +541,7 @@
         "sector": "Technology",
         "hit": 33,
         "stop": 112,
-        "total": 533,
+        "total": 586,
         "hitRate": 22.758620689655174
       },
       {
@@ -580,13 +580,6 @@
         "hitRate": 7.894736842105263
       },
       {
-        "sector": "Industrials",
-        "hit": 1,
-        "stop": 12,
-        "total": 56,
-        "hitRate": 7.6923076923076925
-      },
-      {
         "sector": "Metals & Mining",
         "hit": 2,
         "stop": 32,
@@ -601,10 +594,17 @@
         "hitRate": 5.128205128205128
       },
       {
+        "sector": "Industrials",
+        "hit": 1,
+        "stop": 30,
+        "total": 85,
+        "hitRate": 3.225806451612903
+      },
+      {
         "sector": "Energy",
         "hit": 0,
         "stop": 0,
-        "total": 13,
+        "total": 14,
         "hitRate": 0
       },
       {
@@ -618,14 +618,14 @@
         "sector": "Consumer Cyclical",
         "hit": 0,
         "stop": 0,
-        "total": 6,
+        "total": 14,
         "hitRate": 0
       },
       {
         "sector": "Utilities",
         "hit": 0,
         "stop": 0,
-        "total": 5,
+        "total": 6,
         "hitRate": 0
       },
       {
@@ -653,7 +653,7 @@
         "sector": "Healthcare",
         "hit": 0,
         "stop": 22,
-        "total": 58,
+        "total": 66,
         "hitRate": 0
       },
       {
@@ -688,7 +688,7 @@
         "sector": "ETF",
         "hit": 0,
         "stop": 0,
-        "total": 65,
+        "total": 74,
         "hitRate": 0
       },
       {
@@ -722,8 +722,8 @@
       {
         "sector": "Consumer Defensive",
         "hit": 0,
-        "stop": 46,
-        "total": 135,
+        "stop": 47,
+        "total": 137,
         "hitRate": 0
       },
       {
@@ -737,14 +737,14 @@
         "sector": "Financial Services",
         "hit": 0,
         "stop": 0,
-        "total": 13,
+        "total": 21,
         "hitRate": 0
       },
       {
         "sector": "Basic Materials",
         "hit": 0,
         "stop": 0,
-        "total": 6,
+        "total": 12,
         "hitRate": 0
       }
     ],
@@ -770,8 +770,8 @@
         "n": 2
       },
       {
-        "ticker": "APH",
-        "avg": 9.04,
+        "ticker": "GLW",
+        "avg": 9.355,
         "n": 2
       }
     ],
@@ -805,11 +805,11 @@
   },
   "ruleEdge": {
     "price_oversold_gap": {
-      "n": 94,
+      "n": 98,
       "hitRate": 0,
-      "winRate": 78,
-      "avgAlpha": 2.4,
-      "edge": 0.43
+      "winRate": 79,
+      "avgAlpha": 2.6,
+      "edge": 0.45
     },
     "price_support_bounce": {
       "n": 24,
@@ -826,46 +826,46 @@
       "edge": 0.22
     },
     "tech_rsi_oversold": {
-      "n": 218,
+      "n": 224,
       "hitRate": 0,
-      "winRate": 69,
-      "avgAlpha": 1,
-      "edge": 0.27
+      "winRate": 70,
+      "avgAlpha": 1.1,
+      "edge": 0.29
     },
     "tech_ma_golden_cross": {
-      "n": 712,
-      "hitRate": 21,
+      "n": 775,
+      "hitRate": 19,
       "winRate": 65,
-      "avgAlpha": 1.1,
+      "avgAlpha": 1,
       "edge": 0.22
     },
     "fund_op_margin_expansion": {
-      "n": 393,
+      "n": 400,
       "hitRate": 3,
-      "winRate": 56,
-      "avgAlpha": 0.4,
-      "edge": 0.09
+      "winRate": 57,
+      "avgAlpha": 0.5,
+      "edge": 0.1
     },
     "fund_revenue_growth": {
-      "n": 576,
-      "hitRate": 21,
+      "n": 626,
+      "hitRate": 19,
       "winRate": 61,
       "avgAlpha": 0.5,
       "edge": 0.15
     },
     "fund_high_roe": {
-      "n": 667,
-      "hitRate": 22,
+      "n": 728,
+      "hitRate": 20,
       "winRate": 65,
-      "avgAlpha": 1,
+      "avgAlpha": 0.9,
       "edge": 0.22
     },
     "guru_buffett_moat": {
-      "n": 560,
+      "n": 586,
       "hitRate": 24,
-      "winRate": 64,
-      "avgAlpha": 0.8,
-      "edge": 0.2
+      "winRate": 65,
+      "avgAlpha": 0.9,
+      "edge": 0.22
     },
     "selflearn_boost_list": {
       "n": 80,
@@ -875,46 +875,46 @@
       "edge": -0.02
     },
     "tech_200ma_reclaim": {
-      "n": 160,
+      "n": 179,
       "hitRate": 0,
-      "winRate": 56,
+      "winRate": 57,
       "avgAlpha": 0.8,
-      "edge": 0.1
+      "edge": 0.11
     },
     "price_pullback_50ma": {
-      "n": 216,
+      "n": 229,
       "hitRate": 0,
-      "winRate": 58,
+      "winRate": 59,
       "avgAlpha": 1,
-      "edge": 0.13
+      "edge": 0.14
     },
     "macro_fg_recovery": {
-      "n": 595,
-      "hitRate": 24,
+      "n": 657,
+      "hitRate": 22,
       "winRate": 65,
       "avgAlpha": 1,
       "edge": 0.22
     },
     "micro_news_gap": {
-      "n": 146,
+      "n": 166,
       "hitRate": 87,
-      "winRate": 91,
-      "avgAlpha": 2.4,
-      "edge": 0.59
+      "winRate": 92,
+      "avgAlpha": 2.6,
+      "edge": 0.61
     },
     "price_breakout_high": {
-      "n": 186,
-      "hitRate": 20,
-      "winRate": 58,
-      "avgAlpha": 1,
-      "edge": 0.14
+      "n": 208,
+      "hitRate": 15,
+      "winRate": 55,
+      "avgAlpha": 0.5,
+      "edge": 0.08
     },
     "price_momentum_52w_high": {
-      "n": 219,
-      "hitRate": 63,
-      "winRate": 75,
-      "avgAlpha": 1.9,
-      "edge": 0.38
+      "n": 232,
+      "hitRate": 62,
+      "winRate": 76,
+      "avgAlpha": 2,
+      "edge": 0.4
     },
     "micro_supply_contract": {
       "n": 7,
@@ -924,25 +924,25 @@
       "edge": -0.55
     },
     "fund_backlog_growth": {
-      "n": 195,
+      "n": 216,
       "hitRate": 0,
-      "winRate": 75,
+      "winRate": 76,
       "avgAlpha": 2.3,
-      "edge": 0.4
+      "edge": 0.41
     },
     "micro_options_call_flow": {
-      "n": 43,
+      "n": 50,
       "hitRate": 100,
-      "winRate": 74,
+      "winRate": 76,
       "avgAlpha": 2.3,
-      "edge": 0.38
+      "edge": 0.41
     },
     "micro_volume_burst": {
-      "n": 100,
+      "n": 113,
       "hitRate": 85,
-      "winRate": 87,
+      "winRate": 88,
       "avgAlpha": 2.8,
-      "edge": 0.55
+      "edge": 0.56
     },
     "rotation_new_high_after_consolidation": {
       "n": 28,
@@ -959,11 +959,11 @@
       "edge": -0.55
     },
     "tech_volume_surge": {
-      "n": 23,
+      "n": 24,
       "hitRate": 0,
-      "winRate": 83,
-      "avgAlpha": 2,
-      "edge": 0.47
+      "winRate": 79,
+      "avgAlpha": 1.9,
+      "edge": 0.43
     },
     "micro_cascade_upstream": {
       "n": 41,
@@ -973,18 +973,18 @@
       "edge": -0.27
     },
     "micro_region_bullish": {
-      "n": 153,
+      "n": 202,
       "hitRate": 0,
-      "winRate": 63,
-      "avgAlpha": 0.6,
-      "edge": 0.18
+      "winRate": 67,
+      "avgAlpha": 0.9,
+      "edge": 0.24
     },
     "micro_sector_overweight": {
-      "n": 20,
+      "n": 29,
       "hitRate": 0,
-      "winRate": 85,
-      "avgAlpha": 2.3,
-      "edge": 0.51
+      "winRate": 69,
+      "avgAlpha": 0.5,
+      "edge": 0.25
     },
     "rotation_defensive": {
       "n": 2,
@@ -994,11 +994,11 @@
       "edge": -0.02
     },
     "macro_low_risk": {
-      "n": 30,
+      "n": 68,
       "hitRate": 0,
-      "winRate": 100,
-      "avgAlpha": 2.2,
-      "edge": 0.69
+      "winRate": 81,
+      "avgAlpha": 1,
+      "edge": 0.41
     }
   }
 }
