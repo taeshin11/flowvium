@@ -3065,6 +3065,13 @@
     "roePct": 20.1,
     "fy": "2025"
   },
+  "PSKY": {
+    "revUsd": 29213000000,
+    "revYoYPct": -1.5,
+    "opMarginPct": -18,
+    "roePct": -37.9,
+    "fy": "2024"
+  },
   "PNR": {
     "revUsd": 4176000000,
     "revYoYPct": 2.3,
@@ -5590,6 +5597,13 @@
     "revYoYPct": 20.3,
     "opMarginPct": -0.7,
     "roePct": -1.5,
+    "fy": "2025"
+  },
+  "190510.KQ": {
+    "revUsd": 317158405,
+    "revYoYPct": 2.1,
+    "opMarginPct": 6.1,
+    "roePct": 14.6,
     "fy": "2025"
   },
   "065500.KQ": {
