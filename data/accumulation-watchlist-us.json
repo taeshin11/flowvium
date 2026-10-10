@@ -1,12 +1,29 @@
 {
-  "generatedAt": "2026-10-09T13:01:01.588Z",
+  "generatedAt": "2026-10-10T13:01:06.560Z",
   "universe": "US",
   "scanned": 332,
-  "count": 17,
+  "count": 16,
   "strongCount": 0,
-  "watchCount": 17,
+  "watchCount": 16,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "AGNCZ",
+      "name": "AGNC Investment Corp. - Deposit",
+      "tier": "watch",
+      "score": 31,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -4,
+      "runup5dPct": -1.6,
+      "medDollarVolUsd": 842490,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "AGNCP",
       "name": "AGNC Investment Corp. - Deposit",
@@ -14,30 +31,13 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 추세 3.0× 상승(지속 매집)",
         "거래량 3.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -3.9,
-      "runup5dPct": -1.5,
-      "medDollarVolUsd": 1100624,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EPRX",
-      "name": "Eupraxia Pharmaceuticals Inc.",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -5.6,
-      "runup5dPct": -3.3,
-      "medDollarVolUsd": 2394722,
+      "runup20dPct": -3.4,
+      "runup5dPct": -1.3,
+      "medDollarVolUsd": 1100624,
       "smartAccum": false,
       "official": null
     },
@@ -49,11 +49,11 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -11.3,
-      "runup5dPct": 0.6,
+      "runup20dPct": -8.3,
+      "runup5dPct": 2.5,
       "medDollarVolUsd": 630210,
       "smartAccum": false,
       "official": null
@@ -65,35 +65,18 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 7.9× 상승(지속 매집)",
-        "거래량 18.6× 급증(가격 평탄)"
+        "거래량 추세 8.1× 상승(지속 매집)",
+        "거래량 18.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.6,
-      "runup5dPct": 8.6,
-      "medDollarVolUsd": 1466495,
+      "runup20dPct": -2.8,
+      "runup5dPct": 14.9,
+      "medDollarVolUsd": 1496572,
       "smartAccum": false,
       "official": null
     },
     {
       "ticker": "NTRSO",
       "name": "Northern Trust Corporation - De",
-      "tier": "watch",
-      "score": 27,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "변동성 수축(coiling) — 돌파 압축",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -0.4,
-      "runup5dPct": -0.1,
-      "medDollarVolUsd": 672476,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SWBI",
-      "name": "Smith & Wesson Brands, Inc.",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
@@ -102,26 +85,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 7.7,
-      "runup5dPct": -0.7,
-      "medDollarVolUsd": 6426018,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "APOG",
-      "name": "Apogee Enterprises, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.6,
-      "runup5dPct": 14.2,
-      "medDollarVolUsd": 7907700,
+      "runup20dPct": -0.6,
+      "runup5dPct": 0.1,
+      "medDollarVolUsd": 672476,
       "smartAccum": false,
       "official": null
     },
@@ -132,12 +98,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 추세 2.3× 상승(지속 매집)",
         "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.8,
-      "runup5dPct": -2.2,
+      "runup20dPct": -13.4,
+      "runup5dPct": -6.4,
       "medDollarVolUsd": 56652082,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ARCO",
+      "name": "Arcos Dorados Holdings Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.0× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -3,
+      "runup5dPct": 9.3,
+      "medDollarVolUsd": 9168384,
       "smartAccum": false,
       "official": null
     },
@@ -149,10 +131,10 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)"
+        "거래량 2.6× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.5,
-      "runup5dPct": -1.6,
+      "runup20dPct": -7.8,
+      "runup5dPct": -1.2,
       "medDollarVolUsd": 3824900,
       "smartAccum": false,
       "official": null
@@ -164,11 +146,11 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 추세 2.4× 상승(지속 매집)",
         "거래량 2.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.9,
-      "runup5dPct": -0.5,
+      "runup20dPct": -5.8,
+      "runup5dPct": -0.6,
       "medDollarVolUsd": 5166304,
       "smartAccum": false,
       "official": null
@@ -180,12 +162,46 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -11.7,
-      "runup5dPct": -2.1,
-      "medDollarVolUsd": 2563710,
+      "runup20dPct": -10,
+      "runup5dPct": -0.1,
+      "medDollarVolUsd": 2691486,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PRGS",
+      "name": "Progress Software Corporation",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -1.5,
+      "runup5dPct": 6.6,
+      "medDollarVolUsd": 19491784,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "XZO",
+      "name": "Exzeo Group, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -0.2,
+      "runup5dPct": 11,
+      "medDollarVolUsd": 3087054,
       "smartAccum": false,
       "official": null
     },
@@ -196,96 +212,61 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -8.2,
-      "runup5dPct": -2.8,
+      "runup20dPct": -7.4,
+      "runup5dPct": -2,
       "medDollarVolUsd": 3616690,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "BHK",
-      "name": "Blackrock Core Bond Trust Black",
+      "ticker": "LOMA",
+      "name": "Loma Negra Compania Industrial ",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": -6.6,
-      "runup5dPct": -0.4,
-      "medDollarVolUsd": 2760450,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CBL",
-      "name": "CBL & Associates Properties, In",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -9.8,
-      "runup5dPct": -9.4,
-      "medDollarVolUsd": 13781235,
+      "runup20dPct": 3.8,
+      "runup5dPct": 10.5,
+      "medDollarVolUsd": 3709992,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "AGNCZ",
-      "name": "AGNC Investment Corp. - Deposit",
+      "ticker": "APOG",
+      "name": "Apogee Enterprises, Inc.",
       "tier": "watch",
-      "score": 23,
+      "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)"
+        "거래량 추세 1.9× 상승",
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -4.3,
-      "runup5dPct": -2.2,
-      "medDollarVolUsd": 842490,
+      "runup20dPct": 7.2,
+      "runup5dPct": 14,
+      "medDollarVolUsd": 7946385,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "IART",
-      "name": "Integra LifeSciences Holdings C",
+      "ticker": "FLX",
+      "name": "BINGEX LIMITED",
       "tier": "watch",
-      "score": 23,
+      "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.5× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": -13.7,
-      "runup5dPct": -16.7,
-      "medDollarVolUsd": 13399940,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LSAK",
-      "name": "Lesaka Technologies, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 5.1,
-      "runup5dPct": 11.1,
-      "medDollarVolUsd": 458964,
+      "runup20dPct": -3.2,
+      "runup5dPct": 5.7,
+      "medDollarVolUsd": 268749,
       "smartAccum": false,
       "official": null
     }
