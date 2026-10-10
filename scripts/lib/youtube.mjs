@@ -30,6 +30,10 @@ export const SCOPES = [
   //   지금 도구로는 못 가른다(실측 09-07 편차 32 → 조회수만으로는 판정 불가).
   //   readonly 라 채널을 바꾸지 못한다 — 읽기만 한다.
   'https://www.googleapis.com/auth/yt-analytics.readonly',
+  // 2026-10-10: 댓글 답글(comments.insert)·고정 댓글 API 는 force-ssl 만 받는다(youtube 스코프로는 403).
+  //   지금 고정 댓글은 브라우저 프로필로 단다 — 답글까지 API 로 하려고 받는다. 런타임은 스코프를 검사하지 않아
+  //   재인증 전까지 업로드는 기존 토큰으로 그대로 돈다.
+  'https://www.googleapis.com/auth/youtube.force-ssl',
 ];
 const CRED = resolve(ROOT, 'secrets/youtube-oauth.json');
 const TOKEN = resolve(ROOT, 'secrets/youtube-token.json');
