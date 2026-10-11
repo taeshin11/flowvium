@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-10T13:01:06.560Z",
+  "generatedAt": "2026-10-11T03:46:40.676Z",
   "universe": "US",
   "scanned": 332,
-  "count": 16,
+  "count": 17,
   "strongCount": 0,
-  "watchCount": 16,
+  "watchCount": 17,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -218,6 +218,22 @@
       "runup20dPct": -7.4,
       "runup5dPct": -2,
       "medDollarVolUsd": 3616690,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PMO",
+      "name": "Putnam Municipal Opportunities ",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": 2.3,
+      "medDollarVolUsd": 669288,
       "smartAccum": false,
       "official": null
     },
