@@ -58,3 +58,6 @@ export function slotLift(rows) {
 
 // ── 화면 배분 A/B(2026-10-03) — classic|zoom 반반. 근거는 shorts-layout-ab.test.mjs 머리말.
 export const layoutFor = (seed) => (((mix(Number(seed) + 7919) >>> 3) & 1) ? 'zoom' : 'classic');
+
+// ── 첫 문장 A/B(2026-10-11) — anchor(앵커 단정, 지금 그대로)|question(질문·시청자 이해관계). 근거는 shorts-opener-ab.test.mjs 머리말.
+export const openerFor = (seed) => (((mix(Number(seed) + 15485863) >>> 5) & 1) ? 'question' : 'anchor');

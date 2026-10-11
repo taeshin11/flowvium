@@ -341,6 +341,15 @@ let IS_WEAK = () => false;
 const EXPLORE = process.env.SHORTS_EXPLORE === '1';
 // 2026-10-02 트렌드 칸(lib/explore-slot trendFor) — 여섯 편에 한 편, 주 1회 모은 스튜디오 트렌드 주제어(logs/yt-trends.json)가 겹치는 후보를 앞으로.
 const TREND = process.env.SHORTS_TREND === '1';
+// 2026-10-11 첫 문장 A/B(lib/explore-slot openerFor) — question 칸은 1번 장면 첫 문장을 질문·시청자 이해관계로 연다.
+//   근거: shorts-opener-ab.test.mjs 머리말(196편 전부 초기 풀에서 멈춤 · 상위 채널은 호명·인물·의견으로 연다 · ChatGPT·agy 1순위).
+const OPENER = process.env.SHORTS_OPENER === 'question' ? 'question' : 'anchor';
+const OPENER_RULE = OPENER === 'question' ? `
+- **[이번 편 실험] 1번 장면 say 의 첫 문장만은 앵커 단정 대신 질문 또는 시청자 이해관계로 연다.** 둘째 문장부터는 위 앵커 규칙 그대로.
+  · 좋음: "현대차에 무슨 일이 생긴 걸까요?" / "이번 누리호에는 왜 위성이 15기나 실렸을까요?" / "삼성전자 주식 가진 분이라면 이 소식이 중요합니다."
+  · 첫 문장 다음에 바로 답의 핵심 사실을 단정형으로 말한다(질문만 던지고 끌지 마라).
+  · ⚠ 기사에 있는 사실만 쓴다. 기사에 없는 손해·수익·반응을 암시하지 마라. "충격", "경악" 같은 낚시 금지.
+  · 이 첫 문장에 한해 "~까요?" 와 "~분이라면" 은 허용한다("여러분" 은 여전히 쓰지 않는다).` : '';
 let TREND_USED = false;
 /** 헤드라인 자극도. 브리핑 순서(=썸네일)를 정하는 데도 쓴다. */
 let AROUSAL = () => 0;
@@ -869,7 +878,7 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
 - **정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.** 줄이거나 바꾸지 마라.
   실측으로 나간 오기: "국민의힘"→"국민힘", "정부"→"청와대"(현 정부는 대통령실이다).
   뉴스 채널에서 이름을 틀리면 그 한 글자가 신뢰를 깎는다.
-- **1번 장면이 훅이다.** 첫 세 어절에 가장 강한 사실을 박아라. "오늘은", "이번 소식은" 금지.
+- **1번 장면이 훅이다.** 첫 세 어절에 가장 강한 사실을 박아라. "오늘은", "이번 소식은" 금지.${OPENER_RULE}
 - **앵커 어투로 쓴다.** 사실을 **단정적으로** 전한다:
   · 좋음: "미국이 반도체 표적관세를 예고했습니다." "설비투자가 살아나고 있습니다."
   · 나쁨(전문·추측 어투 — 앵커는 이렇게 말하지 않는다):
@@ -2239,6 +2248,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것
   explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
   layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
+  opener: OPENER,      // 2026-10-11: 첫 문장 A/B(anchor|question) — lib/explore-slot openerFor
   trend: TREND_USED,   // 2026-10-02: 트렌드 칸에서 트렌드 주제어가 겹친 후보로 갔는가 — 48h 성적 따로
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

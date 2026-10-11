@@ -2181,7 +2181,7 @@ export function setShortsTopic(videoId, topic) {
 }
 
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null, titleStyle = null, subCta = null, promo = null, explore = null, trend = null, layout = null }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null, titleStyle = null, subCta = null, promo = null, explore = null, trend = null, layout = null, opener = null }) {
   const db = openDb();
   ensureTitleStyleColumn(db);
   // 2026-09-27 구독 권유 A/B — 실제로 붙었는가(1/0). 구독 전환을 나눠 잰다.
@@ -2194,6 +2194,8 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
   if (!db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'trend')) db.exec('ALTER TABLE shorts_published ADD COLUMN trend INTEGER');
   // 2026-10-03 화면 배분 A/B(classic|zoom) — lib/shorts-layout.
   if (!db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'layout')) db.exec('ALTER TABLE shorts_published ADD COLUMN layout TEXT');
+  // 2026-10-11 첫 문장 A/B(anchor|question) — lib/explore-slot openerFor.
+  if (!db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'opener')) db.exec('ALTER TABLE shorts_published ADD COLUMN opener TEXT');
   ensureHeadlinesColumn(db);
   ensureHooksColumn(db);
   ensureBodiesColumn(db);
@@ -2207,8 +2209,8 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
   // 기사 본문. 글로 풀 때의 재료다 — 훅만으로는 알맹이가 300자를 못 넘는다(위 주석 참고).
   const bodyList = (bodies ?? []).map((b) => String(b ?? '').trim()).filter(Boolean).slice(0, 8);
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic, title_style, sub_cta, promo, explore, trend, layout)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic, title_style, sub_cta, promo, explore, trend, layout, opener)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
     new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null,
     Number.isFinite(durationSec) ? durationSec : null,
@@ -2220,7 +2222,8 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
     promo === 'aisvi' || promo === 'flowvium' ? promo : null,
     explore === true ? 1 : explore === false ? 0 : null,
     trend === true ? 1 : trend === false ? 0 : null,
-    layout === 'zoom' || layout === 'classic' ? layout : null);
+    layout === 'zoom' || layout === 'classic' ? layout : null,
+    opener === 'question' || opener === 'anchor' ? opener : null);
 }
 
 /** 최근 days 일에 낸 쇼츠의 주제별 편수(내린 편 제외). 실험 칸이 '적게 다룬 주제' 를 고를 때 쓴다(2026-09-30). */
