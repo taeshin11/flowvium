@@ -1,26 +1,27 @@
 {
-  "generatedAt": "2026-10-12T07:20:32.115Z",
+  "generatedAt": "2026-10-12T22:20:24.713Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
-  "strongCount": 0,
+  "count": 3,
+  "strongCount": 1,
   "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "021040.KQ",
-      "name": "대호특수강",
-      "tier": "watch",
-      "score": 38,
+      "ticker": "056730.KQ",
+      "name": "CNT85",
+      "tier": "strong",
+      "score": 46,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 4.2× 급증(가격 평탄)",
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 4.3× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -1.2,
-      "runup5dPct": -1.4,
-      "medDollarVolUsd": 12635,
+      "runup20dPct": -2.2,
+      "runup5dPct": 2,
+      "medDollarVolUsd": 11496,
       "smartAccum": true,
       "official": null
     },
@@ -36,9 +37,26 @@
         "아래꼬리 매집 7개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 5.9,
-      "runup5dPct": 4.7,
+      "runup20dPct": 6.8,
+      "runup5dPct": 4.5,
       "medDollarVolUsd": 46127,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "038500.KQ",
+      "name": "삼표시멘트",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 10.7× 상승(지속 매집)",
+        "거래량 15.2× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -2.2,
+      "runup5dPct": 8.4,
+      "medDollarVolUsd": 2016156,
       "smartAccum": true,
       "official": null
     }
