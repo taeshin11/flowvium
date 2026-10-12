@@ -26,6 +26,7 @@ import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { ROOT } from '../lib/project-root.mjs';
+import { AD_LINE } from '../lib/ad-line.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
 import { audioArgs, AUDIO_SPEC } from '../lib/shorts-layout.mjs';
 
@@ -78,7 +79,14 @@ const COPY = {
     //   무엇보다 가격 주장은 눈으로 확인되는 자리에 두는 편이 낫다.
     //   ⚠ 사이트에서 가격을 확인하지 못했다(자바스크립트로 그려져 본문을 못 읽음).
     //     유료 구간이 생기면 이 줄부터 고쳐야 한다 — 광고에서 가장 먼저 문제가 되는 문장이다.
-    freeCta: '무료로 내 AI 비서를 만들어 보세요',
+    // 2026-10-13 사장님 확정(desktop1·Mac mini2 경유): AISVI 문구는 "가입 없이 바로 무료 체험" — 채널 공통.
+    freeCta: '가입 없이 바로 무료 체험',
+    // 2026-10-13 사장님 "광고 시간 최소화": 2초 카드 화면 글자는 광고 한 줄(lib/ad-line)의 세 토막만.
+    //   초록 띠·구독 줄·"에서 다운로드" 는 카드에서 뺀다(구독 줄은 사장님 지적 — 화면·음성 모두).
+    cardLines: AD_LINE.split(', '),
+    // 카드 대사 — desktop1 공식 한국어 카드(2.47초)와 같은 말. 한 줄 전체는 2.5초에 안 들어간다(약 4초).
+    //   지금 assets/outro/aisvi-card.mp4 는 desktop1 공식 카드(2.47초, 소리만 AUDIO_SPEC 모노로 변환)다.
+    cardSay: '에이스비 에이전트 닷컴, 가입 없이 무료 체험',
     // 2026-09-18 실측: 영상 어디에도 "구독" 이 없었다(대본 0회·화면 0회). 설명란에만 있는데
     //   쇼츠 시청자는 설명란을 거의 안 본다. 그런데 이 광고가 시작될 때 54%가 아직 보고 있고
     //   끝까지 35% 가 남는다 — 구독을 권할 가장 좋은 자리를 아무 말 없이 흘려보내고 있었다.
@@ -180,7 +188,7 @@ if (AUDIO_RATE && AUDIO_RATE !== 44100 && OUT === resolve(ROOT, 'assets/outro/ai
 
 const SPOKEN = process.env.AISVI_SPOKEN || T.spoken;
 const SITE_SPOKEN = process.env.AISVI_SITE_SPOKEN || T.siteSpoken;
-const SAY = CARD ? SITE_SPOKEN : T.say(SPOKEN, SITE_SPOKEN);
+const SAY = CARD ? (process.env.AISVI_SITE_SPOKEN || T.cardSay || SITE_SPOKEN) : T.say(SPOKEN, SITE_SPOKEN);
 
 console.log(`  대사: ${SAY}`);
 // 소리. 세 갈래다 — 받아 온 파일(--audio) · 한국어 전용 경로 · MeloTTS 다국어(ja 등).
@@ -439,6 +447,9 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 .f{font-size:44px;font-weight:900;color:#fff;background:#16a34a;border-radius:999px;
   padding:10px 34px;margin-top:14px;letter-spacing:.01em}
 .c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
+/* 2026-10-13 광고 한 줄 카드(cardLines): 위 "무료 AI 비서 AISVI" · 가운데 주소(.u) · 아래 "가입 없이 바로 무료 체험". */
+.k1{font-size:72px;font-weight:900;color:#fff;letter-spacing:.01em}
+.k3{font-size:60px;font-weight:900;color:#fff;letter-spacing:.01em}
 /* 구독 안내. 첫 판에서 이 규칙을 넣는 치환이 두 번 조용히 실패해 브라우저 기본 크기(16px)로
    나갔다 — 프레임을 눈으로 봤기에 잡았다. 문자열 치환은 실패해도 아무 말이 없다. */
 .s{font-size:46px;font-weight:900;color:#fff;letter-spacing:.01em;margin-top:22px;
@@ -446,7 +457,8 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
 </style>
 ${hasPhoto ? `<div class="p">${T.line && !DEMO && !CARD ? `<div class="say"><i></i>“${T.line}”</div>` : ''}</div>` : ''}
 <div class="body">
-<div class="t">${T.tagline}</div>
+${CARD && T.cardLines ? T.cardLines.map((l, k) => `<div class="${['k1', 'u', 'k3'][k] ?? 'k3'}">${l}</div>`).join('\n') : ''}
+${CARD && T.cardLines ? '' : `<div class="t">${T.tagline}</div>
 <div class="w">${B.word}</div><div class="r"></div>
 ${CARD ? '' : `<div class="d">${T.desc}</div>`}
 <div class="u">${B.site}</div>
@@ -455,7 +467,7 @@ ${CARD ? '' : `<div class="d">${T.desc}</div>`}
 ${T.cta ? `<div class="c">${T.cta}</div>` : ''}
 ${T.freeCta ? `<div class="f">${T.freeCta}</div>` : ''}
 ${CARD ? '' : `<div class="c2">${T.note}</div>`}
-${T.subCta ? `<div class="s">${T.subCta}</div>` : ''}
+${T.subCta ? `<div class="s">${T.subCta}</div>` : ''}`}
 </div>`);
 // 영상이면 알파를 살려 찍는다 — 띠 자리가 뚫려야 아래 영상이 보인다.
 await page.screenshot({ path: `${WORK}/bg.png`, omitBackground: !!bgVideo });

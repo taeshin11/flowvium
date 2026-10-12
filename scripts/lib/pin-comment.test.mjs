@@ -19,5 +19,24 @@ const rd = src('video/make-daily-roundup.mjs');
 (/yt-pin-comment\.mjs/.test(rd) && /--then-verify/.test(rd) && /'long'/.test(rd)) ? ok('[2] 총정리 롱폼 업로드 직후에도(링크 눌리는 utm 판)') : bad('[2] 총정리에 댓글 단계 없음');
 const pc = src('yt-pin-comment.mjs');
 (/then-verify/.test(pc) && /chromium\.launch\(/.test(pc) && /@flowvium/.test(pc) && /offsetWidth \|\| b\.offsetHeight/.test(pc)) ? ok('[3] 재확인은 로그아웃 브라우저 · 작성자 @flowvium · 고정 표시가 보이는지') : bad('[3] 재확인 조건 부족');
+// 2026-10-13 사장님 지시(Mac mini2 경유, "광고 시간 최소화"): AISVI 광고는 한 줄로만 —
+//   "무료 AI 비서 AISVI, aisviagent.com, 가입 없이 바로 무료 체험". 고정댓글·설명란·끝 카드 모두 같은 말. 새 편부터.
+const { AD_LINE, withAdLine } = await import('./ad-line.mjs');
+const { uploadRequestBody } = await import('./youtube.mjs');
+(AD_LINE === '무료 AI 비서 AISVI, aisviagent.com, 가입 없이 바로 무료 체험') ? ok('[4] 광고 한 줄은 지시 그대로') : bad(`[4] AD_LINE ${AD_LINE}`);
+(/import \{ AD_LINE \} from '\.\/lib\/ad-line\.mjs'/.test(pc) && /commentFor = \(\) => AD_LINE/.test(pc)) ? ok('[5] 고정댓글(쇼츠·롱폼) = 그 한 줄') : bad('[5] 고정댓글이 그 한 줄이 아니다');
+const lastLine = (x) => x.trimEnd().split('\n').at(-1);
+const d = uploadRequestBody({ title: 't', description: '본문\n\n※ 투자 권유 아님' }).snippet.description;
+(lastLine(d) === AD_LINE && d.startsWith('본문')) ? ok('[6] 모든 업로드 설명란 맨 아래 그 한 줄(기존 고지 아래)') : bad(`[6] ${JSON.stringify(d)}`);
+(withAdLine(d) === d) ? ok('[7] 두 번 붙이지 않는다') : bad('[7] 중복');
+const lg = withAdLine('가'.repeat(6000));
+(lg.length <= 5000 && lastLine(lg) === AD_LINE) ? ok('[8] 5000자 한도 — 본문을 줄이고 광고 줄은 남긴다') : bad(`[8] ${lg.length}`);
+const oc = src('video/make-outro-clip.mjs');
+const koCopy = /\n  ko: \{[\s\S]*?\n  \},/.exec(oc)?.[0] ?? '';
+(/cardLines: AD_LINE\.split\(', '\)/.test(koCopy) && /import \{ AD_LINE \} from '\.\.\/lib\/ad-line\.mjs'/.test(oc))
+  ? ok('[9] aisvi 2초 카드 화면 글자 = 그 한 줄의 세 토막') : bad('[9] 카드 글자가 세 줄이 아니다');
+(/CARD && T\.cardLines \? T\.cardLines\.map/.test(oc) && /CARD && T\.cardLines \? '' : /.test(oc)) ? ok('[10] 카드에는 세 줄 말고 다른 문구(초록 띠·구독 줄·다운로드)가 없다') : bad('[10] 카드에 다른 문구가 남는다');
+(/cardSay: '에이스비 에이전트 닷컴, 가입 없이 무료 체험'/.test(koCopy) && /CARD \? \(process\.env\.AISVI_SITE_SPOKEN \|\| T\.cardSay/.test(oc) && !/cardSay[^\n]*구독/.test(koCopy))
+  ? ok('[11] 카드 대사 = 공식 카드와 같은 말(구독 줄 없음)') : bad('[11] 카드 대사');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

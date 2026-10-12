@@ -13,6 +13,7 @@
  *   매일 자동 업로드를 계속하려면 앱을 게시해야 하고, youtube.upload 는 민감 스코프라 심사 대상이다.
  */
 import { google } from 'googleapis';
+import { withAdLine } from './ad-line.mjs';
 import { readFileSync, writeFileSync, existsSync, createReadStream, statSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './project-root.mjs';
@@ -174,7 +175,8 @@ export function uploadRequestBody(o) {
   return {
     snippet: {
       title: String(o.title).slice(0, 100),
-      description: String(o.description ?? '').slice(0, 5000),
+      // 2026-10-13 사장님: 설명란 맨 아래 AISVI 광고 한 줄 — 모든 업로드가 여기를 지난다(lib/ad-line).
+      description: withAdLine(o.description),
       tags: (o.tags ?? []).slice(0, 30),
       categoryId: o.categoryId ?? '25',           // 25 = News & Politics
       defaultLanguage: o.locale ?? 'ko',

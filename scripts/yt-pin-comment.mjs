@@ -14,6 +14,7 @@ import { chromium } from 'playwright';
 import { resolve, join } from 'path';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
+import { AD_LINE } from './lib/ad-line.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -26,9 +27,8 @@ const state = (() => { try { return JSON.parse(readFileSync(STATE, 'utf8')); } c
 
 // 2026-10-08 사장님 "권장대로": 긴 주소(utm 붙은)는 링크 댓글 스팸 필터에 걸리기 쉽다 — 롱폼도 도메인만 짧게.
 //   (유입은 aisviagent.com 쪽 리퍼러/직접 방문으로 본다. 쇼츠 댓글 링크는 원래 안 눌린다.)
-export const commentFor = (kind) => kind === 'long'
-  ? '🤖 나만의 AI 비서 AISVI — 무료로 내 AI 비서를 만들어 보세요\n👉 aisviagent.com'
-  : '🤖 나만의 AI 비서 AISVI — 무료로 만들어 보세요\n👉 aisviagent.com (주소창에 입력)';
+// 2026-10-13 사장님 "광고 시간 최소화": 쇼츠·롱폼 모두 광고 한 줄(lib/ad-line)만. 새 편부터 — 이미 단 댓글은 그대로.
+export const commentFor = () => AD_LINE;
 
 let targets = [];
 const ids = (arg('ids', '') ?? '').split(',').filter(Boolean);
