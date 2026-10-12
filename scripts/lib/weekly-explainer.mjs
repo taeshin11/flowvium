@@ -128,6 +128,9 @@ export function isEditorial(s) {
 /** 썸네일 큰 글 한 줄 — 조사·접속사로 끝나면 문장이 잘린 것이다("농지 전수조사 및"). */
 export const thumbLineOk = (w) => { const t = String(w ?? '').trim(); return t.length >= 2 && t.length <= 10 && !/(및|과|와|의|에|을|를|은|는|이|가|도|로|으로|에서|하고|그리고|또)$/.test(t); };
 
+/** 화면에 쓸 사진 — 대본이 실제로 인용한 기사(장마다 sources)의 사진만. 키워드만 맞은 딴 기사 사진이 나간 적이 있다(10/12 인니 쌀 수확). */
+export const imagePool = (imgs, chapters) => { const cited = new Set((chapters ?? []).flatMap((c) => c.sources ?? [])); return (imgs ?? []).filter((m) => cited.has(m.doc)); };
+
 /** 4~6분 — 앞뒤 카드 10초를 뺀 낭독 분량.
  *  10/12 첫 렌더 실측: 1,680자 → 낭독 225초 = **7.47자/초**. 쇼츠 CPS 6.7 을 그대로 쓰니 대본이 4분 하한에 걸쳤다. */
 export const CPS = 7.4;

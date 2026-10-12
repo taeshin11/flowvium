@@ -86,6 +86,10 @@ const ug = (t) => W.ungroundedNumbers(t, src);
   && !W.isEditorial('춘천시의회는 피해 예방 대책을 마련해야 한다고 촉구했습니다.') && !W.isEditorial('정부는 특별조치법을 이달 중 발의할 예정입니다.'))
   ? ok('[4c] 출처 없는 당위·기대 문장을 잡는다 · 주체가 밝힌 주장은 통과') : bad('[4c]');
 
+// [4e] 사진은 대본이 인용한 기사에서만 — 키워드만 맞은 딴 기사(10/12 첫 회: '농지' 로 걸린 인니 쌀 기사)의 사진이 화면에 나갔다
+const pool = W.imagePool([{ url: 'a', doc: 0 }, { url: 'b', doc: 10 }, { url: 'c', doc: -1 }, { url: 'd', doc: 2 }], [{ sources: [0] }, { sources: [2, 5] }]);
+(pool.map((m) => m.url).join() === 'a,d') ? ok('[4e] 인용 안 한 기사·목록 밖 기사의 사진은 쓰지 않는다') : bad(`[4e] ${pool.map((m) => m.url)}`);
+
 // [5] 분량 — 4~6분(멜로 실측 6.7자/초). 짧으면 올리지 않는다.
 const b = W.scriptBudget();
 (b.min >= 1700 && b.max <= 2700 && b.target > b.min && b.target < b.max) ? ok(`[5] 분량 ${b.min}~${b.max}자(목표 ${b.target})`) : bad(`[5] ${JSON.stringify(b)}`);

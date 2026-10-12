@@ -18,7 +18,7 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync, readdirSync
 import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 import { ROOT } from '../lib/project-root.mjs';
-import { articleLines, dropSharedLines, rankIssues, ungroundedNumbers, hangulNumerals, isEditorial, thumbLineOk, scriptBudget, explainerTitle } from '../lib/weekly-explainer.mjs';
+import { articleLines, dropSharedLines, rankIssues, ungroundedNumbers, hangulNumerals, isEditorial, thumbLineOk, imagePool, scriptBudget, explainerTitle } from '../lib/weekly-explainer.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -212,7 +212,7 @@ const { articleImage, isBrandImage } = await import('../lib/article-image.mjs');
 const { isRealFootage } = await import('../lib/footage.mjs');
 const { clipCheck, clipDuplicates } = await import('../lib/clip-gate.mjs');
 const imgs = [];
-const imgLinks = [...docs.map((d, i) => ({ link: d.link, doc: i })), ...uniq.filter((r) => !docs.some((d) => d.link === r.link)).slice(0, 20).map((r) => ({ link: r.link, doc: -1 }))];
+const imgLinks = imagePool(docs.map((d, i) => ({ link: d.link, doc: i })), chapters);
 for (let i = 0; i < imgLinks.length; i += 4) {
   const got = await Promise.all(imgLinks.slice(i, i + 4).map(async (x) => ({ ...x, img: await articleImage(x.link) })));
   for (const g of got) {
