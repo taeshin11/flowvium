@@ -644,7 +644,12 @@ const MAINT_JOBS = [
   // 2026-10-02 사장님 지시: 주 1회(월 09:20 KST) 스튜디오 트렌드 탭 → 주제어(logs/yt-trends.json) + 칸별 48h 성적 보고
   { label: 'yt-trend-topics',      script: 'scripts/yt-trend-topics.mjs',             timeoutMs: 360000,  commitPaths: [],                                     schedules: ['20 0 * * 1' ],                maxAgeH: 170 },
   // 2026-10-06 사장님 "숏폼 묶어 롱폼" → 시험판 확인 뒤 "고": 하루치 쇼츠를 묶은 가로 롱폼 '뉴스 총정리'(22:10 KST, 마지막 쇼츠 21:45 뒤·22:30 보고서 전). 4편 미만이면 안 만든다.
-  { label: 'daily-roundup',        script: 'scripts/video/make-daily-roundup.mjs --upload public', timeoutMs: 900000, commitPaths: [],                                     schedules: ['10 13 * * *'],                maxAgeH: 30 },
+  // 2026-10-12 사장님 결정(Mac mini2 경유, "수익이 제일 높을 만한 방향으로" → A안): 매일 총정리를 내린다 — 조회 10/7 4 · 10/9 0 · 10/10 1.
+  //   대신 **주 1회 4~6분 단일 이슈 해설**(그 주 쇼츠 여러 편이 다룬 이슈, 기사 본문 근거). 근거·관문은 lib/weekly-explainer.test.mjs.
+  //   일요일 17:00 KST(08:00 UTC) — 16:20·18:20 쇼츠 사이. 일요일이 실패·보고서로 건너뛰면 월요일 같은 시각이 다시 시도한다
+  //   (스크립트가 '이번 주 이미 올림' 이면 아무것도 안 한다 — logs/weekly-explainer.json).
+  // { label: 'daily-roundup',     script: 'scripts/video/make-daily-roundup.mjs --upload public', timeoutMs: 900000, commitPaths: [], schedules: ['10 13 * * *'], maxAgeH: 30 },
+  { label: 'weekly-explainer',     script: 'scripts/video/make-weekly-explainer.mjs --upload public', timeoutMs: 3600000, commitPaths: [],                                  schedules: ['0 8 * * 0', '0 8 * * 1'],     maxAgeH: 8 * 24 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
