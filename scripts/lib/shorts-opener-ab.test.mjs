@@ -17,13 +17,13 @@ const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 const { openerFor, layoutFor } = await import('./explore-slot.mjs');
 const { promoFor } = await import('./promo-card.mjs');
-const { subCtaFor } = await import('./sub-cta.mjs');
+// 2026-10-13 구독 권유 A/B 종료(전 편에 붙음, lib/sub-cta) — 독립성은 남은 실험(제목·광고…)끼리만 본다.
 const N = 600, O = Array.from({ length: N }, (_, n) => openerFor(n));
 const qr = O.filter((x) => x === 'question').length / N;
 (O.every((x) => x === 'question' || x === 'anchor') && qr > 0.42 && qr < 0.58) ? ok(`[1] anchor|question 반반(${(qr * 100).toFixed(0)}%)`) : bad(`[1] qr=${qr}`);
 const share = (f) => { const e = O.map((x, n) => [x === 'question', f(n)]).filter(([x]) => x); return e.filter(([, v]) => v).length / e.length; };
-const t = share((n) => n % 2 === 0), s = share((n) => subCtaFor(n)), p = share((n) => promoFor(n) === 'flowvium'), l = share((n) => layoutFor(n) === 'zoom');
-[t, s, p, l].every((v) => v > 0.38 && v < 0.62) ? ok(`[2] 다른 실험과 독립 — question 안에서 제목 ${(t * 100).toFixed(0)}% · 구독 ${(s * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% · 배분 ${(l * 100).toFixed(0)}%`) : bad(`[2] t=${t} s=${s} p=${p} l=${l}`);
+const t = share((n) => n % 2 === 0), p = share((n) => promoFor(n) === 'flowvium'), l = share((n) => layoutFor(n) === 'zoom');
+[t, p, l].every((v) => v > 0.38 && v < 0.62) ? ok(`[2] 다른 실험과 독립 — question 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% · 배분 ${(l * 100).toFixed(0)}%`) : bad(`[2] t=${t} p=${p} l=${l}`);
 const src = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const pub = src('video-publish.mjs'), ms = src('video/make-shorts.mjs');
 (/SHORTS_OPENER: OPENER_ENV/.test(pub) && /opener: last\.opener/.test(pub)) ? ok('[3a] 발행이 칸을 정하고 기록') : bad('[3a]');

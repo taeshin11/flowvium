@@ -8,7 +8,6 @@
  * 파일이 없으면 다른 광고로 대신한다 — 광고 때문에 회차를 잃지 않는다.
  */
 import { promoFor, promoPath, PROMO_FILES } from './promo-card.mjs';
-import { subCtaFor } from './sub-cta.mjs';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -17,9 +16,10 @@ const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 {
   const seq = Array.from({ length: 8 }, (_, n) => promoFor(n));
-  const combos = new Set(Array.from({ length: 8 }, (_, n) => `${n % 2}|${subCtaFor(n) ? 1 : 0}|${promoFor(n)}`));
-  (seq.filter((x) => x === 'aisvi').length === 4 && seq.filter((x) => x === 'flowvium').length === 4 && combos.size === 8)
-    ? ok(`[1] 8편 중 4:4 · 제목×구독×광고 조합 8가지가 한 번씩 (${seq.join(',')})`) : bad(`[1] ${seq} combos=${combos.size}`);
+  // 2026-10-13 구독 권유 A/B 종료(전 편에 붙음, lib/sub-cta) — 독립성은 남은 실험(제목·광고…)끼리만 본다.
+  const combos = new Set(Array.from({ length: 8 }, (_, n) => `${n % 2}|${promoFor(n)}`));
+  (seq.filter((x) => x === 'aisvi').length === 4 && seq.filter((x) => x === 'flowvium').length === 4 && combos.size === 4)
+    ? ok(`[1] 8편 중 4:4 · 제목×광고 조합 4가지가 두 번씩 (${seq.join(',')})`) : bad(`[1] ${seq} combos=${combos.size}`);
 }
 {
   const root = mkdtempSync(join(tmpdir(), 'promo-test-'));

@@ -25,12 +25,12 @@ const c = probe('classic'), z = probe('zoom');
 (z.layout === 'zoom' && z.g?.hook?.height === 440 && z.g?.media?.height === 820 && /crop=/.test(z.f) && /0\.7/.test(z.f)) ? ok('[2] zoom = 440/820 + 4:3 까지 가운데 자르기(폭 70% 이상)') : bad(`[2] ${JSON.stringify(z).slice(0, 300)}`);
 const { layoutFor } = await import('./explore-slot.mjs');
 const { promoFor } = await import('./promo-card.mjs');
-const { subCtaFor } = await import('./sub-cta.mjs');
+// 2026-10-13 구독 권유 A/B 종료(전 편에 붙음, lib/sub-cta) — 독립성은 남은 실험(제목·광고…)끼리만 본다.
 const N = 600, L = Array.from({ length: N }, (_, n) => layoutFor(n));
 const zr = L.filter((x) => x === 'zoom').length / N;
 const share = (f) => { const e = L.map((x, n) => [x === 'zoom', f(n)]).filter(([x]) => x); return e.filter(([, v]) => v).length / e.length; };
-const t = share((n) => n % 2 === 0), s = share((n) => subCtaFor(n)), p = share((n) => promoFor(n) === 'flowvium');
-(zr > 0.42 && zr < 0.58 && [t, s, p].every((v) => v > 0.38 && v < 0.62)) ? ok(`[3] 반반(${(zr * 100).toFixed(0)}%) · zoom 안에서 제목 ${(t * 100).toFixed(0)}% · 구독 ${(s * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% — 다른 실험과 안 겹친다`) : bad(`[3] zr=${zr} t=${t} s=${s} p=${p}`);
+const t = share((n) => n % 2 === 0), p = share((n) => promoFor(n) === 'flowvium');
+(zr > 0.42 && zr < 0.58 && [t, p].every((v) => v > 0.38 && v < 0.62)) ? ok(`[3] 반반(${(zr * 100).toFixed(0)}%) · zoom 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% — 다른 실험과 안 겹친다`) : bad(`[3] zr=${zr} t=${t} p=${p}`);
 const src = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 (/SHORTS_LAYOUT: LAYOUT_ENV/.test(src('video-publish.mjs')) && /layout: last\.layout/.test(src('video-publish.mjs'))) ? ok('[4a] 발행이 칸을 정하고 기록') : bad('[4a]');
 /layout: LAYOUT/.test(src('video/make-shorts.mjs')) ? ok('[4b] meta.layout') : bad('[4b]');

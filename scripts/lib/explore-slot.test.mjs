@@ -11,7 +11,6 @@
  *   누적 편수를 섞은 값 % 6 — 제목(짝홀)·구독(n%4)·광고(⌊n/4⌋) 실험과 박자가 겹치지 않게. 실험 편은 기록해 따로 잰다.
  */
 import { exploreFor, exploreOrder } from './explore-slot.mjs';
-import { subCtaFor } from './sub-cta.mjs';
 import { promoFor } from './promo-card.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -21,10 +20,11 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const ex = Array.from({ length: N }, (_, n) => exploreFor(n));
   const rate = ex.filter(Boolean).length / N;
   const share = (f) => { const e = ex.map((x, n) => [x, f(n)]).filter(([x]) => x); return e.filter(([, v]) => v).length / e.length; };
-  const t = share((n) => n % 2 === 0), s = share((n) => subCtaFor(n)), p = share((n) => promoFor(n) === 'flowvium');
-  (rate > 0.13 && rate < 0.21 && [t, s, p].every((v) => v > 0.38 && v < 0.62))
-    ? ok(`[1] 약 1/6(${(rate * 100).toFixed(1)}%) · 실험 편 안에서 제목 ${(t * 100).toFixed(0)}% · 구독 ${(s * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% — 다른 실험과 안 겹친다`)
-    : bad(`[1] rate=${rate} t=${t} s=${s} p=${p}`);
+  // 2026-10-13 구독 권유 A/B 종료(전 편에 붙음, lib/sub-cta) — 독립성은 남은 실험(제목·광고…)끼리만 본다.
+  const t = share((n) => n % 2 === 0), p = share((n) => promoFor(n) === 'flowvium');
+  (rate > 0.13 && rate < 0.21 && [t, p].every((v) => v > 0.38 && v < 0.62))
+    ? ok(`[1] 약 1/6(${(rate * 100).toFixed(1)}%) · 실험 편 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% — 다른 실험과 안 겹친다`)
+    : bad(`[1] rate=${rate} t=${t} p=${p}`);
   let run = 0, maxRun = 0; for (const x of ex) { run = x ? 0 : run + 1; maxRun = Math.max(maxRun, run); }
   maxRun <= 24 ? ok(`[1b] 실험 없이 가장 오래 간 구간 ${maxRun}편(하루 7편 기준 약 ${(maxRun / 7).toFixed(1)}일)`) : bad(`[1b] ${maxRun}`);
 }
