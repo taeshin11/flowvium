@@ -1,27 +1,26 @@
 {
-  "generatedAt": "2026-10-13T13:00:58.727Z",
+  "generatedAt": "2026-10-13T22:03:26.588Z",
   "universe": "US",
   "scanned": 296,
-  "count": 11,
-  "strongCount": 1,
-  "watchCount": 10,
+  "count": 13,
+  "strongCount": 0,
+  "watchCount": 13,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "ADAMG",
       "name": "Adamas Trust, Inc. - 9.125% Sen",
-      "tier": "strong",
-      "score": 37,
-      "coFire": 3,
+      "tier": "watch",
+      "score": 36,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
+        "거래량 추세 3.6× 상승(지속 매집)",
+        "거래량 4.1× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -3.8,
-      "runup5dPct": -1.2,
-      "medDollarVolUsd": 227318,
+      "runup20dPct": -3,
+      "runup5dPct": -1.5,
+      "medDollarVolUsd": 232760,
       "smartAccum": false,
       "official": null
     },
@@ -32,30 +31,13 @@
       "score": 31,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -3.4,
-      "runup5dPct": -1.2,
-      "medDollarVolUsd": 1100624,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "AGNCZ",
-      "name": "AGNC Investment Corp. - Deposit",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -4,
-      "runup5dPct": -1.5,
-      "medDollarVolUsd": 842490,
+      "runup20dPct": -2.6,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 1116338,
       "smartAccum": false,
       "official": null
     },
@@ -66,12 +48,29 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 17.2× 상승(지속 매집)",
-        "거래량 24.4× 급증(가격 평탄)"
+        "거래량 추세 18.2× 상승(지속 매집)",
+        "거래량 18.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": 4.3,
-      "runup5dPct": 0.5,
+      "runup20dPct": -1.1,
+      "runup5dPct": 0,
       "medDollarVolUsd": 2618,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NMCO",
+      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -6.8,
+      "runup5dPct": 2.3,
+      "medDollarVolUsd": 2944515,
       "smartAccum": false,
       "official": null
     },
@@ -86,9 +85,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 1.9,
-      "runup5dPct": 2.5,
-      "medDollarVolUsd": 8789324,
+      "runup20dPct": 5,
+      "runup5dPct": 4.4,
+      "medDollarVolUsd": 8659447,
       "smartAccum": false,
       "official": null
     },
@@ -101,10 +100,10 @@
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.8,
-      "runup5dPct": -3.2,
+      "runup20dPct": 8.5,
+      "runup5dPct": -2.1,
       "medDollarVolUsd": 6325990,
       "smartAccum": false,
       "official": null
@@ -116,12 +115,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.5× 상승",
+        "거래량 추세 1.6× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 9.9,
-      "runup5dPct": -12.8,
+      "runup20dPct": 9.4,
+      "runup5dPct": -0.6,
       "medDollarVolUsd": 4154502,
       "smartAccum": false,
       "official": null
@@ -133,29 +132,46 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
       ],
-      "runup20dPct": -6.9,
-      "runup5dPct": 0,
+      "runup20dPct": -4.7,
+      "runup5dPct": -0.5,
       "medDollarVolUsd": 3662877,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "NMCO",
-      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "ticker": "LEO",
+      "name": "Dreyfus Strategic Municipals, I",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -4,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 1290876,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AFB",
+      "name": "AllianceBernstein National Muni",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -9.6,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 2849903,
+      "runup20dPct": -6.4,
+      "runup5dPct": -0.7,
+      "medDollarVolUsd": 818740,
       "smartAccum": false,
       "official": null
     },
@@ -166,29 +182,46 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -2,
-      "runup5dPct": 4.2,
-      "medDollarVolUsd": 3071981,
+      "runup20dPct": -4.1,
+      "runup5dPct": 6.1,
+      "medDollarVolUsd": 3087054,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "APOG",
-      "name": "Apogee Enterprises, Inc.",
+      "ticker": "PKE",
+      "name": "Park Aerospace Corp.",
       "tier": "watch",
-      "score": 16,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 10.1,
-      "runup5dPct": 14.8,
-      "medDollarVolUsd": 7968818,
+      "runup20dPct": -11.9,
+      "runup5dPct": -9.4,
+      "medDollarVolUsd": 7680343,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ZYME",
+      "name": "Zymeworks Inc.",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -3.8,
+      "runup5dPct": -2.3,
+      "medDollarVolUsd": 15578054,
       "smartAccum": false,
       "official": null
     }
