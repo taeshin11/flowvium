@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-12T22:30:13.479Z",
+  "generatedAt": "2026-10-13T07:30:03.011Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
-  "totalRecent": 908,
+  "totalRecent": 849,
   "feed": [
     {
       "ticker": "007660.KS",
@@ -547,24 +547,6 @@
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261012000324"
     },
     {
-      "ticker": "272210.KS",
-      "name": "한화시스템",
-      "rceptNo": "20261012000409",
-      "filedAt": "2026-10-12",
-      "kind": "insider",
-      "reporter": "김호중",
-      "role": "비등기임원",
-      "title": "상무",
-      "relation": null,
-      "sharesAfter": 30,
-      "sharesDelta": 30,
-      "ratioAfter": 0,
-      "ratioDelta": 0,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261012000409"
-    },
-    {
       "ticker": "012450.KS",
       "name": "한화에어로스페이스",
       "rceptNo": "20261012000247",
@@ -581,6 +563,24 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261012000247"
+    },
+    {
+      "ticker": "272210.KS",
+      "name": "한화시스템",
+      "rceptNo": "20261012000409",
+      "filedAt": "2026-10-12",
+      "kind": "insider",
+      "reporter": "김호중",
+      "role": "비등기임원",
+      "title": "상무",
+      "relation": null,
+      "sharesAfter": 30,
+      "sharesDelta": 30,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "buy",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261012000409"
     },
     {
       "ticker": "083450.KQ",
