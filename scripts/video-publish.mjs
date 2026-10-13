@@ -371,7 +371,15 @@ let title = isShorts
 let titleStyle = null;
 if (isShorts) {
   const { chooseShortsTitle } = await import('./lib/curiosity-title.mjs');
+  // 2026-10-13: 궁금증형은 성적상 '강' 주제에서만(lib/curiosity-title [10g]). 주제를 모르거나 판정을 못 하면 헤드라인.
+  let topicStrong = false;
+  try {
+    const { topicLift, topicTier } = await import('./lib/topic-lift.mjs');
+    const { shortsTopicObservations } = await import('./lib/db.mjs');
+    topicStrong = !!last.topic && topicTier(topicLift(shortsTopicObservations(), { minSamples: 8 })).get(last.topic) === 'strong';
+  } catch (e) { log(`제목: 주제 성적 판정 실패 — 헤드라인으로 (${String(e?.message ?? e).slice(0, 60)})`); }
   const picked = await chooseShortsTitle({
+    topicStrong,
     headlineTitle: title,
     headline: orderForTitle(top, isKoUpload).ordered[0],
     context: (last.bodies ?? []).slice(0, 2),

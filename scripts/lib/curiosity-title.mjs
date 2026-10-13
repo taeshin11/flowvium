@@ -147,9 +147,11 @@ const HYPE = /전격|충격|경악|초유|역대급|발칵|대참사|폭탄/g;
  * @returns {Promise<{title:string, style:'curiosity'|'headline', fellBack:boolean, reason?:string}>}
  */
 export async function chooseShortsTitle({ headlineTitle, headline, context = [], seed, isKo, maxLen = 38,
-  disabled = false, make = makeCuriosityTitle }) {
+  disabled = false, topicStrong = true, make = makeCuriosityTitle }) {
   const plain = (extra = {}) => ({ title: headlineTitle, style: 'headline', fellBack: false, ...extra });
-  if (disabled || !isKo || !headline || titleStyleFor(seed) !== 'curiosity') return plain();
+  // 2026-10-13 성과 분석: 궁금증형은 국내정치 안에서 헤드라인형과 같고(0.60 vs 0.57) 그 밖에서는 크게 진다(0.17 vs 0.57).
+  //   성적상 '강' 주제(topic-lift.topicTier)일 때만 쓴다 — 주제 이름을 여기 박지 않는다. 판정은 호출부.
+  if (disabled || !isKo || !headline || !topicStrong || titleStyleFor(seed) !== 'curiosity') return plain();
   let reason = '';
   let t = null;
   try {

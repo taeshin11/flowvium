@@ -6,15 +6,14 @@
  * 제목 방식(궁금증/헤드라인)이 씨앗 짝홀로 번갈아서, 같은 짝홀을 쓰면 둘이 섞인다 → 씨앗 % 4 로 2×2 를 맞춘다.
  */
 import { subCtaFor, SUB_CTA_LINE, withSubCta } from './sub-cta.mjs';
-import { titleStyleFor } from './curiosity-title.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
-// [1] 2×2 가 고르게 — 제목 방식과 섞이지 않는다
+// [1] 2026-10-13 A/B 종료 → 모든 편에. 3일 지표 87편: 권유 있음 1천회당 구독 1.71(79명) vs 없음 1.14(54명).
+//   평균 시청 비율은 60.9% vs 69.9% 로 낮지만 조회 순위와 상관 0.25 < 구독 0.35. ChatGPT·agy 둘 다 '유지'.
 {
-  const cells = {};
-  for (let s = 0; s < 400; s++) { const k = `${titleStyleFor(s)}|${subCtaFor(s)}`; cells[k] = (cells[k] ?? 0) + 1; }
-  (Object.keys(cells).length === 4 && Object.values(cells).every((n) => n === 100)) ? ok(`[1] 2×2 각 100: ${JSON.stringify(cells)}`) : bad(`[1] ${JSON.stringify(cells)}`);
+  let off = 0; for (let s = 0; s < 400; s++) if (!subCtaFor(s)) off++;
+  off === 0 ? ok('[1] 모든 편에 붙는다') : bad(`[1] ${off}/400 편이 빠진다`);
 }
 // [2] 마지막 **내용** 장면 끝에 붙인다(광고·마무리 장면 아님), 이미 붙어 있으면 두 번 붙이지 않는다
 {

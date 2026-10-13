@@ -138,6 +138,14 @@ const mk = (t) => async () => JSON.stringify({ title: t });
   (e.style === 'headline' && calls === 0) ? ok('[10e] 끄개(SHORTS_CURIOSITY_TITLE=0) → 안 쓴다') : bad(`[10e] ${JSON.stringify(e)}`);
   const f = await chooseShortsTitle({ ...base, seed: 2, make: async () => { throw new Error('boom'); } });
   (f.style === 'headline' && f.fellBack) ? ok('[10f] 호출이 터져도 헤드라인으로 발행은 된다') : bad(`[10f] ${JSON.stringify(f)}`);
+  // [10g] 2026-10-13 성과 분석: 정치 밖 주제에서 궁금증형이 같은 날 순위 0.17(22편) vs 헤드라인형 0.57(29편),
+  //   국내정치 안에서는 0.60 vs 0.57 로 같다. → 성적상 '강' 주제에서만 궁금증형을 쓴다. 강 여부는 호출부가 topicTier 로 잰다.
+  calls = 0;
+  const g = await chooseShortsTitle({ ...base, seed: 2, topicStrong: false, make: make('X의 이유') });
+  (g.style === 'headline' && calls === 0) ? ok('[10g] 강한 주제가 아니면 궁금증형 차례여도 헤드라인') : bad(`[10g] ${JSON.stringify(g)} calls=${calls}`);
+  calls = 0;
+  const h = await chooseShortsTitle({ ...base, seed: 2, topicStrong: true, make: make('X의 이유') });
+  (h.style === 'curiosity' && calls === 1) ? ok('[10h] 강한 주제는 그대로 궁금증형') : bad(`[10h] ${JSON.stringify(h)} calls=${calls}`);
 }
 
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');
