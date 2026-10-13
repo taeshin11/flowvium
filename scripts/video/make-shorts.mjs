@@ -786,6 +786,7 @@ if (quote) log(`[인용] "${quote.text.slice(0, 40)}…" — ${quote.speaker ?? 
 // ── 2. 대본 — 짧고 훅이 강해야 한다 ─────────────────────────────────────────────
 const { resolveLlm } = await import('../lib/llm-config.mjs');
 const { agyText, agyLastWhy } = await import('../lib/agy.mjs');
+const { agyTextChain } = await import('../lib/agy-chain.mjs');
 const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: process.env.VIDEO_LLM_MODEL ?? 'mlx-community/Qwen3.5-4B-4bit' };
 // 한국어는 초당 약 6.7자로 읽힌다(Piper 실측: 47자 / 7.0초).
 const CPS = 6.7;
@@ -922,9 +923,15 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
 //   4B 가 이 프롬프트에서 계속 어긴 것들: 반말 종결, 끊긴 문장, 자릿수 띄어쓰기("6 억 8 천만"),
 //   예산의 절반도 못 채우는 길이. 아래 재시도 루프와 tightenNumbers 는 **그대로 둔다** —
 //   모델이 바뀌어도 코드가 보장한다는 원칙은 같고, 폴백으로 4B 가 다시 올 수 있다.
+// 2026-10-13: 한 모델(agyText)이 아니라 사슬로 쓴다. 그리고 사슬이 다 죽으면 **로컬 4B 로 쓰지 않는다** —
+//   그날 agy 서버 목록에서 모델 이름이 빠져 대본이 4B 로 내려갔고 "한동훈 주한미대사"(없는 직함·없는 발언)가
+//   공개됐다(g8fnIYbmeaw, 비공개로 내림). 사장님 9/19 "4B는 끄자". 사람이 SHORTS_ALLOW_LOCAL_SCRIPT=1 로 켤 때만 내려간다.
+class NoScriptModel extends Error {}
 async function rawScript(activePrompt) {
-  const viaAgy = agyText(activePrompt, { timeoutMs: 180_000 });
+  const viaAgy = agyTextChain(activePrompt, { timeoutMs: 180_000,
+    onFallback: (m, why) => log(`  ↩ agy ${m} 실패(${why}) → 다음 모델`) });
   if (typeof viaAgy === 'string' && viaAgy.trim()) return viaAgy;
+  if (process.env.SHORTS_ALLOW_LOCAL_SCRIPT !== '1') throw new NoScriptModel(`agy 사슬 전부 실패(${agyLastWhy() ?? '응답 없음'}) — 로컬 4B 로 대본을 쓰지 않는다`);
   log(`  ↩ agy 실패 → 로컬 ${llm.model} 로 (${agyLastWhy() ?? '응답 없음'})`);
   const r = await fetch(`${llm.url}/chat/completions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1041,7 +1048,11 @@ for (let a = 1; a <= 3; a++) {
     if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
     log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
-  } catch (e) { log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`); }
+  } catch (e) {
+    log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
+    // 모델이 없으면 다시 써 봐야 같은 결과다 — 이 회차를 접는다(발행 쪽이 예비·다음 슬롯으로 메운다).
+    if (e instanceof NoScriptModel) { console.error(`❌ 대본을 쓸 모델이 없다 — ${e.message}`); process.exit(1); }
+  }
 }
 // 2026-09-08: 21:45 회차가 여기서 죽었다. 세 번 다 걸린 이유가 **"무소속" 한 낱말**이었다.
 //   모델이 "무소속 한동훈" 을 고집했고, 원문에 그 말이 없어 매번 다시 쓰게 했다.

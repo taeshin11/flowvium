@@ -15,6 +15,7 @@
  *   그대로 구현했고, 그 모듈이 막으려던 실제 사고를 못 잡는다는 것도 지적하지 않았다.
  *   오히려 "이 사고는 잡히지 않는다" 를 테스트로 굳혔다. 무엇을 만들지 정하는 일은 사람이 한다.
  */
+import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
 import { agyBin, agyReady } from './agy.mjs';
 
@@ -59,7 +60,7 @@ export function runAgy(prompt, { dir, model, timeoutMs = 900_000 } = {}) {
   const bin = agyBin();
   if (!bin || !agyReady()) return { ok: false, why: 'agy 준비 안 됨' };
   const r = spawnSync(bin, ['-p', prompt,
-    '--model', model || process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+    '--model', model || defaultTextModel(),
     '--mode', 'accept-edits', '--effort', 'high', '--sandbox', '--add-dir', dir],
   { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
   // 권한 거부로 "no output produced" 가 떠도 **파일 수정은 반영돼 있을 수 있다**(실측).

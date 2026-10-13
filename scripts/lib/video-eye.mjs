@@ -13,6 +13,7 @@
  * 판정은 **구조화해서** 받는다. 자유 서술로 받으면 "괜찮아 보입니다" 같은 답이 와서
  *   자동 차단에 쓸 수 없다.
  */
+import { defaultEyeModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, copyFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -155,7 +156,7 @@ ${SCHEMA_HINT}`;
   if (process.env.EYE_BACKEND === 'api') EYE_WHY.push('EYE_BACKEND=api 지정');
   else if (!agyAvailable()) EYE_WHY.push('agy 없음/미로그인');
   if (process.env.EYE_BACKEND !== 'api' && agyAvailable()) {
-    const viaAgy = agyInspect(frames, prompt, process.env.AGY_EYE_MODEL || 'gemini-3.1-pro-high', opt.timeoutMs ?? 300000);
+    const viaAgy = agyInspect(frames, prompt, defaultEyeModel(), opt.timeoutMs ?? 300000);
     if (viaAgy) return viaAgy;
   }
   if (!key) return { ok: true, checked: false, issues: [], readable: true, notes: `GEMINI_API_KEY 없음${EYE_WHY.length ? ` · ${EYE_WHY.join(' · ')}` : ''}`, model: 'none' };

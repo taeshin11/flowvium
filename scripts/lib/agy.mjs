@@ -13,6 +13,7 @@
  * 권한: agy 는 코딩 에이전트다. --sandbox 로 터미널을 제한하고, 재료만 든 임시 폴더를
  *   작업 디렉터리로 준다 — 건드릴 것이 그 파일들뿐이다.
  */
+import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
 import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -59,7 +60,7 @@ export function agyText(prompt, opt = {}) {
       type: 'object', properties: { text: { type: 'string' } }, required: ['text'],
     }));
     const r = spawnSync(bin, ['-p', prompt,
-      '--model', opt.model || process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+      '--model', opt.model || defaultTextModel(),
       '--sandbox', '--add-dir', dir,
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],
     { cwd: dir, encoding: 'utf8', timeout: opt.timeoutMs ?? 180000, maxBuffer: 8 * 1024 * 1024 });

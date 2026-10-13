@@ -19,6 +19,7 @@
  *   대신 backlog 에 소진 판정을 두고 여기서 그걸 본다(translation-backlog.mjs 참조).
  * 사용: node scripts/seed-translation-memory.mjs [--locales=ko,ja] [--limit=N] [--dry]
  */
+import { defaultTextModel } from './lib/agy-models.mjs';
 import { SAMPLING_DEFAULTS } from './lib/llm-config.mjs';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
@@ -39,7 +40,7 @@ const MODEL = process.env.VLLM_MODEL || 'default_model';
 //   오늘 아침 보고서에서 같은 함정을 봤다 — agy 가 다 썼는데 라벨은 Qwen 이었고,
 //   그 칸이 품질 추적의 기준이라 결함이 엉뚱한 모델 앞으로 달렸다. 실제로 쓴 쪽을 적는다.
 const LOCAL_SOURCE = 'qwen3.8-27b';
-const AGY_SOURCE = process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high';
+const AGY_SOURCE = defaultTextModel();
 const arg = (n, d) => (process.argv.find(a => a.startsWith(`--${n}=`)) ?? '').split('=')[1] ?? d;
 const DRY = process.argv.includes('--dry');
 const LOCALES = arg('locales', 'ko').split(',').filter(Boolean);

@@ -16,6 +16,7 @@
  *   원인 후보를 여러 개 받고, 각각을 가르는 명령을 받는다. 고르는 것은 사람이 한다 —
  *   오늘 배운 것: agy 는 명세가 옳은지 판단하지 못한다. 후보를 좁히는 데까지만 쓴다.
  */
+import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
 import { mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -109,7 +110,7 @@ export function triage(alert, evidence, { cwd, model, timeoutMs = 600_000 } = {}
       .map((e) => `## ${e.name}${e.cmd ? `\n\`${e.cmd}\`` : ''}\n\n\`\`\`\n${e.body}\n\`\`\``).join('\n\n'));
     writeFileSync(join(dir, 'schema.json'), JSON.stringify(SCHEMA));
     const r = spawnSync(bin, ['-p', triagePrompt(alert),
-      '--model', model || process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+      '--model', model || defaultTextModel(),
       '--effort', 'high', '--sandbox',
       '--add-dir', dir, '--add-dir', cwd,
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],

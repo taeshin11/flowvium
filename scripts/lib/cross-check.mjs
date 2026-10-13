@@ -28,11 +28,13 @@ import { mkdtempSync, writeFileSync, rmSync, copyFileSync, existsSync } from 'fs
 import { tmpdir } from 'os';
 import { join, basename } from 'path';
 import { agyBin, agyReady } from './agy.mjs';
+import { crossCheckModels, defaultVisionModel } from './agy-models.mjs';
 
 /** 글·숫자 교차검증용 두 모델. 서로 다른 계열이어야 독립된 눈이 된다. */
-export const TEXT_MODELS = Object.freeze(['gemini-3.1-pro-high', 'claude-opus-4-6-thinking']);
+// 2026-10-13: 이름은 lib/agy-models 에서 — 서버 목록에 지금 있는 gemini 하나·claude 하나.
+export const TEXT_MODELS = Object.freeze(crossCheckModels());
 /** 눈검증용. Gemini 는 이미지를 못 받는다(실측 503). */
-export const VISION_MODEL = 'claude-opus-4-6-thinking';
+export const VISION_MODEL = defaultVisionModel();
 
 export const VERDICT_SCHEMA = {
   type: 'object',

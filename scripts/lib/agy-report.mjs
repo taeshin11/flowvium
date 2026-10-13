@@ -7,12 +7,14 @@ import util from 'util';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 
+import { defaultTextModel, pickAvailable, PREFERRED_TEXT, forgetAgyModels } from './agy-models.mjs';
+
 const execFileAsync = util.promisify(execFile);
 
 // 왜: 보고서에 저자를 적으려면 **실제로 넘긴 모델명**이 필요하다. 기본값을 두 군데 적어 두면
 //   한쪽만 바뀌어 라벨이 조용히 틀어진다(2026-09-23 실측 고장이 정확히 그 모양이었다).
 export function agyReportModel() {
-  return process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high';
+  return defaultTextModel();
 }
 
 /**
@@ -32,15 +34,15 @@ export const AGY_MODEL_CHAIN = (process.env.AGY_MODEL_CHAIN
     //   사유 로그를 넣고 보니 opus 쪽은 서비스가 `Eligibility check failed: UNAVAILABLE (code 503)` 을 냈다.
     //   한가할 때 몇 번 잰 속도보다 회차 안에서 실제로 받아 주는 쪽이 1차다.
     //   opus 는 2차로 남긴다 — 살아 있을 때는 여전히 좋은 답을 낸다. 차단기가 죽어 있을 땐 건너뛴다.
-    process.env.AGY_TEXT_MODEL || 'gemini-3.1-pro-high',
+    // 2026-10-13: 이름은 lib/agy-models 한 곳에서 — 서버 목록에서 3.1 pro·3.7 flash 가 사라져 사슬이 통째로 죽었다.
+    //   지금 받는 이름만 앞에서 셋. (AGY_MODEL_CHAIN 을 주면 사람이 정한 것이라 거르지 않는다.)
+    ...pickAvailable([process.env.AGY_TEXT_MODEL, process.env.AGY_FALLBACK_MODEL, process.env.AGY_LAST_MODEL, ...PREFERRED_TEXT].filter(Boolean)).slice(0, 3),
     // 2026-09-25: 2·3차도 gemini 로 (사장님 "gemini 쓰면되지").
     //   "계열이 다르면 같이 안 죽는다" 는 원칙으로 claude-opus·gpt-oss 를 뒀는데, 실측은 반대였다 —
     //   opus 37회 · gpt-oss 4회가 할당량 소진(429, "Resets in 26h…")으로 떨어졌고 gemini 는 0회.
     //   예비가 아니라 매번 ~155초를 버리는 칸이었다. flash 는 같은 한국어 요약에 11~13초,
     //   숫자를 그대로 옮겼다(3.8·3.7 각 2회). pro-low 는 2회 중 1회 작업 보고를 내서 뺐다.
-    process.env.AGY_FALLBACK_MODEL || 'gemini-3.8-flash-high',
-    // 3차: 27B 를 내렸으니 한 단이 더 필요하다. 계열이 또 달라 같은 이유로 같이 실패하지 않는다.
-    process.env.AGY_LAST_MODEL || 'gemini-3.7-flash-high',
+    // 3차: 27B 를 내렸으니 한 단이 더 필요하다.
   ]);
 
 /** 모델별 성공 횟수. 보고서 저자 라벨이 이 값으로 정해진다(오늘 아침 고친 그 칸). */
@@ -213,6 +215,8 @@ async function attemptOnce(prompt, { label, schema, timeoutMs, agyImpl, model } 
       } else {
         console.error(`[agy:${label}] 실행 실패: ${err.message}`);
         if (err.stderr) console.error(`[agy:${label}] stderr: ${err.stderr}`);
+        // 2026-10-13: 서버 목록에서 이름이 빠지면 다음 프로세스가 목록을 새로 읽게 캐시를 버린다.
+        if (/not recognized as a known model/.test(String(err.stderr ?? ''))) forgetAgyModels();
         const reset = parseQuotaReset(err.stderr);
         if (reset) {
           markQuota(model, reset);
