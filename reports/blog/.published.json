@@ -457,5 +457,17 @@
   "skipped": true,
   "reason": "same-day:2026-10-13-morning.md",
   "at": "2026-10-13T12:45:00.680Z"
+ },
+ "2026-10-13-shorts-2145.md": {
+  "id": "6757416746705002748",
+  "url": "https://flowvium.blogspot.com/2026/10/2-2-8-10-13.html",
+  "status": "LIVE",
+  "at": "2026-10-13T22:15:02.915Z"
+ },
+ "2026-10-14-morning.md": {
+  "id": "2121261017755296482",
+  "url": "https://flowvium.blogspot.com/2026/10/cisco-systems-inccsco-10-14.html",
+  "status": "LIVE",
+  "at": "2026-10-13T22:15:04.928Z"
  }
 }
