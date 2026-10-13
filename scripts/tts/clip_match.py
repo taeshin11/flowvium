@@ -22,6 +22,7 @@
 """
 import argparse
 import json
+import os
 import sys
 
 
@@ -64,6 +65,17 @@ DECOYS = FORM_DECOYS + CONTENT_DECOYS
 # 형식 미끼가 이만큼을 가져가면 그건 사진이 아니라 배너다.
 #   진짜 사진 최대 0.0120 · 배너 0.3344 사이에서 잡았다.
 FORM_LIMIT = 0.20
+
+# 2026-10-13: 미끼 softmax 는 미끼에 없는 종류의 사진을 소거법으로 통과시킨다 — 정기결제 편에 천안문 탱크가
+#   "주제 0.60 vs 미끼 0.16" 으로 나갔다. 주제 문장과의 절대 유사도(코사인) 하한을 같이 건다.
+#   0.16 은 잰 값: 게시 쇼츠 23편 첫 장면 사진 × 자기 헤드라인 0.166~0.348(오탐 0/23),
+#   남의 기사와 짝지은 사진 0.091~0.257(9/23 잡음), 탱크 0.150. 여유가 얇다 — 근거·재측정은 lib/clip-floor.test.mjs.
+SIM_FLOOR = float(os.environ.get("CLIP_SIM_FLOOR", "0.16"))
+
+
+def decide(topic_score, decoy_score, form_score, sim):
+    """세 가지로 거른다. ① 미끼가 주제를 이기면 ② 배너로 보이면 ③ 주제 문장과 절대로 너무 멀면."""
+    return bool(topic_score >= decoy_score and form_score < FORM_LIMIT and sim >= SIM_FLOOR)
 
 
 def image_similarity(model, proc, dev, images):
@@ -123,7 +135,11 @@ def main():
             inputs = proc(text=texts, images=[images[i]], return_tensors="pt",
                           padding=True, truncation=True)
             inputs = {k: v.to(dev) for k, v in inputs.items()}
-            row = model(**inputs).logits_per_image.softmax(dim=1).cpu()[0]
+            logits = model(**inputs).logits_per_image
+            row = logits.softmax(dim=1).cpu()[0]
+            # 2026-10-13: 미끼 softmax 는 미끼에 없는 종류의 사진을 소거법으로 통과시킨다
+            #   (정기결제 편 천안문 탱크: 주제 0.60 vs 미끼 0.16). 미끼와 무관한 **절대 유사도**(코사인)를 같이 낸다.
+            sim = float(logits[0, 0].cpu()) / float(model.logit_scale.exp().cpu())
         topic_score = float(row[0])
         worst_j = int(row[1:].argmax()) + 1
         decoy_score = float(row[worst_j])
@@ -139,20 +155,20 @@ def main():
         res.append({
             "index": i,
             "topic": round(topic_score, 4),
+            "sim": round(sim, 4),
             "decoy": round(decoy_score, 4),
             "worstDecoy": DECOYS[worst_j - 1],
             "formDecoy": round(form_score, 4),
             "chartDecoy": round(chart_score, 4),
-            # 두 가지로 거른다.
-            #   ① 미끼가 주제를 이기면 이 회차 사진이 아니다.
-            #   ② 주제를 이기지 못해도 **배너로 보이면** 화면에 깔 수 없다.
-            "ok": bool(topic_score >= decoy_score and form_score < FORM_LIMIT),
+            "ok": decide(topic_score, decoy_score, form_score, sim),
         })
 
     json.dump(res, open(a.json_out, "w", encoding="utf-8"))
     for r in res:
         if r["ok"]:
             mark = "✓"
+        elif r["sim"] < SIM_FLOOR and r["topic"] >= r["decoy"] and r["formDecoy"] < FORM_LIMIT:
+            mark = f"✗ 주제와 너무 멀다(유사도 {r['sim']:.3f} < {SIM_FLOOR})"
         elif r["formDecoy"] >= FORM_LIMIT:
             mark = f"✗ 배너로 보인다({r['formDecoy']:.2f})"
         else:

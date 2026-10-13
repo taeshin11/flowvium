@@ -1765,7 +1765,7 @@ closeGoogleImages();
         if (v.ok) continue;
         if (softBail && !isBanner(v)) continue;   // 주제 판정은 못 믿겠고, 배너는 그래도 뺀다
         const r = cand[v.index];
-        log(`[화면] ${r.k + 1} CLIP 이 걸렀다 — 주제 ${v.topic} vs "${v.worstDecoy}" ${v.decoy}`);
+        log(`[화면] ${r.k + 1} CLIP 이 걸렀다 — 주제 ${v.topic} vs "${v.worstDecoy}" ${v.decoy} · 유사도 ${v.sim ?? '?'}`);
         r.x.media = null; r.x.pick = null; r.x.credit = null;
         dropped += 1;
       }
