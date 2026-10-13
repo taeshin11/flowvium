@@ -1,86 +1,79 @@
 {
-  "generatedAt": "2026-10-13T07:20:26.526Z",
+  "generatedAt": "2026-10-13T22:20:26.269Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 4,
   "strongCount": 1,
   "watchCount": 3,
-  "officialFewAccount": 1,
+  "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "042000.KQ",
       "name": "카페24",
       "tier": "strong",
-      "score": 56,
+      "score": 34,
       "coFire": 3,
       "lead": [
-        "거래량 추세 12.2× 상승(지속 매집)",
-        "거래량 6.6× 급증(가격 평탄)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
+        "거래량 추세 7.6× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)",
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": 9,
-      "runup5dPct": -18.2,
+      "runup20dPct": 11.6,
+      "runup5dPct": -16.2,
       "medDollarVolUsd": 792287,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "222080.KQ",
+      "name": "씨아이에스",
+      "tier": "watch",
+      "score": 40,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 7.7,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 2557513,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "060370.KQ",
-      "name": "LS마린솔루션",
+      "ticker": "281740.KQ",
+      "name": "레이크머티리얼즈",
       "tier": "watch",
-      "score": 48,
+      "score": 40,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
+        "거래량 추세 2.1× 상승(지속 매집)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "🚨 거래소 소수계좌 거래집중(공식 2026-10-12)"
-      ],
-      "runup20dPct": -4.4,
-      "runup5dPct": -9.8,
-      "medDollarVolUsd": 2345863,
-      "smartAccum": false,
-      "official": {
-        "category": "caution",
-        "reason": "소수지점/계좌",
-        "fewAccount": true,
-        "designatedDate": "2026-10-12"
-      }
-    },
-    {
-      "ticker": "056730.KQ",
-      "name": "CNT85",
-      "tier": "watch",
-      "score": 41,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -9.5,
-      "runup5dPct": 0.2,
-      "medDollarVolUsd": 11869,
+      "runup20dPct": 6.6,
+      "runup5dPct": -2.7,
+      "medDollarVolUsd": 2651939,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "038500.KQ",
-      "name": "삼표시멘트",
+      "ticker": "021040.KQ",
+      "name": "대호특수강",
       "tier": "watch",
       "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 13.8× 상승(지속 매집)",
-        "거래량 19.6× 급증(가격 평탄)",
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 4.3× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -7.1,
-      "runup5dPct": -1.6,
-      "medDollarVolUsd": 2037311,
+      "runup20dPct": -1.4,
+      "runup5dPct": 0.2,
+      "medDollarVolUsd": 12635,
       "smartAccum": true,
       "official": null
     }
