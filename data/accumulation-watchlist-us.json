@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-13T22:03:26.588Z",
+  "generatedAt": "2026-10-14T13:01:11.690Z",
   "universe": "US",
   "scanned": 296,
-  "count": 13,
+  "count": 12,
   "strongCount": 0,
-  "watchCount": 13,
+  "watchCount": 12,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -75,6 +75,23 @@
       "official": null
     },
     {
+      "ticker": "ZYME",
+      "name": "Zymeworks Inc.",
+      "tier": "watch",
+      "score": 25,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -3.8,
+      "runup5dPct": -2.3,
+      "medDollarVolUsd": 15578054,
+      "smartAccum": false,
+      "official": null
+    },
+    {
       "ticker": "DAKT",
       "name": "Daktronics, Inc.",
       "tier": "watch",
@@ -87,24 +104,7 @@
       ],
       "runup20dPct": 5,
       "runup5dPct": 4.4,
-      "medDollarVolUsd": 8659447,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SWBI",
-      "name": "Smith & Wesson Brands, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.5,
-      "runup5dPct": -2.1,
-      "medDollarVolUsd": 6325990,
+      "medDollarVolUsd": 8659224,
       "smartAccum": false,
       "official": null
     },
@@ -199,29 +199,13 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
       "runup20dPct": -11.9,
       "runup5dPct": -9.4,
       "medDollarVolUsd": 7680343,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ZYME",
-      "name": "Zymeworks Inc.",
-      "tier": "watch",
-      "score": 18,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -3.8,
-      "runup5dPct": -2.3,
-      "medDollarVolUsd": 15578054,
       "smartAccum": false,
       "official": null
     }
