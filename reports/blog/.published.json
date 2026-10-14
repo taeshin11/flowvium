@@ -480,5 +480,16 @@
   "skipped": true,
   "reason": "same-day:2026-10-14-morning.md",
   "at": "2026-10-14T12:45:00.664Z"
+ },
+ "2026-10-14-midnight.md": {
+  "skipped": true,
+  "reason": "same-day:2026-10-14-morning.md",
+  "at": "2026-10-14T22:15:00.385Z"
+ },
+ "2026-10-14-shorts-2145.md": {
+  "id": "1061549643053323721",
+  "url": "https://flowvium.blogspot.com/2026/10/7-10-14.html",
+  "status": "LIVE",
+  "at": "2026-10-14T22:15:02.980Z"
  }
 }
