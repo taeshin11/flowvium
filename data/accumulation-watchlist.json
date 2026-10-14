@@ -1,29 +1,12 @@
 {
-  "generatedAt": "2026-10-13T22:20:26.269Z",
+  "generatedAt": "2026-10-14T07:20:27.393Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
-  "strongCount": 1,
+  "count": 3,
+  "strongCount": 0,
   "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "042000.KQ",
-      "name": "카페24",
-      "tier": "strong",
-      "score": 34,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 7.6× 상승(지속 매집)",
-        "거래량 4.6× 급증(가격 평탄)",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": 11.6,
-      "runup5dPct": -16.2,
-      "medDollarVolUsd": 792287,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "222080.KQ",
       "name": "씨아이에스",
@@ -31,32 +14,14 @@
       "score": 40,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 2.3× 상승(지속 매집)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 7.7,
-      "runup5dPct": 0.4,
+      "runup20dPct": 9,
+      "runup5dPct": -3.6,
       "medDollarVolUsd": 2557513,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "281740.KQ",
-      "name": "레이크머티리얼즈",
-      "tier": "watch",
-      "score": 40,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 6.6,
-      "runup5dPct": -2.7,
-      "medDollarVolUsd": 2651939,
       "smartAccum": true,
       "official": null
     },
@@ -67,13 +32,31 @@
       "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 4.3× 급증(가격 평탄)",
+        "거래량 추세 3.4× 상승(지속 매집)",
+        "거래량 4.5× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -1.4,
-      "runup5dPct": 0.2,
+      "runup20dPct": 1.4,
+      "runup5dPct": 1.9,
       "medDollarVolUsd": 12635,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "083450.KQ",
+      "name": "GST",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 8.6,
+      "runup5dPct": -8.9,
+      "medDollarVolUsd": 4160483,
       "smartAccum": true,
       "official": null
     }
