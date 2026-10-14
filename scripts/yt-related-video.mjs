@@ -53,6 +53,13 @@ try {
       if ((await fieldText()).startsWith(MATCH.slice(0, 6))) { skipped++; log(`${id} 이미 걸려 있다`); continue; }
       await page.getByText('관련 동영상').first().click();
       await page.waitForTimeout(2500);
+      // 2026-10-14: 선택 창은 최근 업로드만 보여 준다 — 쇼츠가 쌓이며 대상 롱폼이 밀려나 10/10 부터 전부 실패했다.
+      //   '내 동영상 검색' 칸에 제목을 넣어 대상이 목록 어디에 있든 찾는다.
+      const search = page.getByPlaceholder('내 동영상 검색').first();
+      if (!(await search.count())) throw new Error('선택 창에 검색 칸이 없다');
+      await search.fill(MATCH);
+      await search.press('Enter');
+      await page.waitForTimeout(3000);
       const card = page.getByText(MATCH, { exact: false }).first();
       if (!(await card.count())) throw new Error('선택 창에서 대상 영상을 못 찾았다');
       await card.click();
