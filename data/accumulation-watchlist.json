@@ -1,62 +1,26 @@
 {
-  "generatedAt": "2026-10-14T07:20:27.393Z",
+  "generatedAt": "2026-10-14T22:20:25.791Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "222080.KQ",
-      "name": "씨아이에스",
-      "tier": "watch",
-      "score": 40,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 9,
-      "runup5dPct": -3.6,
-      "medDollarVolUsd": 2557513,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "021040.KQ",
-      "name": "대호특수강",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 1.4,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 12635,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "083450.KQ",
-      "name": "GST",
+      "ticker": "042000.KQ",
+      "name": "카페24",
       "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "거래량 추세 5.4× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 8.6,
-      "runup5dPct": -8.9,
-      "medDollarVolUsd": 4160483,
+      "runup20dPct": 11.5,
+      "runup5dPct": -24.6,
+      "medDollarVolUsd": 806222,
       "smartAccum": true,
       "official": null
     }
