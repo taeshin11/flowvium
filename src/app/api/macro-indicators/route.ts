@@ -963,7 +963,8 @@ export async function GET(request: Request) {
       ...base,
       ...(gq ? { name: `GDP Growth Rate (${gq})`, nameKo: `GDP 성장률 (${gq})` } : {}),
       actual, previous: gdpLive?.previous != null ? parseFloat(gdpLive.previous.toFixed(1)) : base.previous, forecast: fc,
-      releaseDate: base.releaseDate,
+      // 관측 분기 시작일 — 아래 발표일 보정 루프가 period 로 옮기고 releaseDate 를 FRED 공개일로 바꾼다(2026-10-16).
+      releaseDate: gdpLive ? gdpLive.date : base.releaseDate,
       nextRelease: nextScheduledRelease('gdp', nextScheduledRelease("gdp", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
       summary: actual !== null

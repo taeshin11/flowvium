@@ -1172,7 +1172,8 @@ export default function HomePage() {
                 {/* 2026-08-20: src/data/sectors.ts 의 description 이 영문 하드코딩이라
                     한국어 페이지에 영문 21건이 노출됐다(UI 검증 실측). 이 저장소의 관습대로
                     런타임 번역(<TranslatedText>)을 태운다 — 회사·Cascade 페이지와 동일 방식. */}
-                <TranslatedText text={`${sector.description.split('.')[0]}.`} />
+                {/* 2026-10-16: split('.') 이 'U.S.' 의 마침표에서 잘라 'U.에 의해' 로 번역됐다 — 소문자·숫자·괄호 뒤 마침표에서만 끊는다 */}
+                <TranslatedText text={(sector.description.match(/^.*?[a-z0-9)][.!?](?=\s|$)/)?.[0]) ?? sector.description} />
               </p>
               <div className="flex items-center justify-center gap-1 text-sm font-medium text-cf-primary opacity-0 group-hover:opacity-100 transition-opacity">
                 {tHome('explore')}
