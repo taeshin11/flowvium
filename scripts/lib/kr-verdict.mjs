@@ -50,11 +50,16 @@ export function computeKrVerdict(k, earlyWarning) {
   }
   if (k.analog?.matches >= 5) reasons.push(`KR 과거 유사국면 ${k.analog.matches}회 — 현재 지문(KOSPI 고점대비 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%)을 KOSPI 전 역사와 거리매칭한 가장 가까운 국면들: 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`);
   if (k.seasonality) reasons.push(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`);
+  // 2026-10-15 사장님 결정 (b): 낙폭 과대 매수 관찰인데 같은 판정의 유사국면 3개월 상승확률이 50% 미만이면 'wait'.
+  //   (a)(이 규칙 전) 판정은 verdictA 로 남겨 장부에서 (a) 대비 성적을 계속 비교한다(kr-verdict.test [8~10]).
+  const analogVeto = verdict === 'accumulate' && k.analog?.matches >= 5 && k.analog.posRate3m < 50;
+  if (analogVeto) reasons.unshift(`KR 과거 유사국면 ${k.analog.matches}회의 3개월 상승확률 ${k.analog.posRate3m}%(50% 미만) — 낙폭 과대여도 매수 관찰 보류`);
   // 2026-10-15: 전날 밤 반도체 충격 거부권 — 매수 쪽 판정만 'wait' 로 내린다(kr-verdict.test 머리말).
-  if ((verdict === 'accumulate' || verdict === 'neutral_ready') && k.overnight?.elevated) {
+  const overnightVeto = (verdict === 'accumulate' || verdict === 'neutral_ready') && k.overnight?.elevated;
+  if (overnightVeto) {
     const o = k.overnight;
     reasons.unshift(`전날 밤 SOX ${(o.sox * 100).toFixed(1)}% — 과거 같은 밤 ${o.n}일 중 다음 날 KOSPI -2% 이하 ${(o.pBigDown * 100).toFixed(0)}%(평소 ${(o.base * 100).toFixed(1)}%) — 매수 관찰 보류`);
-    return { verdict: 'wait', vetoedFrom: verdict, reasons };
   }
-  return { verdict, reasons };
+  if (!overnightVeto && !analogVeto) return { verdict, reasons };
+  return { verdict: 'wait', vetoedFrom: verdict, ...(analogVeto ? { verdictA: overnightVeto ? 'wait' : verdict } : {}), reasons };
 }

@@ -46,6 +46,12 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   const c2 = reportCall(rep2, 'kr');
   c2.warnScore === 8 && c2.warnLevel === 'low' && c2.analogUp3m === 0.42 ? ok('[6b] 조기경보 점수·등급, KR 유사국면 3개월 상승확률(0.42)도 기록') : bad(`[6b] ${JSON.stringify(c2)}`);
 }
+// [6c] KR 판정 규칙 (b)(10/15 사장님) 전후 비교용 — (a) 판정을 같이 남긴다. 규칙 전 보고서는 (a)=판정.
+{
+  const r1 = reportCall({ marketVerdict: { krVerdict: { verdict: 'wait', vetoedFrom: 'accumulate', verdictA: 'accumulate', reasons: [] } } }, 'kr');
+  const r0 = reportCall({ marketVerdict: { krVerdict: { verdict: 'accumulate', reasons: [] } } }, 'kr');
+  r1.verdict === 'wait' && r1.verdictA === 'accumulate' && r0.verdictA === 'accumulate' ? ok('[6c] (b) 판정과 (a) 판정을 함께 기록') : bad(`[6c] ${JSON.stringify([r1, r0])}`);
+}
 // ── 채점
 {
   const rec = { forecasts: { report: { dir: 'down' }, base: { pDown: 0.79 }, clim: { pDown: 0.5 } } };

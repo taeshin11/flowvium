@@ -42,6 +42,8 @@ export function reportCall(report, market) {
   const m = (v?.reasons ?? []).map((r) => /유사국면[^]*?상승확률\s*(\d+(?:\.\d+)?)%/.exec(String(r))).find(Boolean);
   return {
     dir: STANCE_DIR[stance] ?? null, stance, verdict: v?.verdict ?? null,
+    // (a) 판정 — KR 규칙 (b)(10/15 사장님, 유사국면 <50% → wait) 가 없었을 때. 규칙 전 보고서는 판정과 같다.
+    verdictA: v?.verdictA ?? v?.verdict ?? null,
     warnScore: report?.earlyWarning?.score ?? null, warnLevel: report?.earlyWarning?.level ?? null,
     analogUp3m: m ? Number(m[1]) / 100 : null,
   };

@@ -50,14 +50,31 @@ const mkSeries = (soxR, ksR) => {
 {
   const k = { dd: -33.8, r20: -14.4, above200: false, distPct: -5.5, analog: { matches: 12, med3m: -1.1, posRate3m: 42 }, breadth: { divergencePp: 15.2 } };
   const ew = { level: 'low', score: 8 };
-  const before = computeKrVerdict(k, ew);
-  before.verdict === 'accumulate' && !before.vetoedFrom ? ok('[4] 밤 신호 없으면 종전과 같다(accumulate) — 기존 동작 보존') : bad(`[4] ${JSON.stringify(before)}`);
+  // [4] 유사국면이 우호적(상승확률 ≥50%)이고 밤 신호도 없으면 종전과 같다.
+  const before = computeKrVerdict({ ...k, analog: { ...k.analog, posRate3m: 55 } }, ew);
+  before.verdict === 'accumulate' && !before.vetoedFrom && !before.verdictA ? ok('[4] 유사국면 55%·밤 신호 없음 → 종전과 같다(accumulate)') : bad(`[4] ${JSON.stringify(before)}`);
   const after = computeKrVerdict({ ...k, overnight: { sox: -0.043, bucket: 'le-4', n: 158, pBigDown: 0.31, base: 0.049, z: 15, elevated: true } }, ew);
   after.verdict === 'wait' && after.vetoedFrom === 'accumulate' && /SOX -4\.3%/.test(after.reasons[0]) ? ok(`[5] 10/15 아침: accumulate → wait · "${after.reasons[0]}"`) : bad(`[5] ${JSON.stringify(after)}`);
   const hi = computeKrVerdict({ ...k, overnight: { sox: -0.05, bucket: 'le-4', n: 158, pBigDown: 0.31, base: 0.049, z: 15, elevated: true } }, { level: 'high', score: 50 });
   hi.verdict === 'wait' && !hi.vetoedFrom ? ok('[6] 이미 wait(경보 high)면 거부권이 할 일 없음') : bad(`[6] ${JSON.stringify(hi)}`);
-  const notEl = computeKrVerdict({ ...k, overnight: { sox: -0.01, bucket: '-2to0', n: 1890, pBigDown: 0.04, base: 0.049, z: -1, elevated: false } }, ew);
-  notEl.verdict === 'accumulate' ? ok('[7] elevated 아니면 그대로') : bad('[7]');
+  const notEl = computeKrVerdict({ ...k, analog: { ...k.analog, posRate3m: 55 }, overnight: { sox: -0.01, bucket: '-2to0', n: 1890, pBigDown: 0.04, base: 0.049, z: -1, elevated: false } }, ew);
+  notEl.verdict === 'accumulate' ? ok('[7] elevated 아니면 그대로(유사국면 55% — (b) 규칙과 분리해 본다)') : bad('[7]');
+}
+// [8~10] 사장님 10/15 결정 (b): 유사국면 3개월 상승확률 50% 미만이면 accumulate 대신 wait.
+//   왜: 10/15 오후판(급락 마감 뒤) 판정이 'accumulate' 인데 같은 판정의 유사국면은 3개월 상승확률 42%·중앙값 -1.1% —
+//   보고서 안의 자기 숫자와 판정이 어긋났다. 매수 관찰만 막는다(새 매수를 만들지 않는다).
+//   (a)(규칙 전) 판정은 verdictA 로 남겨 장부에서 (a) 대비 성적을 계속 비교한다.
+{
+  const k = { dd: -39.1, r20: -18, above200: false, distPct: -9, analog: { matches: 12, med3m: -1.1, posRate3m: 42 } };
+  const ew = { level: 'low', score: 15 };
+  const v = computeKrVerdict(k, ew);
+  v.verdict === 'wait' && v.vetoedFrom === 'accumulate' && v.verdictA === 'accumulate' && /상승확률 42%/.test(v.reasons[0])
+    ? ok(`[8] 10/15 오후판: 유사국면 42% → wait · (a)=accumulate 기록 · "${v.reasons[0]}"`) : bad(`[8] ${JSON.stringify(v)}`);
+  const few = computeKrVerdict({ ...k, analog: { matches: 3, med3m: -1.1, posRate3m: 42 } }, ew);
+  few.verdict === 'accumulate' ? ok('[9] 유사국면 5회 미만이면 안 쓴다(다른 KR 규칙과 같은 문턱)') : bad(`[9] ${JSON.stringify(few)}`);
+  const both = computeKrVerdict({ ...k, overnight: { sox: -0.043, bucket: 'le-4', n: 158, pBigDown: 0.31, base: 0.049, z: 15, elevated: true } }, ew);
+  both.verdict === 'wait' && both.verdictA === 'wait' && /SOX/.test(both.reasons[0])
+    ? ok('[10] 밤 거부권도 켜지면 (a) 판정도 wait — (b) 규칙의 몫이 아니다') : bad(`[10] ${JSON.stringify(both)}`);
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
