@@ -44,6 +44,7 @@ import { reconcileReportIndexLevels } from './lib/index-level-check.mjs';
 import { canonicalTermGlossary } from './lib/narrative-fix.mjs';
 import { sameCompany } from './lib/sec-name-clean.mjs';
 import { agyReport, agyReportModel, agyModelUsage } from './lib/agy-report.mjs';
+import { verifyChain } from './lib/agy-models.mjs';
 import { reportProvenance } from './lib/model-provenance.mjs';
 import { isGeneratedSource } from './lib/report-source.mjs';
 setGlobalDispatcher(new Agent({
@@ -1399,7 +1400,7 @@ function describeFetchError(e) {
 // ── Ollama 호출 with cloud fallback ────────────────────────────────────────────
 // 우선순위: vLLM/TabbyAPI (VLLM_URL) → Ollama → GROQ 70B → Gemini 2.0 Flash
 // 로컬 우선 + 실패/timeout 자동 cloud 폴백 = 항상 결과 반환 보장.
-async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = '', schema = null) {
+async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = '', schema = null, agyOpt = {}) {
   // 2026-05-29: label 별 토큰 차등. portfolio 12 종목 한글 rationale 포함 시 5K+ token 필요.
   // 2026-06-15: portfolio 8192→6144 — prompt(priceData 유니버스)가 ~41-43k tok 로 커서 vLLM
   //   max_model_len(51200, KV 천장 52480) 내에 prompt+output 가 들어가야 함. 6144 면 충분(실측 출력 ~3-4k).
@@ -1412,7 +1413,7 @@ async function callOllama(prompt, model = modelArg, timeoutMs = 600000, label = 
   // 1. vLLM 우선 (VLLM_URL 설정된 경우만) — numPredict·schema 전달(2048 절단/스키마 유실 방지).
   if (process.env.REPORT_VIA_AGY === '1') {
     const t0Agy = Date.now();
-    const agyRes = await agyReport(prompt, { label, schema, timeoutMs });
+    const agyRes = await agyReport(prompt, { label, schema, timeoutMs, ...agyOpt });
     if (agyRes) {
       agyCallCount++;
       console.log(`[agy:${label}] ${((Date.now() - t0Agy) / 1000).toFixed(1)}초`);
@@ -7694,7 +7695,8 @@ async function generateViaOllama() {
         '{"catalysts":["item1","item2"],"fundamentalBasis":"text"}',
       ].filter(Boolean).join('\n');
       try {
-        const resp = await callOllama(factPrompt, modelArg, 240000, `fact-check:${p.ticker}`);
+        // 검증 호출 — 사장님 10/15 "agy 검증에는 gemini4 argon medium"(lib/agy-models PREFERRED_VERIFY).
+        const resp = await callOllama(factPrompt, modelArg, 240000, `fact-check:${p.ticker}`, null, { chain: verifyChain() });
         const m = resp?.match(/\{[\s\S]*\}/);
         if (!m) return null;
         const parsed = JSON.parse(m[0]);

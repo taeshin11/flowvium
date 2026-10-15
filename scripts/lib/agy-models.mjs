@@ -25,12 +25,18 @@ export const PREFERRED_TEXT = Object.freeze([
 export const PREFERRED_CLASSIFY = Object.freeze([
   'gemini-4-argon-medium', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low',
 ]);
-// 그림(프레임) 보기. cross-check 는 claude 를 썼다(gemini 이미지 503 실측), video-eye 는 gemini 3.1 pro 를 썼다.
+// 검증(사실 확인·문장 근거 판정·교차검증의 gemini 쪽·그림 검증). 2026-10-15 사장님 "agy 검증에는 gemini4 argon medium".
+//   뒤 칸은 argon 이 서버 목록에서 빠졌을 때만 쓴다(10/13 이름 퇴출로 전 호출이 떨어진 일 — agy-model-names-vanish).
+export const PREFERRED_VERIFY = Object.freeze([
+  'gemini-4-argon-medium', 'gemini-3.8-flash-high', 'gemini-3.8-flash-medium',
+]);
+// 그림(프레임) 보기. cross-check 는 claude 를 썼다(9/23 gemini 3.x 이미지 503 실측), video-eye 는 gemini 3.1 pro 를 썼다.
+//   10/15 실측: argon-medium 은 그림을 읽는다(테스트 그림 3장 색·위치·개수 모두 맞힘, 17~21초) → 검증 지시대로 1순위.
 export const PREFERRED_EYE = Object.freeze([
-  'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium',
+  'gemini-4-argon-medium', 'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium',
 ]);
 export const PREFERRED_VISION = Object.freeze([
-  'claude-opus-4-6-thinking', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium', 'gemini-3.8-flash-high',
+  'gemini-4-argon-medium', 'claude-opus-4-6-thinking', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium', 'gemini-3.8-flash-high',
 ]);
 
 const TTL_MS = 60 * 60 * 1000;
@@ -84,7 +90,7 @@ export function pickAvailable(preferred, avail = agyModels()) {
   if (!avail) return [...preferred];
   const live = preferred.filter((m) => avail.includes(m));
   if (live.length) return live;
-  const any = [...new Set([...PREFERRED_TEXT, ...PREFERRED_EYE, ...PREFERRED_VISION])].filter((m) => avail.includes(m));
+  const any = [...new Set([...PREFERRED_TEXT, ...PREFERRED_VERIFY, ...PREFERRED_EYE, ...PREFERRED_VISION])].filter((m) => avail.includes(m));
   return any.length ? any : avail.slice(0, 1);
 }
 
@@ -97,10 +103,14 @@ export function defaultEyeModel() {
 }
 /** 교차검증용 — 계열이 다른 둘(gemini 하나, claude 하나). */
 export function crossCheckModels() {
-  const live = pickAvailable(PREFERRED_TEXT);
+  const live = pickAvailable(PREFERRED_VERIFY);
   const g = live.find((m) => m.startsWith('gemini-'));
   const c = pickAvailable(PREFERRED_VISION).find((m) => m.startsWith('claude-'));
   return [g, c].filter(Boolean);
+}
+/** 검증 호출용 사슬 — 지금 서버가 받는 이름만. */
+export function verifyChain() {
+  return pickAvailable(PREFERRED_VERIFY);
 }
 export function defaultVisionModel() {
   return pickAvailable(PREFERRED_VISION)[0];

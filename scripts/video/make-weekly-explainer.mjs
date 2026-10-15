@@ -18,6 +18,7 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync, readdirSync
 import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 import { ROOT } from '../lib/project-root.mjs';
+import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, rankIssues, ungroundedNumbers, hangulNumerals, isEditorial, thumbLineOk, imagePool, scriptBudget, explainerTitle } from '../lib/weekly-explainer.mjs';
 
 const argv = process.argv.slice(2);
@@ -176,7 +177,7 @@ async function verifySentences() {
     '오프닝의 질문 문장과 "이번 영상에서 ~를 짚어 봅니다" 같은 안내 문장은 사실 주장이 아니므로 통과다. 기사 내용을 요약·재진술한 것은 통과다.',
     '누가 한 말·행동인지(정당·인물·기관)를 기사와 다르게 붙인 문장, 주체 없이 채널이 의견·당위를 말하는 문장도 unsupported 다.', '',
     '## 문장', ...flat.map((x, i) => `${i}: ${x.s}`), '', '## 기사', ...docs.map((d, i) => `[${i}] ${d.headline}\n${d.text}`)].join('\n'),
-  { label: 'explainer-verify', timeoutMs: 300_000, schema: { type: 'object', properties: {
+  { label: 'explainer-verify', chain: verifyChain(), timeoutMs: 300_000, schema: { type: 'object', properties: {
     unsupported: { type: 'array', items: { type: 'integer' } }, reasons: { type: 'array', items: { type: 'string' } } }, required: ['unsupported'] } });
   let j; try { j = JSON.parse(raw); } catch { return null; }
   const drop = new Set((j.unsupported ?? []).filter((n) => Number.isInteger(n) && flat[n]));

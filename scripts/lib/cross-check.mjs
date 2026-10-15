@@ -33,7 +33,8 @@ import { crossCheckModels, defaultVisionModel } from './agy-models.mjs';
 /** 글·숫자 교차검증용 두 모델. 서로 다른 계열이어야 독립된 눈이 된다. */
 // 2026-10-13: 이름은 lib/agy-models 에서 — 서버 목록에 지금 있는 gemini 하나·claude 하나.
 export const TEXT_MODELS = Object.freeze(crossCheckModels());
-/** 눈검증용. Gemini 는 이미지를 못 받는다(실측 503). */
+/** 눈검증용. 9/23 Gemini 3.x 는 이미지에 503 이었다. 10/15 실측 argon-medium 은 읽는다(그림 3장 모두 맞힘)
+ *  → 사장님 '검증은 argon medium' 대로 1순위(lib/agy-models PREFERRED_VISION). */
 export const VISION_MODEL = defaultVisionModel();
 
 export const VERDICT_SCHEMA = {

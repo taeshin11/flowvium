@@ -55,7 +55,7 @@ export async function personLeads(hooks, { call } = {}) {
     '직책·기관·일반 명사·형용사·동사(예: 대통령실, 부동산, 선정된, 당정협의)는 false 다.', '', list, '',
     'JSON 으로만 답해라: {"p": {"0": true|false, ...}} — 모든 번호를 빠짐없이.'].join('\n');
   const doCall = call ?? (async (pp) => (await import('./agy-report.mjs')).agyReport(pp, {
-    label: 'person-lead', timeoutMs: 120_000,
+    label: 'person-lead', chain: (await import('./agy-models.mjs')).verifyChain(), timeoutMs: 120_000,
     schema: { type: 'object', properties: { p: { type: 'object' } }, required: ['p'] },
     accept: (out) => { try { const o = JSON.parse(out)?.p; return !!o && hooks.every((_, i) => typeof (o[i] ?? o[String(i)]) === 'boolean'); } catch { return false; } },
   }));
