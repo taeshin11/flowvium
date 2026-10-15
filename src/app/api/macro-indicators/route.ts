@@ -61,6 +61,7 @@ export interface MacroIndicator {
   previous: number | null;
   unit: string;
   releaseDate: string;
+  period?: string;      // 관측 기간(FRED observation date) — releaseDate 는 실제 공개일
   nextRelease?: string;
   surprise: 'beat' | 'miss' | 'inline' | 'pending';
   rateImpact: 'hawkish' | 'dovish' | 'neutral';
@@ -115,6 +116,26 @@ async function fetchFREDCsv(series: string, monthsBack: number = 15): Promise<Ar
     return [];
   }
 }
+
+// 2026-10-16 사이트 눈검증: '📅 발표일' 에 FRED 관측월 첫날(PCE 2026-08-01 등)이 나갔고, 손으로 쓴 발표 달력은 구멍이 있었다
+//   (주간 실업수당 9~12월 없음 → 다음 발표 2027-01-07). FRED vintagedates 의 마지막 날 = 실제로 공개된 날(10/16 실측:
+//   PCEPILFE 9/30 · ICSA 10/15 · CPIAUCSL 10/14 · GDPC1 9/30).
+async function fredReleased(series: string): Promise<string | null> {
+  const apiKey = process.env.FRED_API_KEY?.trim();
+  if (!apiKey || !/^[a-z0-9]{32}$/.test(apiKey)) return null;
+  try {
+    const res = await fetch(`https://api.stlouisfed.org/fred/series/vintagedates?series_id=${series}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=1`,
+      { signal: AbortSignal.timeout(8000), cache: 'no-store' });
+    if (!res.ok) return null;
+    const j = await res.json() as { vintage_dates?: string[] };
+    return j.vintage_dates?.[0] ?? null;
+  } catch { return null; }
+}
+/** 지표 id → 발표일을 물을 FRED 시리즈(일간 시리즈인 금리·스프레드는 관측일이 곧 공개일이라 뺀다). */
+const RELEASE_SERIES: Record<string, string> = {
+  cpi: 'CPIAUCSL', pce: 'PCEPILFE', nfp: 'PAYEMS', gdp: 'A191RL1Q225SBEA', retail: 'RSAFS',
+  ppi: 'WPSFD49207', unrate: 'UNRATE', iclaims: 'ICSA', umcsent: 'UMCSENT',
+};
 
 // Latest value — returns last row plus optional previous row value
 async function fetchLatest(series: string, monthsBack: number = 3): Promise<{ value: number; date: string; previous?: number } | null> {
@@ -1132,6 +1153,18 @@ export async function GET(request: Request) {
       liveData: hyData != null,
     });
   }
+
+  // 발표일 = FRED 가 실제로 공개한 날, 관측 기간은 period 로 따로. 주간 지표의 다음 발표 = 마지막 발표 + 7일.
+  const released = Object.fromEntries(await Promise.all(Object.entries(RELEASE_SERIES).map(async ([id, s]) => [id, await fredReleased(s)] as const)));
+  for (const ind of indicators) {
+    const r = released[ind.id];
+    if (!r || !ind.liveData) continue;
+    (ind as MacroIndicator & { period?: string }).period = ind.releaseDate;
+    ind.releaseDate = r;
+    if (ind.id === 'iclaims') ind.nextRelease = new Date(Date.parse(r) + 7 * 86400_000).toISOString().slice(0, 10);
+  }
+  // 정적 값으로 남은 지표(ISM — FRED NAPM 미제공)는 내보내지 않는다: 4월 값이 '현재' 처럼 보였다(CLAUDE.md 시계열 정적 폴백 금지).
+  for (let i = indicators.length - 1; i >= 0; i--) if (!indicators[i].liveData) indicators.splice(i, 1);
 
   const yc = get(yieldCurve as PromiseSettledResult<{ points: YieldPoint[]; inverted: boolean; spread10y2y: number | null } | null>) ?? { points: [], inverted: false, spread10y2y: null };
   const now = new Date().toISOString();

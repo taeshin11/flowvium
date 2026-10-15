@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { generateSeoMetadata } from '@/lib/seo';
 import FearGreedMarketClient from './FearGreedMarketClient';
+import { notFound } from 'next/navigation';
 
 const MARKETS = ["us","korea","japan","china","europe","uk","india","brazil","taiwan","australia"];
 const LOCALES = routing.locales;
@@ -40,6 +41,8 @@ export default async function FearGreedMarketPage({
 }: {
   params: { locale: string; market: string };
 }) {
+  // 2026-10-16: 없는 시장(예: /fear-greed/kr — 실제 id 는 korea)이 200 + '데이터 없음' 화면이었다 → 404.
+  if (!MARKETS.includes(params.market)) notFound();
   const marketLabel = MARKET_LABELS[params.market] ?? params.market;
   const t = await getTranslations({ locale: params.locale, namespace: 'fearGreedMarket' });
 

@@ -37,7 +37,7 @@ const DEFAULT_PAGES = ['/ko/report', '/ko/signals', '/ko/short', '/ko/heatmap', 
   // 2026-07-04 (사용자 "탭·페이지 전부 캡처 — 사각지대 없는지"): 종전 미감사 페이지 확장 —
   //   judge/paper-trading/watchlist/blog + 파라미터 라우트 대표(company US/KR·compare·fear-greed 시장).
   '/ko/judge', '/ko/paper-trading', '/ko/watchlist', '/ko/blog',
-  '/ko/company/AAPL', '/ko/company/005930.KS', '/ko/compare/aapl-vs-msft', '/ko/fear-greed/us', '/ko/fear-greed/kr'];
+  '/ko/company/AAPL', '/ko/company/005930.KS', '/ko/compare/aapl-vs-msft', '/ko/fear-greed/us', '/ko/fear-greed/korea'];
 // URL 주소지정 탭(searchParams 'tab') — 클릭 없이 각 탭 직접 감사
 const URL_TABS = { '/ko/intelligence': ['capital', 'macro', 'flows', 'fear-greed', 'credit', 'narratives', 'news', 'cot'] };
 let PAGES = arg('pages', DEFAULT_PAGES.join(',')).split(',').map((s) => s.trim()).filter(Boolean);

@@ -426,6 +426,20 @@ const DATA: CountryCreditData[] = [
 const COUNTRY_DATA = DATA.filter(d => d.id !== 'us_gdp_sectors');
 const US_LONG_HISTORY = DATA.find(d => d.id === 'us_gdp_sectors')!;
 
+/** 시계열(현재 포함)에서 고점. 정적 peakBalance 는 현재가 넘으면 틀린다. */
+function derivePeak(hist: { period: string; balance: number }[], current: number): { balance: number; period: string } {
+  let best = { balance: current, period: 'now' };
+  for (const h of hist) if (h.balance > best.balance) best = { balance: h.balance, period: h.period };
+  if (best.period === 'now') best = { balance: current, period: hist[hist.length - 1]?.period ?? 'now' };
+  return best;
+}
+/** 리스크 문장 — 화면 숫자와 같은 값으로만 만든다(손으로 쓴 숫자 없음). 금액 단위는 카드와 같은 USD bn. */
+function riskSentence(current: number, peak: { balance: number; period: string }, gdpRatio: number, pct: number): string {
+  const ofPeak = Math.round((current / peak.balance) * 100);
+  const head = current >= peak.balance ? `At record high ($${current}B, ${peak.period})` : `${ofPeak}% of ${peak.period} peak ($${peak.balance}B)`;
+  return `${head}. Margin debt / GDP ${gdpRatio}% — ${pct}th percentile of its own history.`;
+}
+
 // ── Derived field calculators (dynamic, based on historical array) ───────────
 function calcPercentile(historical: CreditHistPoint[], current: number): number {
   if (!historical || historical.length === 0) return 50;
@@ -524,8 +538,14 @@ export async function GET() {
     //   live 처럼 보였음 → "(static est.)" 마커로 정직하게 표기 (CLAUDE.md live-처럼-보이는-라벨 안티패턴).
     const baseSource = overlaid.source === 'static-estimated' ? c.source : overlaid.source;
     const finalSource = isStaticEstimate ? `${baseSource} (static est.)` : overlaid.source;
+    // 2026-10-16 사이트 눈검증: 고점·리스크 문장이 정적 글자였다 — US 카드 $965B·3.42% 옆에 'Near 95% of 2021 ATH ($936B).
+    //   GDP ratio 3.17%' 가 나갔다(현재가 이미 고점 위). 고점은 (갱신된) 시계열에서, 문장은 그 숫자로 만든다.
+    const peak = derivePeak(overlaid.historical, overlaid.currentBalance);
     return {
       ...overlaid,
+      peakBalance: peak.balance,
+      peakPeriod: peak.period,
+      riskReason: riskSentence(overlaid.currentBalance, peak, overlaid.gdpRatio, histPercentile),
       source: finalSource,
       lastUpdated: finalLastUpdated,
       histPercentile,
@@ -544,9 +564,21 @@ export async function GET() {
     liveCount === totalCount ? 'live'
     : liveCount === 0 ? 'static'
     : 'mixed';
+  // 장기 US 패널도 같은 라이브 값으로(종전엔 정적 893·3.17% 가 카드 965·3.42% 와 따로 나갔다).
+  const usLive = countries.find(c => c.id === 'us' && c.liveData);
+  const usLong = usLive ? (() => {
+    const hist = [...US_LONG_HISTORY.historical];
+    const lastP = hist[hist.length - 1]?.period;
+    const pt = { period: usLive.lastUpdated ?? 'now', balance: usLive.currentBalance, gdpRatio: usLive.gdpRatio };
+    if (lastP && lastP === pt.period) hist[hist.length - 1] = pt; else hist.push(pt);
+    const pk = derivePeak(hist, usLive.currentBalance);
+    const pct = calcPercentile(hist, usLive.gdpRatio);
+    return { ...US_LONG_HISTORY, currentBalance: usLive.currentBalance, currentBalanceLocal: usLive.currentBalanceLocal, gdpRatio: usLive.gdpRatio,
+      historical: hist, peakBalance: pk.balance, peakPeriod: pk.period, histPercentile: pct, riskReason: riskSentence(usLive.currentBalance, pk, usLive.gdpRatio, pct), lastUpdated: usLive.lastUpdated };
+  })() : US_LONG_HISTORY;
   const response = {
     countries,
-    usLongHistory: US_LONG_HISTORY,
+    usLongHistory: usLong,
     globalSnapshot,
     source: responseSource,
     liveCount,

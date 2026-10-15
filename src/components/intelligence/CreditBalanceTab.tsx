@@ -89,7 +89,8 @@ export default function CreditBalanceTab() {
   const [usLongHistory, setUsLongHistory] = useState<CountryCreditData | null>(null);
   const [globalSnapshot, setGlobalSnapshot] = useState<GlobalSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<'live' | 'static'>('static');
+  const [source, setSource] = useState<'live' | 'mixed' | 'static'>('static');
+  const [staticNames, setStaticNames] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>('us');
   const [viewMode, setViewMode] = useState<'balance' | 'gdpRatio'>('gdpRatio');
   const [showLayman, setShowLayman] = useState(false);
@@ -103,7 +104,9 @@ export default function CreditBalanceTab() {
         setCountries(d.countries ?? []);
         setUsLongHistory(d.usLongHistory ?? null);
         setGlobalSnapshot(d.globalSnapshot ?? null);
-        setSource(d.source === 'live' ? 'live' : 'static');
+        // 2026-10-16: 'mixed'(일부 국가만 정적 추정)를 'API 연결 실패' 로 띄우던 것 — 실패가 아니라 일부 정적이다.
+        setSource(d.source === 'live' ? 'live' : d.source === 'mixed' ? 'mixed' : 'static');
+        setStaticNames((d.countries ?? []).filter((c: CountryCreditData & { liveData?: boolean }) => c.liveData === false).map((c: CountryCreditData) => c.country));
       })
       .catch(() => {})
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -135,6 +138,12 @@ export default function CreditBalanceTab() {
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
           <span>⚠️</span>
           <span>{t('creditStaticBanner')}</span>
+        </div>
+      )}
+      {source === 'mixed' && staticNames.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+          <span>ℹ️</span>
+          <span>{t('creditMixedBanner', { names: staticNames.join(', ') })}</span>
         </div>
       )}
       {/* Intro */}
