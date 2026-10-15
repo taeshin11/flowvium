@@ -1,12 +1,29 @@
 {
-  "generatedAt": "2026-10-14T21:30:24.472Z",
+  "generatedAt": "2026-10-15T13:00:23.821Z",
   "universe": "US",
   "scanned": 296,
-  "count": 6,
+  "count": 7,
   "strongCount": 0,
-  "watchCount": 6,
+  "watchCount": 7,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "QNCX",
+      "name": "Quince Therapeutics, Inc.",
+      "tier": "watch",
+      "score": 31,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 10.4,
+      "runup5dPct": 12.3,
+      "medDollarVolUsd": 748163,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "MOGU",
       "name": "MOGU Inc.",
