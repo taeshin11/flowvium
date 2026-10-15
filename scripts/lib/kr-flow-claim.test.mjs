@@ -51,3 +51,24 @@ test('검출기가 방향을 읽을 수 있는 형태다', async () => {
 test('임계는 한 곳에서만 정의한다', () => {
   assert.equal(KR_FLOW_MIN, 3e11);
 });
+
+// 2026-10-15: 수급 날짜를 계약에 넣는다. 10/15 오후판(16:00 발간)이 "외국인 9,420억 순매도·기관 4,266억 순매수" 를
+//   오늘 수급처럼 썼는데, /api/korea-flow 는 tradingDay 2026-10-14 였다(KRX 당일 집계는 장 마감 뒤 늦게 나온다).
+//   날짜가 계약·프롬프트 어디에도 없어서 모델이 전일 수치를 '오늘' 로 서술했다. KOSPI -8% 날이었다.
+test('수급 날짜가 오늘이 아니면 계약에 "이전 거래일" 로 적힌다', () => {
+  const now = new Date('2026-10-15T07:00:00Z');   // 16:00 KST
+  const c = buildKrFlowClaim({ foreignNet: -9.42e11, institutionNet: 4.266e11, period: '당일', tradingDay: '2026-10-14' }, { now });
+  assert.match(c.text, /10\/14/);
+  assert.match(c.text, /이전 거래일/);
+  assert.match(c.text, /오늘\(10\/15\) 수급 아님/);
+});
+test('수급 날짜가 오늘이면 그 날짜만 적는다', () => {
+  const now = new Date('2026-10-15T09:00:00Z');
+  const c = buildKrFlowClaim({ foreignNet: -9.42e11, tradingDay: '2026-10-15' }, { now });
+  assert.match(c.text, /10\/15/);
+  assert.doesNotMatch(c.text, /이전 거래일/);
+});
+test('날짜가 없으면 날짜를 지어내지 않는다', () => {
+  const c = buildKrFlowClaim({ foreignNet: -9.42e11 }, { now: new Date('2026-10-15T07:00:00Z') });
+  assert.doesNotMatch(c.text, /\d+\/\d+/);
+});

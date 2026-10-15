@@ -25,10 +25,22 @@ const 억 = (n) => `${(Math.abs(n) / 1e8).toFixed(0)}억원`;
 const dir = (n) => (n > 0 ? '순매수' : '순매도');
 
 /**
+ * 수급 집계 날짜 표기. 2026-10-15: 오후판이 tradingDay 10/14 수치를 '오늘 수급' 으로 썼다(테스트 머리말).
+ *   KRX 당일 집계는 장 마감 뒤 늦게 나오므로, 오늘이 아니면 '이전 거래일 — 오늘 수급 아님' 을 박는다.
+ *   날짜를 모르면 빈 문자열 — 지어내지 않는다.
+ */
+export function flowDayLabel(tradingDay, now = new Date()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(tradingDay ?? ''))) return '';
+  const md = (d) => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
+  const today = now.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 10);
+  return tradingDay === today ? `${md(tradingDay)} 거래일` : `${md(tradingDay)} 이전 거래일 집계 — 오늘(${md(today)}) 수급 아님`;
+}
+
+/**
  * @returns {{id,kind,market,text,allowedVerbs,confidence}|null}
  *   외국인 수치가 없으면 null — 없는 것을 지어내지 않는다.
  */
-export function buildKrFlowClaim(koreaFlow) {
+export function buildKrFlowClaim(koreaFlow, { now = new Date() } = {}) {
   const fNet = koreaFlow?.foreignNet;
   if (!Number.isFinite(fNet)) return null;
   const iNet = koreaFlow?.institutionNet;
@@ -47,7 +59,7 @@ export function buildKrFlowClaim(koreaFlow) {
 
   return {
     id: 'kr_smart_flow', kind: 'true_flow', market: 'KR',
-    text: `KR 주요 종목 ${parts.join(', ')}(${period}, 수급 상위 종목 합계)`,
+    text: `KR 주요 종목 ${parts.join(', ')}(${[flowDayLabel(koreaFlow?.tradingDay, now), period].filter(Boolean).join(' · ')}, 수급 상위 종목 합계)`,
     allowedVerbs: ['순매수', '순매도', '유입', '이탈'], confidence: 'high',
   };
 }

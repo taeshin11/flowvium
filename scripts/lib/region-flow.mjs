@@ -12,6 +12,7 @@
  *
  *   결측은 창작하지 않고 생략한다 — 이 저장소의 '결측은 명시, plumbing 창작 금지' 규율.
  */
+import { flowDayLabel } from './kr-flow-claim.mjs';
 
 /** @returns {string} 스탠스 프롬프트에 넣을 한 줄. 데이터가 하나도 없으면 ''. */
 export function buildKoreaFlowLine(ctx = {}) {
@@ -39,7 +40,9 @@ export function buildKoreaFlowLine(ctx = {}) {
     const kf = ctx.koreaFlow;
     const net = kf?.foreignNet ?? kf?.netBuy;
     if (net != null && Number.isFinite(net)) {
-      parts.push(`Foreign net: ${net > 0 ? '+' : ''}${(net / 1e8).toFixed(1)}억`);
+      // 2026-10-15: 집계 날짜를 붙인다 — 날짜 없이 주면 전일 수치를 오늘로 쓴다(kr-flow-claim flowDayLabel).
+      const day = flowDayLabel(kf?.tradingDay, ctx.now ?? new Date());
+      parts.push(`Foreign net: ${net > 0 ? '+' : ''}${(net / 1e8).toFixed(1)}억${day ? ` (${day})` : ''}`);
     }
   } catch { /* 결측은 생략 */ }
 
