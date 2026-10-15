@@ -349,7 +349,13 @@ export async function GET() {
   });
 
   // ── 4. Sort + deduplicate (Reddit 포함) ─────────────────────────────────────
-  const allEntries = [...entries, ...redditEntries];
+  // 2026-10-16 사이트 눈검증(agy·ChatGPT 둘 다): WSJ RSS(feeds.a.dj.com)가 갱신을 멈춰 2025-01 기사 3건이
+  //   '발언 실황' 에 섞여 나왔다. 피드가 멈추면 같은 일이 또 생기므로 피드 단위가 아니라 나이로 거른다(14일).
+  const MAX_AGE_MS = 14 * 86400_000;
+  const allEntries = [...entries, ...redditEntries].filter((e) => {
+    const t = new Date(e.publishedAt).getTime();
+    return Number.isFinite(t) && Date.now() - t <= MAX_AGE_MS;
+  });
   const seen = new Set<string>();
   const deduped = allEntries
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())

@@ -310,7 +310,9 @@ export function summarizeIv(chain: OptionChain): IvSummary {
   const expiryIvs = processed.map((p) => ({ T: p.T, iv: p.atmIv! }));
   base.atmIv30d = interpolate30dIv(expiryIvs);
   // 90d: 같은 함수 호출하되 target=90/365 직접 처리
-  base.atmIv90d = interpolateAtIv(expiryIvs, 90 / 365);
+  // 2026-10-16 사이트 눈검증: 90일 이상 만기가 없으면 interpolateAtIv 가 가장 긴 만기 값을 그대로 써서(평평한 외삽)
+  //   90d == 30d → 'Term Slope +0.00pp' 가 9종목에 나갔다. 90일을 넘는 만기가 있을 때만 90d·기울기를 낸다.
+  base.atmIv90d = expiryIvs.some((e) => e.T >= 90 / 365 && e.iv > 0) ? interpolateAtIv(expiryIvs, 90 / 365) : null;
   if (base.atmIv30d != null && base.atmIv90d != null) {
     base.termSlope = base.atmIv90d - base.atmIv30d;
   }

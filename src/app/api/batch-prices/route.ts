@@ -132,9 +132,12 @@ export async function GET(req: Request) {
     if (!v7Ok) {
       const expiresAt = now + TTL;
       // Try Yahoo v8 per-ticker in parallel
-      const v8Results = await Promise.allSettled(
-        missing.map(async ticker => ({ ticker, entry: await fetchV8(ticker) }))
-      );
+      // 2026-10-16 사이트 눈검증: 스크리너 30여 종목이 '···'(로딩 표시) 그대로 — 40+개를 한꺼번에 v8 로 쏘면 일부가 막히고,
+      //   Finnhub 폴백은 30개까지라 나머지는 응답에 아예 없었다(화면은 영원히 로딩). 동시 6개로 나눠 부른다.
+      const v8Results: PromiseSettledResult<{ ticker: string; entry: PriceEntry }>[] = [];
+      for (let i = 0; i < missing.length; i += 6) {
+        v8Results.push(...await Promise.allSettled(missing.slice(i, i + 6).map(async ticker => ({ ticker, entry: await fetchV8(ticker) }))));
+      }
       const v8Failed: string[] = [];
       for (const r of v8Results) {
         if (r.status === 'fulfilled') {
@@ -148,6 +151,8 @@ export async function GET(req: Request) {
       const fhKey = process.env.FINNHUB_KEY?.trim();
       if (fhKey && v8Failed.length) {
         const toFetch = v8Failed.slice(0, 30);
+        // 30개를 넘는 나머지도 응답에 '값 없음' 으로 넣는다 — 빠지면 화면이 로딩(···)에 멈춘다.
+        for (const t of v8Failed.slice(30)) prices[t] = { price: null, change: null, changePct: null, marketState: null, ret: null };
         const fhResults = await Promise.allSettled(
           toFetch.map(async ticker => ({ ticker, entry: await fetchFinnhubPrice(ticker, fhKey) }))
         );
