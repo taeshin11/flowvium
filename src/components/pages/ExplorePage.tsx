@@ -571,7 +571,7 @@ export default function ExplorePage({ initialSector }: ExplorePageProps) {
                         </td>
                         <td className="px-3 py-1.5 text-cf-text-primary max-w-[200px] truncate">{c.name}</td>
                         <td className="px-3 py-1.5 text-cf-text-secondary text-[11px]">{c.sector}</td>
-                        <td className="px-3 py-1.5 text-right text-cf-text-secondary text-[11px]">{(mcLabel[capFor(c)] ?? capFor(c)).slice(0, 4)}</td>
+                        <td className="px-3 py-1.5 text-right text-cf-text-secondary text-[11px]">{/* 2026-10-16: .slice(0,4) 가 '메가 ($200B+)' 를 '메가 (' 로 잘랐다 — 괄호 부분만 뺀다 */}{(mcLabel[capFor(c)] ?? capFor(c)).replace(/\s*\(.*\)\s*$/, '')}</td>
                         <td className="px-3 py-1.5 text-center text-blue-600 tabular-nums">{supplier || '·'}</td>
                         <td className="px-3 py-1.5 text-center text-emerald-600 tabular-nums">{customer || '·'}</td>
                         <td className="px-3 py-1.5 text-center text-amber-600 tabular-nums">{partner || '·'}</td>

@@ -1839,7 +1839,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                     </thead>
                     <tbody>
                       {owned.map((o, i) => {
-                        const diff = o.prevPct !== undefined ? o.pctOfShares - o.prevPct : null;
+                        // 2026-10-16 사이트 눈검증: 13F 적재 cron 은 발행주식수가 없어 지분율을 0 으로 저장한다 — 0 은 '모름'.
+                        //   '0.00%'·'전분기 0.00%' 로 보이면 보유 1,426M주가 지분 0 처럼 읽힌다 → 모르는 값은 '—'.
+                        const pctKnown = o.pctOfShares > 0;
+                        const prevKnown = o.prevPct !== undefined && o.prevPct > 0;
+                        const diff = pctKnown && prevKnown ? o.pctOfShares - (o.prevPct as number) : null;
                         return (
                           <tr key={i} className="border-b border-cf-border/50 hover:bg-gray-50 transition-colors">
                             <td className="py-2.5 px-3 font-medium text-cf-text-primary">{o.institution}</td>
@@ -1850,11 +1854,11 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                             </td>
                             <td className="py-2.5 px-3 text-right font-bold tabular-nums">
                               <span className={o.action === 'increased' || o.action === 'new' ? 'text-green-600' : o.action === 'reduced' ? 'text-red-500' : 'text-cf-text-primary'}>
-                                {o.pctOfShares.toFixed(2)}%
+                                {pctKnown ? `${o.pctOfShares.toFixed(2)}%` : '—'}
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-right text-xs tabular-nums text-cf-text-secondary">
-                              {o.prevPct !== undefined ? (
+                              {prevKnown && o.prevPct !== undefined ? (
                                 <span className="flex items-center justify-end gap-1">
                                   {o.prevPct.toFixed(2)}%
                                   {diff !== null && diff !== 0 && (
@@ -1890,7 +1894,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   const totalVal = owned.reduce((s, o) => s + o.valueM, 0);
                   return (
                     <div className="mt-3 pt-3 border-t border-cf-border flex items-center gap-4 flex-wrap text-xs text-cf-text-secondary">
-                      <span>{t('ownershipTotalPct')}: <span className="font-bold text-cf-text-primary">{total.toFixed(2)}%</span></span>
+                      <span>{t('ownershipTotalPct')}: <span className="font-bold text-cf-text-primary">{total > 0 ? `${total.toFixed(2)}%` : '—'}</span></span>
                       <span>{t('ownershipTotalValue')}: <span className="font-bold text-cf-text-primary">${totalVal.toLocaleString()}M</span></span>
                       <span className="ml-auto">{t('ownershipBasis')}</span>
                     </div>

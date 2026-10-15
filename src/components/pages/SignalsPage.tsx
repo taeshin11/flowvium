@@ -371,7 +371,8 @@ export default function SignalsPage({
                       {ownerRecord ? (
                         <div className="flex flex-col items-end gap-0.5">
                           <span className="text-xs font-bold tabular-nums text-cf-text-primary">
-                            {ownerRecord.pctOfShares.toFixed(2)}%
+                            {/* 2026-10-16: 적재 cron 은 발행주식수가 없어 0 저장 — 0 은 '모름'(사이트 눈검증: 100행 전부 0.00%) */}
+                            {ownerRecord.pctOfShares > 0 ? `${ownerRecord.pctOfShares.toFixed(2)}%` : '—'}
                           </span>
                           {diff !== null && diff !== 0 && (
                             <span className={`text-[10px] font-bold tabular-nums ${diff > 0 ? 'text-green-600' : 'text-red-500'}`}>

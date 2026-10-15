@@ -1115,7 +1115,8 @@ export default function HomePage() {
               { value: '10,000+', label: tHome('socialProof.investors'), icon: <Users className="w-5 h-5" /> },
               // 2026-06-03: allCompanies.length(정적 프로필 ~637)이 모니터링 풀(1210)을 과소표시 → UNIVERSE_COUNT 사용.
               { value: `${UNIVERSE_COUNT}+`, label: tHome('socialProof.companies'), icon: <Network className="w-5 h-5" /> },
-              { value: '16', label: tHome('socialProof.sectors'), icon: <Globe className="w-5 h-5" /> },
+              // 2026-10-16 사이트 눈검증: '16' 박아 둠 — 바로 아래 섹터 카드는 18개. 실제 목록 길이로.
+              { value: `${sectors.length}`, label: tHome('socialProof.sectors'), icon: <Globe className="w-5 h-5" /> },
               { value: '$48B+', label: tHome('socialProof.flows'), icon: <BarChart3 className="w-5 h-5" /> },
             ].map((stat) => (
               <div key={stat.label} className="text-center">

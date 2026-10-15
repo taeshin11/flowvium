@@ -401,12 +401,11 @@ export default function ComparePage({ slug }: { slug: string }) {
   // Revenue comparison chart data
   const revenueChartData = useMemo(() => {
     if (!company1 || !company2) return [];
-    const allSegments = new Set([
-      ...company1.revenue.segments.map((s) => s.name),
-      ...company2.revenue.segments.map((s) => s.name),
-    ]);
+    // 2026-10-16 사이트 눈검증: 두 회사 부문명을 합친 뒤 앞 5개만 써서 AAPL 5개가 자리를 다 차지 → MSFT 막대 0개.
+    //   회사마다 비중 상위 4개씩.
+    const top = (c: typeof company1) => [...c.revenue.segments].sort((a, b) => b.percentage - a.percentage).slice(0, 4).map((s) => s.name);
+    const allSegments = new Set([...top(company1), ...top(company2)]);
     return Array.from(allSegments)
-      .slice(0, 5)
       .map((name) => ({
         name: name.length > 16 ? name.slice(0, 16) + '…' : name,
         [company1.ticker]: company1.revenue.segments.find((s) => s.name === name)?.percentage ?? 0,

@@ -949,8 +949,11 @@ export async function GET(request: Request) {
     const fc = FORECASTS.gdp.forecast;
     const surprise = classify(actual, fc, true);
     const ri = rateImpact('gdp', surprise);
+    // 2026-10-16 사이트 눈검증: 이름이 'GDP Growth Rate (Q1 Advance)' 로 박혀 있어 10/29 Q3 발표와 어긋났다 — 관측 분기로.
+    const gq = gdpLive ? `${gdpLive.date.slice(0, 4)} Q${Math.floor((Number(gdpLive.date.slice(5, 7)) - 1) / 3) + 1}` : null;
     indicators.push({
       ...base,
+      ...(gq ? { name: `GDP Growth Rate (${gq})`, nameKo: `GDP 성장률 (${gq})` } : {}),
       actual, previous: gdpLive?.previous != null ? parseFloat(gdpLive.previous.toFixed(1)) : base.previous, forecast: fc,
       releaseDate: base.releaseDate,
       nextRelease: nextScheduledRelease('gdp', nextScheduledRelease("gdp", "")),
