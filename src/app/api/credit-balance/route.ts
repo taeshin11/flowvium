@@ -15,6 +15,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  * 캐시: 24h Redis (일별 업데이트)
  */
 
+import { creditCacheKey } from '@/lib/credit-cache-key';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
@@ -484,7 +485,7 @@ function buildGlobalSnapshot(countries: CountryCreditData[]) {
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET() {
   const redis = createRedis();
-  const cacheKey = `flowvium:credit-balance:v3:${new Date().toISOString().slice(0, 10)}`;
+  const cacheKey = creditCacheKey(new Date().toISOString().slice(0, 10));
 
   if (!redis && CREDIT_MEMORY_CACHE && Date.now() < CREDIT_MEMORY_CACHE.expiresAt) {
     return NextResponse.json({ ...CREDIT_MEMORY_CACHE.data, cached: true }, { headers: CDN_HEADERS });

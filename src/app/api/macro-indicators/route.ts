@@ -915,11 +915,12 @@ export async function GET(request: Request) {
   // FOMC current rate (FRED DFEDTARU/DFEDTARL)
   const fomcUpper = get(fredFOMCUpper);
   // 직전 결정 = 상단 금리가 마지막으로 바뀌기 전 값(목표범위 25bp → 중간값 = 상단 - 0.125).
-  const fomcPrevMid = await (async () => {
+  // 결정일 = 상단 금리가 마지막으로 바뀐 날(9/17). 종전엔 일간 관측일(10/15)을 발표일로 내 '10/15 에 3.63→3.875 결정' 처럼 보였다.
+  const { fomcPrevMid, fomcChangeDate } = await (async () => {
     const h = await fetchFREDCsv('DFEDTARU', 24);
     const cur = h.at(-1)?.value;
-    for (let i = h.length - 2; i >= 0; i--) if (h[i].value !== cur) return h[i].value - 0.125;
-    return null;
+    for (let i = h.length - 2; i >= 0; i--) if (h[i].value !== cur) return { fomcPrevMid: h[i].value - 0.125, fomcChangeDate: h[i + 1].date };
+    return { fomcPrevMid: null, fomcChangeDate: null };
   })();
   const fomcLower = get(fredFOMCLower);
   {
@@ -933,7 +934,7 @@ export async function GET(request: Request) {
       actual: midRate,
       previous: fomcPrevMid ?? base.previous,   // 2026-10-16: 직전 = 마지막 변경 전 목표범위 중간값(정적 상수 아님)
       forecast: base.forecast,
-      releaseDate: fomcUpper?.date ?? base.releaseDate,
+      releaseDate: fomcChangeDate ?? fomcUpper?.date ?? base.releaseDate,
       surprise, rateImpact: base.rateImpact, rateImpactKo: base.rateImpactKo,
       nextRelease: nextFomcDate(),
       summary: fomcUpper

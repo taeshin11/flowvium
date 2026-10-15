@@ -1071,6 +1071,8 @@
     "flowsStaticBanner": "API接続失敗 — 2026-04-26のスナップショットを表示中",
     "creditStaticBanner": "API接続失敗 — 静的スナップショットデータを表示中",
     "creditMixedBanner": "一部の国はリアルタイムではなく静的推定値です: {names}",
+    "cbRiskAuto": "{period}ピーク(${peak}B)の{ofPeak}% · GDP比{gdp}% — 自国史上{pct}パーセンタイル",
+    "cbRiskAutoRecord": "過去最高(${cur}B, {period}) · GDP比{gdp}% — 自国史上{pct}パーセンタイル",
     "cotExplainTitle": "COTレポートとは？",
     "cotExplainNetPos": "ネットポジション = ロング − ショート（ヘッジファンド等）",
     "cotExplainBullish": "プラス（緑）：強気ポジション優勢 → 上昇圧力",

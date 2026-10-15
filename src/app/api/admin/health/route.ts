@@ -9,6 +9,7 @@
  *
  * Protected by CRON_SECRET via x-admin-secret header (same as /api/admin/logs).
  */
+import { creditCacheKey } from '@/lib/credit-cache-key';
 import { macroCacheKey } from '@/lib/macro-cache-key';
 import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { NextResponse } from 'next/server';
@@ -45,7 +46,7 @@ function buildTrackedKeys(): string[] {
     'flowvium:capital-flows:v11:twelve',
     macroCacheKey(kstDate),
     fedwatchCacheKey(),
-    `flowvium:credit-balance:v3:${utcDate}`,
+    creditCacheKey(utcDate),
     'flowvium:latest-updates:v3',
     'flowvium:market-movers:v1',
     'flowvium:sector-pe:v3',

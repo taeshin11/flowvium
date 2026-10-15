@@ -1071,6 +1071,8 @@
     "flowsStaticBanner": "API 연결 실패 — 2026-04-26 기준 스냅숏입니다",
     "creditStaticBanner": "API 연결 실패 — 정적 스냅숏 데이터입니다",
     "creditMixedBanner": "일부 국가는 실시간이 아닌 정적 추정치입니다: {names}",
+    "cbRiskAuto": "{period} 고점(${peak}B)의 {ofPeak}% · GDP 대비 {gdp}% — 자체 역사 {pct}번째 백분위",
+    "cbRiskAutoRecord": "역대 최고(${cur}B, {period}) · GDP 대비 {gdp}% — 자체 역사 {pct}번째 백분위",
     "cotExplainTitle": "COT 리포트란?",
     "cotExplainNetPos": "순포지션 = 롱 − 숲 (헤지펀드 등 투기세력)",
     "cotExplainBullish": "양수(녹색): 해당 자산 강세 베팅 → 상승 압력",

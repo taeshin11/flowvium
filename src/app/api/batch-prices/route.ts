@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getYahooCrumb } from '@/lib/stooq';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 
 export const dynamic = 'force-dynamic';
@@ -107,9 +108,12 @@ export async function GET(req: Request) {
     // Try Yahoo v7 batch first (1 call for all); fall back to v8 parallel if blocked
     let v7Ok = false;
     try {
+      // 2026-10-16 사이트 눈검증: v7 는 crumb 없으면 401(실측) → 늘 v8 개별 호출로 떨어졌고, 69종목을 몰아 부르면
+      //   뒤쪽 39개가 Yahoo 제한에 걸려 '—'. crumb 를 붙여 한 번에 받는다(lib/stooq getYahooCrumb, 다른 라우트와 같은 것).
+      const cr = await getYahooCrumb().catch(() => null);
       const res = await fetch(
-        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(missing.join(','))}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,marketState`,
-        { headers: YHDR, signal: AbortSignal.timeout(10000), cache: 'no-store' },
+        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(missing.join(','))}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent,marketState${cr?.crumb ? `&crumb=${encodeURIComponent(cr.crumb)}` : ''}`,
+        { headers: cr?.cookie ? { ...YHDR, Cookie: cr.cookie } : YHDR, signal: AbortSignal.timeout(10000), cache: 'no-store' },
       );
       if (res.ok) {
         const data = await res.json();
@@ -129,14 +133,16 @@ export async function GET(req: Request) {
       }
     } catch { /* fall through to v8 */ }
 
-    if (!v7Ok) {
+    // v7 이 일부만 돌려줘도 나머지는 v8 로(종전엔 v7 성공이면 빠진 종목이 응답에서 사라져 화면이 로딩에 멈췄다).
+    const rest = v7Ok ? missing.filter((t) => !prices[t]) : missing;
+    if (rest.length) {
       const expiresAt = now + TTL;
       // Try Yahoo v8 per-ticker in parallel
       // 2026-10-16 사이트 눈검증: 스크리너 30여 종목이 '···'(로딩 표시) 그대로 — 40+개를 한꺼번에 v8 로 쏘면 일부가 막히고,
       //   Finnhub 폴백은 30개까지라 나머지는 응답에 아예 없었다(화면은 영원히 로딩). 동시 6개로 나눠 부른다.
       const v8Results: PromiseSettledResult<{ ticker: string; entry: PriceEntry }>[] = [];
-      for (let i = 0; i < missing.length; i += 6) {
-        v8Results.push(...await Promise.allSettled(missing.slice(i, i + 6).map(async ticker => ({ ticker, entry: await fetchV8(ticker) }))));
+      for (let i = 0; i < rest.length; i += 6) {
+        v8Results.push(...await Promise.allSettled(rest.slice(i, i + 6).map(async ticker => ({ ticker, entry: await fetchV8(ticker) }))));
       }
       const v8Failed: string[] = [];
       for (const r of v8Results) {
@@ -144,7 +150,7 @@ export async function GET(req: Request) {
           prices[r.value.ticker] = r.value.entry;
           TICKER_CACHE.set(r.value.ticker, { entry: r.value.entry, expiresAt });
         } else {
-          v8Failed.push(missing[v8Results.indexOf(r)]);
+          v8Failed.push(rest[v8Results.indexOf(r)]);
         }
       }
       // Finnhub fallback for tickers still missing (max 30 — free tier 60 req/min)

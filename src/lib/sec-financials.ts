@@ -588,7 +588,9 @@ export async function fetchLiveFinancials(ticker: string): Promise<LiveFinancial
       const opMargin = rev && opInc != null ? (opInc / rev) * 100 : null;
       const roe = equity && equity > 0 && netInc != null ? (netInc / equity) * 100 : null;
       const roa = assets && assets > 0 && netInc != null ? (netInc / assets) * 100 : null;
-      const debtRatio = assets && assets > 0 && liab != null ? (liab / assets) * 100 : null;
+      // 2026-10-16 사이트 눈검증(agy): '부채비율' 칸에 부채/자산(79.5%)을 냈다 — 같은 칸의 KR(DART)은 부채/자본(한국 관행).
+      //   화면 라벨이 같으므로 정의를 맞춘다(AAPL 285.5/73.7 = 387%).
+      const debtRatio = equity && equity > 0 && liab != null ? (liab / equity) * 100 : null;
 
       return {
         fy,

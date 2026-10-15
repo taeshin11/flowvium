@@ -7,7 +7,7 @@ let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 const root = new URL('../../', import.meta.url).pathname;
-for (const [pat, home] of [['fedwatch:v[0-9]', /fedwatch-calc\.(ts|test\.mjs)$/], ['macro-indicators:v[0-9]', /macro-cache-key\.ts$/]]) {
+for (const [pat, home] of [['fedwatch:v[0-9]', /fedwatch-calc\.(ts|test\.mjs)$/], ['macro-indicators:v[0-9]', /macro-cache-key\.ts$/], ['credit-balance:v[0-9]', /credit-cache-key\.ts$/]]) {
   let out = '';
   try { out = execFileSync('grep', ['-rn', pat, 'src', 'scripts'], { cwd: root, encoding: 'utf8' }); } catch { /* 없음 */ }
   const copies = out.split('\n').filter(Boolean).filter((l) => !home.test(l.split(':')[0]) && !/\.bak|cache-key-copies\.test|^\S+:\d+:\s*\/\//.test(l));

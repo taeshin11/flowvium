@@ -15,6 +15,7 @@ import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
  *
  * Missing entries fall back to static data in /api/credit-balance.
  */
+import { creditCacheKey } from '@/lib/credit-cache-key';
 import { NextRequest, NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
   // Invalidate cached credit balance response
   if (redis) {
     const today = new Date().toISOString().slice(0, 10);
-    const bustKey = `flowvium:credit-balance:v3:${today}`;
+    const bustKey = creditCacheKey(today);
     await loggedRedisDel(redis, 'cron.update-credit-balance', [bustKey]);
   }
 

@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { creditCacheKey } from '@/lib/credit-cache-key';
 import { macroCacheKey } from '@/lib/macro-cache-key';
 import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { pickNextMeeting } from '@/lib/fedwatch-next';
@@ -219,7 +220,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string, tf
     safeGet(redis, 'flowvium:fg:v6:SPY'),
     safeGet(redis, fedwatchCacheKey()),
     safeGet(redis, macroCacheKey(kst)),
-    safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v3:${today}`),
+    safeGet<Record<string, unknown>>(redis, creditCacheKey(today)),
     safeGet<NewsWithCascade[]>(redis, `flowvium:news-cascade:v1:list:${today}`),
     safeGet<InstitutionalSignal[]>(redis, 'flowvium:13f-signals:v1'),
     safeGet<unknown[]>(redis, 'flowvium:insider-trades:v1'),

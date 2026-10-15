@@ -323,7 +323,10 @@ export default function CreditBalanceTab() {
 
         {/* Risk reason */}
         <div className={`p-3 rounded-xl border text-xs leading-relaxed ${rc.bg} ${rc.text}`}>
-          <span className="font-bold">{t('cbRiskAnalysis')}</span>{activeCountry.riskReason}
+          <span className="font-bold">{t('cbRiskAnalysis')}</span>{/* 2026-10-16: 서버 문장이 영어·정적 숫자였다(agy 2차: 한국어 페이지 영어, 3.17% vs 3.42%) — 화면 숫자로 i18n 문장 */}
+          {activeCountry.currentBalance >= activeCountry.peakBalance
+            ? t('cbRiskAutoRecord', { cur: activeCountry.currentBalance, period: activeCountry.peakPeriod, gdp: activeCountry.gdpRatio, pct: activeCountry.histPercentile })
+            : t('cbRiskAuto', { ofPeak: Math.round((activeCountry.currentBalance / activeCountry.peakBalance) * 100), period: activeCountry.peakPeriod, peak: activeCountry.peakBalance, gdp: activeCountry.gdpRatio, pct: activeCountry.histPercentile })}
         </div>
       </div>
 

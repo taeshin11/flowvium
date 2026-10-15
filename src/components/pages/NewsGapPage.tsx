@@ -200,10 +200,13 @@ function GapCard({ entry }: { entry: NewsGapEntry }) {
               <p className="text-cf-text-secondary italic">{t('minimalCoverage')}</p>
             )}
           </div>
+          {/* 2026-10-16: 정적 영문 기관 행동 문장을 걷어낸 뒤 비면 머리만 남았다(agy 2차) — 있을 때만 */}
+          {entry.ibActions.length > 0 && (
           <div>
             <p className="font-bold text-cf-primary uppercase tracking-wider mb-1.5">{t('ibActions')}</p>
             <p className="text-cf-text-primary leading-relaxed">{entry.ibActions[0]}</p>
           </div>
+          )}
         </div>
 
         {/* Expand toggle + 수급 button */}

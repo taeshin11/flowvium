@@ -81,7 +81,7 @@ async function fetchStooqRaw(symbolMap: Map<string, string>): Promise<StooqQuote
 //   narratives/market-heatmap/market-caps 등 모든 소비처 silent degrade. → Yahoo v7 quote(crumb 인증)
 //   폴백을 공유 lib 에 추가해 한 곳에서 전부 복구. v7 401 은 crumb 로 우회.
 let _yCrumb: { crumb: string; cookie: string } | null = null;
-async function getYahooCrumb(): Promise<{ crumb: string; cookie: string }> {
+export async function getYahooCrumb(): Promise<{ crumb: string; cookie: string }> {
   if (_yCrumb) return _yCrumb;
   const UA = { 'User-Agent': 'Mozilla/5.0' };
   const r = await fetch('https://fc.yahoo.com', { headers: UA, signal: AbortSignal.timeout(8000) });

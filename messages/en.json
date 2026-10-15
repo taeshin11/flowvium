@@ -1071,6 +1071,8 @@
     "flowsStaticBanner": "API connection failed — showing snapshot from 2026-04-26",
     "creditStaticBanner": "API connection failed — showing static snapshot data",
     "creditMixedBanner": "Some countries show static estimates, not live data: {names}",
+    "cbRiskAuto": "{ofPeak}% of the {period} peak (${peak}B) · {gdp}% of GDP — {pct}th percentile of its own history",
+    "cbRiskAutoRecord": "At a record high (${cur}B, {period}) · {gdp}% of GDP — {pct}th percentile of its own history",
     "cotExplainTitle": "What is a COT Report?",
     "cotExplainNetPos": "Net Position = Long − Short (hedge funds & speculators)",
     "cotExplainBullish": "Positive (green): bullish bets dominate → upward pressure",
