@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { pickNextMeeting } from '@/lib/fedwatch-next';
 import { logger } from './logger';
 import { callAI as callAIProvider, llmTimeoutMs } from './ai-providers';
@@ -215,7 +216,7 @@ export async function gatherTabContext(redis: Redis | null, baseUrl?: string, tf
     safeGet(redis, 'flowvium:capital-flows:v11:twelve'),
     safeGet(redis, 'flowvium:capital-flows:v11:yahoo'),
     safeGet(redis, 'flowvium:fg:v6:SPY'),
-    safeGet(redis, `flowvium:fedwatch:v2:${today}`),
+    safeGet(redis, fedwatchCacheKey()),
     safeGet(redis, `flowvium:macro-indicators:v13:${kst}`),
     safeGet<Record<string, unknown>>(redis, `flowvium:credit-balance:v3:${today}`),
     safeGet<NewsWithCascade[]>(redis, `flowvium:news-cascade:v1:list:${today}`),

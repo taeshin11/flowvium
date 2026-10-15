@@ -35,5 +35,13 @@ postMeetingContract('2026-10-29') === 'ZQX26' && postMeetingContract('2026-12-10
   !/currentTargetLow:\s*3\.5/.test(route) && /DFEDTARL/.test(route) && /computeMeetings/.test(route)
     ? ok('[9] /api/fedwatch 가 현재 금리를 FRED 에서 받고 computeMeetings 로 계산(박아 둔 3.50 없음)') : bad('[9] route 가 아직 박아 둔 현재 금리를 쓴다');
 }
+{
+  // [10] 캐시 키 사본 금지 — 10/16 라우트만 v3 로 올리자 홈 카드·브리프·헬스가 v2 를 직접 읽어 옛 값('인상 84%')을 계속 냈다.
+  const { execFileSync } = await import('child_process');
+  let hits = '';
+  try { hits = execFileSync('grep', ['-rln', 'fedwatch:v[0-9]', 'src', 'scripts'], { cwd: new URL('../../', import.meta.url).pathname, encoding: 'utf8' }); } catch { /* 없음 */ }
+  const bad10 = hits.split('\n').filter((f) => f && !/fedwatch-calc\.(ts|test\.mjs)$|\.bak/.test(f));
+  bad10.length === 0 ? ok('[10] fedwatch 캐시 키는 fedwatchCacheKey() 한 곳에서만') : bad(`[10] 키 사본: ${bad10.join(', ')}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

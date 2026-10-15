@@ -21,6 +21,11 @@ export interface FomcMeetingCalc {
   targetLow: number; targetHigh: number; current: number; contract: string;
 }
 
+/** Redis 캐시 키 — 한 곳에서만. 10/16 라우트만 v3 로 올렸더니 홈 카드(latest-updates)가 v2 를 직접 읽어 옛 값을 계속 냈다. */
+export function fedwatchCacheKey(d: Date = new Date()): string {
+  return `flowvium:fedwatch:v3:${d.toISOString().slice(0, 10)}`;
+}
+
 const MONTH_CODES = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z'];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

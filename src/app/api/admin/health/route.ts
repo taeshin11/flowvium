@@ -9,6 +9,7 @@
  *
  * Protected by CRON_SECRET via x-admin-secret header (same as /api/admin/logs).
  */
+import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
@@ -42,7 +43,7 @@ function buildTrackedKeys(): string[] {
     'flowvium:capital-flows:v11:yahoo',
     'flowvium:capital-flows:v11:twelve',
     `flowvium:macro-indicators:v13:${kstDate}`,
-    `flowvium:fedwatch:v2:${utcDate}`,
+    fedwatchCacheKey(),
     `flowvium:credit-balance:v3:${utcDate}`,
     'flowvium:latest-updates:v3',
     'flowvium:market-movers:v1',

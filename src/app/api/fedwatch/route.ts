@@ -13,14 +13,11 @@ import { logger, loggedRedisSet} from '@/lib/logger';
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import { computeMeetings, postMeetingContract, type FomcMeetingCalc } from '@/lib/fedwatch-calc';
+import { computeMeetings, postMeetingContract, fedwatchCacheKey, type FomcMeetingCalc } from '@/lib/fedwatch-calc';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-function cacheKey(): string {
-  const utcDate = new Date().toISOString().slice(0, 10);
-  return `flowvium:fedwatch:v3:${utcDate}`;
-}
+const cacheKey = () => fedwatchCacheKey();
 
 export type FomcMeeting = FomcMeetingCalc;
 

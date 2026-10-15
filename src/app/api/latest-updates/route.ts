@@ -21,6 +21,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  *
  * Redis cache: 15분
  */
+import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { buildMacroLabels } from '@/lib/macro-label';
@@ -247,8 +248,7 @@ async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en')
   let data: FedData | null = null;
   if (redis) {
     try {
-      const utcDate = new Date().toISOString().slice(0, 10);
-      data = await redis.get<FedData>(`flowvium:fedwatch:v2:${utcDate}`);
+      data = await redis.get<FedData>(fedwatchCacheKey());
     } catch { /* non-fatal */ }
   }
   if (!data?.meetings?.length) {
