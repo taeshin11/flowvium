@@ -913,6 +913,13 @@ export async function GET(request: Request) {
 
   // FOMC current rate (FRED DFEDTARU/DFEDTARL)
   const fomcUpper = get(fredFOMCUpper);
+  // 직전 결정 = 상단 금리가 마지막으로 바뀌기 전 값(목표범위 25bp → 중간값 = 상단 - 0.125).
+  const fomcPrevMid = await (async () => {
+    const h = await fetchFREDCsv('DFEDTARU', 24);
+    const cur = h.at(-1)?.value;
+    for (let i = h.length - 2; i >= 0; i--) if (h[i].value !== cur) return h[i].value - 0.125;
+    return null;
+  })();
   const fomcLower = get(fredFOMCLower);
   {
     const base = STATIC.fomc;
@@ -923,7 +930,7 @@ export async function GET(request: Request) {
     indicators.push({
       ...base,
       actual: midRate,
-      previous: base.previous,
+      previous: fomcPrevMid ?? base.previous,   // 2026-10-16: 직전 = 마지막 변경 전 목표범위 중간값(정적 상수 아님)
       forecast: base.forecast,
       releaseDate: fomcUpper?.date ?? base.releaseDate,
       surprise, rateImpact: base.rateImpact, rateImpactKo: base.rateImpactKo,
@@ -1044,7 +1051,8 @@ export async function GET(request: Request) {
     const ri = rateImpact('unrate', surprise);
     indicators.push({
       ...base,
-      actual, previous: base.previous, forecast: fc,
+      // 2026-10-16 사이트 눈검증: '직전' 이 정적 상수였다(실업수당 224K ← FRED 198K). 라이브면 FRED 직전 관측.
+      actual, previous: unrateData?.previous ?? base.previous, forecast: fc,
       releaseDate: unrateData?.date ?? base.releaseDate,
       nextRelease: nextScheduledRelease('nfp', nextScheduledRelease("unrate", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
@@ -1071,7 +1079,7 @@ export async function GET(request: Request) {
     const ri = rateImpact('iclaims', surprise);
     indicators.push({
       ...base,
-      actual: displayActual, previous: base.previous, forecast: fc,
+      actual: displayActual, previous: actualK != null && iclaimsRaw?.previous != null ? Math.round(iclaimsRaw.previous / 1000) : base.previous, forecast: fc,
       releaseDate: iclaimsRaw && !iclaimsStale ? iclaimsRaw.date : base.releaseDate,
       nextRelease: nextScheduledRelease('iclaims', nextScheduledRelease("iclaims", "")),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
@@ -1098,7 +1106,7 @@ export async function GET(request: Request) {
     const ri = rateImpact('umcsent', surprise);
     indicators.push({
       ...base,
-      actual, previous: base.previous, forecast: fc,
+      actual, previous: umcsentData && !fredMonthStale && umcsentData.previous != null ? umcsentData.previous : base.previous, forecast: fc,
       releaseDate: umcsentData && !fredMonthStale ? umcsentData.date : base.releaseDate,
       nextRelease: nextScheduledRelease("umcsent", ""),
       surprise, rateImpact: ri.impact, rateImpactKo: ri.ko,
@@ -1121,7 +1129,7 @@ export async function GET(request: Request) {
     const ri = rateImpact('ig_spread', surprise);
     indicators.push({
       ...base,
-      actual, previous: base.previous,
+      actual, previous: igData?.previous ?? base.previous,
       forecast: fc,
       releaseDate: igData?.date ?? base.releaseDate,
       nextRelease: nextBizDay(igData?.date ?? base.releaseDate),
@@ -1144,7 +1152,7 @@ export async function GET(request: Request) {
     const ri = rateImpact('hy_spread', surprise);
     indicators.push({
       ...base,
-      actual, previous: base.previous,
+      actual, previous: hyData?.previous ?? base.previous,
       forecast: fc,
       releaseDate: hyData?.date ?? base.releaseDate,
       nextRelease: nextBizDay(hyData?.date ?? base.releaseDate),
