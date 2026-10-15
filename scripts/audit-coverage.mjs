@@ -529,18 +529,16 @@ try {
 //   회귀 감지를 위해 최근 7일 내 같은 ticker 가 buy + (fundamental)sell 둘 다 나온 종목을 flag.
 console.log('\n## [5b] buy↔sell 모순 (동일 종목 매수/매도 반복 whipsaw)\n');
 try {
-  const conflicts = db.prepare(`
-    SELECT r.ticker,
-           COUNT(DISTINCT r.generated_at) buys,
-           COUNT(DISTINCT s.generated_at) sells
-    FROM recommendations r
-    JOIN sell_recommendations s ON r.ticker = s.ticker
-    WHERE datetime(r.generated_at) >= datetime('now','-7 days')
-      AND datetime(s.generated_at) >= datetime('now','-7 days')
-      AND (s.sell_type LIKE '%margin%' OR s.sell_type LIKE '%fund%' OR s.rationale LIKE '%악화%')
-    GROUP BY r.ticker
-    HAVING buys >= 1 AND sells >= 1
-  `).all();
+  // 2026-10-15: '펀더멘털 매도' 판정을 lib/fundamental-sell 로 — 종전 rationale LIKE '%악화%' 가 매크로·모멘텀·수급
+  //   '악화' 까지 세어 GOOG(10/12 macro_high_risk 뒤 10/14 매수, 보고서는 whipsawRisk 로 정상 처리)를 '게이트 우회' ❌ 로 냈다.
+  const { isFundamentalSell, fundamentalSellIds } = await import('./lib/fundamental-sell.mjs');
+  const fundIds = fundamentalSellIds(JSON.parse(readFileSync(`${ROOT}/data/sell-rules-tuned.json`, 'utf8')));
+  const isFund = (s) => isFundamentalSell(s.sell_type, s.rationale, fundIds);
+  const recentSells = db.prepare(`SELECT ticker, sell_type, rationale, generated_at FROM sell_recommendations WHERE datetime(generated_at) >= datetime('now','-7 days')`).all().filter(isFund);
+  const buyCount = db.prepare(`SELECT COUNT(DISTINCT generated_at) n FROM recommendations WHERE ticker=? AND datetime(generated_at) >= datetime('now','-7 days')`);
+  const conflicts = [...new Set(recentSells.map((s) => s.ticker))]
+    .map((ticker) => ({ ticker, buys: buyCount.get(ticker).n, sells: new Set(recentSells.filter((s) => s.ticker === ticker).map((s) => s.generated_at)).size }))
+    .filter((c) => c.buys >= 1 && c.sells >= 1);
   if (conflicts.length === 0) {
     ok('buy↔sell 모순 없음 (펀더멘털 매도 종목이 매수에 재등장 안 함)');
   } else {
@@ -555,7 +553,7 @@ try {
         // 2026-06-12: 순서 인지 — "우회"는 매수가 *기존* 펀더멘털 sell 신호를 무시하고 나온 경우만
         //   (sell 이 매수보다 먼저 존재). sell 이 매수 이후 등장한 건 신규 정보 도착(whipsaw 모니터링
         //   대상, warn)이지 게이트 결함이 아님. 실측: FTV/MOH 둘 다 sell-after-buy 인데 ❌ 오탐.
-        const priorSell = db.prepare(`SELECT MAX(generated_at) ls FROM sell_recommendations WHERE ticker=? AND (sell_type LIKE '%margin%' OR sell_type LIKE '%fund%' OR rationale LIKE '%악화%') AND generated_at < ?`).get(c.ticker, recentBuy).ls;
+        const priorSell = db.prepare(`SELECT sell_type, rationale, generated_at FROM sell_recommendations WHERE ticker=? AND generated_at < ? ORDER BY generated_at DESC`).all(c.ticker, recentBuy).find(isFund)?.generated_at;
         if (priorSell) {
           err(`${c.ticker}: buy(${recentBuy.slice(5, 16)})가 기존 펀더멘털sell(${priorSell.slice(5, 16)}) 무시 — 정합 게이트 우회`);
         } else {
