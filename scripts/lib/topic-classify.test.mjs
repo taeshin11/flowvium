@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** topic-classify.test.mjs — 주제 분류의 계약. 2026-09-24 신설. */
-import { classifyTopics, TOPICS } from './topic-classify.mjs';
+import { classifyTopics, classifyPrompt, TOPICS } from './topic-classify.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
@@ -57,5 +57,12 @@ const H = ['李대통령 지지도 최저', '한화에어로 천무 수출 임�
 }
 // [5] 목록에 '기타' 가 있다 — 정말 어디에도 안 맞는 헤드라인을 억지로 넣지 않게
 TOPICS.includes('기타') ? ok('[5] 기타 존재') : bad('[5]');
+// [6] ★ 검색·도구 금지를 프롬프트에 박는다. 2026-10-15 실측: 3.1 pro 퇴출(10/12~13) 뒤 1차가 된 3.8 flash 가
+//   헤드라인마다 search_web 을 돌다(한 회 39스텝·검색 77회) 180초에 끊겼다 — 분류 108회 중 69회 실패, 그중 49회가 도구 사용.
+//   분류는 글자만 보면 된다. 종전 프롬프트엔 금지가 없었고, agy 공통 머리말은 오히려 "파일은 read_file 로" 라고 열어 뒀다.
+{
+  const p = classifyPrompt(H);
+  /검색/.test(p) && /도구/.test(p) && /글자만/.test(p) ? ok('[6] 검색·도구 금지 + 글자만 보고 분류') : bad('[6] 프롬프트에 검색·도구 금지가 없다');
+}
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');
 process.exit(fail ? 1 : 0);

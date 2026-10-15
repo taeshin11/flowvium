@@ -24,6 +24,7 @@ import { isReportPipelineRunning as isReportRunningShared } from './lib/report-r
 import { shouldDeferUnscheduled } from './lib/report-sessions.mjs';
 import { reportViaAgy } from './lib/report-backend.mjs';
 import { listenerUptimeMs } from './lib/service-uptime.mjs';
+import { localImports, codeHash, shouldReload } from './lib/runner-reload.mjs';
 //   쇼크 긴급보고서와 누락 backfill 두 안전망이 동시에 무증상 사망 상태였다.
 
 // 2026-06-11: execSync → 비동기 execFile. execSync 는 이벤트 루프를 최대 170~300초 블로킹해
@@ -538,7 +539,9 @@ function writeHeartbeat(label) {
 }
 
 async function runMaintenance(label, script, timeoutMs, commitPaths = [], opts = {}) {
-  if (await isReportPipelineRunning()) {
+  // 2026-10-15: duringReport — 가볍고(시세 몇 개·파일 한 줄) 시각이 생명인 잡. 장 전 예측 기록은 보고서와 겹쳐
+  //   건너뛰면 그날 기록이 통째로 없다(10/15 08:40 에 보고서가 돌았다). 무거운 일이 아니라 보고서와 다투지 않는다.
+  if (!opts.duringReport && await isReportPipelineRunning()) {
     log(`[${label}] skip — 보고서 파이프라인 실행 중`);
     // 2026-09-28: 보고서 중 건너뛰는 게 **맞는 동작**인 잡(reportSkipIsRun)은 건너뜀도 '돌았다' 로 남긴다 —
     //   shorts-spare 가 보고서마다 "잡 미실행 의심" 거짓 경보를 냈다(lib/cron-skip-heartbeat.test 머리말).
@@ -621,6 +624,12 @@ const MAINT_JOBS = [
   //   중복 게시는 reports/blog/.published.json 이 막는다(이미 올린 글이면 수정만 한다).
   { label: 'blog-publish',         script: 'scripts/blog-publish.mjs',               timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['15 22 * * *', '45 3 * * *', '45 12 * * *'], maxAgeH: 30 },
   // 2026-10-15 플랫폼별 일일 기록(사장님 10/14 "구독 전환율·시청률·노출수·조회수 다 챙겨라") — YouTube 분석(찬 날)·Blogger 페이지뷰 → logs/platform-daily.json
+  // 2026-10-15 전향적 예측 장부(사장님 "전향적연구하라 … 왜 오늘같은 일을 예측못했는지") — 장 전에 고정 기록, 장 뒤 채점.
+  //   기록: KR 08:30·08:50 KST(월~금) · US 21:50·22:20 KST. 두 번 거는 건 한 번 놓쳐도 장 전에 남기려고 — 같은 날 줄은 다시 안 쓴다.
+  //   채점: 16:20·07:20 KST. 커밋 시각이 '장 전에 적었다' 는 증거라 산출물을 바로 커밋·푸시한다.
+  { label: 'forecast-record-kr',   script: 'scripts/forecast-record.mjs --market kr', timeoutMs: 120000, commitPaths: ['data/forecast-ledger.jsonl'], schedules: ['30,50 23 * * 0-4'], maxAgeH: 80, duringReport: true },
+  { label: 'forecast-record-us',   script: 'scripts/forecast-record.mjs --market us', timeoutMs: 120000, commitPaths: ['data/forecast-ledger.jsonl'], schedules: ['50 12 * * 1-5', '20 13 * * 1-5'], maxAgeH: 80, duringReport: true },
+  { label: 'forecast-score',       script: 'scripts/forecast-score.mjs',             timeoutMs: 180000,  commitPaths: ['data/forecast-scores.jsonl', 'data/forecast-summary.json'], schedules: ['20 7 * * *', '20 22 * * *'], maxAgeH: 30, duringReport: true },
   { label: 'platform-daily',       script: 'scripts/platform-daily.mjs',             timeoutMs: 180000,  commitPaths: [],                                     schedules: ['35 0 * * *'],                maxAgeH: 30 },
   //   쇼츠를 글로 푼다. 2026-09-18 사용자 "쇼츠영상 올릴 때에도 계속 같이 올리고 그거 주제로".
   //   **하루 전편(9편)을 쓰지 않는다** — 구글이 2024년부터 대량 생성 콘텐츠를 강등하고,
@@ -869,6 +878,26 @@ async function runCatchupCheck() {
 }
 cron.schedule('*/20 * * * *', runCatchupCheck, { timezone: TZ });
 log('누락 보고서 캐치업 모니터 등록: */20분 (최신 ko 보고서 5h+ stale 시 backfill, 2h 쿨다운+lock)');
+
+// 2026-10-15: 자기 코드가 바뀌면 내려간다 → launchd KeepAlive 가 새 코드로 올린다. 잡 표는 뜰 때 한 번 읽혀서,
+//   10/15 에 넣은 platform-daily 가 10/12 부터 떠 있던 러너에서 한 번도 안 돌았다(lib/runner-reload.test 머리말).
+//   자식 프로세스(돌던 잡·backfill)가 있으면 기다린다 — 끝난 뒤 다음 점검에서 내려간다.
+{
+  const self = resolve(process.cwd(), 'scripts/cron-runner.mjs');
+  const files = () => { try { return [self, ...localImports(readFileSync(self, 'utf8')).map((p) => resolve(process.cwd(), 'scripts', p))]; } catch { return [self]; } };
+  const read = (p) => readFileSync(p, 'utf8');
+  const boot = codeHash(files(), read);
+  setInterval(async () => {
+    const now = codeHash(files(), read);
+    if (!now || now === boot) return;
+    let children = 1;
+    try { const { stdout } = await execFileAsync('pgrep', ['-P', String(process.pid)]); children = stdout.trim().split('\n').filter(Boolean).length; }
+    catch (e) { children = e.code === 1 ? 0 : 1; }   // pgrep 은 하나도 없으면 1 로 끝난다. 다른 오류면 모른다 → 기다린다
+    if (shouldReload({ boot, now, children })) { log('[reload] 러너 코드가 바뀌었다 — 내려간다(launchd 가 새 코드로 다시 올린다)'); process.exit(0); }
+    log(`[reload] 러너 코드가 바뀌었지만 자식 ${children}개가 돌고 있다 — 다음 점검에서`);
+  }, 5 * 60 * 1000).unref();
+  log(`러너 코드 해시 ${boot?.slice(0, 8) ?? 'unknown'} — 5분마다 비교, 바뀌면 자식이 없을 때 재기동`);
+}
 
 // keep alive
 process.stdin.resume();

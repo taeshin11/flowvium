@@ -1127,6 +1127,16 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 3 | YouTube 노출·CTR | ⛔ missing | API 미제공(쇼츠) — null 기록 | — |
 | 4 | Blogger 페이지뷰 누적·7일·30일·하루·글 수 | 🔄 cron | Blogger API v3 pageViews | 매일 09:35 KST |
 
+## 23. 전향적 예측 장부 (2026-10-15)
+
+| # | 지표 | 상태 | 소스 | 주기 |
+|---|------|------|------|------|
+| 1 | 장 전 예측(보고서 방향·기준선 하락확률·-2%이하 확률·기후값) | 🔄 cron | 최신 보고서 regionStances·marketVerdict + Yahoo ^SOX·^KS11·^KQ11·^GSPC·^IXIC(2005~) | KR 08:30·08:50 · US 21:50·22:20 KST |
+| 2 | 실제 등락·적중·Brier | 🔄 cron | Yahoo 일봉 | 16:20·07:20 KST |
+| 3 | 주별 적중률·Brier skill·보정표 | 🔄 cron | data/forecast-scores.jsonl 집계 | 16:20·07:20 KST |
+| 4 | 놓친 날 유형별 건수 | 🔄 cron | SOX·KRW=X·^VIX + news_archive 헤드라인 | 16:20·07:20 KST |
+| 5 | US 선행 기준선 | ⛔ missing | 미국 장 전 선행 입력 미검증 — 지금은 기후값 | — |
+
 ## 유지 가이드
 
 - 새 지표 추가 시: 해당 섹션 하단에 다음 번호로 행 추가
