@@ -99,6 +99,8 @@ if (isMain) {
     const line = {
       id, recordedAt: new Date(now).toISOString(), generatedAt: r.generatedAt, session: r.session ?? m[2],
       git: gitHead(), rules: Object.fromEntries(RULE_FILES.map((p) => [p, sha(p)])),
+      // 결정 당시 입력 증거(ChatGPT 10/15 P0): 보고서 원문 전체·유니버스 파일의 해시. 원문은 reports/ 에 남고, 해시로 나중에 바뀌지 않았음을 확인한다.
+      inputs: { report: sha(`reports/${f}`), universe: sha('data/candidate-tickers.json'), model: r.model ?? null, buildId: r.buildId ?? null },
       krVerdict: kv ? { verdict: kv.verdict ?? null, verdictA: kv.verdictA ?? kv.verdict ?? null } : null,
       usVerdict: r.marketVerdict?.verdict ?? null, warn: r.earlyWarning ? { level: r.earlyWarning.level, score: r.earlyWarning.score } : null,
       decisions: decisionsOf(r),
