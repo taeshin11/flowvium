@@ -33,8 +33,24 @@ export function agyReady() {
   const bin = agyBin();
   if (!bin) { _ok = false; return _ok; }
   const r = spawnSync(bin, ['models'], { encoding: 'utf8', timeout: 60000 });
-  _ok = r.status === 0 && !/sign in/i.test(`${r.stdout ?? ''}${r.stderr ?? ''}`);
+  const k = agyReadiness(r);
+  // 2026-10-15: 일시 장애(시간 초과·503)는 접을 이유가 아니다 — agy-readiness.test 머리말(10/15 정오 회차 소실).
+  if (k === 'transient') console.error(`[agy] 준비 확인이 일시 장애로 끝났다(${r.error?.code ?? r.signal ?? `exit ${r.status}`}) — 로그인 문제는 아니라 본 호출에 맡긴다`);
+  _ok = k === 'ok' || k === 'transient';
   return _ok;
+}
+
+/**
+ * `agy models` 결과 분류. 근거·규칙은 agy-readiness.test.mjs 머리말.
+ * @returns {'ok'|'auth'|'transient'|'unknown'}
+ */
+export function agyReadiness(r) {
+  const out = `${r?.stdout ?? ''}\n${r?.stderr ?? ''}`;
+  if (/sign in|not logged in/i.test(out)) return 'auth';
+  if (r?.status === 0) return /^[a-z][a-z0-9.-]+-[a-z0-9.-]+\t/m.test(String(r.stdout ?? '')) ? 'ok' : 'unknown';
+  if (r?.error?.code === 'ETIMEDOUT' || r?.signal === 'SIGTERM') return 'transient';
+  if (/\b(503|429)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|ECONNRESET|ENOTFOUND|ETIMEDOUT|EAI_AGAIN/.test(out)) return 'transient';
+  return 'unknown';
 }
 
 /**
