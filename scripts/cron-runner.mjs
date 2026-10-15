@@ -620,6 +620,8 @@ const MAINT_JOBS = [
   //   네이버가 아니라 Blogger 인 이유: 네이버는 자동 게재가 약관 위반이고 글쓰기 API 도 없다.
   //   중복 게시는 reports/blog/.published.json 이 막는다(이미 올린 글이면 수정만 한다).
   { label: 'blog-publish',         script: 'scripts/blog-publish.mjs',               timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['15 22 * * *', '45 3 * * *', '45 12 * * *'], maxAgeH: 30 },
+  // 2026-10-15 플랫폼별 일일 기록(사장님 10/14 "구독 전환율·시청률·노출수·조회수 다 챙겨라") — YouTube 분석(찬 날)·Blogger 페이지뷰 → logs/platform-daily.json
+  { label: 'platform-daily',       script: 'scripts/platform-daily.mjs',             timeoutMs: 180000,  commitPaths: [],                                     schedules: ['35 0 * * *'],                maxAgeH: 30 },
   //   쇼츠를 글로 푼다. 2026-09-18 사용자 "쇼츠영상 올릴 때에도 계속 같이 올리고 그거 주제로".
   //   **하루 전편(9편)을 쓰지 않는다** — 구글이 2024년부터 대량 생성 콘텐츠를 강등하고,
   //   자동 생성 뉴스 요약 9편/일이 정확히 그 모양이다. 하루 2편(회당 1편)으로 나눠 올린다.

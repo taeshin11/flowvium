@@ -1118,6 +1118,15 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 2 | 이벤트 설명 (한국어 ≤200자) | 🔄 cron | callAI (vLLM→GROQ→Qwen→Gemini) | 크론 실행 시 |
 | 3 | CascadeDetailPage AI 이벤트 표시 | ✅ live | Redis `flowvium:cascade:events:v1` | 요청 시 |
 
+## 22. FlowVium 플랫폼별 일일 기록 (2026-10-15)
+
+| # | 지표 | 상태 | 소스 | 주기 |
+|---|------|------|------|------|
+| 1 | YouTube 조회·본 비율(engagedViews/views)·평균 시청% | 🔄 cron | YouTube Analytics v2 (찬 날만) | 매일 09:35 KST |
+| 2 | YouTube 구독 +/−·순증·1천회당 구독·공유 | 🔄 cron | YouTube Analytics v2 | 매일 09:35 KST |
+| 3 | YouTube 노출·CTR | ⛔ missing | API 미제공(쇼츠) — null 기록 | — |
+| 4 | Blogger 페이지뷰 누적·7일·30일·하루·글 수 | 🔄 cron | Blogger API v3 pageViews | 매일 09:35 KST |
+
 ## 유지 가이드
 
 - 새 지표 추가 시: 해당 섹션 하단에 다음 번호로 행 추가

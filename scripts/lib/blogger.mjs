@@ -82,6 +82,12 @@ export async function listBlogs(auth) {
   return (r.data.items ?? []).map((b) => ({ id: b.id, name: b.name, url: b.url, posts: b.posts?.totalItems ?? 0 }));
 }
 
+/** 블로그 조회수(Blogger 가 세는 페이지뷰). range: 7DAYS·30DAYS·all. 2026-10-15 플랫폼 일일 기록(platform-daily)용. */
+export async function pageViews(blogId, auth) {
+  const r = await api(auth).pageViews.get({ blogId, range: ['7DAYS', '30DAYS', 'all'] });
+  return Object.fromEntries((r.data.counts ?? []).map((c) => [c.timeRange, Number(c.count)]));
+}
+
 /**
  * 글 하나를 올린다.
  * @param {{blogId:string, title:string, html:string, labels?:string[], draft?:boolean}} o
