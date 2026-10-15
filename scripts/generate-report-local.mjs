@@ -114,6 +114,7 @@ import { SECTOR_FORBID, mismatchedIndustryTerm } from './verify-report.mjs';  //
 import { resolveLlm } from './lib/llm-config.mjs';
 import { resolveCompanyName } from './lib/company-name.mjs';
 import { normalizeCurrencyText } from './lib/currency-format.mjs';
+import { computeKrVerdict, overnightTailRisk } from './lib/kr-verdict.mjs';  // 2026-10-15: KR 판정 lib 로 + 전날 밤 SOX 거부권
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -3538,7 +3539,12 @@ async function computeHistoricalAnalog(ctxRaw) {
           krBreadth = { divergencePp: +(r20kq - r20ks).toFixed(1) };  // 양수 = KOSDAQ(소형주) 주도, 광범위
         }
       } catch { /* non-fatal */ }
+      // 2026-10-15: 전날 밤 SOX → 다음 KR 장 꼬리위험. 판정 거부권 입력(kr-verdict.test 머리말 — 10/15 KOSPI -8% 날 아침판이 accumulate 였다).
+      //   그 밤이 이미 KR 봉에 반영된 회차(장중·장후)면 null.
+      let krOvernight = null;
+      try { const sx = await hist('^SOX'); if (sx?.length > 300) krOvernight = overnightTailRisk(sx, kospi); } catch { /* non-fatal */ }
       kr = {
+        overnight: krOvernight,
         dd: +((lastK.c / hiK - 1) * 100).toFixed(1),
         r20: +((lastK.c / kospi[kospi.length - 21].c - 1) * 100).toFixed(1),
         above200: lastK.c > smaK,
@@ -3696,27 +3702,7 @@ function computeMarketVerdict(earlyWarning, reboundWatch, fearBuy, analog, ctxRa
 
 // 2026-06-13: KR 독립 종합 판단 (별도 박스). KOSPI 추세/breadth/계절성/유사국면 + 글로벌 거시 게이트.
 //   US 와 동일 tier(defensive/wait/neutral/neutral_ready/accumulate/buy_dip), 전부 동적 KOSPI/KOSDAQ 실측.
-function computeKrVerdict(k, earlyWarning) {
-  if (!k) return null;
-  const reasons = [];
-  let verdict;
-  if (earlyWarning.level === 'severe') { verdict = 'defensive'; reasons.push('글로벌 하락 전조 심각 — KR 포함 방어적 포지션'); }
-  else if (earlyWarning.level === 'high') { verdict = 'wait'; reasons.push('글로벌 경보 고조 — KR 신규 진입 보류'); }
-  else if (k.r20 >= 12) { verdict = 'neutral'; reasons.push(`KR 단기 과열(20일 +${k.r20}%) — 분할·보수적, 추격 자제`); }
-  else if (k.dd <= -8 && earlyWarning.level === 'low') { verdict = 'accumulate'; reasons.push(`KR 낙폭 과대(고점대비 ${k.dd}%) + 경보 낮음 — 분할 매수 관찰`); }
-  else if (k.analog?.matches >= 5 && k.analog.med3m >= 3 && k.analog.posRate3m >= 60 && k.above200) { verdict = 'neutral_ready'; reasons.push(`KR 유사국면 우호(3개월 +${k.analog.med3m}%, 상승확률 ${k.analog.posRate3m}%) + 200일선 위 — 조정 시 매수 준비`); }
-  else if (k.analog?.matches >= 5 && k.analog.med3m <= -2) { verdict = 'wait'; reasons.push('KR 과거 유사국면 3개월 기대 음수 — 보수적 접근'); }
-  else { verdict = 'neutral'; reasons.push('KR 뚜렷한 전조 없음 — 기존 포지션 유지'); }
-  // 근거 디테일 (US 박스와 동일 깊이)
-  reasons.push(`KOSPI 추세: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`);
-  if (k.breadth?.divergencePp != null) {
-    if (k.breadth.divergencePp >= 1.5) reasons.push(`KR 시장 폭 양호: KOSDAQ이 KOSPI 대비 20일 +${k.breadth.divergencePp}%p 우위 — 광범위 참여`);
-    else if (k.breadth.divergencePp <= -1.5) reasons.push(`KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 ${k.breadth.divergencePp}%p 열위 — 대형주 편중`);
-  }
-  if (k.analog?.matches >= 5) reasons.push(`KR 과거 유사국면 ${k.analog.matches}회 — 현재 지문(KOSPI 고점대비 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%)을 KOSPI 전 역사와 거리매칭한 가장 가까운 국면들: 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`);
-  if (k.seasonality) reasons.push(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`);
-  return { verdict, reasons };
-}
+// 2026-10-15: computeKrVerdict 는 lib/kr-verdict.mjs 로 옮겼다(시험할 수 있게 + 전날 밤 SOX 거부권). kr-verdict.test.mjs.
 
 /**
  * 2026-06-06: whitelist validator (ChatGPT D1) — fundamentalBasis/catalysts/rationale/riskNote 의 모든
