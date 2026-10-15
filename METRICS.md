@@ -1137,6 +1137,16 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 4 | 놓친 날 유형별 건수 | 🔄 cron | SOX·KRW=X·^VIX + news_archive 헤드라인 | 16:20·07:20 KST |
 | 5 | US 선행 기준선 | ⛔ missing | 미국 장 전 선행 입력 미검증 — 지금은 기후값 | — |
 
+## 24. 엔진 결정 장부 — 종목선정·매수·매도·심판 전향 검증 (2026-10-15)
+
+| # | 지표 | 상태 | 소스 | 주기 |
+|---|------|------|------|------|
+| 1 | 회차 결정 고정 기록(pick·후보30·심판·매도·규칙 해시·KR 판정 (b)/(a)) | 🔄 cron | reports/report-*-ko.json → data/engine-ledger.jsonl | 매시 :07·:27·:47 |
+| 2 | 역할×시장×h(1·5·20·60일) 순초과수익·Newey-West t(10일 이상) | 🔄 cron | Yahoo 일봉 · 기준 SPY/^KS11/^KQ11 → data/engine-summary.json | 07:45·16:45 KST |
+| 3 | 대비 H1 pick−대조군 · H2 pick−안 뽑힌 후보 · H5 심판 거부−통과 | 🔄 cron | 같은 날짜 차이 시계열 | 07:45·16:45 KST |
+| 4 | 대조군(유니버스 표본 US 100·KR 60, 시드 고정) | 📋 static | data/engine-study.json(연구 시작 때 1회) | — |
+| 5 | 데이터 수집 교차검증(H6) | ⛔ missing | accuracy_probe_log 8/19 이후 멈춤 — 재가동 예정 | — |
+
 ## 유지 가이드
 
 - 새 지표 추가 시: 해당 섹션 하단에 다음 번호로 행 추가

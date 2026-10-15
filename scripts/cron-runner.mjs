@@ -633,6 +633,10 @@ const MAINT_JOBS = [
   { label: 'forecast-record-kr',   script: 'scripts/forecast-record.mjs --market kr', timeoutMs: 120000, commitPaths: ['data/forecast-ledger.jsonl'], schedules: ['30,50 23 * * 0-4'], maxAgeH: 80, duringReport: true },
   { label: 'forecast-record-us',   script: 'scripts/forecast-record.mjs --market us', timeoutMs: 120000, commitPaths: ['data/forecast-ledger.jsonl'], schedules: ['50 12 * * 1-5', '20 13 * * 1-5'], maxAgeH: 80, duringReport: true },
   { label: 'forecast-score',       script: 'scripts/forecast-score.mjs',             timeoutMs: 180000,  commitPaths: ['data/forecast-scores.jsonl', 'data/forecast-summary.json'], schedules: ['20 7 * * *', '20 22 * * *'], maxAgeH: 30, duringReport: true },
+  // 2026-10-15 사장님 "예측력 전향적 연구 — 종목선정·매수·매도·심판 엔진": 회차 결정을 발간 직후 장부에 고정(커밋 시각 = 증거),
+  //   채점은 하루 두 번(미국 마감 뒤·한국 마감 뒤). 프로토콜 docs/prospective-study-protocol.md.
+  { label: 'engine-ledger-record', script: 'scripts/engine-ledger-record.mjs',      timeoutMs: 60000,   commitPaths: ['data/engine-ledger.jsonl', 'data/engine-study.json'], schedules: ['7,27,47 * * * *'], maxAgeH: 2, duringReport: true },
+  { label: 'engine-ledger-score',  script: 'scripts/engine-ledger-score.mjs',       timeoutMs: 600000,  commitPaths: ['data/engine-summary.json'], schedules: ['45 22 * * *', '45 7 * * *'], maxAgeH: 30 },
   { label: 'platform-daily',       script: 'scripts/platform-daily.mjs',             timeoutMs: 180000,  commitPaths: [],                                     schedules: ['35 0 * * *'],                maxAgeH: 30 },
   //   쇼츠를 글로 푼다. 2026-09-18 사용자 "쇼츠영상 올릴 때에도 계속 같이 올리고 그거 주제로".
   //   **하루 전편(9편)을 쓰지 않는다** — 구글이 2024년부터 대량 생성 콘텐츠를 강등하고,
