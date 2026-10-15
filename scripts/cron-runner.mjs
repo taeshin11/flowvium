@@ -637,6 +637,11 @@ const MAINT_JOBS = [
   //   채점은 하루 두 번(미국 마감 뒤·한국 마감 뒤). 프로토콜 docs/prospective-study-protocol.md.
   { label: 'engine-ledger-record', script: 'scripts/engine-ledger-record.mjs',      timeoutMs: 60000,   commitPaths: ['data/engine-ledger.jsonl', 'data/engine-study.json'], schedules: ['7,27,47 * * * *'], maxAgeH: 2, duringReport: true },
   { label: 'engine-ledger-score',  script: 'scripts/engine-ledger-score.mjs',       timeoutMs: 600000,  commitPaths: ['data/engine-summary.json'], schedules: ['45 22 * * *', '45 7 * * *'], maxAgeH: 30 },
+  // 2026-10-15: 정확도 probe(우리 값 vs CNN·Yahoo 공식 소스 → accuracy_probe_log) + 전 페이지 렌더 감사가 8/19 이후 0회.
+  //   원인: Windows 작업 스케줄러 6h 태스크(run-monitor-deep.bat)가 돌렸는데, 8/21 맥 이식 때 '죽은 Windows 런처'로
+  //   지우면서(128b1e1b) 맥 쪽 일정을 안 만들었다. session-spotcheck 의 6h spawn 경로도 맥에선 아무도 안 부른다.
+  //   보고서 시각(05:30·10:30·14:30·20:00·22:30 KST)을 피해 6시간마다. 렌더 감사가 7~13분(실측) — 보고서 중엔 안 돈다.
+  { label: 'monitor-deep',         script: 'scripts/monitor-deep.mjs --base=https://flowvium.net', timeoutMs: 1200000, commitPaths: [], schedules: ['15 3,9,15,21 * * *'], maxAgeH: 8 },
   { label: 'platform-daily',       script: 'scripts/platform-daily.mjs',             timeoutMs: 180000,  commitPaths: [],                                     schedules: ['35 0 * * *'],                maxAgeH: 30 },
   //   쇼츠를 글로 푼다. 2026-09-18 사용자 "쇼츠영상 올릴 때에도 계속 같이 올리고 그거 주제로".
   //   **하루 전편(9편)을 쓰지 않는다** — 구글이 2024년부터 대량 생성 콘텐츠를 강등하고,

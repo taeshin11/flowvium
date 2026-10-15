@@ -1145,7 +1145,7 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 2 | 역할×시장×h(1·5·20·60일) 순초과수익·Newey-West t(10일 이상) | 🔄 cron | Yahoo 일봉 · 기준 SPY/^KS11/^KQ11 → data/engine-summary.json | 07:45·16:45 KST |
 | 3 | 대비 H1 pick−대조군 · H2 pick−안 뽑힌 후보 · H5 심판 거부−통과 | 🔄 cron | 같은 날짜 차이 시계열 | 07:45·16:45 KST |
 | 4 | 대조군(유니버스 표본 US 100·KR 60, 시드 고정) | 📋 static | data/engine-study.json(연구 시작 때 1회) | — |
-| 5 | 데이터 수집 교차검증(H6) | ⛔ missing | accuracy_probe_log 8/19 이후 멈춤 — 재가동 예정 | — |
+| 5 | 데이터 수집 교차검증(H6) — F&G·VIX·SPY·10년물 vs 공식 소스 | 🔄 cron | monitor-deep → accuracy_probe_log(8/19~10/15 공백: 맥 이식 때 일정 누락, 10/15 재가동) | 6시간(00:15·06:15·12:15·18:15 KST) |
 
 ## 유지 가이드
 
