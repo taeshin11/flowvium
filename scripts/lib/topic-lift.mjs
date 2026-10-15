@@ -97,6 +97,52 @@ export function topicTier(liftMap, { z = 1.645 } = {}) {
 }
 
 /**
+ * 주제별 구독 등급. 2026-10-15 — 근거는 topic-subtier.test.mjs 머리말.
+ * 영상마다 subs_gained 가 채워진 가장 늦은 관측 하나. 주제의 구독 수를 '채널 전체 비율 × 그 주제 조회' 와 비교해
+ *   포아송 근사 z 가 |z| > 1.645 일 때만 강·약. minSamples 편 미만·주제 없는 영상은 판단하지 않는다.
+ * @returns {Map<string,'strong'|'weak'>}
+ */
+export function topicSubTier(rows, { minSamples = 8, z = 1.645 } = {}) {
+  const last = new Map();
+  for (const r of rows ?? []) {
+    if (!r?.video_id || r.subs_gained == null) continue;
+    const p = last.get(r.video_id);
+    if (!p || String(r.checked_at) > String(p.checked_at)) last.set(r.video_id, r);
+  }
+  const vids = [...last.values()];
+  const totV = vids.reduce((a, v) => a + (Number(v.views) || 0), 0);
+  const totS = vids.reduce((a, v) => a + (Number(v.subs_gained) || 0), 0);
+  const out = new Map();
+  if (!totV || !totS) return out;
+  const rate = totS / totV;
+  const byTopic = new Map();
+  for (const v of vids) {
+    if (!v.topic) continue;
+    const o = byTopic.get(v.topic) ?? byTopic.set(v.topic, { n: 0, views: 0, subs: 0 }).get(v.topic);
+    o.n++; o.views += Number(v.views) || 0; o.subs += Number(v.subs_gained) || 0;
+  }
+  for (const [t, o] of byTopic) {
+    if (o.n < minSamples) continue;
+    const exp = rate * o.views;
+    if (!exp) continue;
+    const zz = (o.subs - exp) / Math.sqrt(exp);
+    if (zz > z) out.set(t, 'strong');
+    else if (zz < -z) out.set(t, 'weak');
+  }
+  return out;
+}
+
+/** 조회수 등급과 구독 등급을 합친다. 하나라도 약 → 약, 약이 없고 하나라도 강 → 강. */
+export function combineTiers(...tiers) {
+  const out = new Map();
+  for (const tier of tiers) for (const [t, v] of tier ?? []) {
+    if (v === 'weak') out.set(t, 'weak');
+    else if (v === 'strong' && out.get(t) !== 'weak') out.set(t, 'strong');
+  }
+  return out;
+}
+
+/**
  * 주제별 '계속 시청'(스와이프 안 한 비율) 중앙값. 2026-10-09 — 브리핑 첫 꼭지(첫 화면) 고르기에 쓴다. 근거는 topic-stay.test.mjs.
  *   영상마다 engaged_ratio 가 채워진 가장 늦은 관측 하나. 주제당 minSamples 편 미만은 판단하지 않는다(결과에 없음).
  * @returns {Map<string, number>}

@@ -535,7 +535,7 @@ if (FORCE_ISSUE) {
   if (process.env.SHORTS_PREFER_PROUD !== '1') try {
     const TOP = Number(process.env.SHORTS_TOPIC_POOL || 15);
     const { classifyTopics } = await import('../lib/topic-classify.mjs');
-    const { topicLift, topicTier } = await import('../lib/topic-lift.mjs');
+    const { topicLift, topicTier, topicSubTier, combineTiers } = await import('../lib/topic-lift.mjs');
     const { shortsTopicObservations } = await import('../lib/db.mjs');
     const head = fresh.slice(0, TOP);
     let classifyWhy = '';
@@ -543,7 +543,9 @@ if (FORCE_ISSUE) {
       { onReject: (w) => { classifyWhy = w; } });
     if (topics) {
       head.forEach((c, i) => { c.__topic = topics[i]; });
-      const tier = topicTier(topicLift(shortsTopicObservations(), { minSamples: 8 }));
+      // 2026-10-15 조회수 등급 + 구독 등급(1천 조회당 구독) — 하나라도 약하면 뒤로. 근거는 topic-subtier.test.mjs.
+      const obs = shortsTopicObservations();
+      const tier = combineTiers(topicTier(topicLift(obs, { minSamples: 8 })), topicSubTier(obs, { minSamples: 8 }));
       if (EXPLORE) {
         // 실험 칸: 등급 대신 최근 14일에 적게 다룬 주제부터(위험 썸네일 규칙은 먼저). 영상 "Why No One Makes 'Original' Videos".
         const { exploreOrder } = await import('../lib/explore-slot.mjs');
@@ -565,7 +567,7 @@ if (FORCE_ISSUE) {
         const dist = {};
         for (const c of head) dist[c.__topic] = (dist[c.__topic] ?? 0) + 1;
         const moved = head.filter((c) => rank(c) === 2).length;
-        log(`[편성] 조회수 성적(같은 날 대비) — ${[...tier].map(([t, v]) => `${t}=${v === 'strong' ? '강' : '약'}`).join(' · ')}`
+        log(`[편성] 조회수·구독 성적(같은 날 대비 · 1천회당 구독) — ${[...tier].map(([t, v]) => `${t}=${v === 'strong' ? '강' : '약'}`).join(' · ')}`
           + ` · 후보 주제 ${Object.entries(dist).map(([k, v]) => `${k} ${v}`).join(' · ')}`
           + `${moved ? ` · 약한 주제 ${moved}건 뒤로` : ''} · 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
       } else log('[편성] 조회수 성적 — 유의한 강·약 주제 없음(표본 부족 또는 차이가 우연 범위) — 순서 유지');
