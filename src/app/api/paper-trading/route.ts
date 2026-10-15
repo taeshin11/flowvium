@@ -58,8 +58,12 @@ export async function POST(req: NextRequest) {
   const authed = !process.env.CRON_SECRET || authHeader === expectedToken;
 
   // execute: 리포트 포트폴리오로 가상 매매 실행 (scripts/paper-trade-sync.mjs — cron). 2026-10-16: 인증 없이 열려 있던 것을 막는다.
+  // execute·reset 모두 인증 뒤에만(2026-10-16 — 종전 execute 는 무인증).
+  if (!authed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   if (action === 'execute') {
-    if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const redis = createRedis();
     if (!redis) return NextResponse.json({ error: 'Redis unavailable' }, { status: 503 });
     const body = await req.json().catch(() => ({})) as { portfolio?: unknown[]; reportDate?: string };
@@ -69,10 +73,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'portfolio required' }, { status: 400 });
     const result = await executeReportTrades(redis, portfolio as Parameters<typeof executeReportTrades>[1], reportDate);
     return NextResponse.json(result);
-  }
-
-  if (!authed) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (action !== 'reset') {

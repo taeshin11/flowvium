@@ -15,6 +15,6 @@ pickNewReport(reps, { lastId: null })?.id === '2026-10-16:midnight' ? ok('[1] �
 pickNewReport(reps, { lastId: '2026-10-16:midnight' }) === null ? ok('[2] 이미 처리한 회차는 다시 안 한다') : bad('[2]');
 pickNewReport([{ ...reps[1], portfolio: [] }], { lastId: null }) === null ? ok('[3] 포트폴리오가 비면 매매 안 함') : bad('[3]');
 const route = readFileSync(new URL('../../src/app/api/paper-trading/route.ts', import.meta.url), 'utf8');
-/if \(!authed\)[\s\S]{0,200}action === 'execute'|action === 'execute'[\s\S]{0,120}if \(!authed\)/.test(route) ? ok('[4] execute 는 인증 뒤에만') : bad('[4] execute 가 인증 없이 열려 있다');
+/if \(!authed\)[\s\S]{0,300}action === 'execute'/.test(route) ? ok('[4] execute 는 인증 뒤에만') : bad('[4] execute 가 인증 없이 열려 있다');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
