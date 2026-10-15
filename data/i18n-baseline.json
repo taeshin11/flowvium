@@ -1,8 +1,8 @@
 {
   "_note": "사용자 노출 문자열 하드코딩의 파일별 건수 기준선. 손으로 고치지 말 것 — 아래 명령으로 재생성한다. 증가하면 CI 가 막고, 줄면 이 파일을 갱신해 되돌아갈 수 없게 한다.",
   "command": "node scripts/check-i18n-ratchet.mjs --update",
-  "generatedAt": "2026-09-29T23:13:36.559Z",
-  "total": 2532,
+  "generatedAt": "2026-10-15T15:52:07.714Z",
+  "total": 2530,
   "files": {
     "src/app/[locale]/about/page.tsx": 50,
     "src/app/[locale]/admin/logs/page.tsx": 1,
@@ -83,7 +83,7 @@
     "src/app/api/earnings/route.ts": 8,
     "src/app/api/economic-calendar/route.ts": 3,
     "src/app/api/fear-greed/route.ts": 126,
-    "src/app/api/fedwatch/route.ts": 2,
+    "src/app/api/fedwatch/route.ts": 1,
     "src/app/api/flow-analysis/route.ts": 18,
     "src/app/api/fund-flows/route.ts": 4,
     "src/app/api/insider-kr/[ticker]/route.ts": 1,
@@ -131,7 +131,7 @@
     "src/components/intelligence/CapitalFlowsTab.tsx": 36,
     "src/components/intelligence/CotTab.tsx": 3,
     "src/components/intelligence/CreditBalanceTab.tsx": 13,
-    "src/components/intelligence/MacroIndicatorsTab.tsx": 11,
+    "src/components/intelligence/MacroIndicatorsTab.tsx": 10,
     "src/components/intelligence/NewsCascadeTab.tsx": 3,
     "src/components/Navbar.tsx": 3,
     "src/components/pages/AdminLogsPage.tsx": 46,

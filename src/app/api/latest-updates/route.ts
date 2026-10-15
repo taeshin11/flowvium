@@ -269,14 +269,15 @@ async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en')
   const holdProb = Math.round(next.probHold ?? 0);
   // 2026-10-16: 인상 확률을 안 적어 '동결 16% / 인하 0%'(합 16%)로 나갔다(사이트 눈검증) — 0 이 아니면 같이 적는다.
   const hikeProb = Math.round(next.probHike ?? 0);
+  const hikePart = hikeProb ? ` / ${localizeLabel('Hike', locale)} ${hikeProb}%` : '';
   const updatedAt = data.updatedAt ?? new Date().toISOString();
   const direction: UpdateItem['direction'] = cutProb > 50 ? 'up' : hikeProb > 50 ? 'down' : holdProb > 50 ? 'neutral' : 'down';
   return {
     id: 'fedwatch',
     type: 'fed',
-    headline: `FOMC ${next.label} — ${localizeLabel('Hold', locale)} ${holdProb}% / ${localizeLabel('Cut', locale)} ${cutProb}%${hikeProb ? ` / ${localizeLabel('Hike', locale)} ${hikeProb}%` : ''}`,
+    headline: `FOMC ${next.label} — ${localizeLabel('Hold', locale)} ${holdProb}% / ${localizeLabel('Cut', locale)} ${cutProb}%${hikePart}`,
     sub: `${localizeLabel('Current rate', locale)} ${data.currentRateMid ?? '-'}%`,
-    source: 'Fed Funds 선물 · FRED',
+    source: 'FRED · CME ZQ',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
     badge: localizeLabel('FedWatch', locale),

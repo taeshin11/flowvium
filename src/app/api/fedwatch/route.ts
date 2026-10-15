@@ -65,15 +65,15 @@ async function zqPrice(contract: string): Promise<number | null> {
 async function build(): Promise<FedWatchData & { liveData: boolean }> {
   const today = new Date().toISOString().slice(0, 10);
   const [lo, hi, dff] = await Promise.all([fredLatest('DFEDTARL'), fredLatest('DFEDTARU'), fredLatest('DFF')]);
-  const empty = (why: string) => ({ currentTargetLow: lo?.value ?? null, currentTargetHigh: hi?.value ?? null,
+  const empty = (what: string) => ({ currentTargetLow: lo?.value ?? null, currentTargetHigh: hi?.value ?? null,
     currentRateMid: lo && hi ? (lo.value + hi.value) / 2 : null, effectiveRate: dff?.value ?? null, meetings: [],
-    yearEndImpliedRate: null, totalImpliedCuts: null, totalChangeBps: null, updatedAt: new Date().toISOString(), source: why, liveData: false });
-  if (!lo || !hi || !dff) return empty('FRED 기준금리 수신 실패 — 확률 계산 안 함');
+    yearEndImpliedRate: null, totalImpliedCuts: null, totalChangeBps: null, updatedAt: new Date().toISOString(), source: `${what} 수신 실패 — 확률 계산 안 함`, liveData: false });
+  if (!lo || !hi || !dff) return empty('FRED');
   const contracts = Array.from(new Set(FOMC_DATES.filter((d) => d >= today).map(postMeetingContract)));
   const prices: Record<string, number> = {};
   await Promise.all(contracts.map(async (c) => { const p = await zqPrice(c); if (p != null) prices[c] = p; }));
   const meetings = computeMeetings({ dates: FOMC_DATES, prices, effr: dff.value, targetLow: lo.value, targetHigh: hi.value, today });
-  if (!meetings.length) return empty('ZQ 선물 가격 수신 실패 — 확률 계산 안 함');
+  if (!meetings.length) return empty('ZQ');
   const last = meetings[meetings.length - 1];
   return {
     currentTargetLow: lo.value, currentTargetHigh: hi.value, currentRateMid: (lo.value + hi.value) / 2, effectiveRate: dff.value,

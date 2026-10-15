@@ -139,7 +139,7 @@ function FedWatchSection() {
                 )}
                 {m.probHike > 0.5 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-red-600 w-16 flex-shrink-0">{(m.probHike50 ?? 0) > 0.5 ? '+25~50bp' : '+25bp'}</span>
+                    <span className="text-[10px] text-red-600 w-16 flex-shrink-0">+25{(m.probHike50 ?? 0) > 0.5 && <>~50</>}bp</span>
                     <div className="flex-1 h-4 bg-red-50 rounded-full overflow-hidden">
                       <div className="h-full bg-red-400 rounded-full transition-all" style={{ width: `${m.probHike}%` }} />
                     </div>
