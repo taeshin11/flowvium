@@ -79,6 +79,8 @@ for (const [name, sym] of TARGETS) {
   const call = reportCall(report, market);
   const rec = {
     id: `${market}-${name}-${targetDate}`, market, index: name, symbol: sym, targetDate,
+    // 규칙 버전 — 칸 경계·minN 을 바꾸면 올린다. 바꾸기 전후 기록을 섞어 채점하지 않게.
+    rule: 'v1 sox칸(-4,-2,0,+2%] minN30 · 보고서=지역판단',
     recordedAt: now.toISOString(),
     report: report ? { file: reportFile, generatedAt: report.generatedAt, session: report.session } : null,
     inputs: market === 'kr' ? { sox: lastSox ? Number(lastSox.r.toFixed(4)) : null, soxDate: lastSox?.d ?? null } : {},

@@ -14,7 +14,7 @@
  *   - 채점은 기록 뒤에만, 같은 줄을 두 번 채점하지 않는다. 기록 줄은 고치지 않는다(채점은 별도 필드).
  *   - Brier 는 '내림 확률' 기준. 기본값(기후값) 대비 개선(skill)을 같이 낸다 — 기본값보다 못하면 신호가 아니다.
  */
-import { bucketOf, condProb, reportCall, scoreRecord, aggregate, missType } from './forecast-ledger.mjs';
+import { bucketOf, condProb, reportCall, scoreRecord, aggregate, missType, coverage } from './forecast-ledger.mjs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
@@ -40,6 +40,11 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   const kr = reportCall(rep, 'kr');
   kr.dir === 'down' && kr.verdict === 'accumulate' ? ok('[5] KR: 지역 판단 bearish → down, 판정 accumulate 는 따로 남긴다') : bad(`[5] ${JSON.stringify(kr)}`);
   reportCall(rep, 'us').dir === null ? ok('[6] neutral → 기권(null)') : bad('[6]');
+  // [6b] 10/15 에 틀린 건 지역판단이 아니라 판정·조기경보였다(agy Opus 5.5 검토 10/15) — 그것도 같이 남긴다.
+  const rep2 = { ...rep, earlyWarning: { score: 8, level: 'low' }, marketVerdict: { verdict: 'neutral', krVerdict: { verdict: 'accumulate' } }, _krAnalog: null };
+  rep2.marketVerdict.krVerdict.reasons = ['KR 과거 유사국면 12회 — … 3개월 후 중앙값 -1.1% · 상승확률 42%'];
+  const c2 = reportCall(rep2, 'kr');
+  c2.warnScore === 8 && c2.warnLevel === 'low' && c2.analogUp3m === 0.42 ? ok('[6b] 조기경보 점수·등급, KR 유사국면 3개월 상승확률(0.42)도 기록') : bad(`[6b] ${JSON.stringify(c2)}`);
 }
 // ── 채점
 {
@@ -63,6 +68,11 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   near(a.base.brier, (0.04 + 0.64 + 0.09) / 3) && near(a.base.skill, 1 - ((0.04 + 0.64 + 0.09) / 3) / 0.25) ? ok('[11] Brier 평균과 기본값 대비 skill') : bad(`[11] ${JSON.stringify(a.base)}`);
   const bin8 = a.base.calibration.find((b) => b.bin === '0.8-0.9');
   bin8 && bin8.n === 2 && near(bin8.observed, 0.5) ? ok('[12] 보정표: 0.8 칸 2건 중 실제 하락 1 → 0.5') : bad(`[12] ${JSON.stringify(a.base.calibration)}`);
+}
+// ── 기록 빠진 날(커버리지) — 급락일에 회차가 접히면(10/15 정오) 기록이 빠지는데, 빠진 날을 그냥 지우면 결과가 좋아 보인다
+{
+  const cov = coverage({ sessions: ['2026-10-13', '2026-10-14', '2026-10-15'], recorded: ['2026-10-13', '2026-10-15'] });
+  cov.sessions === 3 && cov.recorded === 2 && cov.missing.join() === '2026-10-14' ? ok('[12b] 장이 선 날 중 기록 없는 날을 센다') : bad(`[12b] ${JSON.stringify(cov)}`);
 }
 // ── 놓친 사건 유형
 {

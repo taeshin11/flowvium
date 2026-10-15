@@ -37,8 +37,21 @@ const STANCE_DIR = { bullish: 'up', bearish: 'down' };
 export function reportCall(report, market) {
   const region = market === 'kr' ? 'korea' : 'us';
   const stance = report?.regionStances?.[region]?.stance ?? null;
-  const verdict = market === 'kr' ? report?.marketVerdict?.krVerdict?.verdict ?? null : report?.marketVerdict?.verdict ?? null;
-  return { dir: STANCE_DIR[stance] ?? null, stance, verdict };
+  const v = market === 'kr' ? report?.marketVerdict?.krVerdict : report?.marketVerdict;
+  // 판정 근거 글에 적힌 유사국면 3개월 상승확률(보고서가 숫자 필드로 따로 내지 않는다).
+  const m = (v?.reasons ?? []).map((r) => /유사국면[^]*?상승확률\s*(\d+(?:\.\d+)?)%/.exec(String(r))).find(Boolean);
+  return {
+    dir: STANCE_DIR[stance] ?? null, stance, verdict: v?.verdict ?? null,
+    warnScore: report?.earlyWarning?.score ?? null, warnLevel: report?.earlyWarning?.level ?? null,
+    analogUp3m: m ? Number(m[1]) / 100 : null,
+  };
+}
+
+/** 장이 선 날 중 기록이 없는 날. 급락일에 회차가 접혀 빠진 날을 조용히 지우지 않게. */
+export function coverage({ sessions, recorded }) {
+  const rec = new Set(recorded ?? []);
+  const missing = (sessions ?? []).filter((d) => !rec.has(d));
+  return { sessions: (sessions ?? []).length, recorded: (sessions ?? []).length - missing.length, missing };
 }
 
 /** 실제 등락 ret 로 채점. 방향 예측은 hit, 확률 예측(pDown)은 Brier. 기록 줄은 건드리지 않고 새 객체를 돌려준다. */

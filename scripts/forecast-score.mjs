@@ -14,7 +14,7 @@ import { readFileSync, appendFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { fetchBars } from './lib/ohlc.mjs';
-import { scoreRecord, aggregate, missType } from './lib/forecast-ledger.mjs';
+import { scoreRecord, aggregate, missType, coverage } from './lib/forecast-ledger.mjs';
 
 const DIR = process.env.FORECAST_DIR ?? resolve(ROOT, 'data');   // 시험할 때만 바꾼다 — 운영 장부를 건드리지 않게
 const LEDGER = resolve(DIR, 'forecast-ledger.jsonl');
@@ -88,5 +88,15 @@ for (const w of [...new Set(recs.map((r) => r.week))].sort()) weeks[w] = aggrega
 const misses = all.filter((s) => s.miss).map((s) => ({ id: s.id, ret: s.ret, types: s.miss.types }));
 const missByType = {};
 for (const m of misses) for (const t of m.types) missByType[t] = (missByType[t] ?? 0) + 1;
-writeFileSync(SUMMARY, JSON.stringify({ at: now.toISOString(), recorded: ledger.length, scored: all.length, overall: aggregate(recs), weeks, missByType, misses }, null, 1));
+// 커버리지 — 첫 기록일부터 마감된 장이 선 날 중 기록이 없는 날(대표 지수 봉 기준)
+const cov = {};
+for (const [market, sym] of [['kr', '^KS11'], ['us', '^GSPC']]) {
+  const mine = ledger.filter((r) => r.market === market);
+  if (!mine.length) continue;
+  const first = mine.map((r) => r.targetDate).sort()[0];
+  const b = await fetchBars(sym, `${first}T00:00:00Z`, now.toISOString());
+  const sessions = (b?.bars ?? []).map((x) => day(x.t)).filter((d) => d >= first && now >= closedAt({ market, targetDate: d }));
+  cov[market] = coverage({ sessions, recorded: [...new Set(mine.map((r) => r.targetDate))] });
+}
+writeFileSync(SUMMARY, JSON.stringify({ at: now.toISOString(), recorded: ledger.length, scored: all.length, coverage: cov, overall: aggregate(recs), weeks, missByType, misses }, null, 1));
 log(`채점 ${added}줄 추가 · 누적 ${all.length} · 놓친 날 ${misses.length} → ${SUMMARY}`);
