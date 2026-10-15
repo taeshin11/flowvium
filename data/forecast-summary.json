@@ -1,16 +1,86 @@
 {
- "at": "2026-10-15T07:20:00.070Z",
+ "at": "2026-10-15T22:20:00.123Z",
  "recorded": 2,
- "scored": 0,
+ "scored": 2,
  "coverage": {
   "us": {
-   "sessions": 0,
-   "recorded": 0,
+   "sessions": 1,
+   "recorded": 1,
    "missing": []
   }
  },
- "overall": {},
- "weeks": {},
+ "overall": {
+  "us": {
+   "n": 2,
+   "report": {
+    "calls": 0,
+    "hits": 0,
+    "abstain": 2,
+    "hitRate": null
+   },
+   "base": {
+    "brier": 0.20332792006353484,
+    "calibration": [
+     {
+      "bin": "0.4-0.5",
+      "n": 2,
+      "meanP": 0.4509034495345866,
+      "observed": 0
+     }
+    ],
+    "skill": 0
+   },
+   "clim": {
+    "brier": 0.20332792006353484,
+    "calibration": [
+     {
+      "bin": "0.4-0.5",
+      "n": 2,
+      "meanP": 0.4509034495345866,
+      "observed": 0
+     }
+    ],
+    "skill": 0
+   }
+  }
+ },
+ "weeks": {
+  "2026-W42": {
+   "us": {
+    "n": 2,
+    "report": {
+     "calls": 0,
+     "hits": 0,
+     "abstain": 2,
+     "hitRate": null
+    },
+    "base": {
+     "brier": 0.20332792006353484,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.4509034495345866,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    },
+    "clim": {
+     "brier": 0.20332792006353484,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.4509034495345866,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    }
+   }
+  }
+ },
  "missByType": {},
  "misses": []
 }
