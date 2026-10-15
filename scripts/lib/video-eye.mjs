@@ -14,6 +14,7 @@
  *   자동 차단에 쓸 수 없다.
  */
 import { defaultEyeModel } from './agy-models.mjs';
+import { viewedImages } from './agy-viewed.mjs';
 import { spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, copyFileSync } from 'fs';
 import { tmpdir } from 'os';
@@ -114,6 +115,13 @@ function agyInspect(frames, prompt, model, timeoutMs) {
     const j = JSON.parse(r.stdout.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim());
     const d = j.structured_output;
     if (!d) { EYE_WHY.push('agy 응답에 structured_output 없음'); return null; }
+    // 그림을 열지 않고 낸 판정은 '검사함' 이 아니다(사장님 10/15 "글 설명만으로 판정 금지", lib/agy-viewed).
+    //   null 을 돌려 아래 API 경로(그림을 inline_data 로 붙인다)로 넘긴다.
+    const seen = viewedImages(j.conversation_id, names);
+    if (!seen || seen.missing.length) {
+      EYE_WHY.push(seen ? `agy 가 그림을 안 열고 답함(${seen.missing.length}/${names.length}장)` : 'agy 가 그림을 열었는지 확인 불가(대화 기록 없음)');
+      return null;
+    }
     return { ok: d.ok !== false, checked: true, issues: Array.isArray(d.issues) ? d.issues.map(String) : [],
       readable: true, notes: String(d.notes ?? ''), model: `agy:${model}` };
   } catch (e) { EYE_WHY.push(`agy 응답 파싱 실패: ${String(e.message).slice(0, 50)}`); return null; }

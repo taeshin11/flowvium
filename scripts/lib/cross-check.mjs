@@ -29,6 +29,7 @@ import { tmpdir } from 'os';
 import { join, basename } from 'path';
 import { agyBin, agyReady } from './agy.mjs';
 import { crossCheckModels, defaultVisionModel } from './agy-models.mjs';
+import { viewedImages } from './agy-viewed.mjs';
 
 /** 글·숫자 교차검증용 두 모델. 서로 다른 계열이어야 독립된 눈이 된다. */
 // 2026-10-13: 이름은 lib/agy-models 에서 — 서버 목록에 지금 있는 gemini 하나·claude 하나.
@@ -187,6 +188,13 @@ export function ask({ prompt, model, files = [], timeoutMs = 600_000 }) {
       const j = extractJson(r.stdout);
       return { verdict: null, sec: sec(), model,
         why: `판정을 못 읽었다(키 ${j ? Object.keys(j).join(',') : '없음'} · response ${String(j?.response ?? '').length}자) — 원문 ${dump}` };
+    }
+    // 그림을 붙였으면 모델이 실제로 열었는지 본다 — 안 열고 낸 판정은 판정이 아니다(사장님 10/15, lib/agy-viewed).
+    const imgs = files.filter((f) => existsSync(f) && /\.(jpe?g|png|webp|gif)$/i.test(f)).map((f) => basename(f));
+    if (imgs.length) {
+      const seen = viewedImages(extractJson(r.stdout)?.conversation_id, imgs);
+      if (!seen || seen.missing.length) return { verdict: null, sec: sec(), model,
+        why: seen ? `그림을 안 열고 답함(${seen.missing.join(', ')})` : '그림을 열었는지 확인 불가(대화 기록 없음)' };
     }
     return { verdict: v, why: null, sec: sec(), model };
   } catch (e) {
