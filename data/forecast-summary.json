@@ -1,0 +1,16 @@
+{
+ "at": "2026-10-15T07:20:00.070Z",
+ "recorded": 2,
+ "scored": 0,
+ "coverage": {
+  "us": {
+   "sessions": 0,
+   "recorded": 0,
+   "missing": []
+  }
+ },
+ "overall": {},
+ "weeks": {},
+ "missByType": {},
+ "misses": []
+}
