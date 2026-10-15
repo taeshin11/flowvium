@@ -13,6 +13,7 @@
  * Cache: Redis flowvium:sector-metrics:v1, TTL 6h
  * CDN:   public, s-maxage=21600
  */
+import { macroCacheKey } from '@/lib/macro-cache-key';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { logger, loggedFetch, loggedRedisSet } from '@/lib/logger';
@@ -108,7 +109,7 @@ async function fetchIsmPmiFromRedis(): Promise<number | null> {
       .toISOString()
       .slice(0, 10);
     for (const date of [today, yesterday]) {
-      const key = `flowvium:macro-indicators:v13:${date}`;
+      const key = macroCacheKey(date);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const cached: any = await redis.get(key);
       if (!cached) continue;

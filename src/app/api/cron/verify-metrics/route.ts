@@ -16,6 +16,7 @@
  *     items: [ { key, label, status, value?, source?, lastError? }, ... ]
  *   }
  */
+import { macroCacheKey } from '@/lib/macro-cache-key';
 import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
@@ -1474,7 +1475,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:13f-ownership:v1', label: '13f-ownership' },
     { key: 'flowvium:news-gap:v2', label: 'news-gap-scores' },
     { key: 'flowvium:latest-updates:v3', label: 'latest-updates' },
-    { key: `flowvium:macro-indicators:v13:${kstDate}`, label: `macro-indicators(${kstDate})` },
+    { key: macroCacheKey(kstDate), label: `macro-indicators(${kstDate})` },
     { key: fedwatchCacheKey(), label: `fedwatch(${utcDate})` },
     { key: `flowvium:credit-balance:v3:${utcDate}`, label: `credit-balance(${utcDate})` },
     { key: 'flowvium:market-movers:v1', label: 'market-movers' },

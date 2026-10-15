@@ -21,6 +21,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
  *
  * Redis cache: 15분
  */
+import { macroCacheKey } from '@/lib/macro-cache-key';
 import { fedwatchCacheKey } from '@/lib/fedwatch-calc';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
@@ -196,7 +197,7 @@ async function getMacroItems(redis: Redis | null, base: string, locale: string =
   if (redis) {
     try {
       const kstDate = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
-      const d = await redis.get<{ indicators: MacroInd[] }>(`flowvium:macro-indicators:v13:${kstDate}`);
+      const d = await redis.get<{ indicators: MacroInd[] }>(macroCacheKey(kstDate));
       if (d?.indicators?.length) indicators = d.indicators;
     } catch { /* non-fatal */ }
   }

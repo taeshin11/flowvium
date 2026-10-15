@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { macroCacheKey } from '@/lib/macro-cache-key';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet, loggedRedisDel } from '@/lib/logger';
@@ -169,8 +170,8 @@ async function checkCreditAlert(
     const ts = Date.now() + 9 * 3600000 - daysAgo * 86400000;
     return new Date(ts).toISOString().slice(0, 10);
   };
-  let macro: MacroData | null = await redis.get<MacroData>(`flowvium:macro-indicators:v13:${kst(0)}`);
-  if (!macro) macro = await redis.get<MacroData>(`flowvium:macro-indicators:v13:${kst(1)}`);
+  let macro: MacroData | null = await redis.get<MacroData>(macroCacheKey(kst(0)));
+  if (!macro) macro = await redis.get<MacroData>(macroCacheKey(kst(1)));
   if (!macro?.indicators?.length) return [];
 
   const ig = macro.indicators.find(i => i.id === 'ig_spread')?.actual ?? null;

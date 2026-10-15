@@ -1,4 +1,5 @@
 import { logger, loggedRedisSet } from '@/lib/logger';
+import { macroCacheKey } from '@/lib/macro-cache-key';
 import { logMetrics } from '@/lib/metrics-db';
 /**
  * /api/macro-indicators
@@ -32,7 +33,7 @@ function kstDate(): string {
   return kst.toISOString().slice(0, 10);
 }
 function cacheKey(): string {
-  return `flowvium:macro-indicators:v13:${kstDate()}`;
+  return macroCacheKey(kstDate());
 }
 
 // Next business day after a given ISO date string (or today if none given)
