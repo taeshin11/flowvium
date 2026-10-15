@@ -30,10 +30,12 @@ const now = new Date();
 const dateIn = (tz, d = now) => d.toLocaleString('sv-SE', { timeZone: tz }).slice(0, 10);
 const targetDate = market === 'kr' ? dateIn('Asia/Seoul') : dateIn('America/New_York');
 
-// 장이 이미 열렸으면 '장 전 예측' 이 아니다 — 적지 않는다(늦게 돈 회차가 결과를 보고 적는 일을 막는다).
+// 적는 창: 장 열기 전 07:00(현지)부터 개장 전까지. 장이 열렸으면 '장 전 예측' 이 아니고(결과를 보고 적게 된다),
+//   너무 이르면 장 전 최신 보고서가 아니다 — 10/15 13:40 KST 러너 재기동 소급 실행이 미국 장 9시간 전에 적었다.
 const hm = (tz) => { const s = now.toLocaleString('sv-SE', { timeZone: tz }); return Number(s.slice(11, 13)) * 60 + Number(s.slice(14, 16)); };
-if (!DRY && ((market === 'kr' && hm('Asia/Seoul') >= 9 * 60) || (market === 'us' && hm('America/New_York') >= 9 * 60 + 30))) {
-  log(`${market} 장이 이미 열렸다(${targetDate}) — 장 전 예측이 아니므로 적지 않는다`);
+const [tz, open] = market === 'kr' ? ['Asia/Seoul', 9 * 60] : ['America/New_York', 9 * 60 + 30];
+if (!DRY && !(hm(tz) >= 7 * 60 && hm(tz) < open)) {
+  log(`${market} 적는 창(현지 07:00~개장) 밖이다(${targetDate} ${String(Math.floor(hm(tz) / 60)).padStart(2, '0')}:${String(hm(tz) % 60).padStart(2, '0')}) — 적지 않는다`);
   process.exit(0);
 }
 

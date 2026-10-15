@@ -570,11 +570,14 @@ async function runMaintenance(label, script, timeoutMs, commitPaths = [], opts =
     writeHeartbeat(label);
     // 2026-06-13: 산출물이 tracked 파일이면 자동 커밋+푸시 — 매일 02:05 갱신분이 미커밋으로 남아
     //   wipe-risk 경보 + run-report checkout revert 위험이 반복되던 것 (수동 커밋 toil 제거).
-    if (commitPaths.length) {
+    // 2026-10-15: 아직 없는 산출물은 빼고 add 한다 — 하나라도 없으면 git add 가 통째로 실패해 나머지도 커밋 못 했다
+    //   (forecast-score 첫 실행: 채점할 줄이 없어 scores 파일이 없었고 summary 까지 못 올렸다).
+    const present = commitPaths.filter((p) => existsSync(resolve(process.cwd(), p)));
+    if (present.length) {
       try {
-        const { stdout: st } = await execFileAsync('git', ['status', '--porcelain', '--', ...commitPaths], { timeout: 15000, windowsHide: true });
+        const { stdout: st } = await execFileAsync('git', ['status', '--porcelain', '--', ...present], { timeout: 15000, windowsHide: true });
         if (st.trim()) {
-          await execFileAsync('git', ['add', ...commitPaths], { timeout: 15000, windowsHide: true });
+          await execFileAsync('git', ['add', ...present], { timeout: 15000, windowsHide: true });
           await execFileAsync('git', ['commit', '-m', `chore(${label}): cron 산출 데이터 자동 커밋`], { timeout: 15000, windowsHide: true });
           // 2026-06-15: --no-verify — 자동생성 *데이터* 커밋이라 pre-push hook(npm run verify, 수분+코드용 게이트)
           //   을 돌리면 안 됨(60s 타임아웃 초과/무관한 fail 로 cron 푸시 차단). 코드 게이트는 사람 push 에만.

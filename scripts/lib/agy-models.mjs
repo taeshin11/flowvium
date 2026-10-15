@@ -20,6 +20,11 @@ import { fileURLToPath } from 'url';
 export const PREFERRED_TEXT = Object.freeze([
   'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'gemini-3.7-flash-high', 'gemini-3.8-flash-medium',
 ]);
+// 주제 분류(topic-classify) 전용. 2026-10-15 — 근거는 topic-classify.test.mjs [7]: 같은 60편에서 argon 82%·실패 0,
+//   flash-high 는 도구 없이도 180초 한계에 붙고 검색을 돌다 끊겼다. 짧은 분류에 긴 생각은 시간만 먹는다.
+export const PREFERRED_CLASSIFY = Object.freeze([
+  'gemini-4-argon-medium', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low',
+]);
 // 그림(프레임) 보기. cross-check 는 claude 를 썼다(gemini 이미지 503 실측), video-eye 는 gemini 3.1 pro 를 썼다.
 export const PREFERRED_EYE = Object.freeze([
   'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium',

@@ -302,7 +302,8 @@ async function attemptOnce(prompt, { label, schema, timeoutMs, agyImpl, model } 
  * 성공한 모델을 센다 — 부르는 쪽이 저자 라벨을 만들 때 쓴다.
  */
 export async function agyReport(prompt, opt = {}) {
-  const chain = opt.model ? [opt.model] : AGY_MODEL_CHAIN;
+  // opt.chain: 작업마다 맞는 모델이 다르다(분류는 짧은 답 — topic-classify.test [7]). 없으면 공용 사슬.
+  const chain = opt.model ? [opt.model] : (opt.chain?.length ? opt.chain : AGY_MODEL_CHAIN);
   const now = opt.now ?? Date.now;
   for (let i = 0; i < chain.length; i++) {
     const model = chain[i];

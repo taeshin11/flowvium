@@ -9,6 +9,7 @@
  * agy 가 실패하면 **null** 을 돌려준다. 부르는 쪽은 순서를 건드리지 않고 넘어간다 — 쇼츠를 막지 않는다.
  */
 import { agyReport } from './agy-report.mjs';
+import { pickAvailable, PREFERRED_CLASSIFY } from './agy-models.mjs';
 
 export const TOPICS = Object.freeze([
   '국내정치', '국제·외교·전쟁', '증시·금리·환율', '부동산', '기업·산업',
@@ -57,6 +58,8 @@ export async function classifyTopics(headlines, opt = {}) {
   const viaAgy = opt.agyReportImpl ?? agyReport;
   const call = opt.call ?? ((p) => viaAgy(p, {
     label: 'topic-classify', timeoutMs: opt.timeoutMs ?? 180_000,
+    // 2026-10-15: 분류 전용 순서(argon-medium → flash-medium → flash-low). 근거 topic-classify.test [7].
+    chain: pickAvailable(PREFERRED_CLASSIFY),
     schema: { type: 'object', properties: { c: { type: 'object' } }, required: ['c'] },
     // 불완전한 분류면 이 모델의 답은 못 쓴다 — 사슬의 다음 모델이 받게 한다(agy-report 의 accept).
     accept: (out) => typeof parse(out) === 'object',

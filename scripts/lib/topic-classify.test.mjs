@@ -64,5 +64,27 @@ TOPICS.includes('기타') ? ok('[5] 기타 존재') : bad('[5]');
   const p = classifyPrompt(H);
   /검색/.test(p) && /도구/.test(p) && /글자만/.test(p) ? ok('[6] 검색·도구 금지 + 글자만 보고 분류') : bad('[6] 프롬프트에 검색·도구 금지가 없다');
 }
+// [7] ★ 분류는 자기 모델 순서를 쓴다. 2026-10-15 실측(같은 60편, pro-high 시절 라벨과 일치율 · 15편씩 4묶음 · 180초 제한):
+//   gemini-4-argon-medium 82% · 실패 0/4 · 24~39초 · 도구 0      gemini-4-argon-low 82% · 0/4 · 10~73초 · 도구 0
+//   flash-medium 73~77% · 금지 문구 뒤 0/4 · 12~31초(한 번 153초) · 도구 0/6
+//   flash-low 78% · 1/4(503) · 7~53초     flash-high 71~73% · 1/4·3/4 — 도구 없이도 106~175초(한계에 붙음), 한 회 검색 11회
+//   그래서 argon-medium 먼저, 계열이 다른 flash-medium 둘째(argon 이 통째로 죽어도 산다), flash-low 셋째. flash-high 는 뺀다.
+//   셋까지만 — 사슬이 길면 쇼츠 회차 하나가 9분 넘게 분류를 기다린다.
+const withList = async (list) => {
+  const prev = process.env.AGY_MODELS_LIST;
+  process.env.AGY_MODELS_LIST = list;
+  let seen = null;
+  await classifyTopics(H, { agyReportImpl: async (_p, o) => { seen = o; return JSON.stringify({ c: { 0: '국내정치', 1: '기업·산업', 2: '증시·금리·환율' } }); } });
+  if (prev === undefined) delete process.env.AGY_MODELS_LIST; else process.env.AGY_MODELS_LIST = prev;
+  return seen?.chain;
+};
+{
+  const c = await withList('gemini-4-argon-medium,gemini-4-argon-low,gemini-3.8-flash-high,gemini-3.8-flash-medium,gemini-3.8-flash-low');
+  JSON.stringify(c) === JSON.stringify(['gemini-4-argon-medium', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low'])
+    ? ok(`[7] 분류 사슬: ${c.join(' → ')}`) : bad(`[7] ${JSON.stringify(c)}`);
+  const d = await withList('gemini-3.8-flash-high,gemini-3.8-flash-medium,gemini-3.8-flash-low');
+  JSON.stringify(d) === JSON.stringify(['gemini-3.8-flash-medium', 'gemini-3.8-flash-low'])
+    ? ok(`[8] argon 이 목록에서 빠지면 남은 것만: ${d.join(' → ')}`) : bad(`[8] ${JSON.stringify(d)}`);
+}
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');
 process.exit(fail ? 1 : 0);
