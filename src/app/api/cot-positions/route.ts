@@ -1,129 +1,23 @@
 /**
  * /api/cot-positions
  *
- * CFTC Commitments of Traders (COT) — weekly speculator net positioning.
- * Source: https://www.cftc.gov/dea/newcot/FinFutWk.txt
- *   Legacy Futures-Only format, published every Friday for positions as of the prior Tuesday.
- *
- * Key signal: Non-Commercial (speculator) net = Long − Short.
- * Positive net → speculators are net long (bullish bias).
- * Negative net → speculators are net short (bearish bias).
- *
- * Redis cache: 4h
+ * CFTC Commitments of Traders — 주간 비상업(투기) 순포지션. 2026-10-16: 공식 데이터 API(publicreporting.cftc.gov,
+ * legacy futures-only 6dca-aqww)로 옮겼다. 종전 www.cftc.gov/dea/newcot/FinFutWk.txt 는 어떤 요청에도 403 이었고,
+ * 그 파일은 TFF 형식이라 '비상업' 이라 부른 칸이 실제로는 딜러 포지션이었다. 변환은 src/lib/cot-cftc.ts(+test).
+ * 화요일 기준 포지션을 금요일 공표. Redis cache: 4h
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
+import { rowsToEntries, cotQueryUrl, type CotEntry } from '@/lib/cot-cftc';
+export type { CotEntry };
 export const dynamic = 'force-dynamic';
 
 export const maxDuration = 30;
 
-const CACHE_KEY = 'flowvium:cot-positions:v2';
+const CACHE_KEY = 'flowvium:cot-positions:v3';
 const CACHE_TTL = 4 * 60 * 60;
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
-const CFTC_URL = 'https://www.cftc.gov/dea/newcot/FinFutWk.txt';
-
-export interface CotEntry {
-  id: string;
-  label: string;
-  reportDate: string;
-  openInterest: number;
-  noncommLong: number;
-  noncommShort: number;
-  netPosition: number;    // noncommLong - noncommShort
-  netPctOI: number;       // netPosition / openInterest * 100, rounded to 1dp
-  weeklyChange: number | null;  // change in net position vs prior week (field[38] - field[39])
-  sentiment: 'bullish' | 'bearish' | 'neutral';
-}
-
-// Markets to extract — search is case-insensitive partial match against market name field.
-// Order matters: first match wins. For Nasdaq, prefer regular E-mini over Micro.
-const TARGETS: { id: string; label: string; search: string; searchAlt?: string }[] = [
-  { id: 'sp500',    label: 'E-mini S&P 500',   search: 'E-MINI S&P 500'    },
-  { id: 'nasdaq',   label: 'Nasdaq-100',        search: 'E-MINI NASDAQ-100 - CHICAGO', searchAlt: 'NASDAQ-100' },
-  { id: 'ust10y',   label: '10Y T-Note',        search: 'UST 10Y NOTE'      },
-  { id: 'ust2y',    label: '2Y T-Note',         search: 'UST 2Y NOTE'       },
-  { id: 'eurusd',   label: 'EUR/USD',           search: 'EURO FX'           },
-  { id: 'jpyusd',   label: 'Japanese Yen',      search: 'JAPANESE YEN'      },
-  { id: 'vix',      label: 'VIX',               search: 'VIX FUTURES'       },
-];
-
-function sentiment(netPctOI: number): CotEntry['sentiment'] {
-  if (netPctOI > 15) return 'bullish';
-  if (netPctOI < -15) return 'bearish';
-  return 'neutral';
-}
-
-// Parse one CSV line from the CFTC file (first field may be quoted).
-function parseLine(line: string): string[] {
-  const fields: string[] = [];
-  let i = 0;
-  while (i < line.length) {
-    if (line[i] === '"') {
-      const end = line.indexOf('"', i + 1);
-      fields.push(end === -1 ? '' : line.slice(i + 1, end).trim());
-      i = end === -1 ? line.length : end + 1;
-      if (i < line.length && line[i] === ',') i++;
-    } else {
-      const end = line.indexOf(',', i);
-      if (end === -1) { fields.push(line.slice(i).trim()); break; }
-      fields.push(line.slice(i, end).trim());
-      i = end + 1;
-    }
-  }
-  return fields;
-}
-
-function parseFile(text: string): CotEntry[] {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  // Map: id → first-matched entry
-  const found = new Map<string, CotEntry>();
-
-  for (const line of lines) {
-    const f = parseLine(line);
-    if (f.length < 10) continue;
-    const name = f[0].toUpperCase();
-
-    for (const tgt of TARGETS) {
-      if (found.has(tgt.id)) continue;
-      const primary = name.includes(tgt.search.toUpperCase());
-      const alt = tgt.searchAlt ? name.includes(tgt.searchAlt.toUpperCase()) : false;
-      if (!primary && !alt) continue;
-
-      const oi = parseInt(f[7] ?? '0', 10);
-      const ncLong = parseInt(f[8] ?? '0', 10);
-      const ncShort = parseInt(f[9] ?? '0', 10);
-      if (isNaN(oi) || isNaN(ncLong) || isNaN(ncShort) || oi <= 0) continue;
-
-      const netPos = ncLong - ncShort;
-      const netPct = parseFloat((netPos / oi * 100).toFixed(1));
-      // reportDate: field[2] in YYYY-MM-DD format
-      const reportDate = f[2] ?? '';
-      // Weekly change in net position: Change_NC_Long(f[38]) - Change_NC_Short(f[39])
-      const chgLong = parseInt(f[38] ?? '', 10);
-      const chgShort = parseInt(f[39] ?? '', 10);
-      const weeklyChange = (!isNaN(chgLong) && !isNaN(chgShort)) ? chgLong - chgShort : null;
-
-      found.set(tgt.id, {
-        id: tgt.id,
-        label: tgt.label,
-        reportDate,
-        openInterest: oi,
-        noncommLong: ncLong,
-        noncommShort: ncShort,
-        netPosition: netPos,
-        netPctOI: netPct,
-        weeklyChange,
-        sentiment: sentiment(netPct),
-      });
-    }
-    if (found.size === TARGETS.length) break;
-  }
-
-  // Return in TARGETS order, skip unfound
-  return TARGETS.map(t => found.get(t.id)).filter((e): e is CotEntry => e != null);
-}
 
 export async function GET(req: Request) {
   const t0 = Date.now();
@@ -141,24 +35,24 @@ export async function GET(req: Request) {
   }
 
   try {
-    const res = await fetch(CFTC_URL, {
+    const res = await fetch(cotQueryUrl(), {
       cache: 'no-store',
       signal: AbortSignal.timeout(15000),
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+      headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
       logger.error('api.cot-positions', 'cftc_http_error', { status: res.status });
       return NextResponse.json({ entries: [], error: `CFTC HTTP ${res.status}`, cached: false, source: 'error' }, { status: 502 });
     }
 
-    const text = await res.text();
-    const entries = parseFile(text);
+    const rows = await res.json();
+    const entries = rowsToEntries(Array.isArray(rows) ? rows : []);
 
     logger.info('api.cot-positions', 'parsed', { found: entries.length, durationMs: Date.now() - t0 });
 
     if (entries.length === 0) {
       // Don't cache empty parse results — prevents CDN from serving stale empty data
-      logger.warn('api.cot-positions', 'parse_empty', { textLen: text.length });
+      logger.warn('api.cot-positions', 'parse_empty', { rows: Array.isArray(rows) ? rows.length : -1 });
       return NextResponse.json({ entries: [], error: 'parse yielded 0 entries', cached: false, source: 'empty' }, { status: 502 });
     }
 

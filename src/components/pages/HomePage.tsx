@@ -65,8 +65,9 @@ const SNAPSHOT_TICKERS = ['SPY', 'QQQ', 'BTC-USD', '^VIX'];
 const MACRO_TICKERS = ['^TNX', 'DX-Y.NYB', 'GC=F'];
 const SNAPSHOT_REFRESH_MS = 60_000;
 const TICKER_CONFIG: Record<string, { label: string; decimals: number; prefix: string; suffix: string; invertColor?: boolean }> = {
-  'SPY':       { label: 'S&P',  decimals: 2, prefix: '$', suffix: '' },
-  'QQQ':       { label: 'NDX',  decimals: 2, prefix: '$', suffix: '' },
+  // 2026-10-16 사이트 눈검증: 'S&P $770' 은 지수가 아니라 ETF 가격 — 라벨을 실제 종목(SPY·QQQ)으로.
+  'SPY':       { label: 'SPY',  decimals: 2, prefix: '$', suffix: '' },
+  'QQQ':       { label: 'QQQ',  decimals: 2, prefix: '$', suffix: '' },
   'BTC-USD':   { label: 'BTC',  decimals: 0, prefix: '$', suffix: '' },
   '^VIX':      { label: 'VIX',  decimals: 2, prefix: '',  suffix: '', invertColor: true },
   '^TNX':      { label: '10Y',  decimals: 2, prefix: '',  suffix: '%' },

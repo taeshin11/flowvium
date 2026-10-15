@@ -30,10 +30,11 @@ const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=900, stale-while-revali
 
 const INDICES_BY_COUNTRY: Record<string, Array<{ symbol: string; label: string }>> = {
   US: [
-    { symbol: 'SPY', label: 'S&P 500' },
-    { symbol: 'QQQ', label: 'NASDAQ 100' },
-    { symbol: 'IWM', label: 'Russell 2000' },
-    { symbol: 'DIA', label: 'Dow Jones' },
+    // 2026-10-16 사이트 눈검증: 값은 ETF 가격(SPY 770 등)인데 지수 이름만 적어 'S&P 500 770' 으로 읽혔다 — ETF 를 같이 적는다.
+    { symbol: 'SPY', label: 'S&P 500 (SPY)' },
+    { symbol: 'QQQ', label: 'NASDAQ 100 (QQQ)' },
+    { symbol: 'IWM', label: 'Russell 2000 (IWM)' },
+    { symbol: 'DIA', label: 'Dow Jones (DIA)' },
   ],
   KR: [{ symbol: 'EWY', label: 'Korea (EWY)' }],
   JP: [{ symbol: 'EWJ', label: 'Japan (EWJ)' }],

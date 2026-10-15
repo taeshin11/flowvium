@@ -456,6 +456,24 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
     quarterlyRevenue: QuarterlyFin[];
   } | null>(null);
 
+  // 2026-10-16 사이트 눈검증(agy): 원화 종목(005930.KS 등) 본 화면이 '시총 $1213.10T'·'목표 주가 $478905.62'·
+  //   '▲ $179.18B @ $209500' 로 나갔다. 가격 API 는 currency 'KRW' 를 주는데, 정적 데이터에 있는 회사용 본 화면은
+  //   통화를 안 보고 '$' 를 붙였다(정적 데이터에 없는 회사용 간이 화면만 KRW 처리). 통화로 고른다.
+  const isKRW = livePrice?.currency === 'KRW';
+  function fmtPx(v: number | null | undefined, digits = 2): string {
+    if (v == null) return '-';
+    if (isKRW) return `₩${Math.round(v).toLocaleString()}`;
+    return livePrice?.currency && livePrice.currency !== 'USD' ? v.toFixed(digits) : `$${v.toFixed(digits)}`;
+  }
+  function fmtCap(v: number | null | undefined): string {
+    if (v == null) return '-';
+    if (!isKRW) return fmtUsd(v);
+    const abs = Math.abs(v);
+    if (abs >= 1e12) return `₩${(v / 1e12).toFixed(1)}조`;
+    if (abs >= 1e8) return `₩${(v / 1e8).toFixed(0)}억`;
+    return `₩${Math.round(v).toLocaleString()}`;
+  }
+
   function fmtUsd(v: number | null | undefined): string {
     if (v == null) return '-';
     const abs = Math.abs(v);
@@ -637,7 +655,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
               <div>
                 <p className="text-[10px] font-bold text-cf-text-secondary uppercase tracking-wider mb-0.5">{t('signalsBurst')}</p>
                 <p className={`font-bold ${burst.dir === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {burst.dir === 'up' ? '▲' : '▼'} {fmtBig(burst.notional)} @ ${burst.price}
+                  {burst.dir === 'up' ? '▲' : '▼'} {isKRW ? fmtWon(burst.notional) : fmtBig(burst.notional)} @ {fmtPx(burst.price)}
                 </p>
               </div>
               <span className="text-[10px] text-cf-text-secondary">{new Date(burst.time).toLocaleTimeString()}</span>
@@ -1156,7 +1174,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
             <div className="ml-1">
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold tabular-nums text-cf-text-primary">
-                  {livePrice.currency === 'USD' ? '$' : ''}{livePrice.price.toFixed(2)}
+                  {fmtPx(livePrice.price)}
                 </span>
                 {livePrice.changePct != null && (
                   <span className={`text-sm font-bold px-2 py-0.5 rounded-full tabular-nums ${
@@ -1174,7 +1192,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                 )}
                 {liveMarketCap != null && (
                   <span className="text-xs text-cf-text-secondary font-medium ml-1">
-                    {t('marketCap', { val: fmtUsd(liveMarketCap) })}
+                    {t('marketCap', { val: fmtCap(liveMarketCap) })}
                   </span>
                 )}
               </div>
@@ -1184,10 +1202,10 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                     <span>{t('volume')}: {fmtVol(livePrice.volume)}</span>
                   )}
                   {livePrice.dayHigh != null && livePrice.dayLow != null && (
-                    <span>{t('dayRange')}: {livePrice.dayLow.toFixed(2)} – {livePrice.dayHigh.toFixed(2)}</span>
+                    <span>{t('dayRange')}: {fmtPx(livePrice.dayLow)} – {fmtPx(livePrice.dayHigh)}</span>
                   )}
                   {livePrice.week52High != null && livePrice.week52Low != null && (
-                    <span>{t('week52Range')}: {livePrice.week52Low.toFixed(2)} – {livePrice.week52High.toFixed(2)}</span>
+                    <span>{t('week52Range')}: {fmtPx(livePrice.week52Low)} – {fmtPx(livePrice.week52High)}</span>
                   )}
                 </div>
               )}
@@ -2194,7 +2212,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   <div className="flex items-baseline justify-between mb-1">
                     <span className="text-xs text-cf-text-secondary">{t('analystTarget')}</span>
                     <span className="text-lg font-extrabold text-cf-text-primary">
-                      ${analystData.targetMean.toFixed(2)}
+                      {fmtPx(analystData.targetMean)}
                     </span>
                   </div>
                   {livePrice?.price != null && (
@@ -2212,7 +2230,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
                   )}
                   {analystData.targetLow != null && analystData.targetHigh != null && (
                     <div className="flex items-center justify-between text-xs text-cf-text-secondary mt-1">
-                      <span>${analystData.targetLow.toFixed(0)} — ${analystData.targetHigh.toFixed(0)}</span>
+                      <span>{fmtPx(analystData.targetLow, 0)} — {fmtPx(analystData.targetHigh, 0)}</span>
                       <span className="opacity-60">{t('analystRange')}</span>
                     </div>
                   )}

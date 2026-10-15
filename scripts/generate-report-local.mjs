@@ -46,6 +46,7 @@ import { sameCompany } from './lib/sec-name-clean.mjs';
 import { agyReport, agyReportModel, agyModelUsage } from './lib/agy-report.mjs';
 import { verifyChain } from './lib/agy-models.mjs';
 import { isEtf, isCashLikeEtf } from './lib/etf-filter.mjs';
+import { lastBarInProgress, computeVolRatio } from './lib/vol-ratio.mjs';
 import { reportProvenance } from './lib/model-provenance.mjs';
 import { isGeneratedSource } from './lib/report-source.mjs';
 setGlobalDispatcher(new Agent({
@@ -1723,7 +1724,10 @@ async function fetchOHLCV(ticker, range = '3mo') {
     const quote = result.indicators?.quote?.[0] ?? {};
     const closes = (quote.close ?? []).filter(c => c != null && c > 0);
     const volumes = (quote.volume ?? []).filter((_, i) => (quote.close ?? [])[i] != null);
-    return { closes, volumes };
+    // 2026-10-16: 마지막 봉이 진행 중인 장이면 거래량 비율에서 뺀다(lib/vol-ratio — 자정판 '거래량 -92~-100%' 왜곡).
+    const ts = (result.timestamp ?? []).filter((_, i) => (quote.close ?? [])[i] != null);
+    const partialLast = lastBarInProgress({ timestamps: ts, regular: result.meta?.currentTradingPeriod?.regular });
+    return { closes, volumes, partialLast };
   } catch { return null; }
 }
 
@@ -1746,13 +1750,7 @@ function computeSMA(closes, period) {
   return closes.slice(-period).reduce((a, b) => a + b, 0) / period;
 }
 
-function computeVolRatio(volumes, period = 20) {
-  if (volumes.length < period + 2) return null;
-  const avg = volumes.slice(-period - 1, -1).reduce((a, b) => a + (b ?? 0), 0) / period;
-  const last = volumes[volumes.length - 1];
-  if (!avg) return null;
-  return Math.round(((last / avg) - 1) * 100);
-}
+// computeVolRatio 는 lib/vol-ratio.mjs (진행 중 봉 제외 — 2026-10-16).
 
 
 // Multi-Timeframe Trend Detection
@@ -2012,9 +2010,10 @@ async function buildTechnicalData(tickers, livePrices) {
       }
       const { closes, volumes } = ohlcv;
       const rsi = computeRSI(closes);
+      const partialLast = !!ohlcv.partialLast;
       const sma50 = computeSMA(closes, Math.min(50, closes.length));
       const sma200 = computeSMA(closes, 200);
-      const volRatio = computeVolRatio(volumes);
+      const volRatio = computeVolRatio(volumes, 20, { partialLast });
       const actual = livePrices.get(ticker)?.price ?? closes[closes.length - 1];
       const curr = isKR ? '₩' : '$';
       const fmtP = n => isKR ? `${curr}${Math.round(n).toLocaleString()}` : `${curr}${n.toFixed(2)}`;
@@ -2179,7 +2178,7 @@ async function detectPeakDumpRisk(portfolioItems, livePrices, ctxRaw, rawEarning
           if (rsi >= 80) signals.push({ label: `RSI ${rsi}(과매수·조정 가능)`, weight: 3 });
           else if (rsi >= 70) signals.push({ label: `RSI ${rsi}(과매수권)`, weight: 2 });
         }
-        const volRatio = computeVolRatio(ohlcv.volumes);
+        const volRatio = computeVolRatio(ohlcv.volumes, 20, { partialLast: !!ohlcv.partialLast });
         if (volRatio != null && volRatio >= 50) signals.push({ label: `거래량+${volRatio}%(급등후 차익주의)`, weight: 1 });
       }
     } catch {}
@@ -5262,7 +5261,7 @@ async function fetchSellSignals(tickers) {
         sig.rsi = computeRSI(oh.closes);
         sig.sma50 = computeSMA(oh.closes, 50);
         sig.sma200 = computeSMA(oh.closes, 200);
-        if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
+        if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes, 20, { partialLast: !!oh.partialLast });
       }
     } catch { /* skip */ }
     try {
@@ -5321,7 +5320,7 @@ async function fetchBuyTechSignals(tickers) {
         sig.rsi = computeRSI(closes);
         sig.sma50 = computeSMA(closes, 50);
         sig.sma200 = computeSMA(closes, 200);
-        if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes);
+        if (oh.volumes?.length) sig.volPct = computeVolRatio(oh.volumes, 20, { partialLast: !!oh.partialLast });
         // 2026-10-01(10/2 자리 바로잡음 — 매도 신호 함수에 붙어 있었다) 전향 후보 volumeAbsorption 용(live 채점 미참여) — 거래량 스파이크·20일 수익률
         if (oh.volumes?.length) Object.assign(sig, volumeAbsorptionSignals(closes, oh.volumes));
         // 52w + 20d high / low
