@@ -1,0 +1,782 @@
+{
+ "at": "2026-10-15T13:20:28.194Z",
+ "protocol": "docs/prospective-study-protocol.md v0.1",
+ "studyStartedAt": "2026-10-15T13:20:17.795Z",
+ "ledgerLines": 2,
+ "signals": 237,
+ "newSignals": 237,
+ "priceFetchFailed": 0,
+ "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
+ "byRoleMarketH": {
+  "pick|us|1": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|us|5": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|us|20": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|us|60": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|us|1": {
+   "new": 41,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 41,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|us|5": {
+   "new": 41,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 41,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|us|20": {
+   "new": 41,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 41,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|us|60": {
+   "new": 41,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 41,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|us|1": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|us|5": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|us|20": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|us|60": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|kr|1": {
+   "new": 2,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 2,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|kr|5": {
+   "new": 2,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 2,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|kr|20": {
+   "new": 2,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 2,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_unpicked|kr|60": {
+   "new": 2,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 2,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|us|1": {
+   "new": 3,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 3,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|us|5": {
+   "new": 3,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 3,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|us|20": {
+   "new": 3,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 3,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|us|60": {
+   "new": 3,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 3,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|us|1": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|us|5": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|us|20": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|us|60": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|kr|1": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|kr|5": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|kr|20": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_veto|kr|60": {
+   "new": 6,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 6,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "sell|us|1": {
+   "new": 4,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 4,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "sell|us|5": {
+   "new": 4,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 4,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "sell|us|20": {
+   "new": 4,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 4,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "sell|us|60": {
+   "new": 4,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 4,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|us|1": {
+   "new": 100,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 100,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|us|5": {
+   "new": 100,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 100,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|us|20": {
+   "new": 100,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 100,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|us|60": {
+   "new": 100,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 100,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|kr|1": {
+   "new": 60,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 60,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|kr|5": {
+   "new": 60,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 60,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|kr|20": {
+   "new": 60,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 60,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "control|kr|60": {
+   "new": 60,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 60,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|kr|1": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|kr|5": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|kr|20": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "pick|kr|60": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|kr|1": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|kr|5": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|kr|20": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "cand_picked|kr|60": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|kr|1": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|kr|5": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|kr|20": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  },
+  "judge_pass|kr|60": {
+   "new": 1,
+   "ok": 0,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 1,
+   "noData": 0,
+   "days": 0,
+   "meanNet": null,
+   "se": null,
+   "t": null
+  }
+ },
+ "contrasts": {
+  "H1 pick-control|us|1": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|us|1": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|us|1": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|us|5": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|us|5": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|us|5": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|us|20": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|us|20": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|us|20": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|us|60": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|us|60": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|us|60": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|kr|1": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|kr|1": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|kr|1": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|kr|5": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|kr|5": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|kr|5": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|kr|20": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|kr|20": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|kr|20": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H1 pick-control|kr|60": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H2 pick-cand_unpicked|kr|60": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  },
+  "H5 judge_veto-judge_pass|kr|60": {
+   "days": 0,
+   "mean": null,
+   "se": null,
+   "t": null
+  }
+ }
+}
