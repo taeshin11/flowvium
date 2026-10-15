@@ -57,8 +57,9 @@ export async function POST(req: NextRequest) {
   const expectedToken = `Bearer ${process.env.CRON_SECRET ?? ''}`;
   const authed = !process.env.CRON_SECRET || authHeader === expectedToken;
 
-  // execute: 리포트 포트폴리오로 가상 매매 실행 (로컬 스크립트 + cron에서 호출)
+  // execute: 리포트 포트폴리오로 가상 매매 실행 (scripts/paper-trade-sync.mjs — cron). 2026-10-16: 인증 없이 열려 있던 것을 막는다.
   if (action === 'execute') {
+    if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const redis = createRedis();
     if (!redis) return NextResponse.json({ error: 'Redis unavailable' }, { status: 503 });
     const body = await req.json().catch(() => ({})) as { portfolio?: unknown[]; reportDate?: string };

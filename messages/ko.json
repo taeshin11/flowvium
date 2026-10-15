@@ -439,6 +439,7 @@
     "tickersCached": "{n}개 종목 캐시됨"
   },
   "newsGap": {
+    "clickToExpand": "클릭하여 펼치기 ↓",
     "title": "뉴스 갭 분석기",
     "subtitle": "시장이 놓치고 있는 공급망 이슈를 발견하세요",
     "description": "AI가 공급망 데이터와 미디어 보도를 교차 분석하여 충분히 주목받지 못한 중대한 이벤트를 찾아냅니다.",
@@ -1917,6 +1918,7 @@
     "mcSmall": "소형 ($1B 미만)"
   },
   "paperTrading": {
+    "filingUnit": "건",
     "title": "가상계좌",
     "subtitle": "AI 리포트 추천 포트폴리오 기준 가상 매매 시스템",
     "seed": "시드",

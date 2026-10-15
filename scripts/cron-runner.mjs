@@ -637,6 +637,8 @@ const MAINT_JOBS = [
   //   채점은 하루 두 번(미국 마감 뒤·한국 마감 뒤). 프로토콜 docs/prospective-study-protocol.md.
   { label: 'engine-ledger-record', script: 'scripts/engine-ledger-record.mjs',      timeoutMs: 60000,   commitPaths: ['data/engine-ledger.jsonl', 'data/engine-study.json'], schedules: ['7,27,47 * * * *'], maxAgeH: 2, duringReport: true },
   { label: 'engine-ledger-score',  script: 'scripts/engine-ledger-score.mjs',       timeoutMs: 600000,  commitPaths: ['data/engine-summary.json'], schedules: ['45 22 * * *', '45 7 * * *'], maxAgeH: 30 },
+  // 2026-10-16: 보고서 → 가상매매(/paper-trading). 로컬 생성기로 옮긴 뒤 부르는 곳이 없어 '처리된 리포트 0' 이었다.
+  { label: 'paper-trade-sync',     script: 'scripts/paper-trade-sync.mjs',            timeoutMs: 180000,  commitPaths: [], schedules: ['12,32,52 * * * *'], maxAgeH: 2, duringReport: true },
   // 2026-10-15: 정확도 probe(우리 값 vs CNN·Yahoo 공식 소스 → accuracy_probe_log) + 전 페이지 렌더 감사가 8/19 이후 0회.
   //   원인: Windows 작업 스케줄러 6h 태스크(run-monitor-deep.bat)가 돌렸는데, 8/21 맥 이식 때 '죽은 Windows 런처'로
   //   지우면서(128b1e1b) 맥 쪽 일정을 안 만들었다. session-spotcheck 의 6h spawn 경로도 맥에선 아무도 안 부른다.

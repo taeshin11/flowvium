@@ -31,7 +31,9 @@ for (const t of tickers) {
   //   TSLA meta.name="OEM & Other" 가 UI 회사명으로 노출되던 사건. 권위명(realNames) > 정상 meta.name > ticker.
   const GARBAGE_NAME = /\b(& Other|Other|Unknown|N\/A|Industrials?|Materials?|Financials?)\b/i;
   const cleanMeta = (m.name && m.name !== tk && !GARBAGE_NAME.test(m.name)) ? m.name : null;
-  const name = (!isKR && realNames[tk]) ? realNames[tk] : (cleanMeta ?? tk);
+  // 2026-10-16: 9/15 이후 candidate meta.name 이 실제 출처(10/16 사이트 눈검증: company-names.json 은 공급망 지도의 노드 이름이라
+  //   MSFT='Microsoft Azure'·AMZN='Amazon AWS' 가 회사명으로, 섹터도 8/20 생성본 그대로 '반도체' 로 나갔다). meta 우선.
+  const name = cleanMeta ?? ((!isKR && realNames[tk]) ? realNames[tk] : tk);
   const sector = m.sector || 'Unknown';
   rows.push({ ticker: t, name, sector });
 }

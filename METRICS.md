@@ -1094,6 +1094,7 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 7 | 거래 내역 (최근 200건) | 💾 cached | Redis  | 리포트 생성 시 |
 | 8 | 실현 손익 (거래별) | 💾 cached | Redis | 거래 시 |
 | 9 | 일별 자산 스냅샷 (최근 365일) | 💾 cached | Redis  | 리포트 생성 시 |
+| 10 | 보고서 → 가상매매 연결 | 🔄 cron | scripts/paper-trade-sync.mjs → /api/paper-trading?action=execute (2026-10-16 이전엔 로컬 생성기에서 호출 0회 — 1~9 가 초기값에 멈춰 있었다) | 20분(:12·:32·:52) |
 | 10 | stop-loss 자동 청산 | ✅ live | Yahoo Finance + 크론 | check-stops 호출 시 |
 | 11 | target 자동 청산 | ✅ live | Yahoo Finance + 크론 | check-stops 호출 시 |
 | 12 | 처리된 리포트 수 | 💾 cached | Redis | 리포트 생성 시 |

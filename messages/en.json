@@ -439,6 +439,7 @@
     "tickersCached": "{n} tickers cached"
   },
   "newsGap": {
+    "clickToExpand": "Click to expand ↓",
     "title": "News Gap Analyzer",
     "subtitle": "Discover supply chain stories the market is missing",
     "description": "Our AI cross-references supply chain data with media coverage to find material events that haven't received adequate attention.",
@@ -1918,6 +1919,7 @@
     "mcSmall": "Small (<$1B)"
   },
   "paperTrading": {
+    "filingUnit": " reports",
     "title": "Paper Trading",
     "subtitle": "Virtual trading based on AI report portfolio recommendations",
     "seed": "Seed",

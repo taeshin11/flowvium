@@ -3,6 +3,7 @@ import { getNewsGapCache } from '@/lib/signals-cache';
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import { Redis } from '@upstash/redis';
 import { logger } from '@/lib/logger';
+import { decodeEntities } from '@/lib/news-sanitize';
 
 const REDIS_KEY_OWNERSHIP = 'flowvium:13f-ownership:v1';
 
@@ -107,8 +108,10 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
       const univ = UNIV.get(ticker);
       const { score: ibActivityScore, level: ibActivityLevel } = computeIbActivity(ownership);
       const mediaScore = mediaScoreFrom(live?.articles);
-      // gapScore = 높은 기관활동 + 낮은 미디어 (news-gap thesis). 라이브 score 있으면 우선.
-      const gapScore = live?.score ?? Math.round(ibActivityScore * (1 - mediaScore / 100));
+      // gapScore = 높은 기관활동 + 낮은 미디어 (news-gap thesis).
+      // 2026-10-16 사이트 눈검증: 캐시 score 가 우선이라 화면의 두 성분과 안 맞았다(REGN 기관 59·미디어 34 → 갭 66,
+      //   AAPL 80·20 → 64). 화면에 함께 나가는 두 성분으로만 계산한다.
+      const gapScore = Math.round(ibActivityScore * (1 - mediaScore / 100));
       return {
         ticker,
         companyName: univ?.name ?? stat?.companyName ?? ticker,
@@ -119,8 +122,9 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
         gapScore,
         // 2026-06-13: 13F 자회사 분리행으로 같은 기관 중복 노출 (BlackRock×3 실측) — unique
         topInstitutions: Array.from(new Set(ownership.map(o => o.institution))).slice(0, 3),
-        recentArticles: live?.recentArticles?.length ? live.recentArticles : (stat?.recentArticles ?? []),
-        ibActions: stat?.ibActions ?? [],
+        // 2026-10-16: 라이브 기사가 없을 때 정적 기사(4월)를 '최근 기사' 로, 정적 영문 기관 행동 문장을 붙이던 것 — 시계열은 정적 폴백 금지.
+        recentArticles: (live?.recentArticles ?? []).map((a) => ({ ...a, title: decodeEntities(a.title) })),
+        ibActions: [],
         ownershipData: ownership,
       };
     });
@@ -132,7 +136,7 @@ export async function getNewsGapData(): Promise<NewsGapResult> {
         ...entry,
         gapScore: live?.score ?? entry.gapScore,
         mediaScore: live ? mediaScoreFrom(live.articles) : entry.mediaScore,
-        recentArticles: live?.recentArticles?.length ? live.recentArticles : entry.recentArticles,
+        recentArticles: (live?.recentArticles?.length ? live.recentArticles : entry.recentArticles).map((a) => ({ ...a, title: decodeEntities(a.title) })),
       };
     });
   }

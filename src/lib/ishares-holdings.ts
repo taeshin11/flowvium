@@ -1,5 +1,6 @@
 import { logger } from './logger';
 import { UNIVERSE_SEARCH } from '@/data/universe-search';
+import { sectorSlug } from '@/lib/sector-label';
 import { fetchNaverKRQuotes } from './naver-finance';
 
 /**
@@ -114,6 +115,8 @@ const UNIV_SECTOR_KO: Record<string, string> = {
   financials: '금융', healthcare: '헬스케어', industrials: '산업재', energy: '에너지', materials: '소재',
   'consumer-discretionary': '경기소비재', 'consumer-staples': '필수소비재', automotive: '경기소비재',
   'communication-services': '커뮤니케이션', telecom: '커뮤니케이션', utilities: '유틸리티', 'real-estate': '부동산',
+  // 2026-10-16: 유니버스 섹터는 9/15 부터 Yahoo 표기('Technology'·'Consumer Cyclical') — 슬러그로 맞춰 찾는다.
+  'consumer-cyclical': '경기소비재', 'consumer-defensive': '필수소비재', 'financial-services': '금융', 'basic-materials': '소재',
 };
 async function fetchKRHoldingsFromUniverse(): Promise<IShareHolding[]> {
   const krUniv = UNIVERSE_SEARCH.filter(c => /\.(KS|KQ)$/.test(c.ticker));
@@ -128,7 +131,7 @@ async function fetchKRHoldingsFromUniverse(): Promise<IShareHolding[]> {
     const q = qmap.get(code);
     if (!q || q.marketCap == null || q.close == null) continue;
     holdings.push({
-      ticker: code, name: c.name, sector: UNIV_SECTOR_KO[c.sector] ?? (c.sector || '기타'),
+      ticker: code, name: c.name, sector: UNIV_SECTOR_KO[sectorSlug(c.sector)] ?? (c.sector || '기타'),
       marketValue: Math.round(q.marketCap / FX), weight: 0, price: q.close, location: 'KR', currency: 'KRW',
     });
   }
