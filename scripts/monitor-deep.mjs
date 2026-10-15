@@ -120,5 +120,8 @@ const line = alerts.length
   ? `MONITOR-DEEP ALERT: ${alerts.join(' | ')}  [${info.join(' / ')}]  (${((Date.now() - t0) / 1000).toFixed(0)}s)`
   : `MONITOR-DEEP OK  ${info.join(' / ')}  (${((Date.now() - t0) / 1000).toFixed(0)}s)`;
 console.log(line);
-process.exitCode = alerts.length ? 1 : 0;
+// 2026-10-15: 발견(alert)은 상태 파일·DB(monitor_runs·accuracy_probe_log)로 알린다 — 종료코드는 '작업이 끝까지 돌았나' 만.
+//   종전엔 발견이 있으면 1 이라, 맥 cron-runner 가 정상 완주(10/16 00:06, probe 4건 적재)를 '실패' 로 적었다.
+//   돌다가 던진 예외는 Node 기본대로 1 로 끝난다.
+process.exitCode = 0;
 setTimeout(() => process.exit(process.exitCode), 2000).unref();
