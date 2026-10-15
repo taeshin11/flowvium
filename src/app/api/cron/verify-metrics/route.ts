@@ -673,8 +673,10 @@ async function verifyFedWatchDetailed(base: string): Promise<MetricItem[]> {
     const dateKey = m.date?.replace(/-/g, '') ?? 'unk';
     const totalCutPct = (m.probCut25 ?? 0) + (m.probCut50 ?? 0) + (m.probCut75 ?? 0);
     const holdPct = m.probHold ?? 0;
+    const hikePct = m.probHike ?? 0;   // 2026-10-16 인상 포함
+    const top = Math.max(totalCutPct, holdPct, hikePct);
     const dominant = m.impliedRate != null
-      ? (totalCutPct > holdPct ? `cut ${totalCutPct.toFixed(0)}%` : `hold ${holdPct.toFixed(0)}%`)
+      ? (top === hikePct ? `hike ${hikePct.toFixed(0)}%` : top === totalCutPct ? `cut ${totalCutPct.toFixed(0)}%` : `hold ${holdPct.toFixed(0)}%`)
       : null;
     items.push({
       key: `fw.meeting.${dateKey}`,
@@ -1472,7 +1474,7 @@ async function verifyRedisCaches(redis: Redis): Promise<MetricItem[]> {
     { key: 'flowvium:news-gap:v2', label: 'news-gap-scores' },
     { key: 'flowvium:latest-updates:v3', label: 'latest-updates' },
     { key: `flowvium:macro-indicators:v13:${kstDate}`, label: `macro-indicators(${kstDate})` },
-    { key: `flowvium:fedwatch:v2:${utcDate}`, label: `fedwatch(${utcDate})` },
+    { key: `flowvium:fedwatch:v3:${utcDate}`, label: `fedwatch(${utcDate})` },
     { key: `flowvium:credit-balance:v3:${utcDate}`, label: `credit-balance(${utcDate})` },
     { key: 'flowvium:market-movers:v1', label: 'market-movers' },
     { key: 'flowvium:sector-pe:v3', label: 'sector-pe' },

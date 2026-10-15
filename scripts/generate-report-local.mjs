@@ -3832,7 +3832,7 @@ async function gatherContext() {
       // Summarise key field so we can verify the data looks sensible
       let summary = '';
       if (name === 'fearGreed') summary = `us_score=${result?.byCountry?.find(c=>c.id==='us')?.score ?? result?.score ?? '?'}`;
-      else if (name === 'fedwatch') { const nm = result?.meetings?.find(m => new Date(m.date).getTime() > Date.now()) ?? result?.meetings?.[result.meetings.length - 1]; summary = nm ? `차기 ${nm.label} hold=${nm.probHold}% cut=${nm.probCut25}% (연말인하 ${result.totalImpliedCuts ?? '?'}회)` : 'n/a'; }
+      else if (name === 'fedwatch') { const nm = result?.meetings?.find(m => new Date(m.date).getTime() > Date.now()) ?? result?.meetings?.[result.meetings.length - 1]; summary = nm ? `차기 ${nm.label} hold=${nm.probHold}% cut=${nm.probCut25}% hike=${nm.probHike ?? 0}% (연말 누적 ${result.totalChangeBps ?? '?'}bp)` : 'n/a'; }
       else if (name === 'macro') summary = `indicators=${result?.indicators?.length ?? '?'}`;
       else if (name === 'insider') summary = `items=${result?.items?.length ?? 0}`;
       else if (name === 'ownershipAlerts') summary = `items=${result?.items?.length ?? result?.length ?? 0}`;
@@ -3986,8 +3986,9 @@ function buildCtxSummary(ctx) {
       const now = Date.now();
       const next = meetings.find(m => new Date(m.date).getTime() > now) ?? meetings[meetings.length - 1];
       const cut = next.probCut25 ?? next.probCut ?? 0;
-      sentiment += ` | FedWatch 차기 FOMC(${next.label}): 동결 ${next.probHold ?? '?'}%·인하 ${cut}%`;
-      if (ctx.fedWatch?.totalImpliedCuts != null) sentiment += ` 연말 내재인하 ${ctx.fedWatch.totalImpliedCuts}회(내재금리 ${ctx.fedWatch.yearEndImpliedRate ?? '?'}%)`;
+      // 2026-10-16: 인상 확률도 — 9/17 인상 뒤 선물이 인상을 반영하는데 동결·인하만 적어 '인상' 이 안 보였다(사이트 눈검증).
+      sentiment += ` | FedWatch 차기 FOMC(${next.label}): 동결 ${next.probHold ?? '?'}%·인하 ${cut}%·인상 ${next.probHike ?? 0}%`;
+      if (ctx.fedWatch?.totalChangeBps != null) sentiment += ` 연말까지 시장 내재 변동 ${ctx.fedWatch.totalChangeBps > 0 ? '+' : ''}${ctx.fedWatch.totalChangeBps}bp(내재금리 ${ctx.fedWatch.yearEndImpliedRate ?? '?'}%, 현재 목표 ${ctx.fedWatch.currentTargetLow ?? '?'}~${ctx.fedWatch.currentTargetHigh ?? '?'}%)`;
     }
   } catch { /* ignore */ }
 

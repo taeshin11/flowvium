@@ -240,7 +240,7 @@ async function getMacroItems(redis: Redis | null, base: string, locale: string =
 }
 
 // ── 4. FedWatch ───────────────────────────────────────────────────────────────
-type FomcMeeting = { date: string; label: string; probHold: number; probCut25: number; probHike25?: number };
+type FomcMeeting = { date: string; label: string; probHold: number; probCut25: number; probHike?: number };
 interface FedData { currentRateMid?: number | string; meetings?: FomcMeeting[]; nextMeeting?: FomcMeeting | null; updatedAt?: string; }
 
 async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en'): Promise<UpdateItem | null> {
@@ -267,14 +267,16 @@ async function getFedWatchItem(redis: Redis | null, base: string, locale = 'en')
   if (!next) return null;
   const cutProb = Math.round(next.probCut25 ?? 0);
   const holdProb = Math.round(next.probHold ?? 0);
+  // 2026-10-16: 인상 확률을 안 적어 '동결 16% / 인하 0%'(합 16%)로 나갔다(사이트 눈검증) — 0 이 아니면 같이 적는다.
+  const hikeProb = Math.round(next.probHike ?? 0);
   const updatedAt = data.updatedAt ?? new Date().toISOString();
-  const direction: UpdateItem['direction'] = cutProb > 50 ? 'up' : holdProb > 50 ? 'neutral' : 'down';
+  const direction: UpdateItem['direction'] = cutProb > 50 ? 'up' : hikeProb > 50 ? 'down' : holdProb > 50 ? 'neutral' : 'down';
   return {
     id: 'fedwatch',
     type: 'fed',
-    headline: `FOMC ${next.label} — ${localizeLabel('Hold', locale)} ${holdProb}% / ${localizeLabel('Cut', locale)} ${cutProb}%`,
+    headline: `FOMC ${next.label} — ${localizeLabel('Hold', locale)} ${holdProb}% / ${localizeLabel('Cut', locale)} ${cutProb}%${hikeProb ? ` / ${localizeLabel('Hike', locale)} ${hikeProb}%` : ''}`,
     sub: `${localizeLabel('Current rate', locale)} ${data.currentRateMid ?? '-'}%`,
-    source: 'CME FedWatch',
+    source: 'Fed Funds 선물 · FRED',
     time: fmtTime(updatedAt),
     sortTime: updatedAt,
     badge: localizeLabel('FedWatch', locale),

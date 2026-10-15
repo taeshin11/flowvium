@@ -741,7 +741,7 @@ function buildCtxSummary(ctx: Awaited<ReturnType<typeof gatherTabContext>>): Ctx
     // 2026-08-21: meetings[0] 은 과거 회의일 수 있다 — 이 문자열은 LLM 프롬프트로 들어간다.
     const nextFomc = meetings.length ? pickNextMeeting(fed) : null;
     if (nextFomc) {
-      sentiment += ` FOMC ${nextFomc.label} cut_prob=${nextFomc.probCut25}%`;
+      sentiment += ` FOMC ${nextFomc.label} hold_prob=${nextFomc.probHold}% cut_prob=${nextFomc.probCut25}% hike_prob=${nextFomc.probHike ?? 0}%`;  // 2026-10-16 인상 포함
     }
   } catch { /* ignore */ }
 

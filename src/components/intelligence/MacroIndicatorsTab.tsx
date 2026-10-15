@@ -10,13 +10,13 @@ import VolatilityCard from '@/components/VolatilityCard';
 interface FomcMeeting {
   date: string; label: string;
   targetLow: number; targetHigh: number;
-  probHike: number; probHold: number; probCut25: number; probCut50: number; probCut75: number;
+  probHike: number; probHike50?: number; probHold: number; probCut25: number; probCut50: number; probCut75: number;
   impliedRate: number; cumulativeCuts: number;
 }
 interface FedWatchData {
-  currentTargetLow: number; currentTargetHigh: number; currentRateMid: number;
+  currentTargetLow: number | null; currentTargetHigh: number | null; currentRateMid: number | null;
   meetings: FomcMeeting[];
-  yearEndImpliedRate: number; totalImpliedCuts: number;
+  yearEndImpliedRate: number | null; totalImpliedCuts: number | null; totalChangeBps?: number | null;
   updatedAt: string; source: string;
 }
 
@@ -64,10 +64,17 @@ function FedWatchSection() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-cf-text-secondary">{t('fwYearEnd')}</span>
-            <span className="text-sm font-bold text-blue-600 tabular-nums">{data.yearEndImpliedRate.toFixed(2)}%</span>
-            <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-full font-semibold">
-              {t('fwBpCut', { n: data.totalImpliedCuts })}
-            </span>
+            <span className="text-sm font-bold text-blue-600 tabular-nums">{data.yearEndImpliedRate != null ? `${data.yearEndImpliedRate.toFixed(2)}%` : '—'}</span>
+            {/* 2026-10-16: 인상이 반영된 때 '-0bp 인하' 로 나가던 것 — 부호대로 인상/인하 */}
+            {data.totalChangeBps != null && data.totalChangeBps > 0 ? (
+              <span className="text-[10px] bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.5 rounded-full font-semibold">
+                {t('fwBpHike', { n: data.totalChangeBps })}
+              </span>
+            ) : data.totalImpliedCuts != null ? (
+              <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-full font-semibold">
+                {t('fwBpCut', { n: data.totalImpliedCuts })}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -132,7 +139,7 @@ function FedWatchSection() {
                 )}
                 {m.probHike > 0.5 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-red-600 w-16 flex-shrink-0">+25bp</span>
+                    <span className="text-[10px] text-red-600 w-16 flex-shrink-0">{(m.probHike50 ?? 0) > 0.5 ? '+25~50bp' : '+25bp'}</span>
                     <div className="flex-1 h-4 bg-red-50 rounded-full overflow-hidden">
                       <div className="h-full bg-red-400 rounded-full transition-all" style={{ width: `${m.probHike}%` }} />
                     </div>
@@ -144,10 +151,12 @@ function FedWatchSection() {
               <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   dominantCut > 60 ? 'bg-blue-100 text-blue-700' :
+                  m.probHike > 60 ? 'bg-red-50 text-red-700' :
                   m.probHold > 60 ? 'bg-gray-100 text-gray-600' :
                   'bg-amber-50 text-amber-700'
                 }`}>
                   {dominantCut > 60 ? t('fwCutDominant', { pct: dominantCut.toFixed(0) }) :
+                   m.probHike > 60 ? t('fwHikeDominant', { pct: m.probHike.toFixed(0) }) :
                    m.probHold > 60 ? t('fwHoldDominant', { pct: m.probHold.toFixed(0) }) :
                    t('fwMixed')}
                 </span>

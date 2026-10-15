@@ -364,7 +364,7 @@ function summariseFed(data: unknown): string {
   // 2026-08-21: meetings[0] 은 이미 끝난 회의다(실측 Apr 29). 이 문자열은 LLM 프롬프트로 들어간다.
   const next = pickNextMeeting(d);
   if (!next) return `FedRate=${cur}%`;
-  return `FedRate=${cur}%,next ${next.label as string}:hold${Math.round((next.probHold as number) ?? 0)}%/cut${Math.round((next.probCut25 as number) ?? 0)}%`;
+  return `FedRate=${cur}%,next ${next.label as string}:hold${Math.round((next.probHold as number) ?? 0)}%/cut${Math.round((next.probCut25 as number) ?? 0)}%/hike${Math.round((next.probHike as number) ?? 0)}%`;  // 2026-10-16 인상 포함
 }
 
 function summariseMacro(data: unknown): string {
@@ -759,7 +759,7 @@ export function fallbackBrief(tf: Timeframe, ctx?: TabContext): DailyBrief {
     const meetings = fed?.meetings as Array<Record<string, unknown>> | undefined;
     const nextFomc = meetings?.length ? pickNextMeeting(fed) : null;
     if (nextFomc) {
-      marketBullets.push(`FOMC ${nextFomc.label as string}: cut ${Math.round((nextFomc.probCut25 as number) ?? 0)}%`);
+      marketBullets.push(`FOMC ${nextFomc.label as string}: hold ${Math.round((nextFomc.probHold as number) ?? 0)}% · cut ${Math.round((nextFomc.probCut25 as number) ?? 0)}% · hike ${Math.round((nextFomc.probHike as number) ?? 0)}%`);  // 2026-10-16 인상 포함
     }
   } catch { /* ignore */ }
   if (marketBullets.length === 0) marketBullets.push(`${tfLabel} market data loading`);

@@ -2,348 +2,118 @@ import { logger, loggedRedisSet} from '@/lib/logger';
 /**
  * /api/fedwatch
  *
- * FOMC 회의별 금리 인하/동결/인상 확률 (CME FedWatch 스타일)
- * 정적 데이터 제공 — 필요 시 업데이트
+ * FOMC 회의별 금리 인하/동결/인상 확률 (CME FedWatch 스타일, 단순형) — 계산은 src/lib/fedwatch-calc.ts.
+ * 2026-10-16: 현재 금리를 4월 값(3.50~3.75%)으로 박아 둔 STATIC_DATA 를 걷어냈다. 9/17 인상 뒤에도 그 위에서
+ *   계산해 'Oct 29 인상 84%·현재 3.625%' 를 냈다(사이트 눈검증에서 발견). 이제:
+ *   - 현재 목표범위·실효금리 = FRED DFEDTARL/DFEDTARU/DFF(그때그때)
+ *   - 회의 뒤 금리 = 회의 다음 달 ZQ 선물(Yahoo) 내재금리
+ *   - 지난 회의는 내보내지 않는다. 기준을 못 받으면 확률을 지어내지 않고 meetings 를 비운다(source 에 이유).
+ * FOMC 일정(결정일)은 연준 공식 달력 — 구조 데이터라 코드에 둔다. 2027 일정은 확인 전이라 넣지 않았다.
  * Cache: 4h Redis
  */
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
-import type { Redis } from '@upstash/redis';
+import { computeMeetings, postMeetingContract, type FomcMeetingCalc } from '@/lib/fedwatch-calc';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 function cacheKey(): string {
   const utcDate = new Date().toISOString().slice(0, 10);
-  return `flowvium:fedwatch:v2:${utcDate}`;
+  return `flowvium:fedwatch:v3:${utcDate}`;
 }
 
-export interface FomcMeeting {
-  date: string;         // "2026-05-07"
-  label: string;        // "May 7"
-  current: number;      // current target rate mid (e.g. 4.375)
-  targetLow: number;    // e.g. 4.25
-  targetHigh: number;   // e.g. 4.50
-  probHike: number;     // 0~100 %
-  probHold: number;
-  probCut25: number;    // 1 cut (25bp)
-  probCut50: number;    // 2 cuts (50bp)
-  probCut75: number;    // 3+ cuts
-  impliedRate: number;  // market implied rate mid
-  cumulativeCuts: number; // expected cumulative cuts in bp from now
-}
+export type FomcMeeting = FomcMeetingCalc;
 
 export interface FedWatchData {
-  currentTargetLow: number;
-  currentTargetHigh: number;
-  currentRateMid: number;
+  currentTargetLow: number | null;
+  currentTargetHigh: number | null;
+  currentRateMid: number | null;
+  effectiveRate: number | null;
   meetings: FomcMeeting[];
-  yearEndImpliedRate: number;
-  totalImpliedCuts: number;  // bps
+  yearEndImpliedRate: number | null;
+  totalImpliedCuts: number | null;  // bps (인하만, 인상이면 0 — changeBps 를 같이 본다)
+  totalChangeBps: number | null;
   updatedAt: string;
   source: string;
 }
 
-// @static-data-warning: 과거 회의(Apr 29 이전) 및 미래 확률값은 하드코딩됨.
-// ZQ futures 기반으로 수동 보정. live override는 fetchYFImpliedRates() 참조.
-// ── Static data (updated 2026-04-26) ─────────────────────────────────────────
-// Current rate: 3.50-3.75% (mid 3.625%) after Mar 19 meeting (FRED DFEDTARU=3.75)
-// Macro-indicators STATIC confirms range 3.5-3.75 from March 19 FOMC decision.
-// FOMC dates 2026: Apr 29 (past), Jun 18, Jul 30, Sep 17, Oct 29, Dec 10 (official Fed calendar)
-// Probabilities calibrated to 2026-04-26 ZQ futures (no cuts priced through mid-2026).
-// targetLow/targetHigh = expected target after each meeting (hold-dominant → current range).
-// ZQ futures imply only 10bp total cuts by Dec 9; first likely cut at Sep/Oct 50th percentile.
-const STATIC_DATA: FedWatchData = {
-  currentTargetLow: 3.50,
-  currentTargetHigh: 3.75,
-  currentRateMid: 3.625,
-  meetings: [
-    {
-      date: '2026-04-29',
-      label: 'Apr 29',
-      current: 3.625,
-      targetLow: 3.50,
-      targetHigh: 3.75,
-      probHike: 0,
-      probHold: 97,
-      probCut25: 3,
-      probCut50: 0,
-      probCut75: 0,
-      impliedRate: 3.618,
-      cumulativeCuts: 1,
-    },
-    {
-      date: '2026-06-18',
-      label: 'Jun 18',
-      current: 3.625,
-      targetLow: 3.50,
-      targetHigh: 3.75,
-      probHike: 0,
-      probHold: 90,
-      probCut25: 9,
-      probCut50: 1,
-      probCut75: 0,
-      impliedRate: 3.610,
-      cumulativeCuts: 2,
-    },
-    {
-      date: '2026-07-30',
-      label: 'Jul 30',
-      current: 3.625,
-      targetLow: 3.50,   // 80% hold → expected range = current
-      targetHigh: 3.75,
-      probHike: 0,
-      probHold: 80,
-      probCut25: 17,
-      probCut50: 3,
-      probCut75: 0,
-      impliedRate: 3.590,
-      cumulativeCuts: 4,
-    },
-    {
-      date: '2026-09-17',
-      label: 'Sep 17',
-      current: 3.625,
-      targetLow: 3.50,   // 68% hold dominant — first cut possible (32%) but not expected
-      targetHigh: 3.75,
-      probHike: 0,
-      probHold: 68,
-      probCut25: 26,
-      probCut50: 6,
-      probCut75: 0,
-      impliedRate: 3.565,
-      cumulativeCuts: 6,
-    },
-    {
-      date: '2026-10-29',
-      label: 'Oct 29',
-      current: 3.625,
-      targetLow: 3.50,   // 58% hold still dominant
-      targetHigh: 3.75,
-      probHike: 0,
-      probHold: 58,
-      probCut25: 34,
-      probCut50: 8,
-      probCut75: 0,
-      impliedRate: 3.545,
-      cumulativeCuts: 8,
-    },
-    {
-      date: '2026-12-10',
-      label: 'Dec 10',
-      current: 3.625,
-      targetLow: 3.25,   // 50/50 cut/hold — first 25bp cut likely by year-end
-      targetHigh: 3.50,
-      probHike: 0,
-      probHold: 50,
-      probCut25: 40,
-      probCut50: 10,
-      probCut75: 0,
-      impliedRate: 3.525,
-      cumulativeCuts: 10,
-    },
-  ],
-  yearEndImpliedRate: 3.525,
-  totalImpliedCuts: 10,
-  updatedAt: '2026-04-26',
-  source: 'Yahoo Finance ZQ Futures 기반 시장 컨센서스',
-};
+// 연준 공식 2026 FOMC 결정일(2일 회의의 둘째 날). 9/17 인상은 FRED DFEDTARU 변경일(2026-09-17)과 일치.
+const FOMC_DATES = ['2026-01-28', '2026-03-18', '2026-04-29', '2026-06-18', '2026-07-30', '2026-09-17', '2026-10-29', '2026-12-10'];
 
-// ── Yahoo Finance ZQ Futures live fetch ──────────────────────────────────────
-async function fetchYFImpliedRates(): Promise<Record<string, number> | null> {
-  const MONTH_MAP: Record<string, string> = {
-    'F': 'JAN', 'G': 'FEB', 'H': 'MAR', 'J': 'APR', 'K': 'MAY',
-    'M': 'JUN', 'N': 'JUL', 'Q': 'AUG', 'U': 'SEP', 'V': 'OCT',
-    'X': 'NOV', 'Z': 'DEC',
-  };
-  const CONTRACTS = ['ZQJ26', 'ZQK26', 'ZQM26', 'ZQN26', 'ZQQ26', 'ZQU26', 'ZQV26', 'ZQZ26'];
+async function fredLatest(id: string): Promise<{ date: string; value: number } | null> {
   try {
-    const results = await Promise.allSettled(
-      CONTRACTS.map(async (contract) => {
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${contract}.CBT?interval=1d&range=5d`;
-        const res = await fetch(url, {
-          signal: AbortSignal.timeout(8000),
-          cache: 'no-store',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; Flowvium/1.0)',
-            'Accept': 'application/json',
-          },
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        const closeArr = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
-        const prices: number[] = Array.isArray(closeArr)
-          ? closeArr.filter((p: unknown) => typeof p === 'number')
-          : [];
-        const price = prices[prices.length - 1];
-        if (!price || price < 90) return null;
-        const monthCode = contract[2];
-        const yearSuffix = contract.slice(3);
-        const monthName = MONTH_MAP[monthCode];
-        if (!monthName) return null;
-        const impliedRate = parseFloat((100 - price).toFixed(4));
-        return {
-          key26: `${monthName}${yearSuffix}`,
-          keyFull: `${monthName}20${yearSuffix}`,
-          rate: impliedRate,
-        };
-      })
-    );
-    const rates: Record<string, number> = {};
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) {
-        rates[r.value.key26] = r.value.rate;
-        rates[r.value.keyFull] = r.value.rate;
-      }
-    }
-    return Object.keys(rates).length >= 2 ? rates : null;
-  } catch {
-    return null;
-  }
+    const cosd = new Date(Date.now() - 45 * 86400_000).toISOString().slice(0, 10);
+    const res = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}&cosd=${cosd}`, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
+    if (!res.ok) return null;
+    const rows = (await res.text()).trim().split('\n').slice(1).map((l) => l.split(',')).filter(([, v]) => v && v !== '.');
+    const last = rows.at(-1);
+    return last ? { date: last[0], value: Number(last[1]) } : null;
+  } catch { return null; }
 }
 
-// Map CME month code to a meeting, compute probability distribution from implied rate
-function computeMeetingProbs(
-  meeting: FomcMeeting,
-  impliedRates: Record<string, number>,
-  currentMid: number,
-): Partial<FomcMeeting> {
-  const d = new Date(meeting.date);
-  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const monthCodes = [
-    `${MONTHS[d.getMonth()]}${String(d.getFullYear()).slice(2)}`,
-    `${MONTHS[d.getMonth()]}${d.getFullYear()}`,
-  ];
-  const implied = monthCodes.reduce((acc: number | null, code) => {
-    const r = impliedRates[code];
-    return r !== undefined ? r : acc;
-  }, null);
+async function zqPrice(contract: string): Promise<number | null> {
+  try {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${contract}.CBT?interval=1d&range=5d`, {
+      signal: AbortSignal.timeout(8000), cache: 'no-store', headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Flowvium/1.0)', Accept: 'application/json' } });
+    if (!res.ok) return null;
+    const d = await res.json();
+    const p = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return typeof p === 'number' && p > 90 && p < 100 ? p : null;
+  } catch { return null; }
+}
 
-  if (implied === null) return {};
-
-  const diff = currentMid - implied; // positive = market prices in cuts
-  // Expected cumulative cuts in units of 25bp
-  const expectedCuts = diff / 0.25;
-
-  let probHike = 0, probHold = 0, probCut25 = 0, probCut50 = 0, probCut75 = 0;
-
-  if (expectedCuts <= -0.5) {
-    // Hike scenario dominant
-    probHike = Math.min(95, Math.round(-expectedCuts * 80));
-    probHold = 100 - probHike;
-  } else if (expectedCuts < 0.5) {
-    // Hold most likely, small cut/hike tail
-    const tailCut = Math.max(0, Math.round(expectedCuts * 60));
-    const tailHike = expectedCuts < 0 ? Math.min(8, Math.round(-expectedCuts * 40)) : 0;
-    probHold = 100 - tailCut - tailHike;
-    probCut25 = tailCut;
-    probHike = tailHike;
-  } else if (expectedCuts < 1.5) {
-    // 1 cut most likely — normalize to ensure p0+p1+p2 = 100
-    probCut25 = Math.round(Math.max(30, Math.min(85, (1 - Math.abs(expectedCuts - 1)) * 120)));
-    probHold  = Math.max(0, Math.round((1.5 - expectedCuts) * 60));
-    if (probHold + probCut25 > 100) probHold = 100 - probCut25;
-    probCut50 = Math.max(0, 100 - probHold - probCut25);
-  } else if (expectedCuts < 2.5) {
-    // 2 cuts most likely — normalize to ensure p1+p2+p3 = 100
-    probCut50 = Math.round(Math.max(30, Math.min(80, (1 - Math.abs(expectedCuts - 2)) * 120)));
-    probCut25 = Math.max(0, Math.round((2.5 - expectedCuts) * 50));
-    if (probCut25 + probCut50 > 100) probCut25 = 100 - probCut50;
-    probCut75 = Math.max(0, 100 - probCut50 - probCut25);
-  } else {
-    // 3+ cuts
-    probCut75 = Math.min(75, Math.round(expectedCuts * 20));
-    probCut50 = Math.round((100 - probCut75) * 0.55);
-    probCut25 = Math.max(0, 100 - probCut75 - probCut50);
-  }
-
+async function build(): Promise<FedWatchData & { liveData: boolean }> {
+  const today = new Date().toISOString().slice(0, 10);
+  const [lo, hi, dff] = await Promise.all([fredLatest('DFEDTARL'), fredLatest('DFEDTARU'), fredLatest('DFF')]);
+  const empty = (why: string) => ({ currentTargetLow: lo?.value ?? null, currentTargetHigh: hi?.value ?? null,
+    currentRateMid: lo && hi ? (lo.value + hi.value) / 2 : null, effectiveRate: dff?.value ?? null, meetings: [],
+    yearEndImpliedRate: null, totalImpliedCuts: null, totalChangeBps: null, updatedAt: new Date().toISOString(), source: why, liveData: false });
+  if (!lo || !hi || !dff) return empty('FRED 기준금리 수신 실패 — 확률 계산 안 함');
+  const contracts = Array.from(new Set(FOMC_DATES.filter((d) => d >= today).map(postMeetingContract)));
+  const prices: Record<string, number> = {};
+  await Promise.all(contracts.map(async (c) => { const p = await zqPrice(c); if (p != null) prices[c] = p; }));
+  const meetings = computeMeetings({ dates: FOMC_DATES, prices, effr: dff.value, targetLow: lo.value, targetHigh: hi.value, today });
+  if (!meetings.length) return empty('ZQ 선물 가격 수신 실패 — 확률 계산 안 함');
+  const last = meetings[meetings.length - 1];
   return {
-    impliedRate: parseFloat(implied.toFixed(3)),
-    probHike: parseFloat(probHike.toFixed(1)),
-    probHold: parseFloat(probHold.toFixed(1)),
-    probCut25: parseFloat(probCut25.toFixed(1)),
-    probCut50: parseFloat(probCut50.toFixed(1)),
-    probCut75: parseFloat(probCut75.toFixed(1)),
-    cumulativeCuts: parseFloat(Math.max(0, diff * 100).toFixed(0)),
+    currentTargetLow: lo.value, currentTargetHigh: hi.value, currentRateMid: (lo.value + hi.value) / 2, effectiveRate: dff.value,
+    meetings, yearEndImpliedRate: last.impliedRate, totalImpliedCuts: last.cumulativeCuts, totalChangeBps: last.changeBps,
+    updatedAt: new Date().toISOString(),
+    source: `FRED 목표범위(${lo.date})·실효금리 DFF(${dff.date}) + Yahoo ZQ 선물 실시간 — 회의 다음 달 계약으로 계산`,
+    liveData: true,
   };
 }
 
 const CDN_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=600' };
-
-// 4h module-level cache — without Redis each request fires 7 Yahoo ZQ futures calls
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let FEDWATCH_MEMORY_CACHE: { data: any; expiresAt: number } | null = null;
 const FEDWATCH_MEMORY_TTL_MS = 4 * 60 * 60 * 1000;
 
-// 2026-06-19: nextMeeting 은 *오늘* 기준 차기 미래 FOMC — 캐시(4h~)된 객체에 박아두면 회의일 지나며 stale.
-//   응답 시점에 meetings 에서 항상 재계산(캐시히트·신규 모두). meetings[0] 이 과거여도 정확한 차기 회의 반환.
+// 차기 회의 = 아직 안 열린 회의(회의 당일 0시 UTC 부터 다음으로). meetings 는 이미 미래만이지만 캐시가 하루를 넘길 수 있다.
 function withNextMeeting<T extends { meetings?: FomcMeeting[] }>(data: T): T & { nextMeeting: FomcMeeting | null } {
-  // 회의 자정(UTC) > 현재 = 아직 안 열린 회의. 자정 비교라 회의 *당일* 0시부터 차기로 넘어감(끝난 회의 절대 미선택).
-  //   문자열 date>=today 는 UTC/KST 경계에서 어제 회의를 차기로 오선택(Jun 18 버그) → getTime() 비교로 통일.
   const now = Date.now();
-  const ms = data.meetings ?? [];
-  return { ...data, nextMeeting: ms.find(m => new Date(m.date).getTime() > now) ?? ms[ms.length - 1] ?? null };
+  const ms = (data.meetings ?? []).filter((m) => new Date(m.date).getTime() > now);
+  return { ...data, meetings: ms, nextMeeting: ms[0] ?? null };
 }
 
 export async function GET() {
   const redis = createRedis();
-
   if (!redis && FEDWATCH_MEMORY_CACHE && Date.now() < FEDWATCH_MEMORY_CACHE.expiresAt) {
     return NextResponse.json({ ...withNextMeeting(FEDWATCH_MEMORY_CACHE.data), cached: true }, { headers: CDN_HEADERS });
   }
-
   if (redis) {
     try {
       const cached = await redis.get(cacheKey());
       if (cached) return NextResponse.json({ ...withNextMeeting(cached as { meetings?: FomcMeeting[] }), cached: true }, { headers: CDN_HEADERS });
     } catch { /* non-fatal */ }
   }
-
-  // Try live Yahoo Finance ZQ Futures data
-  const cmeRates = await fetchYFImpliedRates();
-  let meetings = STATIC_DATA.meetings;
-  let source = STATIC_DATA.source;
-  let liveData = false;
-
-  if (cmeRates && Object.keys(cmeRates).length >= 3) {
-    liveData = true;
-    source = 'Yahoo Finance ZQ Futures 실시간';
-    meetings = STATIC_DATA.meetings.map(m => {
-      const live = computeMeetingProbs(m, cmeRates, STATIC_DATA.currentRateMid);
-      return { ...m, ...live };
-    });
+  const result = await build();
+  if (result.liveData) {
+    if (redis) {
+      const key = cacheKey();
+      try { await loggedRedisSet(redis, 'api.fedwatch', key, result, { ex: 4 * 60 * 60 }); }
+      catch (err) { logger.error('fedwatch', 'save_failed', { key, error: err }); }
+    } else FEDWATCH_MEMORY_CACHE = { data: result, expiresAt: Date.now() + FEDWATCH_MEMORY_TTL_MS };
   }
-
-  // 2026-06-19: nextMeeting = 아직 안 열린 *차기* FOMC (meetings[0] 은 Apr 29 등 과거일 수 있음 — 소비처가
-  //   meetings[0] 을 "다음 회의"로 오인해 끝난 회의 동결확률을 표시하던 사각지대. 단일 진실원으로 노출).
-  //   회의는 해당일 발표로 종료 → date < today 는 과거. 문자열 YYYY-MM-DD lexicographic 비교(>= 오늘은 차기/당일).
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const nextMeeting = meetings.find(m => m.date >= todayStr) ?? meetings[meetings.length - 1] ?? null;
-
-  const result: FedWatchData & { cached: boolean; liveData: boolean; nextMeeting: typeof nextMeeting } = {
-    ...STATIC_DATA,
-    meetings,
-    nextMeeting,
-    source,
-    yearEndImpliedRate: meetings[meetings.length - 1]?.impliedRate ?? STATIC_DATA.yearEndImpliedRate,
-    totalImpliedCuts: meetings[meetings.length - 1]?.cumulativeCuts ?? STATIC_DATA.totalImpliedCuts,
-    updatedAt: liveData ? new Date().toISOString().slice(0, 10) : STATIC_DATA.updatedAt,
-    cached: false,
-    liveData,
-  };
-
-  if (redis) {
-    const key = cacheKey();
-    try {
-      logger.info('fedwatch', 'save_start', { key, ttl: 4 * 60 * 60 });
-      const t0 = Date.now();
-      await loggedRedisSet(redis, 'api.fedwatch', key, result, { ex: 4 * 60 * 60 });
-      logger.info('fedwatch', 'save_ok', { key, durationMs: Date.now() - t0 });
-    } catch (err) {
-      logger.error('fedwatch', 'save_failed', { key, error: err });
-    }
-  } else if (liveData) {
-    FEDWATCH_MEMORY_CACHE = { data: result, expiresAt: Date.now() + FEDWATCH_MEMORY_TTL_MS };
-  }
-
-  return NextResponse.json(result, { headers: CDN_HEADERS });
+  return NextResponse.json({ ...withNextMeeting(result), cached: false }, { headers: CDN_HEADERS });
 }
