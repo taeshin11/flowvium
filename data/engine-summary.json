@@ -1,11 +1,11 @@
 {
- "at": "2026-10-16T06:41:37.569Z",
+ "at": "2026-10-16T07:45:10.805Z",
  "protocol": "docs/prospective-study-protocol.md v0.1",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
  "ledgerLines": 4,
  "signals": 491,
  "newSignals": 464,
- "priceFetchFailed": 0,
+ "priceFetchFailed": 1,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
   "pick|us|1": {
@@ -160,7 +160,7 @@
    "pending": 3,
    "noData": 0,
    "days": 1,
-   "meanNet": -0.01128,
+   "meanNet": -0.01699,
    "se": null,
    "t": null
   },
@@ -304,7 +304,7 @@
    "pending": 0,
    "noData": 0,
    "days": 1,
-   "meanNet": 0.01995,
+   "meanNet": 0.0224,
    "se": null,
    "t": null
   },
@@ -442,13 +442,13 @@
   },
   "control|kr|1": {
    "new": 120,
-   "ok": 60,
+   "ok": 59,
    "stale": 0,
    "mismatch": 0,
-   "pending": 60,
-   "noData": 0,
+   "pending": 59,
+   "noData": 2,
    "days": 1,
-   "meanNet": 0.01066,
+   "meanNet": 0.01211,
    "se": null,
    "t": null
   },
@@ -457,8 +457,8 @@
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 120,
-   "noData": 0,
+   "pending": 118,
+   "noData": 2,
    "days": 0,
    "meanNet": null,
    "se": null,
@@ -469,8 +469,8 @@
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 120,
-   "noData": 0,
+   "pending": 118,
+   "noData": 2,
    "days": 0,
    "meanNet": null,
    "se": null,
@@ -481,8 +481,8 @@
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 120,
-   "noData": 0,
+   "pending": 118,
+   "noData": 2,
    "days": 0,
    "meanNet": null,
    "se": null,
@@ -496,7 +496,7 @@
    "pending": 5,
    "noData": 0,
    "days": 1,
-   "meanNet": 0.00991,
+   "meanNet": 0.01049,
    "se": null,
    "t": null
   },
@@ -544,7 +544,7 @@
    "pending": 5,
    "noData": 0,
    "days": 1,
-   "meanNet": 0.00991,
+   "meanNet": 0.01049,
    "se": null,
    "t": null
   },
@@ -592,7 +592,7 @@
    "pending": 5,
    "noData": 0,
    "days": 1,
-   "meanNet": 0.00991,
+   "meanNet": 0.01049,
    "se": null,
    "t": null
   },
@@ -804,19 +804,19 @@
   },
   "H1 pick-control|kr|1": {
    "days": 1,
-   "mean": -0.00075,
+   "mean": -0.00162,
    "se": null,
    "t": null
   },
   "H2 pick-cand_unpicked|kr|1": {
    "days": 1,
-   "mean": 0.02119,
+   "mean": 0.02748,
    "se": null,
    "t": null
   },
   "H5 judge_veto-judge_pass|kr|1": {
    "days": 1,
-   "mean": 0.01003,
+   "mean": 0.01191,
    "se": null,
    "t": null
   },
