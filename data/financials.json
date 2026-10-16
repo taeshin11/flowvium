@@ -329,11 +329,11 @@
     "fy": "2026"
   },
   "ACN": {
-    "revUsd": 69672977000,
-    "revYoYPct": 7.4,
-    "opMarginPct": 14.7,
-    "roePct": 24.6,
-    "fy": "2025"
+    "revUsd": 74183445000,
+    "revYoYPct": 6.5,
+    "opMarginPct": 15.4,
+    "roePct": 26.5,
+    "fy": "2026"
   },
   "ADBE": {
     "revUsd": 23769000000,
@@ -4151,11 +4151,11 @@
     "fy": "2025"
   },
   "CMC": {
-    "revUsd": 7798480000,
-    "revYoYPct": -1.6,
+    "revUsd": 9393904000,
+    "revYoYPct": 20.5,
     "opMarginPct": null,
-    "roePct": 2,
-    "fy": "2025"
+    "roePct": 14,
+    "fy": "2026"
   },
   "ATI": {
     "revUsd": 4587400000,
