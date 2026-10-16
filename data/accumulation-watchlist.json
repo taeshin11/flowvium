@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-16T06:02:13.498Z",
+  "generatedAt": "2026-10-16T07:20:28.072Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 3,
@@ -19,9 +19,9 @@
         "아래꼬리 매집 5개(저가 매수받침)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-10-12)"
       ],
-      "runup20dPct": -4,
-      "runup5dPct": -2.5,
-      "medDollarVolUsd": 2389359,
+      "runup20dPct": -4.3,
+      "runup5dPct": -2.8,
+      "medDollarVolUsd": 2393303,
       "smartAccum": false,
       "official": {
         "category": "caution",
@@ -34,16 +34,15 @@
       "ticker": "042000.KQ",
       "name": "카페24",
       "tier": "watch",
-      "score": 41,
+      "score": 33,
       "coFire": 2,
       "lead": [
         "거래량 추세 5.0× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "거래량 2.7× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 6.2,
-      "runup5dPct": -24.5,
+      "runup20dPct": 4.9,
+      "runup5dPct": -25.5,
       "medDollarVolUsd": 806222,
       "smartAccum": true,
       "official": null
@@ -52,16 +51,15 @@
       "ticker": "130740.KQ",
       "name": "티피씨글로벌",
       "tier": "watch",
-      "score": 41,
+      "score": 33,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.0× 상승(지속 매집)",
         "거래량 3.8× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -0.4,
-      "runup5dPct": 8.4,
+      "runup20dPct": -0.5,
+      "runup5dPct": 8.3,
       "medDollarVolUsd": 45601,
       "smartAccum": true,
       "official": null
