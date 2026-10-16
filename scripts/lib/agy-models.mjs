@@ -9,7 +9,7 @@
  *   목록은 logs/agy-models.json 에 1시간 둔다(`agy models` 는 몇 초 걸린다). 목록을 못 읽으면 거르지 않는다 —
  *   모르는 상태로 사슬을 비우면 그게 더 나쁘다. "not recognized" 를 보면 부르는 쪽이 forgetAgyModels() 로 버린다.
  */
-import { spawnSync } from 'child_process';
+import { runAgySync } from './agy-run.mjs';
 import { existsSync, readFileSync, writeFileSync, rmSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -66,7 +66,7 @@ export function agyModels() {
   } catch { /* 없으면 새로 읽는다 */ }
   const b = bin();
   if (!b) return null;
-  const r = spawnSync(b, ['models'], { encoding: 'utf8', timeout: 60000 });
+  const r = runAgySync(b, ['models'], { timeoutMs: 60000 });   // lib/agy-run(10/16)
   const models = r.status === 0 ? parseModelList(r.stdout) : [];
   if (!models.length) return null;
   try {

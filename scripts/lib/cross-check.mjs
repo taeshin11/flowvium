@@ -24,6 +24,7 @@
  *   'gate-that-can-never-fire' 가 정확히 그 모양이었다.
  */
 import { spawnSync } from 'child_process';
+import { runAgySync } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
 import { mkdtempSync, writeFileSync, rmSync, copyFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, basename } from 'path';
@@ -172,11 +173,11 @@ export function ask({ prompt, model, files = [], timeoutMs = 600_000 }) {
     //   읽으려고 RunCommand(cat)를 먼저 썼다 → 권한 거부 → 7.4초 만에 턴이 통째로 취소되고
     //   response 0자(denied_actions=[RunCommand]). **금지를 읽기 전에 금지를 어긴 것**이다.
     //   금지는 반드시 -p 인자에 직접 있어야 한다 — 파일 안에 두면 닭과 달걀이 된다.
-    const r = spawnSync(agyBin(), [
+    const r = runAgySync(agyBin(), [
       '-p', NO_SHELL + '같은 폴더의 ask.md 를 read_file 로 읽고 그 지시를 수행해라.',
       '--model', model, '--sandbox', '--add-dir', dir,
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json',
-    ], { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 24 * 1024 * 1024 });
+    ], { cwd: dir, timeoutMs: timeoutMs, maxBuffer: 24 * 1024 * 1024 });
     if (r.error?.code === 'ETIMEDOUT') return { verdict: null, why: `시간초과 ${timeoutMs / 1000}초`, sec: sec(), model };
     if (r.status !== 0) return { verdict: null, why: `종료코드 ${r.status}: ${String(r.stderr ?? '').slice(0, 120)}`, sec: sec(), model };
     const v = unwrap(extractJson(r.stdout));

@@ -2,14 +2,12 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { join } from 'path';
-import { execFile } from 'child_process';
-import util from 'util';
+import { runAgy } from './agy-run.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 
 import { defaultTextModel, pickAvailable, PREFERRED_TEXT, forgetAgyModels } from './agy-models.mjs';
 
-const execFileAsync = util.promisify(execFile);
 
 // 왜: 보고서에 저자를 적으려면 **실제로 넘긴 모델명**이 필요하다. 기본값을 두 군데 적어 두면
 //   한쪽만 바뀌어 라벨이 조용히 틀어진다(2026-09-23 실측 고장이 정확히 그 모양이었다).
@@ -201,7 +199,8 @@ async function attemptOnce(prompt, { label, schema, timeoutMs, agyImpl, model } 
         const { agyBin } = await import('./agy.mjs');
         const bin = agyBin();
         if (!bin) { console.error(`[agy:${label}] agy 실행파일을 못 찾았다`); return null; }
-        const res = await execFileAsync(bin, args, {
+        // 2026-10-16: agy 는 lib/agy-run 으로만 띄운다 — 답을 내고도 안 끝나는 agy 1.3.6(agy-run.test 머리말).
+        const res = await runAgy(bin, args, {
           signal: ac.signal,
           maxBuffer: 20 * 1024 * 1024 // 20MB
         });

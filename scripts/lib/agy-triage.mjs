@@ -18,6 +18,7 @@
  */
 import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
+import { runAgySync } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
 import { mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -109,12 +110,12 @@ export function triage(alert, evidence, { cwd, model, timeoutMs = 600_000 } = {}
     writeFileSync(join(dir, 'evidence.md'), evidence
       .map((e) => `## ${e.name}${e.cmd ? `\n\`${e.cmd}\`` : ''}\n\n\`\`\`\n${e.body}\n\`\`\``).join('\n\n'));
     writeFileSync(join(dir, 'schema.json'), JSON.stringify(SCHEMA));
-    const r = spawnSync(bin, ['-p', triagePrompt(alert),
+    const r = runAgySync(bin, ['-p', triagePrompt(alert),
       '--model', model || defaultTextModel(),
       '--effort', 'high', '--sandbox',
       '--add-dir', dir, '--add-dir', cwd,
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],
-    { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
+    { cwd: dir, timeoutMs: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
     if (r.status !== 0 || !r.stdout) return { ok: false, why: `종료코드 ${r.status}` };
     // stdout 전체가 JSON 이라고 믿지 않는다 — 작업 폴더를 여럿 붙이면 앞뒤에 다른 출력이 섞인다
     //   (2026-09-23 실측: status=SUCCESS 인데 통째로 parse 하다 실패했다).

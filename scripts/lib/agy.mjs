@@ -15,6 +15,7 @@
  */
 import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
+import { runAgySync } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
 import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -32,7 +33,7 @@ export function agyReady() {
   if (_ok !== null) return _ok;
   const bin = agyBin();
   if (!bin) { _ok = false; return _ok; }
-  const r = spawnSync(bin, ['models'], { encoding: 'utf8', timeout: 60000 });
+  const r = runAgySync(bin, ['models'], { timeoutMs: 60000 });
   const k = agyReadiness(r);
   // 2026-10-15: 일시 장애(시간 초과·503)는 접을 이유가 아니다 — agy-readiness.test 머리말(10/15 정오 회차 소실).
   if (k === 'transient') console.error(`[agy] 준비 확인이 일시 장애로 끝났다(${r.error?.code ?? r.signal ?? `exit ${r.status}`}) — 로그인 문제는 아니라 본 호출에 맡긴다`);
@@ -75,11 +76,11 @@ export function agyText(prompt, opt = {}) {
     writeFileSync(join(dir, 'schema.json'), JSON.stringify({
       type: 'object', properties: { text: { type: 'string' } }, required: ['text'],
     }));
-    const r = spawnSync(bin, ['-p', prompt,
+    const r = runAgySync(bin, ['-p', prompt,
       '--model', opt.model || defaultTextModel(),
       '--sandbox', '--add-dir', dir,
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],
-    { cwd: dir, encoding: 'utf8', timeout: opt.timeoutMs ?? 180000, maxBuffer: 8 * 1024 * 1024 });
+    { cwd: dir, timeoutMs: opt.timeoutMs ?? 180000, maxBuffer: 8 * 1024 * 1024 });
     if (r.error?.code === 'ETIMEDOUT') { _why = `시간초과 ${Math.round((opt.timeoutMs ?? 180000) / 1000)}초`; return null; }
     if (r.status !== 0 || !r.stdout) {
       _why = `종료코드 ${r.status} ${String(r.stderr ?? '').replace(/\s+/g, ' ').slice(0, 120)}`.trim();

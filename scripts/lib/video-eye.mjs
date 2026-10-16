@@ -16,6 +16,7 @@
 import { defaultEyeModel } from './agy-models.mjs';
 import { viewedImages } from './agy-viewed.mjs';
 import { spawnSync } from 'child_process';
+import { runAgySync } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, copyFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -85,7 +86,7 @@ function agyBin() {
 function agyAvailable() {
   const bin = agyBin();
   if (!bin) return false;
-  const r = spawnSync(bin, ['models'], { encoding: 'utf8', timeout: 60000 });
+  const r = runAgySync(bin, ['models'], { timeoutMs: 60000 });
   return r.status === 0 && !/sign in/i.test(`${r.stdout ?? ''}${r.stderr ?? ''}`);
 }
 
@@ -107,9 +108,9 @@ function agyInspect(frames, prompt, model, timeoutMs) {
   const bin = agyBin();
   if (!bin) return null;
   // --add-dir 로 **작업 공간에 넣어야** 본다. cwd 만 주면 "파일을 찾을 수 없음" 이라고 답한다(실측).
-  const r = spawnSync(bin, ['-p', full, '--model', model, '--sandbox', '--dangerously-skip-permissions',
+  const r = runAgySync(bin, ['-p', full, '--model', model, '--sandbox', '--dangerously-skip-permissions',
     '--add-dir', dir, '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],
-  { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 });
+  { cwd: dir, timeoutMs: timeoutMs, maxBuffer: 8 * 1024 * 1024 });
   if (r.status !== 0 || !r.stdout) { EYE_WHY.push(`agy 실행 실패(status ${r.status}${r.error ? ` ${r.error.message}` : ''})`); return null; }
   try {
     const j = JSON.parse(r.stdout.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').trim());

@@ -20,16 +20,15 @@
  *   그려졌다 — 진짜 보도사진처럼 보이는 거짓이다. 배경·광고·카드처럼 사실을 말하지 않는 그림에만 쓴다.
  *   프롬프트에 "숫자·글자·실존 인물 없음" 을 넣는 것은 부르는 쪽 책임이다.
  */
-import { spawnSync, execFile } from 'child_process';
+import { spawnSync } from 'child_process';
 import { existsSync, mkdtempSync, copyFileSync, readdirSync, readFileSync, rmSync, statSync, mkdirSync } from 'fs';
 import { tmpdir, homedir } from 'os';
 import { join, dirname, basename, resolve } from 'path';
-import util from 'util';
 import ffmpegPath from 'ffmpeg-static';
 import { agyBin } from './agy.mjs';
+import { runAgy } from './agy-run.mjs';
 import { AGY_MODEL_CHAIN } from './agy-report.mjs';
 
-const execFileAsync = util.promisify(execFile);
 
 /** 도구가 받는 비율(실행파일 문자열과 실측으로 확인한 것만). */
 const ASPECTS = { '1:1': 1, '9:16': 9 / 16, '16:9': 16 / 9, '3:4': 3 / 4, '4:3': 4 / 3 };
@@ -118,7 +117,7 @@ export async function generateImage(o) {
     else {
       const bin = agyBin();
       if (!bin) return { ok: false, reason: 'agy 실행파일을 못 찾았다' };
-      stdout = (await execFileAsync(bin, args, { timeout: timeoutMs + 15_000, maxBuffer: 20 * 1024 * 1024 })).stdout;
+      stdout = (await runAgy(bin, args, { timeoutMs: timeoutMs + 15_000, maxBuffer: 20 * 1024 * 1024 })).stdout;   // lib/agy-run(10/16)
     }
   } catch (e) {
     rmSync(work, { recursive: true, force: true });

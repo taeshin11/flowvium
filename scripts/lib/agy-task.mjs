@@ -17,6 +17,7 @@
  */
 import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
+import { runAgySync } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
 import { agyBin, agyReady } from './agy.mjs';
 
 /** 테스트 출력에서 되먹일 부분만 남긴다. 전부 보내면 프롬프트가 로그로 가득 찬다. */
@@ -59,10 +60,10 @@ export function roundVerdict({ round, passed, changedFiles }) {
 export function runAgy(prompt, { dir, model, timeoutMs = 900_000 } = {}) {
   const bin = agyBin();
   if (!bin || !agyReady()) return { ok: false, why: 'agy 준비 안 됨' };
-  const r = spawnSync(bin, ['-p', prompt,
+  const r = runAgySync(bin, ['-p', prompt,
     '--model', model || defaultTextModel(),
     '--mode', 'accept-edits', '--effort', 'high', '--sandbox', '--add-dir', dir],
-  { cwd: dir, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
+  { cwd: dir, timeoutMs: timeoutMs, maxBuffer: 16 * 1024 * 1024 });
   // 권한 거부로 "no output produced" 가 떠도 **파일 수정은 반영돼 있을 수 있다**(실측).
   //   그래서 종료코드로 성공을 판정하지 않는다 — 판정은 테스트가 한다.
   return { ok: true, stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
