@@ -1,7 +1,7 @@
 {
- "at": "2026-10-16T07:20:00.118Z",
- "recorded": 4,
- "scored": 4,
+ "at": "2026-10-16T22:20:00.076Z",
+ "recorded": 6,
+ "scored": 6,
  "coverage": {
   "kr": {
    "sessions": 1,
@@ -9,40 +9,40 @@
    "missing": []
   },
   "us": {
-   "sessions": 1,
-   "recorded": 1,
+   "sessions": 0,
+   "recorded": 0,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 2,
+   "n": 4,
    "report": {
-    "calls": 0,
+    "calls": 2,
     "hits": 0,
     "abstain": 2,
-    "hitRate": null
+    "hitRate": 0
    },
    "base": {
-    "brier": 0.20332792006353484,
+    "brier": 0.25246965193064325,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 2,
-      "meanP": 0.4509034495345866,
-      "observed": 0
+      "n": 4,
+      "meanP": 0.4508623087088991,
+      "observed": 0.5
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.20332792006353484,
+    "brier": 0.25246965193064325,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 2,
-      "meanP": 0.4509034495345866,
-      "observed": 0
+      "n": 4,
+      "meanP": 0.4508623087088991,
+      "observed": 0.5
      }
     ],
     "skill": 0
@@ -91,33 +91,33 @@
  "weeks": {
   "2026-W42": {
    "us": {
-    "n": 2,
+    "n": 4,
     "report": {
-     "calls": 0,
+     "calls": 2,
      "hits": 0,
      "abstain": 2,
-     "hitRate": null
+     "hitRate": 0
     },
     "base": {
-     "brier": 0.20332792006353484,
+     "brier": 0.25246965193064325,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 2,
-       "meanP": 0.4509034495345866,
-       "observed": 0
+       "n": 4,
+       "meanP": 0.4508623087088991,
+       "observed": 0.5
       }
      ],
      "skill": 0
     },
     "clim": {
-     "brier": 0.20332792006353484,
+     "brier": 0.25246965193064325,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 2,
-       "meanP": 0.4509034495345866,
-       "observed": 0
+       "n": 4,
+       "meanP": 0.4508623087088991,
+       "observed": 0.5
       }
      ],
      "skill": 0
@@ -165,7 +165,8 @@
   }
  },
  "missByType": {
-  "미분류": 2
+  "미분류": 2,
+  "변동성 급등": 1
  },
  "misses": [
   {
@@ -180,6 +181,13 @@
    "ret": 0.04463607902753841,
    "types": [
     "미분류"
+   ]
+  },
+  {
+   "id": "us-NASDAQ-2026-10-16",
+   "ret": -0.021450060469818455,
+   "types": [
+    "변동성 급등"
    ]
   }
  ]
