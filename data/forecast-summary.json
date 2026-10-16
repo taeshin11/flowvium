@@ -1,8 +1,13 @@
 {
- "at": "2026-10-15T22:20:00.123Z",
- "recorded": 2,
- "scored": 2,
+ "at": "2026-10-16T07:20:00.118Z",
+ "recorded": 4,
+ "scored": 4,
  "coverage": {
+  "kr": {
+   "sessions": 1,
+   "recorded": 1,
+   "missing": []
+  },
   "us": {
    "sessions": 1,
    "recorded": 1,
@@ -37,6 +42,45 @@
       "bin": "0.4-0.5",
       "n": 2,
       "meanP": 0.4509034495345866,
+      "observed": 0
+     }
+    ],
+    "skill": 0
+   }
+  },
+  "kr": {
+   "n": 2,
+   "report": {
+    "calls": 2,
+    "hits": 0,
+    "abstain": 0,
+    "hitRate": 0
+   },
+   "base": {
+    "brier": 0.2486506536771087,
+    "calibration": [
+     {
+      "bin": "0.4-0.5",
+      "n": 1,
+      "meanP": 0.4830687830687831,
+      "observed": 0
+     },
+     {
+      "bin": "0.5-0.6",
+      "n": 1,
+      "meanP": 0.5137566137566137,
+      "observed": 0
+     }
+    ],
+    "skill": -0.21202106300702983
+   },
+   "clim": {
+    "brier": 0.20515373970498935,
+    "calibration": [
+     {
+      "bin": "0.4-0.5",
+      "n": 2,
+      "meanP": 0.45289408060624015,
       "observed": 0
      }
     ],
@@ -78,9 +122,65 @@
      ],
      "skill": 0
     }
+   },
+   "kr": {
+    "n": 2,
+    "report": {
+     "calls": 2,
+     "hits": 0,
+     "abstain": 0,
+     "hitRate": 0
+    },
+    "base": {
+     "brier": 0.2486506536771087,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 1,
+       "meanP": 0.4830687830687831,
+       "observed": 0
+      },
+      {
+       "bin": "0.5-0.6",
+       "n": 1,
+       "meanP": 0.5137566137566137,
+       "observed": 0
+      }
+     ],
+     "skill": -0.21202106300702983
+    },
+    "clim": {
+     "brier": 0.20515373970498935,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.45289408060624015,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    }
    }
   }
  },
- "missByType": {},
- "misses": []
+ "missByType": {
+  "미분류": 2
+ },
+ "misses": [
+  {
+   "id": "kr-KOSPI-2026-10-16",
+   "ret": 0.020494252197552187,
+   "types": [
+    "미분류"
+   ]
+  },
+  {
+   "id": "kr-KOSDAQ-2026-10-16",
+   "ret": 0.04463607902753841,
+   "types": [
+    "미분류"
+   ]
+  }
+ ]
 }
