@@ -1,10 +1,145 @@
 {
-  "generatedAt": "2026-10-16T01:09:23.719Z",
+  "generatedAt": "2026-10-16T13:00:53.259Z",
   "universe": "US",
   "scanned": 296,
-  "count": 0,
+  "count": 8,
   "strongCount": 0,
-  "watchCount": 0,
+  "watchCount": 8,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "RGR",
+      "name": "Sturm, Ruger & Company, Inc.",
+      "tier": "watch",
+      "score": 36,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 5.5× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 7,
+      "runup5dPct": -1.5,
+      "medDollarVolUsd": 5346261,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AGNCP",
+      "name": "AGNC Investment Corp. - Deposit",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -2.7,
+      "runup5dPct": 1.3,
+      "medDollarVolUsd": 1136868,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MOGU",
+      "name": "MOGU Inc.",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 23.1× 상승(지속 매집)",
+        "거래량 20.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 5.3,
+      "runup5dPct": 3.5,
+      "medDollarVolUsd": 2618,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ORC",
+      "name": "Orchid Island Capital, Inc.",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -14.9,
+      "runup5dPct": 3.2,
+      "medDollarVolUsd": 32495039,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "NMCO",
+      "name": "Nuveen Municipal Credit Opportunities Fund",
+      "tier": "watch",
+      "score": 27,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -10.9,
+      "runup5dPct": 2.7,
+      "medDollarVolUsd": 3069331,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "TRS",
+      "name": "TriMas Corporation",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 0.9,
+      "runup5dPct": 1.3,
+      "medDollarVolUsd": 12937528,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "MHF",
+      "name": "Western Asset Municipal High In",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -0.8,
+      "runup5dPct": 2.4,
+      "medDollarVolUsd": 476790,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ZYME",
+      "name": "Zymeworks Inc.",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -6.3,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 15619506,
+      "smartAccum": false,
+      "official": null
+    }
+  ]
 }
