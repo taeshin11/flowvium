@@ -539,5 +539,20 @@
   "url": "https://flowvium.blogspot.com/2026/10/10-10-16.html",
   "status": "LIVE",
   "at": "2026-10-17T03:45:03.396Z"
+ },
+ "2026-10-17-afternoon.md": {
+  "skipped": true,
+  "reason": "same-day:2026-10-17-morning.md",
+  "at": "2026-10-17T12:45:00.451Z"
+ },
+ "2026-10-17-evening.md": {
+  "skipped": true,
+  "reason": "same-day:2026-10-17-morning.md",
+  "at": "2026-10-17T12:45:00.467Z"
+ },
+ "2026-10-17-shorts-2144.md": {
+  "skipped": true,
+  "reason": "low-quality:정형구 비중이 높다 51% (상한 50%)",
+  "at": "2026-10-17T12:45:00.479Z"
  }
 }
