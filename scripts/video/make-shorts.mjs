@@ -40,6 +40,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
+import { donorAllowed } from '../lib/face-check.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
 import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
@@ -1619,17 +1620,6 @@ for (let i = 0; i < scenes.length; i++) {
       }
     }
   }
-  // 권리 분명 모드의 인물 사진(2026-10-17, desktop1 (b)): 장면·헤드라인의 한국어 이름 → 위키데이터로 같은 사람 확인 →
-  //   그 사람의 Commons 사진(CC BY/BY-SA/PD). 동명이인이 남으면 안 고른다(lib/footage personPortraits).
-  if (!scenes[i].pick && LICENSED_ONLY) {
-    const names = [...new Set([...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
-      ...properNounsFrom(headlines[0] ?? '', { max: 2 })])];
-    for (const n of names) {
-      if (!PERSON_PHOTOS.has(n)) PERSON_PHOTOS.set(n, await personPortraits(n).catch(() => []));
-      const c = PERSON_PHOTOS.get(n).find((x) => !usedMedia.has(x.url));
-      if (c) { scenes[i].pick = c; log(`[화면] ${i + 1} 인물 "${n}" → 위키데이터 ${c.person?.qid} 확인 · ${c.license}`); break; }
-    }
-  }
   // 2026-09-05: 구글 경로는 **이미 내려받아** media 까지 채운다. 그런데 여기서 같은 주소를
   //   한 번 더 받고 있었다 — 내용 해시로 중복을 막자마자 "앞 장면과 같은 사진" 으로 드러났다.
   //   두 번 받을 이유가 없다. 아직 파일이 없을 때만 받는다.
@@ -1646,6 +1636,27 @@ for (let i = 0; i < scenes.length; i++) {
       scenes[i].pick = null;
     }
   }
+  }
+  // 권리 분명 모드의 인물 사진(2026-10-17, desktop1 (b)): 이슈 키워드·장면·헤드라인의 한국어 이름 → 위키데이터로 같은 사람 확인 →
+  //   그 사람의 Commons 사진(CC BY/BY-SA/PD). 동명이인이 남으면 안 고른다(lib/footage personPortraits).
+  //   검색어 갈래 **밖**에 둔다 — 안에 두었더니 '낱말이 하나 — 검색 생략' 장면에서 아예 안 돌았다(10/17 실측 0/4).
+  if (!scenes[i].pick && !scenes[i].media && LICENSED_ONLY) {
+    const names = [...new Set([String(issue.keyword ?? ''),   // 이슈 키워드 = 이 회차의 주인공
+      ...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
+      ...properNounsFrom(headlines[0] ?? '', { max: 2 })])].filter(Boolean);
+    for (const n of names) {
+      if (!PERSON_PHOTOS.has(n)) PERSON_PHOTOS.set(n, await personPortraits(n).catch(() => []));
+      const c = PERSON_PHOTOS.get(n).find((x) => !usedMedia.has(x.url));
+      if (!c) continue;
+      usedMedia.add(c.url);
+      try {
+        scenes[i].media = await download(c.url, `${WORK}/m${i}.jpg`);
+        scenes[i].pick = c;
+        scenes[i].credit = `출처- ${c.source}`;
+        log(`[화면] ${i + 1} 인물 "${n}" → 위키데이터 ${c.person?.qid} 확인 · ${c.title.slice(0, 50)} · ${c.license}`);
+        break;
+      } catch (e) { log(`[화면] ${i + 1} 인물 사진 내려받기 실패: ${e.message.slice(0, 50)}`); }
+    }
   }
   // ── 컷마다 유튜브 CC 영상 (2026-09-15 신설) ────────────────────────────────
   //   여기까지 왔다는 건 아카이브·구글이 다 비었다는 뜻이다. 실측으로 그 원인이 분명하다 —
@@ -1815,9 +1826,12 @@ closeGoogleImages();
     if (faceIdx.length && !leads) log('[화면] 사람 이름 판정 실패(agy) — 얼굴·주어 검사는 아무것도 빼지 않는다');
     for (const k of checkIdx) {
       const x = scenes[k];
+      x.faces = faces.get(x.media); x.sourceTitle = srcOf.get(x.media);   // 빈 자리 채우기가 donorAllowed 로 본다
       if (personMismatch({ hook: x.hook, sourceTitle: srcOf.get(x.media), faces: faces.get(x.media), isPerson: isPersonAt.get(k) ?? null })) {
         log(`[화면] ${k + 1} 얼굴 사진인데 자막 주어 "${String(x.hook).split(/\s+/)[0]}" 가 그 기사 제목에 없다 — 뺀다`);
         x.media = null; x.pick = null; x.credit = null;
+        x.faceSubject = String(x.hook).split(/\s+/)[0];   // 이 자리엔 이 사람 아닌 얼굴을 다시 채우지 않는다
+        x.faces = undefined; x.sourceTitle = undefined;
       }
     }
   } catch (e) { log(`[화면] 얼굴·주어 검사 건너뜀: ${String(e.message).slice(0, 50)}`); }
@@ -1866,7 +1880,7 @@ closeGoogleImages();
       let filled = 0;
       for (const x of scenes) {
         if (x.isOutro || x.media) continue;
-        const donor = good.find((g) => useCount(g.media) < 2);
+        const donor = good.find((g) => useCount(g.media) < 2 && donorAllowed(x, g));
         if (!donor) break;
         x.media = donor.media; x.credit = donor.credit;
         filled += 1;

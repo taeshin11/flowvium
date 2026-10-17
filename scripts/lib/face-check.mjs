@@ -44,6 +44,18 @@ export function personMismatch({ hook, sourceTitle, faces, isPerson }) {
 }
 
 /**
+ * 빈 자리 채우기 — 얼굴 검사로 비운 자리(target.faceSubject = 그 자리 자막의 주어)에 **다른 사람 얼굴**을 다시 넣지 않는다.
+ * 2026-10-17 실측: 「룰라 선물 논란」 자리에서 한동훈 사진을 뺐는데 채우기가 한동훈 사진을 다시 넣었다(face-check.test [5]).
+ * @param {{faceSubject?:string}} target @param {{faces?:number, sourceTitle?:string}} donor
+ */
+export function donorAllowed(target, donor) {
+  const who = String(target?.faceSubject ?? '').replace(/[^\p{L}\p{N}]/gu, '');
+  if (!who) return true;
+  if (!donor?.faces || donor.faces < 1) return true;
+  return squash(donor.sourceTitle ?? '').includes(who);
+}
+
+/**
  * 훅마다 첫 말이 **특정 인물의 이름**인가 — agy 에 한 번 묻는다. 못 물으면 null(그때 얼굴 검사는 아무것도 빼지 않는다).
  *   흔한 성씨로 시작하는 보통 말(부동산·선정된·당정협의)이 많아 규칙으로는 못 가른다(9/30 실측).
  */

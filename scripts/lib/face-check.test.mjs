@@ -61,5 +61,24 @@ cases.every(([, want], i) => got[i] === want) ? ok(`[1] ${cases.map(([, w, d]) =
   const broken = await personLeads(hooks, { call: async () => 'not json' });
   (broken === null) ? ok('[4c] 답을 못 읽으면 null(막지 않는다)') : bad(`[4c] ${JSON.stringify(broken)}`);
 }
+{
+  // [5] 빈 자리 채우기가 얼굴 검사를 되돌리면 안 된다 (2026-10-17 실측, IG 한동훈 편):
+  //   3번 장면 「룰라 선물 논란」 에서 한동훈 사진을 '주어 룰라가 제목에 없다' 로 뺐는데, 채우기가 1번 장면의 한동훈 사진을 다시 넣었다.
+  const M = await import('./face-check.mjs');
+  if (typeof M.donorAllowed !== 'function') bad('[5] donorAllowed 가 없다');
+  else {
+    const han = { faces: 1, sourceTitle: '한동훈 (Han Dong-hoon) — Han 2022.jpg' };
+    const flag = { faces: 0, sourceTitle: 'Flag of Brazil.svg' };
+    !M.donorAllowed({ faceSubject: '룰라' }, han) ? ok('[5] 주어가 다른 사람인 자리에 다른 얼굴 사진을 채우지 않는다') : bad('[5] 룰라 자리에 한동훈 얼굴을 채웠다');
+    M.donorAllowed({ faceSubject: '룰라' }, flag) ? ok('[5] 얼굴 없는 사진은 채워도 된다') : bad('[5] 얼굴 없는 사진도 막았다');
+    M.donorAllowed({ faceSubject: '한동훈' }, han) && M.donorAllowed({}, han) ? ok('[5] 같은 사람이거나 얼굴 검사로 빠진 자리가 아니면 채운다') : bad('[5] 정상 채우기를 막았다');
+  }
+}
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  /good\.find\(\(g\) => [^\n]*donorAllowed\(x, g\)/.test(src) && /x\.faceSubject = /.test(src)
+    ? ok('[5] make-shorts 의 빈 자리 채우기가 donorAllowed 를 거친다') : bad('[5] make-shorts 빈 자리 채우기가 얼굴 검사를 무시한다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

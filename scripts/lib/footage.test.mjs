@@ -735,9 +735,15 @@ await requires({ envFile: true });
   const { readFileSync } = await import('fs');
   const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
   const at = src.indexOf('await personPortraits(');
+  // 검색어 갈래(else) 밖, 유튜브 CC 단계 앞에 있어야 모든 빈 장면에서 돈다(10/17: 갈래 안에 두었더니 '낱말 하나' 장면이 건너뜀).
+  const cc = src.indexOf('// ── 컷마다 유튜브 CC 영상');
   const dl = src.indexOf('if (scenes[i].pick && !scenes[i].media)');
-  at > 0 && dl > at && /if \(!scenes\[i\]\.pick && LICENSED_ONLY\)/.test(src.slice(Math.max(0, at - 800), at))
+  at > dl && cc > at && /if \(!scenes\[i\]\.pick && !scenes\[i\]\.media && LICENSED_ONLY\)/.test(src.slice(Math.max(0, at - 1200), at))
     ? ok('[인물] make-shorts 권리 분명 모드가 빈 장면에 인물 사진을 찾는다') : bad('[인물] make-shorts 에 인물 사진 경로가 없다');
+  // 실측(10/17 한동훈 편): 1번 장면 문장('브라질 계란 공방')엔 이름이 없고 헤드라인 고유명사 둘에도 안 들어 카드가 됐다.
+  //   이 회차의 이슈 키워드가 곧 주인공이다 — 이름 후보에 넣는다.
+  /issue\.keyword/.test(src.slice(Math.max(0, at - 800), at))
+    ? ok('[인물] 이슈 키워드(이 회차의 주인공)도 이름 후보다') : bad('[인물] 이슈 키워드를 이름 후보로 안 본다 — 이름 없는 장면이 카드가 된다');
 }
 
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');
