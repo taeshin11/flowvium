@@ -19,6 +19,12 @@ import { fileURLToPath } from 'url';
 const ANSI = /\x1b\[[0-9;?]*[a-zA-Z]/g;
 
 /**
+ * -p 맨 앞에 붙이는 금지. 헤드리스 agy 는 셸 권한이 없어 RunCommand 를 쓰면 거부되고 턴이 답 없이 끝난다.
+ * 2026-10-17 agy-report 에만 있던 것을 여기로 옮겼다 — agyText(쇼츠 대본)가 빠져 글자 수 세려고 python3 를 불렀다(agy.test [no-shell]).
+ */
+export const NO_SHELL_P = '⛔ 어떤 터미널 명령도 실행하지 마라. RunCommand 를 쓰면 권한 거부로 작업이 통째로 취소된다. 글자 수 같은 것도 직접 세라. 파일은 read_file 로만 열어라.\n';
+
+/**
  * stdout 이 agy 의 **최종 결과 봉투**로 끝났나. 끝이 } 일 때만 parse 한다(긴 출력에서 매 조각 parse 를 피한다).
  * 아무 JSON 이 아니라 봉투(conversation_id·status — 10/16 실측 키: conversation_id,status,response,duration_seconds,
  * num_turns,usage)일 때만 — 앞에 다른 JSON 조각이 찍혀도 그걸 답으로 오인하지 않는다. 못 알아보면 예전처럼 종료를 기다린다.

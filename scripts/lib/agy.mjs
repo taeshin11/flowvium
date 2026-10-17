@@ -15,7 +15,7 @@
  */
 import { defaultTextModel } from './agy-models.mjs';
 import { spawnSync } from 'child_process';
-import { runAgySync } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
+import { runAgySync, NO_SHELL_P } from './agy-run.mjs';   // agy 는 이것으로만 띄운다(10/16, agy-run.test)
 import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -76,7 +76,7 @@ export function agyText(prompt, opt = {}) {
     writeFileSync(join(dir, 'schema.json'), JSON.stringify({
       type: 'object', properties: { text: { type: 'string' } }, required: ['text'],
     }));
-    const r = runAgySync(bin, ['-p', prompt,
+    const r = runAgySync(bin, ['-p', NO_SHELL_P + prompt,
       '--model', opt.model || defaultTextModel(),
       '--sandbox', '--add-dir', dir,
       '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'],

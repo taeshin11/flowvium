@@ -49,5 +49,33 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   got === '로컬' ? ok('[5] 공백 응답은 실패로 본다') : bad(`[5] got=${JSON.stringify(got)}`);
 }
 
+
+// [no-shell] agyText 의 -p 에도 '터미널 명령 금지' 가 붙는가 (2026-10-17).
+//   실측: 쇼츠 대본 재작성에서 두 모델 다 글자 수를 세려고 python3 -c 를 불렀다가 권한 거부 →
+//   structured_output 이 비어 대본이 없었다(agy 대화 DB 7e4c8d11 · 6f782865 step 2 "permission check failed").
+//   video.log 에 같은 사유가 10/13 부터 17번. agy-report·image·triage·task·cross-check 는 이미 금지를 붙이는데 agyText 만 빠져 있었다.
+{
+  const { mkdtempSync, writeFileSync, chmodSync, readFileSync, existsSync } = await import('fs');
+  const { tmpdir } = await import('os');
+  const { join } = await import('path');
+  const d = mkdtempSync(join(tmpdir(), 'agy-noshell-'));
+  const fake = join(d, 'agy');
+  writeFileSync(fake, `#!/usr/bin/env node
+const a = process.argv.slice(2);
+if (a[0] === 'models') { process.stdout.write('gemini-3.8-flash-high\\tGemini\\n'); process.exit(0); }
+const i = a.indexOf('-p'); require('fs').writeFileSync(${JSON.stringify(join(d, 'prompt.txt'))}, a[i + 1] ?? '');
+process.stdout.write(JSON.stringify({ conversation_id: 'c', status: 'SUCCESS', response: '', structured_output: { text: '답' } }) + '\\n');
+process.exit(0);
+`);
+  chmodSync(fake, 0o755);
+  const prev = process.env.AGY_BIN; process.env.AGY_BIN = fake;
+  const { agyText } = await import('./agy.mjs');
+  const got = agyText('대본을 써라', { model: 'gemini-3.8-flash-high', timeoutMs: 20000 });
+  if (prev === undefined) delete process.env.AGY_BIN; else process.env.AGY_BIN = prev;
+  const sent = existsSync(join(d, 'prompt.txt')) ? readFileSync(join(d, 'prompt.txt'), 'utf8') : '';
+  got === '답' && /터미널 명령/.test(sent) && sent.indexOf('터미널 명령') < sent.indexOf('대본을 써라')
+    ? ok('[no-shell] agyText 프롬프트 맨 앞에 터미널 명령 금지가 붙는다')
+    : bad(`[no-shell] got=${got} 보낸 프롬프트 앞부분: ${sent.slice(0, 60)}`);
+}
 console.log(fail ? `\n  ❌ ${fail}건 실패` : '\n  ✅ 전부 통과');
 process.exit(fail ? 1 : 0);

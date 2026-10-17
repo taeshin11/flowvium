@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { join } from 'path';
-import { runAgy } from './agy-run.mjs';
+import { runAgy, NO_SHELL_P } from './agy-run.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 
@@ -103,7 +103,7 @@ export function resetAgyModelUsage() { USED.clear(); }
  *   권한 거부로 7.4초 만에 턴이 통째로 취소됐다(response 0자, denied_actions=[RunCommand]).
  *   **금지를 읽기 전에 금지를 어긴 것**이다.
  */
-const NO_SHELL_P = '⛔ 어떤 터미널 명령도 실행하지 마라. RunCommand 를 쓰면 권한 거부로 작업이 통째로 취소된다. 파일은 read_file 로만 열어라.\n';
+//   (NO_SHELL_P 는 agy-run.mjs 에 있다 — 모든 -p 경로가 같은 문장을 쓴다.)
 
 /**
  * 출력 계약을 **글로** 박는다. `--json-schema` 만 믿으면 안 된다 —
