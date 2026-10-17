@@ -2124,11 +2124,12 @@ let PROMO_USED = null;   // 실제로 붙인 광고 카드(aisvi|flowvium) — �
   //   video-publish/shorts-spare 가 SHORTS_PROMO 로 고른다(네 편씩, lib/promo-card). 없으면 다른 카드로 대신.
   const pick = (await import('../lib/promo-card.mjs')).promoPath(process.env.SHORTS_PROMO || 'aisvi', ROOT);
   PROMO_USED = pick.name;
-  const promo = pick.path ?? resolve(ROOT, 'assets/outro/aisvi-card.mp4');
+  const promo = pick.path ?? (process.env.SHORTS_PROMO === 'none' ? null : resolve(ROOT, 'assets/outro/aisvi-card.mp4'));
   // 2026-09-17: 광고만 따로 재면 -17.3 LUFS 라 본편(-22)보다 크게 튈 줄 알았다. 실제 쇼츠를 재 보니
   //   안에 든 광고는 -23.0 · 본편 -22.5 로 차이 0.5dB — 뒤의 배경음 단계(amix)가 둘을 같이 낮춘다.
   //   파일 하나만 잰 오판이었다. 그래서 여기서 크기를 따로 맞추지 않는다(맨 끝의 최종 음량만 맞춘다).
-  if (existsSync(promo)) { parts.push(promo); log(`[화면] 2초 광고 카드를 끝에 붙인다 (${PROMO_USED === 'flowvium' ? 'flowvium.net' : 'aisviagent.com'}${pick.fallback ? ' — 원한 카드가 없어 대신' : ''})`); }
+  if (promo && existsSync(promo)) { parts.push(promo); log(`[화면] 2초 광고 카드를 끝에 붙인다 (${PROMO_USED === 'flowvium' ? 'flowvium.net' : 'aisviagent.com'}${pick.fallback ? ' — 원한 카드가 없어 대신' : ''})`); }
+  else if (!promo) { log('[화면] 끝 광고 카드 없음(SHORTS_PROMO=none)'); }
   else { PROMO_USED = null; log('[화면] 광고 카드가 없다 — 없이 간다 (node scripts/video/make-outro-clip.mjs --card [--brand flowvium] 로 만든다)'); }
 }
 writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));

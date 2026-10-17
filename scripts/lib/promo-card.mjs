@@ -9,6 +9,7 @@ export const promoFor = (seed) => (Math.floor(Math.abs(Math.trunc(Number(seed) |
 
 /** 원하는 광고 파일. 없으면 다른 쪽으로 대신한다. @returns {{name:string|null, path:string|null, fallback:boolean}} */
 export function promoPath(want, root) {
+  if (want === 'none') return { name: null, path: null, fallback: false };   // 2026-10-17 IG 릴스 — 끝 카드를 아예 뺀다
   const order = [want, ...Object.keys(PROMO_FILES).filter((k) => k !== want)].filter((k) => PROMO_FILES[k]);
   for (const k of order) {
     const p = join(root, PROMO_FILES[k]);

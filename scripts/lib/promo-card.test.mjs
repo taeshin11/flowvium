@@ -33,5 +33,14 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const d = promoPath('nope', mkdtempSync(join(tmpdir(), 'promo-empty-')));
   (d.path === null) ? ok('[2c] 둘 다 없으면 광고 없이') : bad(`[2c] ${JSON.stringify(d)}`);
 }
+{
+  // [none] 2026-10-17 IG 릴스: 카드 두 장 다 다른 플랫폼용 문구('구독하면…')·남의 서비스 광고라 끝 카드를 아예 뺀다.
+  //   종전엔 모르는 이름도 다른 카드로 '대신' 해서 뺄 방법이 없었다.
+  const root = mkdtempSync(join(tmpdir(), 'promo-none-'));
+  mkdirSync(join(root, 'assets/outro'), { recursive: true });
+  writeFileSync(join(root, PROMO_FILES.aisvi), 'x'); writeFileSync(join(root, PROMO_FILES.flowvium), 'x');
+  const n = promoPath('none', root);
+  n.name === null && n.path === null && n.fallback === false ? ok('[none] none 이면 카드를 안 붙인다(대신하지 않는다)') : bad(`[none] ${JSON.stringify(n)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
