@@ -1920,11 +1920,11 @@ closeGoogleImages();
       if (first >= 0.5) {
         const alt = chart.findIndex((c, i) => i > 0 && c < 0.3);
         if (alt > 0) {
-          const a = withMedia[0].x; const b = withMedia[alt].x;
-          // 브리핑은 장면마다 다른 뉴스다 — **대본까지 함께 옮겨야** 짝이 유지된다.
-          //   사진만 바꾸면 1번이 1번 뉴스를 읽으면서 2번 사진을 보여 준다.
-          const fields = BRIEF ? ['media', 'pick', 'credit', 'hook', 'say'] : ['media', 'pick', 'credit'];
-          for (const f of fields) { const t = a[f]; a[f] = b[f]; b[f] = t; }
+          // 브리핑은 장면마다 다른 뉴스다 — **장면을 통째로** 옮겨야 짝이 유지된다.
+          //   2026-10-17: 예전엔 hook·say 만 같이 옮기고 이미 만든 소리(audio·alignment)를 남겨,
+          //   1번 장면이 2번 뉴스 훅·사진에 1번 뉴스 내레이션·자막을 틀었다(10/14 홍콩 IPO 편, lib/scene-swap.test).
+          const { swapScenePair } = await import('../lib/scene-swap.mjs');
+          swapScenePair(scenes, withMedia[0].k, withMedia[alt].k, { brief: !!BRIEF });
           log(`[화면] 첫 장면이 도표였다(${(first * 100).toFixed(0)}%) — ${alt + 1}번 사진과 자리를 바꾼다`);
         } else {
           log(`[화면] 첫 장면이 도표인데(${(first * 100).toFixed(0)}%) 바꿀 사진이 없다 — 그대로 간다`);
