@@ -609,5 +609,51 @@ await requires({ envFile: true });
   }
 }
 
+// ── 공공누리 유형 (2026-10-17 실측) ─────────────────────────────────────────────
+//   searchKoglCommons 가 돌려주는 라이선스 이름은 'KOGL Type 1'(Commons LicenseShortName). licenseUsable 이 이걸 몰라
+//   **공공누리 사진이 한 번도 안 뽑혔다**(footage-picks 481회 중 0회 — '공공누리를 먼저 본다' 가 처음부터 헛돌았다).
+//   유형: 1 출처표시(상업·변경 허용) / 2 +상업금지 / 3 +변경금지 / 4 둘 다. 켄번스 확대가 변경이라 1만 쓴다.
+{
+  M.licenseUsable('KOGL Type 1') && M.licenseUsable('KOGL type 1') ? ok('[공공누리] 1유형은 쓴다') : bad('[공공누리] 1유형을 막았다 — 공공누리 사진이 하나도 안 뽑힌다');
+  !M.licenseUsable('KOGL Type 2') && !M.licenseUsable('KOGL Type 3') && !M.licenseUsable('KOGL Type 4') && !M.licenseUsable('KOGL')
+    ? ok('[공공누리] 2~4유형·유형 모름은 안 쓴다(상업금지·변경금지)') : bad('[공공누리] 2~4유형 또는 유형 모름을 통과시켰다');
+  !M.attributionFree('KOGL Type 1') && /KOGL Type 1/.test(M.creditLine({ title: 't', license: 'KOGL Type 1', source: '공공누리/Wikimedia Commons' }) ?? '')
+    ? ok('[공공누리] 1유형은 출처 표기 대상이다') : bad('[공공누리] 1유형에 출처 표기가 안 붙는다');
+}
+
+// ── 권리 분명한 그림만 (2026-10-17, IG 첫 릴스 — desktop1 사양 "통신사 사진 금지, 차트·그래픽·공식 사진만") ──
+//   쇼츠의 그림은 대개 구글이 찾은 **기사 사진**(연합·한경·한겨레 og:image — 라이선스 없음)이다. 10/17 두 편 다 그랬다.
+//   릴스는 남의 사진·다른 플랫폼 영상이면 독창성 감점·저작권 신고 위험이 있다. 그래서 라이선스가 **기록된** 그림만 남긴다.
+{
+  const { rightsClear, keepRightsClear } = M;
+  if (typeof rightsClear !== 'function' || typeof keepRightsClear !== 'function') {
+    bad('[권리] rightsClear·keepRightsClear 가 없다');
+  } else {
+    const kogl = { title: '국무회의', license: 'KOGL Type 1', source: '공공누리/Wikimedia Commons' };
+    const cc = { title: 'x', license: 'CC BY-SA 4.0', source: 'Wikimedia Commons' };
+    const wire = { title: '… | 연합뉴스', source: 'yna.co.kr', pageUrl: 'https://www.yna.co.kr/view/1' };
+    const yt = { title: 'v', license: 'CC BY 3.0', source: 'YouTube' };
+    const nc = { title: 'n', license: 'CC BY-NC 2.0', source: 'Openverse/flickr' };
+    rightsClear(kogl) && rightsClear(cc) ? ok('[권리] 공공누리·CC BY-SA 는 쓴다') : bad('[권리] 공공누리·CC 를 막았다');
+    !rightsClear(wire) ? ok('[권리] 라이선스 없는 기사 사진은 안 쓴다') : bad('[권리] 기사 사진을 통과시켰다');
+    !rightsClear(yt) ? ok('[권리] 다른 플랫폼(유튜브) 영상은 CC 여도 안 쓴다') : bad('[권리] 유튜브 영상을 통과시켰다');
+    !rightsClear(nc) && !rightsClear(null) ? ok('[권리] NC·모름은 안 쓴다') : bad('[권리] NC·모름을 통과시켰다');
+    const scenes = [
+      { hook: 'a', media: '/w/m0.jpg', pick: wire, credit: '출처- 연합뉴스' },
+      { hook: 'b', media: '/w/m1.jpg', pick: kogl, credit: '출처- 공공누리' },
+      { hook: 'c', media: '/w/m0.jpg', pick: null, credit: '출처- 연합뉴스' },   // 기사 사진 재사용
+      { hook: 'd', media: '/w/m1.jpg', pick: null, credit: '출처- 공공누리' },   // 공공누리 재사용
+      { hook: 'e', media: '/w/flow.mp4', pick: null, credit: null },             // 출처 모름
+      { hook: 'o', isOutro: true, media: null },
+    ];
+    const dropped = keepRightsClear(scenes);
+    const left = scenes.map((x) => x.media);
+    dropped.length === 3 && left[0] === null && left[1] === '/w/m1.jpg' && left[2] === null && left[3] === '/w/m1.jpg' && left[4] === null
+      && scenes[0].credit === null && scenes[0].pick === null
+      ? ok('[권리] 장면에서 기사 사진·그 재사용·출처 모름을 빼고 공공누리와 그 재사용은 남긴다')
+      : bad(`[권리] 장면 거르기: dropped=${JSON.stringify(dropped)} left=${JSON.stringify(left)}`);
+  }
+}
+
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');
 process.exit(fail ? 1 : 0);

@@ -58,7 +58,39 @@ export function licenseUsable(license) {
   if (tok[0] === 'pd') return true;
   // 스톡 사이트 자체 라이선스. 둘 다 상업 이용·변형을 명시 허용하고 표기 의무가 없다.
   if (tok.includes('pexels') || tok.includes('pixabay') || tok.includes('unsplash')) return true;
+  // 공공누리(Commons 표기 'KOGL Type 1'): 1유형만 상업·변경 허용(출처표시). 2 상업금지·3 변경금지·4 둘 다, 유형 모름도 안 쓴다.
+  //   2026-10-17: 이 줄이 없어 공공누리 사진이 481회 중 한 번도 안 뽑혔다(footage.test 머리말 '공공누리 유형').
+  if (tok.includes('kogl')) return tok[tok.indexOf('type') + 1] === '1' && tok.includes('type');
   return tok.includes('by');
+}
+
+/**
+ * **권리가 분명한 그림인가** — 쓸 수 있는 라이선스가 기록돼 있고, 다른 플랫폼에서 받은 영상이 아니다.
+ * 2026-10-17 IG 릴스(desktop1 사양 "통신사 사진 금지"): 쇼츠 그림 대부분은 구글이 찾은 기사 사진이라
+ * 라이선스 칸이 비어 있다(licenseUsable → false). 유튜브 CC 영상은 라이선스는 있지만 남의 채널 로고·자막이
+ * 박혀 있고 IG 는 다른 플랫폼 콘텐츠를 감점한다 — 그래서 받은 곳으로도 거른다.
+ */
+const OTHER_PLATFORM = /youtube|tiktok|instagram/i;
+export function rightsClear(pick) {
+  if (!pick) return false;
+  if (OTHER_PLATFORM.test(String(pick.source ?? ''))) return false;
+  return licenseUsable(pick.license);
+}
+
+/**
+ * 장면들에서 권리가 분명하지 않은 그림을 뺀다(제자리 수정). 뺀 장면 번호를 돌려준다.
+ * 재사용 장면은 pick 이 없다 — 같은 media 를 낸 원래 장면의 pick 으로 판정한다. 원래 장면을 모르면(출처 모름) 뺀다.
+ */
+export function keepRightsClear(scenes) {
+  const clear = new Set(scenes.filter((x) => x.media && x.pick && rightsClear(x.pick)).map((x) => x.media));
+  const dropped = [];
+  scenes.forEach((x, k) => {
+    if (x.isOutro || !x.media) return;
+    if (x.pick ? rightsClear(x.pick) : clear.has(x.media)) return;
+    x.media = null; x.pick = null; x.credit = null;
+    dropped.push(k);
+  });
+  return dropped;
 }
 
 /**

@@ -1157,6 +1157,10 @@ if (DRY) { log('--dry — 여기까지'); process.exit(0); }
 // 2026-09-27 구독 권유 A/B — video-publish 가 편마다 절반에 SHORTS_SUB_CTA=1 을 준다(lib/sub-cta 머리말).
 //   마지막 내용 장면 끝에 '이유 있는 권유' 한 줄. 자막·소리 모두 나간다. 메타에 남겨 구독 전환을 나눠 잰다.
 const SUB_CTA = process.env.SHORTS_SUB_CTA === '1';
+// 2026-10-17 IG 릴스(desktop1 사양 "통신사 사진 금지 · 권리 분명한 그림만"): SHORTS_LICENSED_ONLY=1 이면
+//   라이선스가 기록된 그림(공공누리 1유형·CC BY/BY-SA·PD)만 남긴다 — 기사 사진·유튜브 영상은 소재 단계 끝에서 뺀다(lib/footage keepRightsClear).
+//   빠진 자리는 카드가 되고, 아래 '절반은 채워야 낸다' 관문이 그 주제를 쓸 수 있는지 정한다.
+const LICENSED_ONLY = process.env.SHORTS_LICENSED_ONLY === '1';
 if (SUB_CTA) {
   const { withSubCta } = await import('../lib/sub-cta.mjs');
   scenes = withSubCta(scenes);
@@ -1461,7 +1465,7 @@ for (let i = 0; i < scenes.length; i++) {
   if (!scenes[i].pick && skipGoogle) {
     log(`[화면] ${i + 1} 시세 주제 — 구글은 부르지 않는다(그날 사진이 아니면 못 쓴다)`);
   }
-  if (!scenes[i].pick && !skipGoogle && process.env.GOOGLE_CSE_CX) {
+  if (!scenes[i].pick && !skipGoogle && !LICENSED_ONLY && process.env.GOOGLE_CSE_CX) {
     // 2026-09-05: 고유명사 추출에만 기댔더니 "김승원 법무장관 후보자" 편에서 "법무" 가 뽑혔다.
     //   **이슈 키워드가 이 회차의 주제어다** — 편성이 그걸로 이 이슈를 골랐다. 앞에 세운다.
     //   구글은 한국어를 그대로 받으므로 "김승원" 이 가장 정확한 질의다.
@@ -1640,7 +1644,7 @@ for (let i = 0; i < scenes.length; i++) {
   //   주식 방송 차트, 전화번호가 박힌 광고였다. 그래서 이 경로는 **기본으로 꺼져 있고**
   //   (YT_CC_DOWNLOAD=1), 켜더라도 뒤의 CLIP 관문이 배너·로고를 거른다.
   //   재사용보다 먼저 시도한다 — 같은 사진을 두 번 까는 것보다 새 장면이 낫다.
-  if (!scenes[i].media && ccDownloadReady().ok && ccBudgetLeft() > 0) {
+  if (!scenes[i].media && !LICENSED_ONLY && ccDownloadReady().ok && ccBudgetLeft() > 0) {
     const ccTerms = termCandidates.find((t) => t?.length) ?? [];
     if (ccTerms.length) {
       try {
@@ -1855,6 +1859,12 @@ closeGoogleImages();
       }
       if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
     }
+  }
+
+  if (LICENSED_ONLY) {
+    const { keepRightsClear } = await import('../lib/footage.mjs');
+    const dropped = keepRightsClear(scenes);
+    log(`[화면] 권리 분명한 그림만(SHORTS_LICENSED_ONLY) — ${dropped.length ? `${dropped.map((k) => k + 1).join('·')}번 장면 그림을 뺀다(라이선스 없음)` : '뺄 것 없음'}`);
   }
 
   // ── 썸네일 자리 고르기 (2026-09-07 사용자 "썸네일이 너무 저자극 부분이 나온듯") ──────
