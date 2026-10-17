@@ -35,7 +35,7 @@ import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
 import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '../lib/youtube-cc.mjs';
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
-import { searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
+import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
@@ -1259,6 +1259,7 @@ async function download(url, dest) {
 const KO_ISSUE = /[가-힣]/.test(headlines.slice(0, 3).join(' '));
 if (KO_ISSUE) log('[화면] 한국 기사 — 소재도 한국 것만 쓴다');
 const usedMedia = new Set();
+const PERSON_PHOTOS = new Map();   // 이름 → 위키데이터 확인 인물 사진(권리 분명 모드)
 
 // ── 이 회차 기사들의 사진 (2026-09-05 신설) ──────────────────────────────────────
 //   오늘 하루 구글 위젯으로 "그 기사" 를 찾다 봇 차단에 두 번 걸리고 회차 셋을 잃었다.
@@ -1616,6 +1617,17 @@ for (let i = 0; i < scenes.length; i++) {
         log(`[화면] ${i + 1} 영문 실패 → 한국어 "${kw}" 로 찾음`);
         break;
       }
+    }
+  }
+  // 권리 분명 모드의 인물 사진(2026-10-17, desktop1 (b)): 장면·헤드라인의 한국어 이름 → 위키데이터로 같은 사람 확인 →
+  //   그 사람의 Commons 사진(CC BY/BY-SA/PD). 동명이인이 남으면 안 고른다(lib/footage personPortraits).
+  if (!scenes[i].pick && LICENSED_ONLY) {
+    const names = [...new Set([...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
+      ...properNounsFrom(headlines[0] ?? '', { max: 2 })])];
+    for (const n of names) {
+      if (!PERSON_PHOTOS.has(n)) PERSON_PHOTOS.set(n, await personPortraits(n).catch(() => []));
+      const c = PERSON_PHOTOS.get(n).find((x) => !usedMedia.has(x.url));
+      if (c) { scenes[i].pick = c; log(`[화면] ${i + 1} 인물 "${n}" → 위키데이터 ${c.person?.qid} 확인 · ${c.license}`); break; }
     }
   }
   // 2026-09-05: 구글 경로는 **이미 내려받아** media 까지 채운다. 그런데 여기서 같은 주소를

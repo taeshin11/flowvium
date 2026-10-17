@@ -466,6 +466,68 @@ const j = async (url, headers = {}) => {
   return r.json();
 };
 
+/**
+ * 인물 사진 — **위키데이터로 같은 사람을 확인한 뒤** 그 사람의 Commons 사진만. (2026-10-17, desktop1 (b))
+ * 쇼츠 검색어는 한국어 이름이라 영어 제목인 Commons 와 안 맞았다('한동훈' 장면 0/4 — Commons 엔 'Han Dong-hoon' CC BY-SA 가 있다).
+ * 같은 사람 확인: 이름으로 찾은 항목 중 사람(P31 Q5) · 한국 국적(P27 Q884) · 공직(P39) 또는 정치인(P106 Q82955) 인 것이
+ * **정확히 하나**일 때만. 설명 글자로 고르지 않는다(실측: 한동훈 설명은 '조선제일검', 같은 이름의 프로게이머가 있다).
+ * 사진: 그 항목의 대표 사진(P18) + 그 항목이 가리키는 Commons 분류(P373) 중 파일 이름에 영어 이름이 든 것. rightsClear 만.
+ * 제목은 '한국어 이름 (영어 이름) — 파일' — 얼굴·주어 검사(face-check)가 자막 주어와 맞춰 볼 수 있게.
+ * @returns {Promise<Array>} 후보(없으면 [])
+ */
+const KR = 'Q884', HUMAN = 'Q5', POLITICIAN = 'Q82955';
+export async function personPortraits(koName, { limit = 6, fetchImpl } = {}) {
+  const get = async (url) => {
+    const r = fetchImpl ? await fetchImpl(url) : await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  };
+  const name = String(koName ?? '').trim();
+  if (!/^[가-힣]{2,4}$/.test(name)) return [];
+  const WD = 'https://www.wikidata.org/w/api.php?format=json&origin=*';
+  const found = await get(`${WD}&action=wbsearchentities&search=${encodeURIComponent(name)}&language=ko&uselang=ko&type=item&limit=10`);
+  const ids = (found?.search ?? []).map((x) => x.id).filter(Boolean);
+  if (!ids.length) return [];
+  const ents = (await get(`${WD}&action=wbgetentities&ids=${ids.join('|')}&props=claims|labels&languages=en|ko`))?.entities ?? {};
+  const vals = (e, p) => (e?.claims?.[p] ?? []).map((c) => c?.mainsnak?.datavalue?.value).filter((v) => v != null);
+  const qids = (e, p) => vals(e, p).map((v) => v?.id).filter(Boolean);
+  const people = Object.values(ents).filter((e) => qids(e, 'P31').includes(HUMAN) && qids(e, 'P27').includes(KR)
+    && (qids(e, 'P39').length > 0 || qids(e, 'P106').includes(POLITICIAN)));
+  if (people.length !== 1) return [];
+  const who = people[0];
+  const en = who.labels?.en?.value;
+  if (!en) return [];
+  const main = new Set(vals(who, 'P18').map(String));   // 대표 사진 — 그 사람 단독일 가능성이 제일 크다. 앞에 둔다
+  const files = new Set(main);
+  const cat = vals(who, 'P373')[0];
+  if (cat) {
+    const cm = await get(`https://commons.wikimedia.org/w/api.php?format=json&action=query&list=categorymembers&cmtitle=${encodeURIComponent(`Category:${cat}`)}&cmtype=file&cmlimit=30`).catch(() => null);
+    const enWords = en.toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 2);
+    for (const m of cm?.query?.categorymembers ?? []) {
+      const t = String(m.title ?? '').replace(/^File:/, '');
+      const low = t.toLowerCase();
+      if (enWords.every((w) => low.includes(w))) files.add(t);
+    }
+  }
+  const list = [...files].filter((t) => /\.(jpe?g|png|webp)$/i.test(t)).slice(0, 20);
+  if (!list.length) return [];
+  const info = await get(`https://commons.wikimedia.org/w/api.php?format=json&action=query&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1920&titles=${encodeURIComponent(list.map((t) => `File:${t}`).join('|'))}`);
+  const strip = (v) => String(v?.value ?? '').replace(/<[^>]*>/g, '').trim() || null;
+  return Object.values(info?.query?.pages ?? {}).map((pg) => {
+    const i = pg.imageinfo?.[0];
+    if (!i) return null;
+    const meta = i.extmetadata ?? {};
+    return {
+      kind: 'image', rank: 0, url: i.thumburl ?? i.url, width: i.width, height: i.height,
+      license: strip(meta.LicenseShortName), author: strip(meta.Artist),
+      title: `${name} (${en}) — ${String(pg.title ?? '').replace(/^File:/, '')}`,
+      source: 'Wikimedia Commons', pageUrl: i.descriptionurl, person: { qid: who.id, en },
+    };
+  }).filter((c) => c && c.url && rightsClear(c))
+    .sort((a, b) => Number(main.has(b.title.split(' — ')[1])) - Number(main.has(a.title.split(' — ')[1])))
+    .slice(0, limit);
+}
+
 /** Openverse — 키 불필요. license_type=commercial 로 서버에서 1차로 거른다. */
 export async function searchOpenverse(terms, { limit = 8 } = {}) {
   const q = encodeURIComponent(terms.join(' '));

@@ -671,5 +671,74 @@ await requires({ envFile: true });
     : bad('[권리] 권리 분명 모드에서도 기사 사진을 먼저 모은다 — 라이선스 소스 검색이 막힌다');
 }
 
+// ── 인물 사진: 위키데이터로 같은 사람을 확인한 뒤 그 사람의 Commons 사진만 (2026-10-17, desktop1 (b)) ──
+//   조건: CC BY/BY-SA/PD 만 · 저자+라이선스 표기 · 동명이인 아님 확인 · 얼굴 편집 없음 · 절반 관문 유지.
+//   실측(위키데이터 '한동훈'): Q97199071(설명 '조선제일검' — '정치인' 이 아니다, 직업 검사·공무원·변호사, P39 법무부 장관)
+//   과 Q12623962(프로게이머) 가 같은 이름. 설명 글자로 고르면 틀린다 → 주장(P31 사람 · P27 한국 · P39 공직 또는 P106 정치인)으로 고른다.
+//   남는 후보가 둘 이상이면 고르지 않는다(동명이인을 감으로 고르지 않는다).
+{
+  const { personPortraits } = M;
+  if (typeof personPortraits !== 'function') bad('[인물] personPortraits 가 없다');
+  else {
+    const ent = (id, en, { human = true, kr = true, p39 = [], p106 = [], p18 = [], p373 } = {}) => ({ id, labels: { en: { value: en } }, claims: {
+      P31: human ? [{ mainsnak: { datavalue: { value: { id: 'Q5' } } } }] : [],
+      P27: kr ? [{ mainsnak: { datavalue: { value: { id: 'Q884' } } } }] : [],
+      P39: p39.map((q) => ({ mainsnak: { datavalue: { value: { id: q } } } })),
+      P106: p106.map((q) => ({ mainsnak: { datavalue: { value: { id: q } } } })),
+      P18: p18.map((f) => ({ mainsnak: { datavalue: { value: f } } })),
+      ...(p373 ? { P373: [{ mainsnak: { datavalue: { value: p373 } } }] } : {}),
+    } });
+    const info = (title, lic, artist = 'Someone') => ({ title: `File:${title}`, imageinfo: [{ url: `https://u/${encodeURIComponent(title)}`, thumburl: `https://t/${encodeURIComponent(title)}`, width: 1200, height: 1600, descriptionurl: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(title)}`, extmetadata: { LicenseShortName: { value: lic }, Artist: { value: `<a>${artist}</a>` } } }] });
+    const mk = (world) => async (url) => {
+      const u = new URL(url); const q = Object.fromEntries(u.searchParams);
+      let body = {};
+      if (q.action === 'wbsearchentities') body = { search: world.search };
+      else if (q.action === 'wbgetentities') body = { entities: Object.fromEntries(q.ids.split('|').map((id) => [id, world.ents[id]])) };
+      else if (q.list === 'categorymembers') body = { query: { categorymembers: (world.cat ?? []).map((t) => ({ title: `File:${t}` })) } };
+      else if (q.prop === 'imageinfo') body = { query: { pages: Object.fromEntries(q.titles.split('|').map((t, k) => [String(k), world.files[t.replace(/^File:/, '')] ?? { title: t, missing: '' }])) } };
+      return { ok: true, json: async () => body };
+    };
+    const world = {
+      search: [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }],
+      ents: {
+        Q1: ent('Q1', 'Han Dong-hoon', { p39: ['Q12592448'], p18: ['Han 2022.jpg', 'Han NC.jpg'], p373: 'Han Dong-hoon' }),
+        Q2: ent('Q2', 'HerO', { p106: ['Q4379701'] }),                         // 프로게이머 동명이인 — 공직·정치인 아님
+        Q3: { id: 'Q3', labels: {}, claims: { P31: [{ mainsnak: { datavalue: { value: { id: 'Q4167410' } } } }] } },   // 동음이의 문서
+      },
+      cat: ['Han Dong-hoon at rally.jpg', 'Seoul skyline.jpg'],
+      files: {
+        'Han 2022.jpg': info('Han 2022.jpg', 'CC BY-SA 4.0', 'Ministry'),
+        'Han NC.jpg': info('Han NC.jpg', 'CC BY-NC 2.0'),
+        'Han Dong-hoon at rally.jpg': info('Han Dong-hoon at rally.jpg', 'CC BY 2.0', 'Photog'),
+        'Seoul skyline.jpg': info('Seoul skyline.jpg', 'CC0'),
+      },
+    };
+    const got = await personPortraits('한동훈', { fetchImpl: mk(world) });
+    const titles = got.map((c) => c.title);
+    got.length === 2 && got.every((c) => M.rightsClear(c) && /한동훈/.test(c.title) && /Han Dong-hoon/.test(c.title) && c.author && c.pageUrl)
+      && !titles.some((t) => /NC|skyline/.test(t))
+      ? ok('[인물] 공직 있는 한국인 한 명만 골라 그 사람 사진(P18·이름 든 분류 파일) 중 CC BY/BY-SA/PD 만, 제목에 한국어·영어 이름')
+      : bad(`[인물] ${JSON.stringify(titles)}`);
+    const credit = got[0] ? M.creditLine(got[0]) : '';
+    /CC BY-SA 4\.0/.test(credit ?? '') && /Ministry/.test(credit ?? '') ? ok('[인물] 출처 표기에 저자·라이선스') : bad(`[인물] 표기 ${credit}`);
+    const twin = { ...world, search: [{ id: 'Q1' }, { id: 'Q4' }], ents: { ...world.ents, Q4: ent('Q4', 'Han Dong-hoon (2)', { p39: ['Q999'], p18: ['Other.jpg'] }) } };
+    (await personPortraits('한동훈', { fetchImpl: mk(twin) })).length === 0
+      ? ok('[인물] 공직 있는 동명이인이 둘이면 고르지 않는다') : bad('[인물] 동명이인 둘 중 하나를 골랐다');
+    const none = { ...world, search: [{ id: 'Q2' }] };
+    (await personPortraits('한동훈', { fetchImpl: mk(none) })).length === 0
+      ? ok('[인물] 공직·정치인 아닌 동명이인뿐이면 없음') : bad('[인물] 프로게이머 사진을 골랐다');
+  }
+}
+
+{
+  // 배선: 권리 분명 모드에서 장면이 비면 인물 사진을 찾는다(내려받기 단계 앞).
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  const at = src.indexOf('await personPortraits(');
+  const dl = src.indexOf('if (scenes[i].pick && !scenes[i].media)');
+  at > 0 && dl > at && /if \(!scenes\[i\]\.pick && LICENSED_ONLY\)/.test(src.slice(Math.max(0, at - 800), at))
+    ? ok('[인물] make-shorts 권리 분명 모드가 빈 장면에 인물 사진을 찾는다') : bad('[인물] make-shorts 에 인물 사진 경로가 없다');
+}
+
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');
 process.exit(fail ? 1 : 0);
