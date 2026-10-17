@@ -10,7 +10,7 @@
  * 합성음: 1초 톤(말 대신) · 조용 · 백색잡음 0.13초 · 조용.
  */
 import { spawnSync } from 'child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
@@ -73,5 +73,6 @@ const dur = (f) => { const m = String(spawnSync(FF, ['-hide_banner', '-i', f]).s
   const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
   (/assertNoVoBurst\(scenes\.map/.test(ms)) ? ok('[4b] make-shorts 가 합성 직후 잡음 관문을 건다') : bad('[4b] make-shorts 관문 없음');
 }
+rmSync(dir, { recursive: true, force: true });
 console.log(fail ? `\n❌ vo-burst ${fail}건 실패` : '\n✅ vo-burst 전부 통과');
 process.exit(fail ? 1 : 0);
