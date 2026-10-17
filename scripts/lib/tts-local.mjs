@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { homedir } from 'node:os';
 import { ROOT } from './project-root.mjs';
 import { envValue } from './footage.mjs';
+import { cleanVoOut } from './vo-burst.mjs';
 
 /**
  * 파이썬 실행기. 저장소 **밖** 도구 폴더에 둔다 — venv 를 저장소에 두면 tsc 가
@@ -69,7 +70,8 @@ export function synthesizeLocal(text, opts = {}) {
     if (!ends.length || !d?.durationSec) throw new Error('alignment 없음 — 자막 타이밍을 만들 수 없다');
     // stderr 의 진단 한 줄은 남긴다. 정렬이 실패해 균등분배로 떨어졌는지 알아야 한다.
     const note = (String(r.stderr ?? '').match(/\[kokoro\][^\n]*/) ?? [''])[0];
-    return { path: outPath, alignment: d.alignment, durationSec: d.durationSec, note };
+    // 2026-10-17 앞·끝 '쉭' 잡음 덩어리를 잘라낸다(lib/vo-burst 머리말).
+    return cleanVoOut([{ path: outPath, alignment: d.alignment, durationSec: d.durationSec, note }])[0];
   } finally {
     for (const f of [txt, jsn]) { try { unlinkSync(f); } catch { /* noop */ } }
   }

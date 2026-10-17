@@ -1194,6 +1194,17 @@ if (SUB_CTA) {
     log(`[음성] ${i + 1} ${r.durationSec.toFixed(1)}초`);
   }
 }
+// 2026-10-17 사장님 "woosh 문제 없도록 다 방지" — 엔진 출구에서 잘라냈어도 여기서 한 번 더 잰다.
+//   이어붙일 바로 그 파일들이다. 잡음이 남았거나 자르다 말이 잘렸으면 이 회차는 내지 않는다(lib/vo-burst).
+{
+  const { assertNoVoBurst } = await import('../lib/vo-burst.mjs');
+  const bad = assertNoVoBurst(scenes.map((s) => ({ path: s.audio, alignment: s.alignment })));
+  if (bad.length) {
+    console.error(`❌ 대사 잡음 관문 — ${bad.map((b) => `${b.path.split('/').pop()}(${b.speechCut ? '말 잘림' : `앞 ${b.head}창·끝 ${b.tail?.len ?? 0}창`})`).join(', ')}`);
+    process.exit(1);
+  }
+  log(`[음성] 잡음 관문 통과 (${scenes.length}개)`);
+}
 const totalSec = scenes.reduce((n, s) => n + s.dur, 0);
 log(`[음성] 합계 ${totalSec.toFixed(1)}초`);
 

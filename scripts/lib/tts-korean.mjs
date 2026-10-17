@@ -35,6 +35,7 @@ import { speakNumbers } from './kr-number.mjs';
 import { speakLatin } from './kr-latin.mjs';
 import { speakWords } from './kr-pron.mjs';
 import { earCheckAndRepair } from './ear-check.mjs';
+import { cleanVoOut } from './vo-burst.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -92,7 +93,8 @@ export function synthesizeKorean(text, opts = {}) {
     ], { timeout: timeoutMs, stdio: ['ignore', 'ignore', 'pipe'] });
     const d = JSON.parse(readFileSync(jsn, 'utf8'));
     if (!(d.durationSec > 0)) throw new Error('길이 0 — 합성 실패');
-    return { path: outPath, alignment: d.alignment, durationSec: d.durationSec, note: d.note ?? null };
+    // 2026-10-17 앞·끝 '쉭' 잡음 덩어리를 엔진 출구에서 잘라낸다(lib/vo-burst 머리말). 세 엔진 모두.
+    return cleanVoOut([{ path: outPath, alignment: d.alignment, durationSec: d.durationSec, note: d.note ?? null }])[0];
   } finally {
     for (const f of [txt, jsn]) { try { unlinkSync(f); } catch { /* noop */ } }
   }
@@ -158,7 +160,7 @@ export function synthesizeKoreanBatch(texts, opts = {}) {
     if (!Array.isArray(out) || out.length !== texts.length) {
       throw new Error(`결과 개수 불일치 — 입력 ${texts.length}, 출력 ${out?.length}`);
     }
-    return out;
+    return cleanVoOut(out);
   } finally {
     for (const f of [tf, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
   }
@@ -220,7 +222,7 @@ export function synthesizeKoreanMelo(texts, opts = {}) {
     if (!Array.isArray(out) || out.length !== texts.length) {
       throw new Error(`결과 개수 불일치 — 입력 ${texts.length}, 출력 ${out?.length}`);
     }
-    return out;
+    return cleanVoOut(out);
   } finally {
     for (const f of [tf, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
   }
