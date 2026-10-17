@@ -1,5 +1,5 @@
 {
- "at": "2026-10-16T22:20:00.076Z",
+ "at": "2026-10-17T07:20:00.130Z",
  "recorded": 6,
  "scored": 6,
  "coverage": {
@@ -9,8 +9,8 @@
    "missing": []
   },
   "us": {
-   "sessions": 0,
-   "recorded": 0,
+   "sessions": 2,
+   "recorded": 2,
    "missing": []
   }
  },
