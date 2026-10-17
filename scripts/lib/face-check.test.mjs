@@ -80,5 +80,16 @@ cases.every(([, want], i) => got[i] === want) ? ok(`[1] ${cases.map(([, w, d]) =
   /good\.find\(\(g\) => [^\n]*donorAllowed\(x, g\)/.test(src) && /x\.faceSubject = /.test(src)
     ? ok('[5] make-shorts 의 빈 자리 채우기가 donorAllowed 를 거친다') : bad('[5] make-shorts 빈 자리 채우기가 얼굴 검사를 무시한다');
 }
+{ // [6] 2026-10-17 훅 첫 말에 조사가 붙은 주어("장동혁의"·"한동훈은") — 조사 뗀 이름이 제목에 **낱말로** 있으면 같은 사람.
+  //   IG 릴스 렌더에서 「장동혁의 …」 장면의 장동혁 사진이 "장동혁의" 가 제목에 없다고 빠질 뻔했다.
+  //   낱말 경계로만 본다 — "박지은" 의 '은' 을 떼어 "박지원" 제목과 맞추면 안 된다.
+  const t = '장동혁 (Jang Dong-hyuk) — Jang Dong-hyuk 2024.jpg';
+  (!personMismatch({ hook: '장동혁의 반격', sourceTitle: t, faces: 1, isPerson: true })
+    && !personMismatch({ hook: '한동훈은 왜', sourceTitle: '한동훈, 국감서 발언', faces: 1, isPerson: true }))
+    ? ok('[6] 조사 붙은 주어도 같은 사람으로 본다(장동혁의·한동훈은)') : bad('[6] 조사 때문에 같은 사람 사진을 뺀다');
+  (personMismatch({ hook: '박지은 첫 공판', sourceTitle: '박지원, 국정원 발언', faces: 1, isPerson: true })
+    && personMismatch({ hook: '김민석의 사과', sourceTitle: '추미애 (Choo Mi-ae) — portrait.jpg', faces: 1, isPerson: true }))
+    ? ok('[6] 조사를 떼도 다른 사람이면 뺀다(박지은≠박지원 · 김민석≠추미애)') : bad('[6] 다른 사람 사진을 통과시켰다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

@@ -40,7 +40,18 @@ export function personMismatch({ hook, sourceTitle, faces, isPerson }) {
   if (!faces || faces < 1 || !sourceTitle) return false;
   const lead = String(hook ?? '').trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{N}]/gu, '') ?? '';
   if (lead.length < 2) return false;
-  return !squash(sourceTitle).includes(lead);
+  return !nameIn(lead, sourceTitle);
+}
+
+/**
+ * 주어(lead)가 제목에 있는가. 그대로 있거나, 끝의 조사 한 글자(의·은·는·이·가·을·를·도·와·과)를 뗀 이름이 **낱말로** 있으면 있다.
+ *   2026-10-17: "장동혁의" 주어로 장동혁 사진을 뺄 뻔했다. 낱말 경계(뒤에 한글이 안 붙음)로만 본다 — "박지은"→"박지" 가 "박지원" 에 맞지 않게.
+ */
+function nameIn(lead, title) {
+  if (squash(title).includes(lead)) return true;
+  const m = /^(.{2,})[의은는이가을를도와과]$/u.exec(lead);
+  if (!m) return false;
+  return new RegExp(`${m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![가-힣])`, 'u').test(String(title ?? '').replace(/\s+/g, ' '));
 }
 
 /**
@@ -52,7 +63,7 @@ export function donorAllowed(target, donor) {
   const who = String(target?.faceSubject ?? '').replace(/[^\p{L}\p{N}]/gu, '');
   if (!who) return true;
   if (!donor?.faces || donor.faces < 1) return true;
-  return squash(donor.sourceTitle ?? '').includes(who);
+  return nameIn(who, donor.sourceTitle ?? '');
 }
 
 /**

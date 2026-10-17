@@ -1655,8 +1655,10 @@ for (let i = 0; i < scenes.length; i++) {
   //   그 사람의 Commons 사진(CC BY/BY-SA/PD). 동명이인이 남으면 안 고른다(lib/footage personPortraits).
   //   검색어 갈래 **밖**에 둔다 — 안에 두었더니 '낱말이 하나 — 검색 생략' 장면에서 아예 안 돌았다(10/17 실측 0/4).
   if (!scenes[i].pick && !scenes[i].media && LICENSED_ONLY) {
-    const names = [...new Set([String(issue.keyword ?? ''),   // 이슈 키워드 = 이 회차의 주인공
-      ...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
+    // 장면 자기 이름이 먼저 — 이슈 키워드를 앞에 두니 「김민석…」 장면에 추미애 사진이 들어가 얼굴 검사가 뺐다(10/17 릴스 1/4).
+    //   이슈 키워드(이 회차의 주인공)는 이름 없는 장면의 대안이다.
+    const names = [...new Set([...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
+      String(issue.keyword ?? ''),
       ...properNounsFrom(headlines[0] ?? '', { max: 2 })])].filter(Boolean);
     for (const n of names) {
       if (!PERSON_PHOTOS.has(n)) PERSON_PHOTOS.set(n, await personPortraits(n).catch(() => []));

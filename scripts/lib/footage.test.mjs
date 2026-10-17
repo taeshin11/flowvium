@@ -744,6 +744,13 @@ await requires({ envFile: true });
   //   이 회차의 이슈 키워드가 곧 주인공이다 — 이름 후보에 넣는다.
   /issue\.keyword/.test(src.slice(Math.max(0, at - 800), at))
     ? ok('[인물] 이슈 키워드(이 회차의 주인공)도 이름 후보다') : bad('[인물] 이슈 키워드를 이름 후보로 안 본다 — 이름 없는 장면이 카드가 된다');
+  // 2026-10-17 릴스 재렌더: 이슈 키워드를 맨 앞에 둬 「김민석…」「장동혁…」 장면에 추미애 사진이 들어갔다 → 얼굴 검사가 빼서 4장 중 1장.
+  //   장면 자기 이름이 먼저, 이슈 키워드는 이름 없는 장면의 대안.
+  {
+    const blk = src.slice(Math.max(0, at - 800), at);
+    const iKw = blk.indexOf('issue.keyword'), iScene = blk.indexOf('properNounsFrom(`${scenes[i].hook');
+    (iScene >= 0 && iKw > iScene) ? ok('[인물] 장면 자기 이름이 이슈 키워드보다 먼저') : bad(`[인물] 이름 후보 순서 — 장면 ${iScene} · 키워드 ${iKw}`);
+  }
 }
 
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');
