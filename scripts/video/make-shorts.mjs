@@ -1267,7 +1267,9 @@ const usedMedia = new Set();
 //   여기서 가져오면 봇 차단이 없고, 관련성을 추측할 필요도 없고(그 기사의 사진이다),
 //   날짜도 확실하다. 실측 0.3초에 7장.
 let ISSUE_IMAGES = [];
-try {
+// 권리 분명 모드: 기사 사진은 어차피 끝에서 빠진다. 여기서 장면을 먼저 채우면 라이선스 소스 검색이 아예 안 돈다(footage.test).
+if (LICENSED_ONLY) log('[화면] 권리 분명한 그림만 — 기사 사진은 모으지 않는다');
+else try {
   const { issueImages } = await import('../lib/article-image.mjs');
   // 묶음이 대체로 맞아도 그 안에 혼자 다른 이야기를 하는 기사가 있다 —
   //   추석 한우 묶음의 러시아·우크라이나 기사가 4번 장면 사진이 됐다(내렸다).

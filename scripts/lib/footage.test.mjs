@@ -655,5 +655,21 @@ await requires({ envFile: true });
   }
 }
 
+// ── 권리 분명 모드에선 '이 회차 기사 사진' 을 모으지 않는다 (2026-10-17 실측) ─────────────
+//   기사 사진 단계가 먼저 장면 1~3 을 채우면 그 장면은 공공누리·Commons 검색을 아예 안 돈다.
+//   그 뒤 keepRightsClear 가 기사 사진을 빼면 0장 → 회차 거름(한동훈 편: "4장면 중 소재는 0장뿐").
+//   빼는 것만으로는 부족하다 — 권리 있는 그림을 찾을 기회를 막는 단계를 건너뛰어야 한다.
+{
+  const { readFileSync } = await import('fs');
+  const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  // 장면 소재 단계의 수집(ISSUE_IMAGES) — 편성 점수·브리핑의 issueImages 는 사진을 장면에 넣지 않는다.
+  const st = src.indexOf('let ISSUE_IMAGES');
+  const at = src.indexOf("await import('../lib/article-image.mjs')", st);
+  const head = st >= 0 && at > st ? src.slice(st, at) : '';
+  /if\s*\(\s*LICENSED_ONLY\s*\)/.test(head)
+    ? ok('[권리] 권리 분명 모드는 기사 사진 수집을 건너뛴다(장면마다 라이선스 소스 검색이 돈다)')
+    : bad('[권리] 권리 분명 모드에서도 기사 사진을 먼저 모은다 — 라이선스 소스 검색이 막힌다');
+}
+
 console.log(fail ? `\n❌ footage ${fail} 실패` : '\n✅ footage 전부 통과');
 process.exit(fail ? 1 : 0);
