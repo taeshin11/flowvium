@@ -41,7 +41,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
-import { donorAllowed } from '../lib/face-check.mjs';
+import { donorAllowed, leadName } from '../lib/face-check.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
 import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
@@ -1657,7 +1657,9 @@ for (let i = 0; i < scenes.length; i++) {
   if (!scenes[i].pick && !scenes[i].media && LICENSED_ONLY) {
     // 장면 자기 이름이 먼저 — 이슈 키워드를 앞에 두니 「김민석…」 장면에 추미애 사진이 들어가 얼굴 검사가 뺐다(10/17 릴스 1/4).
     //   이슈 키워드(이 회차의 주인공)는 이름 없는 장면의 대안이다.
-    const names = [...new Set([...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
+    //   맨 앞은 훅 첫 말(얼굴 검사가 요구하는 그 이름) — properNounsFrom 은 검색어용이라 "국무"·"국민의힘" 을 내고 이름을 놓쳤다.
+    const names = [...new Set([leadName(scenes[i].hook),
+      ...properNounsFrom(`${scenes[i].hook ?? ''} ${scenes[i].say ?? ''}`, { max: 3 }),
       String(issue.keyword ?? ''),
       ...properNounsFrom(headlines[0] ?? '', { max: 2 })])].filter(Boolean);
     for (const n of names) {

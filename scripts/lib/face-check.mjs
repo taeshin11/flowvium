@@ -44,6 +44,15 @@ export function personMismatch({ hook, sourceTitle, faces, isPerson }) {
 }
 
 /**
+ * 훅 첫 말에서 사람 이름 후보 — 얼굴 검사가 요구할 바로 그 이름. 4글자 이상이면 끝 조사 한 글자를 뗀다
+ *   (김민석의→김민석 · 한동훈은→한동훈). 3글자 이하는 그대로(박지은·이은 같은 이름 보호).
+ */
+export function leadName(hook) {
+  const t = String(hook ?? '').trim().split(/\s+/)[0]?.replace(/[^\p{L}\p{N}]/gu, '') ?? '';
+  return t.length >= 4 && /[의은는이가을를도와과]$/u.test(t) ? t.slice(0, -1) : t;
+}
+
+/**
  * 주어(lead)가 제목에 있는가. 그대로 있거나, 끝의 조사 한 글자(의·은·는·이·가·을·를·도·와·과)를 뗀 이름이 **낱말로** 있으면 있다.
  *   2026-10-17: "장동혁의" 주어로 장동혁 사진을 뺄 뻔했다. 낱말 경계(뒤에 한글이 안 붙음)로만 본다 — "박지은"→"박지" 가 "박지원" 에 맞지 않게.
  */

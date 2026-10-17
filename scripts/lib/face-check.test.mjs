@@ -91,5 +91,15 @@ cases.every(([, want], i) => got[i] === want) ? ok(`[1] ${cases.map(([, w, d]) =
     && personMismatch({ hook: '김민석의 사과', sourceTitle: '추미애 (Choo Mi-ae) — portrait.jpg', faces: 1, isPerson: true }))
     ? ok('[6] 조사를 떼도 다른 사람이면 뺀다(박지은≠박지원 · 김민석≠추미애)') : bad('[6] 다른 사람 사진을 통과시켰다');
 }
+{ // [7] leadName — 얼굴 검사가 요구할 바로 그 이름(훅 첫 말, 끝 조사 뗌). 인물 사진 찾기가 이걸 먼저 쓴다(10/17 릴스: properNounsFrom 은 "국무"·"국민의힘" 을 내고 이름을 놓쳤다).
+  const M = await import('./face-check.mjs');
+  const { readFileSync } = await import('fs');
+  const { leadName } = M;
+  (typeof leadName === 'function' && leadName('김민석의 사과') === '김민석' && leadName('장동혁 반발') === '장동혁' && leadName('박지은') === '박지은' && leadName('') === '')
+    ? ok('[7] leadName: 김민석의→김민석 · 장동혁 · 박지은(이름 자체가 은으로 끝나면 3글자 유지)') : bad(`[7] ${typeof leadName === 'function' ? [leadName('김민석의 사과'), leadName('장동혁 반발'), leadName('박지은')] : '없음'}`);
+  const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  const blk = ms.slice(ms.indexOf('권리 분명 모드의 인물 사진'), ms.indexOf('컷마다 유튜브 CC 영상'));
+  (blk.indexOf('leadName(') > 0 && blk.indexOf('leadName(') < blk.indexOf('issue.keyword')) ? ok('[7] 인물 사진 이름 후보 첫째가 leadName(훅)') : bad('[7] make-shorts 인물 사진이 leadName 을 먼저 안 쓴다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
