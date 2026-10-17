@@ -77,7 +77,9 @@ cases.every(([, want], i) => got[i] === want) ? ok(`[1] ${cases.map(([, w, d]) =
 {
   const { readFileSync } = await import('fs');
   const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
-  /good\.find\(\(g\) => [^\n]*donorAllowed\(x, g\)/.test(src) && /x\.faceSubject = /.test(src)
+  // 2026-10-17: 채우기는 lib/face-check fillMediaGaps 로 옮겼다 — 거기서 donorAllowed 를 거치는지 본다.
+  const lib = readFileSync(new URL('./face-check.mjs', import.meta.url), 'utf8');
+  /fillMediaGaps\(scenes\)/.test(src) && /good\.find\(\(g\) => [^\n]*donorAllowed\(x, g\)/.test(lib) && /x\.faceSubject = /.test(src)
     ? ok('[5] make-shorts 의 빈 자리 채우기가 donorAllowed 를 거친다') : bad('[5] make-shorts 빈 자리 채우기가 얼굴 검사를 무시한다');
 }
 { // [6] 2026-10-17 훅 첫 말에 조사가 붙은 주어("장동혁의"·"한동훈은") — 조사 뗀 이름이 제목에 **낱말로** 있으면 같은 사람.
@@ -100,6 +102,21 @@ cases.every(([, want], i) => got[i] === want) ? ok(`[1] ${cases.map(([, w, d]) =
   const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
   const blk = ms.slice(ms.indexOf('권리 분명 모드의 인물 사진'), ms.indexOf('컷마다 유튜브 CC 영상'));
   (blk.indexOf('leadName(') > 0 && blk.indexOf('leadName(') < blk.indexOf('issue.keyword')) ? ok('[7] 인물 사진 이름 후보 첫째가 leadName(훅)') : bad('[7] make-shorts 인물 사진이 leadName 을 먼저 안 쓴다');
+}
+{ // [8] 빈 자리 채우기 — 한 자리에 줄 사진이 없다고 **멈추지 않는다**(2026-10-17 릴스: 2번(김민석 자리)에 줄 게 없어 break → 4번(추미애 자리)도 카드).
+  const M = await import('./face-check.mjs');
+  const A = { media: 'a.jpg', credit: 'cA', faces: 1, sourceTitle: '추미애 (Choo Mi-ae) — p.png' };
+  const B = { media: null, faceSubject: '김민석' };
+  const C = { media: 'c.jpg', credit: 'cC', faces: 1, sourceTitle: '장동혁 (Jang Dong-hyuk) — p.png' };
+  const D = { media: null };
+  const n = typeof M.fillMediaGaps === 'function' ? M.fillMediaGaps([A, B, C, D]) : -1;
+  (n === 1 && B.media === null && D.media === 'a.jpg' && D.credit === 'cA')
+    ? ok('[8] 김민석 자리는 비우고(다른 얼굴 금지) 다음 빈 자리는 채운다') : bad(`[8] n=${n} B=${B.media} D=${D.media}`);
+  const E = { media: null }, F = { media: null }, G = { media: null };
+  const n2 = M.fillMediaGaps?.([{ ...A }, E, F, G]);
+  (n2 === 1) ? ok('[8] 한 사진은 두 번까지만(세 번째 자리부터는 카드)') : bad(`[8] 상한 n2=${n2}`);
+  const { readFileSync } = await import('fs');
+  /fillMediaGaps\(scenes\)/.test(readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8')) ? ok('[8] make-shorts 가 fillMediaGaps 를 쓴다') : bad('[8] make-shorts 연결 안 됨');
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

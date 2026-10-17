@@ -41,7 +41,7 @@ import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
 import { isProudHeadline } from '../lib/video-meta.mjs';
-import { donorAllowed, leadName } from '../lib/face-check.mjs';
+import { fillMediaGaps, leadName } from '../lib/face-check.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
 import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
@@ -1893,16 +1893,7 @@ closeGoogleImages();
         scenes = scenes.filter((x) => x.isOutro || x.media);
       }
     } else {
-      const good = scenes.filter((x) => !x.isOutro && x.media);
-      const useCount = (m) => scenes.filter((x) => x.media === m).length;
-      let filled = 0;
-      for (const x of scenes) {
-        if (x.isOutro || x.media) continue;
-        const donor = good.find((g) => useCount(g.media) < 2 && donorAllowed(x, g));
-        if (!donor) break;
-        x.media = donor.media; x.credit = donor.credit;
-        filled += 1;
-      }
+      const filled = fillMediaGaps(scenes);   // lib/face-check — 한 자리에 줄 게 없어도 다음 자리는 채운다
       if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
     }
   }

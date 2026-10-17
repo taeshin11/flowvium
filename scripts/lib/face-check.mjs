@@ -44,6 +44,25 @@ export function personMismatch({ hook, sourceTitle, faces, isPerson }) {
 }
 
 /**
+ * 빈 자리를 통과한 사진으로 채운다(한 이슈 편). 사진 하나는 두 번까지. 얼굴 검사로 비운 자리엔 같은 사람만(donorAllowed).
+ *   2026-10-17: 한 자리에 줄 사진이 없으면 break 하던 것을 그 자리만 건너뛰게 — donorAllowed 가 생긴 뒤로
+ *   '줄 게 없음' 은 그 자리 사정일 수 있다(릴스: 김민석 자리에서 멈춰 추미애 자리까지 카드). @returns 채운 수
+ */
+export function fillMediaGaps(scenes) {
+  const good = scenes.filter((x) => !x.isOutro && x.media);
+  const useCount = (m) => scenes.filter((x) => x.media === m).length;
+  let filled = 0;
+  for (const x of scenes) {
+    if (x.isOutro || x.media) continue;
+    const donor = good.find((g) => useCount(g.media) < 2 && donorAllowed(x, g));
+    if (!donor) continue;
+    x.media = donor.media; x.credit = donor.credit;
+    filled += 1;
+  }
+  return filled;
+}
+
+/**
  * 훅 첫 말에서 사람 이름 후보 — 얼굴 검사가 요구할 바로 그 이름. 4글자 이상이면 끝 조사 한 글자를 뗀다
  *   (김민석의→김민석 · 한동훈은→한동훈). 3글자 이하는 그대로(박지은·이은 같은 이름 보호).
  */
