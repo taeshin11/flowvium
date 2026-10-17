@@ -180,9 +180,9 @@
     "tag": "RPO"
   },
   "ACN": {
-    "rpoUsd": 38000000000,
-    "rpoYoYPct": 15.2,
-    "end": "2026-05-31",
+    "rpoUsd": 37000000000,
+    "rpoYoYPct": 8.8,
+    "end": "2026-08-31",
     "tag": "RPO"
   },
   "ADBE": {
@@ -2136,9 +2136,9 @@
     "tag": "RPO"
   },
   "CMC": {
-    "rpoUsd": 845700000,
-    "rpoYoYPct": -7.6,
-    "end": "2026-05-31",
+    "rpoUsd": 895500000,
+    "rpoYoYPct": 3.2,
+    "end": "2026-08-31",
     "tag": "RPO"
   },
   "ATI": {
