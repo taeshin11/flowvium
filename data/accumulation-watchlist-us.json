@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-16T22:44:04.084Z",
+  "generatedAt": "2026-10-17T13:01:00.513Z",
   "universe": "US",
   "scanned": 296,
-  "count": 5,
+  "count": 6,
   "strongCount": 0,
-  "watchCount": 5,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -58,6 +58,23 @@
       "official": null
     },
     {
+      "ticker": "LEO",
+      "name": "Dreyfus Strategic Municipals, I",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -2.6,
+      "runup5dPct": 1.8,
+      "medDollarVolUsd": 1324632,
+      "smartAccum": false,
+      "official": null
+    },
+    {
       "ticker": "AGNCZ",
       "name": "AGNC Investment Corp. - Deposit",
       "tier": "watch",
@@ -85,7 +102,7 @@
       ],
       "runup20dPct": -5.8,
       "runup5dPct": -2.9,
-      "medDollarVolUsd": 15815456,
+      "medDollarVolUsd": 15838984,
       "smartAccum": false,
       "official": null
     }
