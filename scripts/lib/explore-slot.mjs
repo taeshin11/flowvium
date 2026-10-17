@@ -61,3 +61,6 @@ export const layoutFor = (seed) => (((mix(Number(seed) + 7919) >>> 3) & 1) ? 'zo
 
 // ── 첫 문장 A/B(2026-10-11) — anchor(앵커 단정, 지금 그대로)|question(질문·시청자 이해관계). 근거는 shorts-opener-ab.test.mjs 머리말.
 export const openerFor = (seed) => (((mix(Number(seed) + 15485863) >>> 5) & 1) ? 'question' : 'anchor');
+
+// ── 첫 장면 움직임 A/B(2026-10-17) — push(4초 동안 12% 다가가기)|still(지금 그대로). 근거는 shorts-motion-ab.test.mjs 머리말.
+export const motionFor = (seed) => (((mix(Number(seed) + 104729) >>> 7) & 1) ? 'push' : 'still');

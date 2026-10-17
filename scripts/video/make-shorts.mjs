@@ -346,6 +346,8 @@ const TREND = process.env.SHORTS_TREND === '1';
 // 2026-10-11 첫 문장 A/B(lib/explore-slot openerFor) — question 칸은 1번 장면 첫 문장을 질문·시청자 이해관계로 연다.
 //   근거: shorts-opener-ab.test.mjs 머리말(196편 전부 초기 풀에서 멈춤 · 상위 채널은 호명·인물·의견으로 연다 · ChatGPT·agy 1순위).
 const OPENER = process.env.SHORTS_OPENER === 'question' ? 'question' : 'anchor';
+// 2026-10-17 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor, shorts-motion-ab.test 머리말.
+const MOTION = process.env.SHORTS_MOTION === 'push' ? 'push' : 'still';
 const OPENER_RULE = OPENER === 'question' ? `
 - **[이번 편 실험] 1번 장면 say 의 첫 문장만은 앵커 단정 대신 질문 또는 시청자 이해관계로 연다.** 둘째 문장부터는 위 앵커 규칙 그대로.
   · 좋음: "현대차에 무슨 일이 생긴 걸까요?" / "이번 누리호에는 왜 위성이 15기나 실렸을까요?" / "삼성전자 주식 가진 분이라면 이 소식이 중요합니다."
@@ -2123,7 +2125,9 @@ for (let i = 0; i < scenes.length; i++) {
   // 큐 오버레이를 시간 구간으로 차례차례 얹는다. enable 로 그 구간에만 보이게 한다.
   const cues = scenes[i].cues;
   const ovInputs = scenes[i].ov.flatMap((f) => ['-i', f]);
-  let chain = mediaFilter('0:v', 'v0');
+  // 첫 장면(정지 사진일 때만 — 영상 클립은 이미 움직인다)에 push 칸이면 천천히 다가간다.
+  const firstScene = scenes.findIndex((x) => !x.isOutro);
+  let chain = mediaFilter('0:v', 'v0', { motion: MOTION === 'push' && i === firstScene && !isVid });
   cues.forEach((c, k) => {
     const from = Math.max(0, c.start).toFixed(2);
     const to = Math.min(dur, k === cues.length - 1 ? dur : c.end).toFixed(2);
@@ -2293,6 +2297,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
   layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
   opener: OPENER,      // 2026-10-11: 첫 문장 A/B(anchor|question) — lib/explore-slot openerFor
+  motion: MOTION,      // 2026-10-17: 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor
   trend: TREND_USED,   // 2026-10-02: 트렌드 칸에서 트렌드 주제어가 겹친 후보로 갔는가 — 48h 성적 따로
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

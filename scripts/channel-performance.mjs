@@ -61,7 +61,7 @@ for (let i = 0; i < ids.length; i += 50) {
   }
 }
 const db = openDb();
-const attr = db.prepare(`SELECT topic, title_style, opener, layout, sub_cta, promo, explore, trend, duration_sec, hooks_json, headline
+const attr = db.prepare(`SELECT topic, title_style, opener, motion, layout, sub_cta, promo, explore, trend, duration_sec, hooks_json, headline
   FROM shorts_published WHERE video_id = ?`);
 
 // ── 편마다 지표 ──
@@ -94,7 +94,7 @@ async function measure(v) {
     avgViewSec: avgSec, avgViewPct: avgPct, subs3d: subs, subsPer1k: views ? +(subs / views * 1000).toFixed(2) : null,
     likes3d: likes, shares3d: shares, retain3s: at(3), dropAtSec: drop?.sec ?? null, traffic: trafficShare,
     ctr: null,   // API 미제공 — 스튜디오에서만
-    ...(a ? { topic: a.topic, titleStyle: a.title_style, opener: a.opener, layout: a.layout, subCta: a.sub_cta, promo: a.promo,
+    ...(a ? { topic: a.topic, titleStyle: a.title_style, opener: a.opener, motion: a.motion, layout: a.layout, subCta: a.sub_cta, promo: a.promo,
       explore: a.explore, trend: a.trend, hook1: (() => { try { return JSON.parse(a.hooks_json ?? '[]')[0] ?? null; } catch { return null; } })(), headline: a.headline } : {}),
   };
 }
