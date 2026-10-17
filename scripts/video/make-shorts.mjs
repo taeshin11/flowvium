@@ -35,6 +35,7 @@ import { fitScript } from '../lib/script-budget.mjs';
 import { bestQuote } from '../lib/quote-card.mjs';
 import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '../lib/youtube-cc.mjs';
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
+import { mixBgm } from '../lib/bgm-mix.mjs';
 import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -2216,35 +2217,15 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
     // 편마다 다른 곡을 쓴다 — 발행 편수로 돌린다(무작위 아닌 결정론).
     const bed = join(bgmDir, beds[shortsPublishedCount() % beds.length]);
     const withBgm = `${WORK}/with-bgm.mp4`;
-    const r = spawnSync(ffmpegPath, [
-      '-v', 'error',
-      '-i', OUT,
-      '-stream_loop', '-1', '-i', bed,     // 영상 길이만큼 음악을 반복한다
-      '-filter_complex',
-      // 음악: 목소리 대역을 깎고 볼륨을 낮춘 뒤, 말소리를 기준으로 더킹한다.
-      // 2026-09-06: 처음엔 볼륨만 0.16 을 곱했다. **안 들렸다** — 실측으로 배경 구간이 -49dB 였다.
-      //   원인이 셋 겹쳤다: 원곡이 이미 -11dB, 거기에 -16dB, 다시 더킹.
-      //   곡마다 음량도 제각각이라 곱셈으로는 맞출 수 없다 —
-      //   **loudnorm 으로 일정 음량(-20 LUFS)에 맞춘 뒤** 섞고, 더킹도 덜 깊게 잡는다.
-      `[1:a]loudnorm=I=${process.env.SHORTS_BGM_LUFS || -20}:TP=-2:LRA=7,`
-      + 'equalizer=f=900:t=q:w=1.6:g=-6,equalizer=f=2200:t=q:w=1.6:g=-5,'
-      + 'highpass=f=70,lowpass=f=9000[bed];'
-      + '[0:a]asplit=2[v1][v2];'
-      // ratio 8 → 4, threshold 0.05 → 0.10: 말할 때 음악이 사라지지 않고 낮아지기만 한다.
-      + '[bed][v2]sidechaincompress=threshold=0.10:ratio=4:attack=20:release=400[ducked];'
-      + '[v1][ducked]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1,'
-      + 'alimiter=limit=0.95[a]',
-      '-map', '0:v', '-map', '[a]',
-      '-c:v', 'copy', ...audioArgs(),
-      '-shortest', '-y', withBgm,
-    ], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
-    if (r.status === 0 && existsSync(withBgm)) {
+    // 2026-10-17 사장님 "시청 방해 안 하는 배경음악" — 곡을 −20 LUFS 고정이 아니라 **이 회차 내레이션보다
+    //   20dB 아래**로 맞추고, 페이드 0.3/0.8초, 섞인 배경을 다시 재서 18dB 보다 가까우면 음악 없이 간다(lib/bgm-mix).
+    const r = mixBgm({ input: OUT, bed, output: withBgm, workDir: WORK });
+    if (r.ok) {
       copyFileSync(withBgm, OUT);
-      log(`[음악] ${beds[shortsPublishedCount() % beds.length]} 를 깔았다(-20 LUFS 로 맞춘 뒤 말할 때 더킹)`);
+      log(`[음악] ${beds[shortsPublishedCount() % beds.length]} — 내레이션 ${r.voiceI.toFixed(1)} · 배경 ${r.bedI.toFixed(1)} LUFS (${r.gap.toFixed(1)}dB 아래, 말할 때 더킹)`);
     } else {
-      // 시간 초과와 입력 오류는 조치가 다르다 — 사유를 구분해 남긴다.
-      //   2026-09-11: 여기서 12시간 18분 멈춰 렌더 체인이 통째로 물렸다(입력이 구글드라이브 경로).
-      log(`[음악] 배경음 입히기 실패 — 음악 없이 간다: ${describeFfmpegResult(r) ?? '사유 불명'}`);
+      // 2026-09-11: 여기서 12시간 18분 멈춘 적이 있다(입력이 구글드라이브 경로) — 사유를 남긴다.
+      log(`[음악] ⚠ 배경음 입히기 실패 — 음악 없이 간다: ${r.reason}`);
     }
   }
 }
