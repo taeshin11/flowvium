@@ -16,21 +16,25 @@ export function matchText(title) {
 }
 
 /**
- * @param {Array<{video_id,issue_key,topic,title,views,published_at,retracted_at?}>} rows
+ * @param {Array<{video_id,issue_key,topic,headline,title,views,published_at,retracted_at?}>} rows
  * @returns {{id:string, match:string, why:'same-issue'|'same-topic', title:string}|null}
  */
-export function pickRelated(rows, { videoId, issueKey, topic, now = Date.now(), days = RELATED_DAYS }) {
+export function pickRelated(rows, { videoId, issueKey, headline, topic, now = Date.now(), days = RELATED_DAYS }) {
   const live = rows.filter((r) => r.video_id && r.video_id !== videoId && !r.retracted_at && matchText(r.title)
     && now - Date.parse(r.published_at) <= days * 864e5);
   const best = (xs) => xs.sort((a, b) => (b.views ?? 0) - (a.views ?? 0))[0];
-  const issue = issueKey ? best(live.filter((r) => r.issue_key === issueKey)) : null;
+  // 2026-10-19: issue_key 는 다른 사건에도 붙는다(실측: '김민석' 키에 인니 산불 편, 'imf' 키에 홍콩 IPO·北 미사일 —
+  //   묶음 대표 키가 브리핑 다른 뉴스에 남는다). 같은 사건 = 키가 같고 **두 헤드라인 모두에 키 낱말이 있을 때**만.
+  const norm = (t) => String(t ?? '').toLowerCase().replace(/\s+/g, '');
+  const hasKey = (h) => !!issueKey && norm(h).includes(norm(issueKey));
+  const issue = issueKey && hasKey(headline) ? best(live.filter((r) => r.issue_key === issueKey && hasKey(r.headline))) : null;
   const pick = issue ?? (topic && !VAGUE_TOPICS.has(topic) ? best(live.filter((r) => r.topic === topic)) : null);
   return pick ? { id: pick.video_id, match: matchText(pick.title), why: issue ? 'same-issue' : 'same-topic', title: pick.title } : null;
 }
 
 /** 편성 원장 + 조회 기록에서 후보 행. */
 export function relatedCandidates(db, days = RELATED_DAYS) {
-  return db.prepare(`SELECT p.video_id, p.issue_key, p.topic, p.published_at, p.retracted_at,
+  return db.prepare(`SELECT p.video_id, p.issue_key, p.topic, p.headline, p.published_at, p.retracted_at,
       (SELECT title FROM shorts_stats s WHERE s.video_id = p.video_id AND s.title IS NOT NULL ORDER BY s.checked_at DESC LIMIT 1) title,
       (SELECT MAX(views) FROM shorts_stats s WHERE s.video_id = p.video_id) views
     FROM shorts_published p WHERE p.video_id IS NOT NULL AND datetime(p.published_at) >= datetime('now', ?)`).all(`-${days} days`);

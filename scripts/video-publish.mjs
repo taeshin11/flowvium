@@ -529,7 +529,7 @@ if (isShorts && last.keyword) {
         const { openDb } = await import('./lib/db.mjs');
         const { pickRelated, relatedCandidates } = await import('./lib/related-pick.mjs');
         const rel = process.env.RELATED_TO_SHORTS === '0' ? null
-          : pickRelated(relatedCandidates(openDb()), { videoId, issueKey: last.keyword, topic: last.topic ?? null });
+          : pickRelated(relatedCandidates(openDb()), { videoId, issueKey: last.keyword, headline: heads[0], topic: last.topic ?? null });
         const out = openSync(resolve(ROOT, 'logs/related-new.log'), 'a');
         const relArgs = rel ? ['--target', rel.id, '--match', rel.match] : [];
         spawn(process.execPath, [resolve(ROOT, 'scripts/yt-related-video.mjs'), '--ids', videoId, ...relArgs], { detached: true, stdio: ['ignore', out, out] }).unref();

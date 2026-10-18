@@ -17,13 +17,21 @@ const rows = [
   { video_id: 'self', issue_key: '소방', topic: '국내정치', title: '지금 이 편 #Shorts', views: 9999, published_at: ago(0) },
   { video_id: 'pol1', issue_key: '국감', topic: '국내정치', title: '국감 고성 충돌, 무슨 일이 #Shorts', views: 1500, published_at: ago(30) },
   { video_id: 'pol2', issue_key: '국감2', topic: '국내정치', title: '다른 정치 편', views: 900, published_at: ago(40) },
-  { video_id: 'same', issue_key: '소방', topic: '국내정치', title: '소방관 순직, 앞선 편', views: 600, published_at: ago(20) },
+  { video_id: 'same', issue_key: '소방', topic: '국내정치', headline: '소방관 순직 뒤 소방 처우 논란', title: '소방관 순직, 앞선 편', views: 600, published_at: ago(20) },
+  { video_id: 'mixed', issue_key: '소방', topic: '국제·외교·전쟁', headline: '인니 산불 진화 중 4명 사망', title: '인니 산불 편', views: 7000, published_at: ago(15) },
   { video_id: 'old', issue_key: '옛', topic: '증시·금리·환율', title: '오래된 증시 편', views: 5000, published_at: ago(24 * 20) },
   { video_id: 'gone', issue_key: '내림', topic: '증시·금리·환율', title: '내린 편', views: 8000, published_at: ago(10), retracted_at: ago(5) },
   { video_id: 'mkt', issue_key: '금리', topic: '증시·금리·환율', title: '', views: 3000, published_at: ago(10) },
 ];
-const a = pickRelated(rows, { videoId: 'self', issueKey: '소방', topic: '국내정치', now });
+const a = pickRelated(rows, { videoId: 'self', issueKey: '소방', headline: '소방대원 순직에 여당 자숙', topic: '국내정치', now });
 (a?.id === 'same' && a.why === 'same-issue') ? ok('[1] 같은 사건의 앞선 쇼츠가 먼저') : bad(`[1] ${JSON.stringify(a)}`);
+// [1b] 2026-10-19 실측: issue_key 가 다른 사건에도 붙는다('김민석' 키에 인니 산불 편, 'imf' 키에 홍콩 IPO·北 미사일).
+//   두 헤드라인 모두에 키 낱말이 있어야 같은 사건이다 — 조회가 더 많아도 키 낱말 없는 'mixed' 는 안 고른다.
+const mx = pickRelated(rows.filter((r) => r.video_id !== 'same'), { videoId: 'self', issueKey: '소방', headline: '소방대원 순직에 여당 자숙', topic: '국내정치', now });
+(mx?.why === 'same-topic' && mx.id === 'pol1')
+  ? ok('[1b] 키만 같고 헤드라인에 키 낱말이 없으면 같은 사건으로 안 친다') : bad(`[1b] ${JSON.stringify(mx)}`);
+const selfMixed = pickRelated(rows, { videoId: 'self', issueKey: '소방', headline: '홍콩 IPO 청약 조작 의혹', topic: '국내정치', now });
+(selfMixed?.why === 'same-topic' && selfMixed.id === 'pol1') ? ok('[1c] 이 편 헤드라인에 키 낱말이 없어도 같은 사건으로 안 친다') : bad(`[1c] ${JSON.stringify(selfMixed)}`);
 const b = pickRelated(rows, { videoId: 'self', issueKey: '새사건', topic: '국내정치', now });
 (b?.id === 'pol1' && b.why === 'same-topic' && b.match === '국감 고성 충돌, 무슨 일이') ? ok('[2] 없으면 같은 주제에서 조회 1위 · 카드 찾을 제목 앞부분(#태그 뺌)') : bad(`[2] ${JSON.stringify(b)}`);
 const c = pickRelated(rows, { videoId: 'x', issueKey: 'y', topic: '증시·금리·환율', now });
