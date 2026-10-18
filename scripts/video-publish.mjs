@@ -518,13 +518,21 @@ if (isShorts && last.keyword) {
       } catch (e) { log(`⚠ 재생목록에 못 넣었다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
     }
     // 2026-10-02 '관련 동영상' 을 사이트 소개 롱폼으로(쇼츠 화면에서 눌리는 유일한 링크 자리). 스튜디오 화면이라 뒤에서 따로 돈다.
+    // 2026-10-18 → **같은 사건·주제의 다른 쇼츠**로(lib/related-pick). 재방문 0.1% 미만·내 영상에서 온 조회 0.4% —
+    //   세 모델 합의, Mac mini2(사장님 위임) 결정. 고를 쇼츠가 없으면 종전대로 사이트 롱폼. 사이트 링크는 설명란에 남는다.
     if (videoId && isShorts && process.env.RELATED_VIDEO !== '0') {
       try {
         const { spawn } = await import('node:child_process');
         const { openSync } = await import('node:fs');
+        const { openDb } = await import('./lib/db.mjs');
+        const { pickRelated, relatedCandidates } = await import('./lib/related-pick.mjs');
+        const rel = process.env.RELATED_TO_SHORTS === '0' ? null
+          : pickRelated(relatedCandidates(openDb()), { videoId, issueKey: last.keyword, topic: last.topic ?? null });
         const out = openSync(resolve(ROOT, 'logs/related-new.log'), 'a');
-        spawn(process.execPath, [resolve(ROOT, 'scripts/yt-related-video.mjs'), '--ids', videoId], { detached: true, stdio: ['ignore', out, out] }).unref();
-        log('관련 동영상(사이트 소개 롱폼) 걸기를 뒤에서 시작했다 → logs/related-new.log');
+        const relArgs = rel ? ['--target', rel.id, '--match', rel.match] : [];
+        spawn(process.execPath, [resolve(ROOT, 'scripts/yt-related-video.mjs'), '--ids', videoId, ...relArgs], { detached: true, stdio: ['ignore', out, out] }).unref();
+        log(rel ? `관련 동영상 → ${rel.why === 'same-issue' ? '같은 사건' : '같은 주제'} 쇼츠 ${rel.id} "${rel.match}" 걸기를 뒤에서 시작했다 → logs/related-new.log`
+          : '관련 동영상(같은 주제 쇼츠가 없어 사이트 소개 롱폼) 걸기를 뒤에서 시작했다 → logs/related-new.log');
       } catch (e) { log(`⚠ 관련 동영상 걸기를 못 띄웠다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
     }
     // 2026-10-08 사장님: aisviagent.com 홍보 댓글(쿠팡파트너스처럼) + "업로드 후 댓글 달렸는지 바로바로 체크".
