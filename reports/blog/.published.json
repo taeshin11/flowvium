@@ -560,5 +560,16 @@
   "url": "https://flowvium.blogspot.com/2026/10/microsoft-azuremsft-10-18.html",
   "status": "LIVE",
   "at": "2026-10-17T22:15:02.647Z"
+ },
+ "2026-10-18-afternoon.md": {
+  "skipped": true,
+  "reason": "same-day:2026-10-18-morning.md",
+  "at": "2026-10-18T12:45:00.687Z"
+ },
+ "2026-10-18-shorts-1328.md": {
+  "id": "7092888711109874571",
+  "url": "https://flowvium.blogspot.com/2026/10/5-10-17.html",
+  "status": "LIVE",
+  "at": "2026-10-18T12:45:02.474Z"
  }
 }
