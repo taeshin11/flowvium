@@ -18,7 +18,11 @@ import { measure } from './loudness.mjs';
 import { audioArgs } from './shorts-layout.mjs';
 import { ffmpegOpts, describeFfmpegResult } from './ffmpeg-timeout.mjs';
 
-export const BGM_GAP_DB = Number(process.env.SHORTS_BGM_GAP_DB || 20);
+// 목표는 **섞은 뒤 잰 간격**이다(2026-10-18). loudnorm 에 내레이션−20 을 넣으면 EQ·더킹·페이드가 곡과
+//   내레이션 크기에 따라 4~7dB 더 깎아 실측 25.6~27.2dB — 폰 스피커에선 거의 안 들렸다(Mac mini2).
+//   더킹 압축기는 절대 음량에 반응해(threshold 0.10) 깎이는 양이 회차마다 달라, 고정 보정값으로는 못 맞춘다.
+export const BGM_GAP_DB = Number(process.env.SHORTS_BGM_GAP_DB || 21.5);
+const GAP_TOL = 0.5, MAX_PASSES = 3;
 export const BGM_MIN_GAP_DB = 18;
 const FADE_IN = 0.3, FADE_OUT = 0.8;
 
@@ -51,20 +55,27 @@ function durationOf(path) {
  * input(영상) 에 bed(곡) 를 깔아 output 에 쓴다. 영상은 복사.
  * @returns {{ok:boolean, reason?:string, voiceI?:number, bedI?:number, gap?:number}}
  */
-export function mixBgm({ input, bed, output, workDir }) {
+export function mixBgm({ input, bed, output, workDir, target = BGM_GAP_DB }) {
   const v = measure(['-i', input]);
   if (!v || !Number.isFinite(v.I) || v.I < -70) return { ok: false, reason: `내레이션 음량을 못 쟀다(${v?.I})` };
   const durSec = durationOf(input);
   if (!(durSec > 0)) return { ok: false, reason: '영상 길이를 못 읽었다' };
   const bedOut = join(workDir, 'bgm-bed-only.wav');
-  const r = spawnSync(ffmpegPath, [
-    '-v', 'error', '-i', input, '-stream_loop', '-1', '-i', bed,   // 영상 길이만큼 곡을 반복
-    '-filter_complex', bgmFilter({ voiceI: v.I, durSec }),
-    '-map', '0:v?', '-map', '[a]', '-c:v', 'copy', ...audioArgs(), '-shortest', '-y', output,
-    '-map', '[bedonly]', '-y', bedOut,
-  ], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
-  if (r.status !== 0 || !existsSync(output)) return { ok: false, reason: describeFfmpegResult(r) ?? '사유 불명', voiceI: v.I };
-  const b = measure(['-i', bedOut]);
-  const g = bgmGapOk(v.I, b?.I);
-  return { ok: g.ok, reason: g.ok ? undefined : `배경이 내레이션과 ${g.gap?.toFixed?.(1)}dB 차이 — ${BGM_MIN_GAP_DB}dB 미만`, voiceI: v.I, bedI: b?.I, gap: g.gap };
+  // 섞고 → 섞인 배경을 재고 → 목표와 어긋난 만큼 곡 음량을 고쳐 다시 섞는다(최대 3번).
+  let pre = target, g = null, b = null, passes = 0;
+  while (passes < MAX_PASSES) {
+    passes++;
+    const r = spawnSync(ffmpegPath, [
+      '-v', 'error', '-i', input, '-stream_loop', '-1', '-i', bed,   // 영상 길이만큼 곡을 반복
+      '-filter_complex', bgmFilter({ voiceI: v.I, durSec, gapDb: pre }),
+      '-map', '0:v?', '-map', '[a]', '-c:v', 'copy', ...audioArgs(), '-shortest', '-y', output,
+      '-map', '[bedonly]', '-y', bedOut,
+    ], ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
+    if (r.status !== 0 || !existsSync(output)) return { ok: false, reason: describeFfmpegResult(r) ?? '사유 불명', voiceI: v.I, passes };
+    b = measure(['-i', bedOut]);
+    g = bgmGapOk(v.I, b?.I);
+    if (!Number.isFinite(g.gap) || Math.abs(g.gap - target) <= GAP_TOL) break;
+    pre = Math.min(30, Math.max(8, pre - (g.gap - target)));
+  }
+  return { ok: g.ok, reason: g.ok ? undefined : `배경이 내레이션과 ${g.gap?.toFixed?.(1)}dB 차이 — ${BGM_MIN_GAP_DB}dB 미만`, voiceI: v.I, bedI: b?.I, gap: g.gap, passes };
 }

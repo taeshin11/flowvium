@@ -19,6 +19,7 @@ import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 import { ROOT } from '../lib/project-root.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
+import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, rankIssues, ungroundedNumbers, hangulNumerals, isEditorial, thumbLineOk, imagePool, scriptBudget, explainerTitle } from '../lib/weekly-explainer.mjs';
 
@@ -308,19 +309,21 @@ const JOINED = join(OUT, 'joined.mp4');
 ff(['-f', 'concat', '-safe', '0', '-i', join(OUT, 'list.txt'), '-c', 'copy', JOINED], '이어 붙이기');
 writeFileSync(join(OUT, 'subs.ass'), toAss(cues, { font: 'Apple SD Gothic Neo', fontSize: 58, marginV: 70, playResX: 1920, playResY: 1080 }));
 
-// ── 8. 자막 굽기 + 배경음(쇼츠와 같은 방식: loudnorm 뒤 목소리 대역 깎고 더킹) + 최종 음량 -14 LUFS
+// ── 8. 자막 굽기 + 배경음(쇼츠와 같은 lib/bgm-mix) + 최종 음량 -14 LUFS
 const SUBBED = join(OUT, 'subbed.mp4');
 const { beds } = licensedBeds(join(ROOT, 'assets/bgm'));   // 2026-10-18: 출처가 적힌 곡만(lib/bgm-beds)
 const week = Math.floor(Date.parse(DATE) / (7 * 864e5));
 const subFilter = `subtitles=${join(OUT, 'subs.ass').replace(/:/g, '\\:')}`;
+// 2026-10-18: 곡을 −24 LUFS 고정으로 섞던 것을 쇼츠와 같은 lib/bgm-mix 로 — 섞은 배경을 재서 내레이션보다
+//   BGM_GAP_DB(21.5dB) 아래로 맞춘다. 고정값일 때 10/18 회차는 11.9dB 차이였다(같은 필터로 재현 실측, 목표 18~22).
+//   18dB 보다 가까우면 음악 없이 간다.
+const NOBGM = beds.length ? join(OUT, 'subbed-nobgm.mp4') : SUBBED;
+ff(['-i', JOINED, '-vf', subFilter, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'copy', NOBGM], '자막', 1_500_000);
 if (beds.length) {
-  ff(['-i', JOINED, '-stream_loop', '-1', '-i', join(ROOT, 'assets/bgm', beds[week % beds.length]), '-filter_complex',
-    `[0:v]${subFilter}[v];[1:a]loudnorm=I=-24:TP=-2:LRA=7,equalizer=f=900:t=q:w=1.6:g=-6,equalizer=f=2200:t=q:w=1.6:g=-5,highpass=f=70,lowpass=f=9000[bed];`
-    + '[0:a]asplit=2[v1][v2];[bed][v2]sidechaincompress=threshold=0.10:ratio=4:attack=20:release=400[duck];[v1][duck]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1,alimiter=limit=0.95[a]',
-    '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', '-shortest', SUBBED], '자막·배경음', 1_500_000);
-  log(`[소리] 배경음 ${beds[week % beds.length]}`);
-} else {
-  ff(['-i', JOINED, '-vf', subFilter, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-c:a', 'copy', SUBBED], '자막', 1_500_000);
+  const bedName = beds[week % beds.length];
+  const r = mixBgm({ input: NOBGM, bed: join(ROOT, 'assets/bgm', bedName), output: SUBBED, workDir: OUT });
+  if (r.ok) log(`[소리] 배경음 ${bedName} — 내레이션 ${r.voiceI.toFixed(1)} · 배경 ${r.bedI.toFixed(1)} LUFS (${r.gap.toFixed(1)}dB 아래, ${r.passes}회)`);
+  else { log(`[소리] ⚠ 배경음 입히기 실패 — 음악 없이 간다: ${r.reason}`); copyFileSync(NOBGM, SUBBED); }
 }
 const FINAL = join(OUT, 'explainer.mp4');
 {
