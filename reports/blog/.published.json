@@ -571,5 +571,22 @@
   "url": "https://flowvium.blogspot.com/2026/10/5-10-17.html",
   "status": "LIVE",
   "at": "2026-10-18T12:45:02.474Z"
+ },
+ "2026-10-18-midnight.md": {
+  "skipped": true,
+  "reason": "same-day:2026-10-18-morning.md",
+  "at": "2026-10-18T22:15:00.443Z"
+ },
+ "2026-10-18-shorts-2145.md": {
+  "id": "2260527814745339453",
+  "url": "https://flowvium.blogspot.com/2026/10/4-24-6-10-18.html",
+  "status": "LIVE",
+  "at": "2026-10-18T22:15:02.979Z"
+ },
+ "2026-10-19-morning.md": {
+  "id": "4415409013470737753",
+  "url": "https://flowvium.blogspot.com/2026/10/nvidia-corporationnvda-10-19.html",
+  "status": "LIVE",
+  "at": "2026-10-18T22:15:05.295Z"
  }
 }
