@@ -354,7 +354,9 @@ const top = pickHeadlines(heads, 6);
 //   헤드라인 중 한국 성과를 말하는 것이 있으면 앞세우고, 없으면 순서를 흔들지 않는다.
 //   제목 문자열은 언제나 헤드라인 원문에서만 나온다(지어내지 않는다).
 const isKoUpload = LOCALE === 'ko';
-const { proud } = orderForTitle(top, isKoUpload);
+// 2026-10-18 Mac mini2(사장님 위임): 브리핑은 첫 뉴스(썸네일·첫 장면)가 제목·설명 첫 줄 — 성과 헤드라인을 앞세우지 않는다.
+const TITLE_OPTS = { keepFirst: !!last.brief };
+const { proud } = orderForTitle(top, isKoUpload, TITLE_OPTS);
 // 쇼츠 제목 상한. 유튜브 제목은 100자까지 받지만 **쇼츠 피드는 한두 줄만 보여준다** —
 //   2026-09-03 실측: 올라간 제목이 95자였고 시청자에겐 앞 토막만 보였다.
 //   " #Shorts"(8자) 자리를 미리 빼고 계산한다.
@@ -367,7 +369,7 @@ if (isShorts) {
   catch { /* 대장을 못 읽어도 제목은 나와야 한다 — 앞머리가 안 돌 뿐이다 */ }
 }
 let title = isShorts
-  ? buildTitle(top, isKoUpload, seed, { maxLen: SHORTS_TITLE_MAX - 8 })
+  ? buildTitle(top, isKoUpload, seed, { maxLen: SHORTS_TITLE_MAX - 8, ...TITLE_OPTS })
   : buildTitle(top, isKoUpload);
 // ── 궁금증형 제목 (2026-09-25 사장님 "상위 채널 레퍼런스 체크해서 다음 편부터 반영") ──────
 //   상위 쇼츠 뉴스 채널은 헤드라인이 아니라 "~한 이유" 꼴로 궁금증을 남긴다. 우리 채널에서도 통하는지는
@@ -387,7 +389,7 @@ if (isShorts) {
   const picked = await chooseShortsTitle({
     topicStrong,
     headlineTitle: title,
-    headline: orderForTitle(top, isKoUpload).ordered[0],
+    headline: orderForTitle(top, isKoUpload, TITLE_OPTS).ordered[0],
     context: (last.bodies ?? []).slice(0, 2),
     seed, isKo: isKoUpload, maxLen: SHORTS_TITLE_MAX - 8,
     disabled: process.env.SHORTS_CURIOSITY_TITLE === '0',
@@ -404,7 +406,7 @@ if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다');
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
 const tagWords = buildTags(top, last.keywords, isKoUpload);
 
-let desc = buildDescription(top, isKoUpload);
+let desc = buildDescription(top, isKoUpload, TITLE_OPTS);
 
 // ── 표기 의무를 설명란까지 보낸다 ──────────────────────────────────────────
 // 2026-09-15: make-shorts 가 CC BY 소재의 크레딧을 `<영상>-credits.txt` 에 모아 두는데

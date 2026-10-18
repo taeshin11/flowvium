@@ -97,8 +97,12 @@ export function startsWithQuote(h) {
   return /^\s*["'\u201c\u201d\u2018\u2019\u300c\u300e]/.test(String(h ?? ''));
 }
 
-export function orderForTitle(heads, isKo) {
+export function orderForTitle(heads, isKo, { keepFirst = false } = {}) {
   let list = (heads ?? []).filter(Boolean);
+  // 2026-10-18: 브리핑(서로 다른 뉴스 여러 건)은 **첫 뉴스가 제목**이다 — 썸네일·첫 장면이 그 뉴스다.
+  //   한 사건 편에서는 같은 일을 말하는 헤드라인 중 고르는 것이라 순서를 바꿔도 되지만, 브리핑에서 바꾸면
+  //   제목이 화면과 다른 뉴스를 말한다(WYtOA2WgZTI: 추미애 화면에 LG전자 제목). Mac mini2(사장님 위임) 결정.
+  if (keepFirst) return { ordered: list, proud: isKo && isProudHeadline(list[0] ?? '') };
   // 2026-09-04 사용자: "왜 제목 설명이 영어로 나갔어?"
   //   한국어 채널인데 "Should Investors Ride the Silver…" 가 제목으로 나갔다.
   //   같은 이슈 묶음에 한국어 헤드라인이 넷이나 있었는데 **첫 줄이 영어**라 그게 제목이 됐다.
@@ -201,7 +205,7 @@ export function pickProudPrefix(seed, headline, cap) {
 }
 
 export function buildTitle(heads, isKo, seed = 0, opts = {}) {
-  const { ordered, proud } = orderForTitle(heads, isKo);
+  const { ordered, proud } = orderForTitle(heads, isKo, { keepFirst: !!opts.keepFirst });
   let t = ordered[0] ?? '';
   const cap0 = Math.max(20, Math.trunc(opts.maxLen ?? 100));
   const prefix = proud ? `${pickProudPrefix(seed, t, cap0)} ` : '';
@@ -319,8 +323,8 @@ const HASHTAGS = {
 };
 
 /** 설명란. 로케일에 맞는 문구와 해시태그를 쓴다. */
-export function buildDescription(heads, isKo) {
-  const { ordered } = orderForTitle(heads, isKo);
+export function buildDescription(heads, isKo, { keepFirst = false } = {}) {
+  const { ordered } = orderForTitle(heads, isKo, { keepFirst });
   const key = isKo ? 'ko' : 'en';
   return DESC[key](ordered, HASHTAGS[key]);
 }

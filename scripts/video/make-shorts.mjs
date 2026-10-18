@@ -37,6 +37,7 @@ import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '.
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
+import { tagBriefScenes, briefMeta } from '../lib/brief-scenes.mjs';
 import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -964,7 +965,9 @@ async function askLLM() {
   //   받아들여 "6 억 8 천만 원", "천무 18 문", "4 억 3520 만 유로" 를 내놓는다.
   //   앞서 화면 글자만 고쳤는데 **TTS 는 이 원문을 그대로 읽는다** — 대본 자체를 정리한다.
   //   프롬프트도 같이 고쳤지만 4B 가 지킬 거라고 믿지 않는다. 코드가 보장한다.
-  return JSON.parse(m[0]).filter((x) => x?.say && x?.hook).slice(0, BRIEF ? BRIEF.length : SCENES)
+  // 2026-10-18: 브리핑은 거르기 **전에** 뉴스 번호를 붙인다(lib/brief-scenes) — 깨진 장면이 빠져도 뒤가 밀리지 않는다.
+  const raw = JSON.parse(m[0]);
+  return (BRIEF ? tagBriefScenes(raw) : raw).filter((x) => x?.say && x?.hook).slice(0, BRIEF ? BRIEF.length : SCENES)
     .map((x) => ({ ...x, say: tightenNumbers(x.say), hook: tightenNumbers(x.hook) }));
 }
 
@@ -1315,8 +1318,8 @@ for (let i = 0; i < scenes.length; i++) {
   //   순서를 말로 적을 게 아니라 **자리로** 정해야 한다. 루프 맨 앞이다.
   // 브리핑이면 이 장면의 뉴스가 정해져 있다 — 그 뉴스 기사의 사진을 바로 쓴다.
   //   장면-사진 대응을 낱말 겹침으로 추측할 필요가 없다. 애초에 맞는 짝이다.
-  if (!scenes[i].pick && BRIEF && BRIEF[i]) {
-    for (const c of BRIEF[i].imgs) {
+  if (!scenes[i].pick && BRIEF && BRIEF[scenes[i].story]) {
+    for (const c of BRIEF[scenes[i].story].imgs) {
       if (usedMedia.has(c.url)) continue;
       usedMedia.add(c.url);
       try {
@@ -1787,7 +1790,7 @@ closeGoogleImages();
       //   장면별로 그 뉴스의 헤드라인과 견준다.
       const verdict = BRIEF
         ? cand.flatMap((r) => {
-          const topic = (BRIEF[r.k]?.it?.headlines ?? [])[0] ?? headlines[0] ?? issue.keyword;
+          const topic = (BRIEF[r.x.story]?.it?.headlines ?? [])[0] ?? headlines[0] ?? issue.keyword;
           const still = clipStill(r.x.media);
           const one = still ? clipCheck([{ image: still }], topic) : [];
           return one.length ? [{ ...one[0], index: cand.indexOf(r) }] : [];
@@ -2285,8 +2288,11 @@ if (credits.length) {
   console.log(`   ⚠ 표기 의무 ${credits.length}건 → ${cf}`);
 }
 // 업로드가 쓸 메타. 훅을 제목 후보로 넘긴다.
+// 2026-10-18: 브리핑은 **화면에 남은 장면 순서대로** 그 뉴스만 넘긴다(lib/brief-scenes) — 빠진 뉴스가 제목·설명에 들어가지 않게.
+const metaNews = BRIEF ? briefMeta(scenes, headlines, bodies) : { headlines, bodies };
 writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
-  headlines, hooks: scenes.map((s) => s.hook), bodies, keyword: issue.keyword,
+  headlines: metaNews.headlines, hooks: scenes.map((s) => s.hook), bodies: metaNews.bodies, keyword: issue.keyword,
+  brief: !!BRIEF,      // 2026-10-18: 브리핑이면 발행이 첫 뉴스를 제목으로(video-meta keepFirst)
   topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
