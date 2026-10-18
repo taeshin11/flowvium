@@ -1,0 +1,30 @@
+{
+ "tech1.mp3": {
+  "source": "Suno Pro (유료 요금제) — Mac mini2 공용 팩 Dropbox \"@1 생성동영상/_bgm/e_tech/e1.mp3\", 루프백 녹음",
+  "license": "Suno Pro 상업 이용 (팩 README, Mac mini2 10/18 확인)",
+  "added": "2026-10-18",
+  "md5": "7f6383148d94443d9fb2fbb47a4457ba",
+  "vocals": "사람 귀로는 안 들음. faster-whisper small: 출력이 유튜브 맺음말 환각뿐(avg_logprob -0.86~-0.99) — 같은 곡에 내레이션 섞은 대조는 한국어 받아쓰기(-0.42). silero-vad 는 대조에서도 0초라 판정에 안 씀"
+ },
+ "tech2.mp3": {
+  "source": "Suno Pro (유료 요금제) — Mac mini2 공용 팩 Dropbox \"@1 생성동영상/_bgm/e_tech/e2.mp3\", 루프백 녹음",
+  "license": "Suno Pro 상업 이용 (팩 README, Mac mini2 10/18 확인)",
+  "added": "2026-10-18",
+  "md5": "7ae27a4c0981ae9083cfe720601158f0",
+  "vocals": "사람 귀로는 안 들음. faster-whisper small: 출력이 유튜브 맺음말 환각뿐(avg_logprob -0.86~-0.99) — 같은 곡에 내레이션 섞은 대조는 한국어 받아쓰기(-0.42). silero-vad 는 대조에서도 0초라 판정에 안 씀"
+ },
+ "tech3.mp3": {
+  "source": "Suno Pro (유료 요금제) — Mac mini2 공용 팩 Dropbox \"@1 생성동영상/_bgm/e_tech/e3.mp3\", 루프백 녹음",
+  "license": "Suno Pro 상업 이용 (팩 README, Mac mini2 10/18 확인)",
+  "added": "2026-10-18",
+  "md5": "5d57e828ec060d8ecad2f23ed981a015",
+  "vocals": "사람 귀로는 안 들음. faster-whisper small: 출력이 유튜브 맺음말 환각뿐(avg_logprob -0.86~-0.99) — 같은 곡에 내레이션 섞은 대조는 한국어 받아쓰기(-0.42). silero-vad 는 대조에서도 0초라 판정에 안 씀"
+ },
+ "tech4.mp3": {
+  "source": "Suno Pro (유료 요금제) — Mac mini2 공용 팩 Dropbox \"@1 생성동영상/_bgm/e_tech/e4.mp3\", 루프백 녹음",
+  "license": "Suno Pro 상업 이용 (팩 README, Mac mini2 10/18 확인)",
+  "added": "2026-10-18",
+  "md5": "6cd22c76a7a4ef64e74ffb0b5c5b8526",
+  "vocals": "사람 귀로는 안 들음. faster-whisper small: 출력이 유튜브 맺음말 환각뿐(avg_logprob -0.86~-0.99) — 같은 곡에 내레이션 섞은 대조는 한국어 받아쓰기(-0.42). silero-vad 는 대조에서도 0초라 판정에 안 씀"
+ }
+}

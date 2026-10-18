@@ -36,6 +36,7 @@ import { bestQuote } from '../lib/quote-card.mjs';
 import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '../lib/youtube-cc.mjs';
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
+import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -2210,8 +2211,9 @@ if (cat.status !== 0) { console.error(`❌ 이어붙이기 실패:\n${String(cat
 //   음악이 없으면 그냥 넘어간다 — 배경음 때문에 회차를 잃지 않는다.
 {
   const bgmDir = resolve(ROOT, 'assets/bgm');
-  let beds = [];
-  try { beds = readdirSync(bgmDir).filter((f) => /\.(wav|mp3|m4a)$/i.test(f)).sort(); } catch { /* 없으면 넘어간다 */ }
+  // 2026-10-18: SOURCES.json 에 출처·라이선스가 적힌 곡만(lib/bgm-beds) — 폴더에 놓였다고 쓰지 않는다.
+  const { beds, skipped } = licensedBeds(bgmDir);
+  if (skipped.length) log(`[음악] 출처 없는 곡은 안 쓴다: ${skipped.join(', ')}`);
   if (beds.length) {
     // 편마다 다른 곡을 쓴다 — 발행 편수로 돌린다(무작위 아닌 결정론).
     const bed = join(bgmDir, beds[shortsPublishedCount() % beds.length]);

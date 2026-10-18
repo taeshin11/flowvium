@@ -18,6 +18,7 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync, readdirSync
 import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 import { ROOT } from '../lib/project-root.mjs';
+import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, rankIssues, ungroundedNumbers, hangulNumerals, isEditorial, thumbLineOk, imagePool, scriptBudget, explainerTitle } from '../lib/weekly-explainer.mjs';
 
@@ -309,7 +310,7 @@ writeFileSync(join(OUT, 'subs.ass'), toAss(cues, { font: 'Apple SD Gothic Neo', 
 
 // ── 8. 자막 굽기 + 배경음(쇼츠와 같은 방식: loudnorm 뒤 목소리 대역 깎고 더킹) + 최종 음량 -14 LUFS
 const SUBBED = join(OUT, 'subbed.mp4');
-const beds = (() => { try { return readdirSync(join(ROOT, 'assets/bgm')).filter((f) => /\.(wav|mp3|m4a)$/i.test(f)).sort(); } catch { return []; } })();
+const { beds } = licensedBeds(join(ROOT, 'assets/bgm'));   // 2026-10-18: 출처가 적힌 곡만(lib/bgm-beds)
 const week = Math.floor(Date.parse(DATE) / (7 * 864e5));
 const subFilter = `subtitles=${join(OUT, 'subs.ass').replace(/:/g, '\\:')}`;
 if (beds.length) {
