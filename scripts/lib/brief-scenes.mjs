@@ -18,3 +18,14 @@ export function briefMeta(scenes, headlines, bodies) {
   for (const s of scenes ?? []) if (!s?.isOutro && Number.isInteger(s?.story) && !ks.includes(s.story)) ks.push(s.story);
   return { headlines: ks.map((k) => headlines?.[k]).filter(Boolean), bodies: ks.map((k) => bodies?.[k] ?? '') };
 }
+
+/**
+ * 이 편의 대표 이슈 = **첫 화면 뉴스**. 브리핑이면 화면 첫 장면이 든 BRIEF 이슈, 아니면 issue.
+ *   2026-10-19: 브리핑의 키·주제를 처음 고른 issue 에서 적었다 — 성적순 재배치·사진 없는 1순위 빼기 뒤에는
+ *   그 이슈가 첫 화면이 아니거나 아예 없다(Kf_DTXTrmds KKR 채권 → '임광현'·국내정치, tILYRdDAKl8 인니 산불 → '김민석'·국내정치).
+ */
+export function leadStory(scenes, brief, issue) {
+  if (!brief) return issue;
+  const first = (scenes ?? []).find((s) => !s?.isOutro && Number.isInteger(s?.story));
+  return (first && brief[first.story]?.it) ?? issue;
+}

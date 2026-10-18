@@ -37,7 +37,7 @@ import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '.
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
-import { tagBriefScenes, briefMeta } from '../lib/brief-scenes.mjs';
+import { tagBriefScenes, briefMeta, leadStory } from '../lib/brief-scenes.mjs';
 import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -2290,10 +2290,22 @@ if (credits.length) {
 // 업로드가 쓸 메타. 훅을 제목 후보로 넘긴다.
 // 2026-10-18: 브리핑은 **화면에 남은 장면 순서대로** 그 뉴스만 넘긴다(lib/brief-scenes) — 빠진 뉴스가 제목·설명에 들어가지 않게.
 const metaNews = BRIEF ? briefMeta(scenes, headlines, bodies) : { headlines, bodies };
+// 2026-10-19: 키·주제도 **첫 화면 뉴스** 것(lib/brief-scenes leadStory). 종전엔 처음 고른 issue 것을 적어
+//   KKR 채권 편이 '임광현'·국내정치, 인니 산불 편이 '김민석'·국내정치로 남았다(분류기는 맞았다 — 다른 이슈의 값이었다).
+//   첫 화면 뉴스가 분류되지 않은 후보(상위 TOP 밖)면 그 헤드라인을 지금 분류한다. 못 하면 null(주제 모름) — 남의 주제를 쓰지 않는다.
+const LEAD = leadStory(scenes, BRIEF, issue);
+let LEAD_TOPIC = LEAD.__topic ?? null;
+if (!LEAD_TOPIC && LEAD !== issue) {
+  try {
+    const { classifyTopics } = await import('../lib/topic-classify.mjs');
+    LEAD_TOPIC = (await classifyTopics([metaNews.headlines[0] ?? (LEAD.headlines ?? [])[0] ?? LEAD.keyword]))?.[0] ?? null;
+  } catch (e) { log(`[편성] 첫 뉴스 주제 분류 실패 — 주제 없이 기록: ${String(e?.message ?? e).slice(0, 60)}`); }
+}
+if (LEAD !== issue) log(`[편성] 브리핑 대표 이슈 = 첫 화면 뉴스 "${LEAD.keyword}"(${LEAD_TOPIC ?? '주제 모름'}) — 처음 고른 "${issue.keyword}" 아님`);
 writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
-  headlines: metaNews.headlines, hooks: scenes.map((s) => s.hook), bodies: metaNews.bodies, keyword: issue.keyword,
+  headlines: metaNews.headlines, hooks: scenes.map((s) => s.hook), bodies: metaNews.bodies, keyword: LEAD.keyword,
   brief: !!BRIEF,      // 2026-10-18: 브리핑이면 발행이 첫 뉴스를 제목으로(video-meta keepFirst)
-  topic: issue.__topic ?? null,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다
+  topic: LEAD_TOPIC,   // 2026-09-24: 다음 편성의 조회수 성적을 이 주제로 잰다(2026-10-19: 첫 화면 뉴스의 주제)
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
   promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것

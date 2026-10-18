@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
-const { tagBriefScenes, briefMeta } = await import('./brief-scenes.mjs');
+const { tagBriefScenes, briefMeta, leadStory } = await import('./brief-scenes.mjs');
 const { orderForTitle, buildTitle, buildDescription } = await import('./video-meta.mjs');
 
 // [1] 번호는 거르기 전에 붙는다 — 2번이 깨져 빠져도 3번은 3번 뉴스다.
@@ -38,12 +38,24 @@ const t = buildTitle(two, true, 0, { maxLen: 38, keepFirst: true });
 (buildDescription(two, true, { keepFirst: true }).indexOf('추미애') < buildDescription(two, true, { keepFirst: true }).indexOf('LG'))
   ? ok('[3d] 설명란도 첫 뉴스부터') : bad('[3d]');
 
+// [5] 2026-10-19 실측: 브리핑의 주제·키가 **처음 고른 이슈** 것으로 기록됐다 — 첫 화면 뉴스가 아니다.
+//   Kf_DTXTrmds: 첫 뉴스 KKR 채권(분류기 → 증시·금리·환율)인데 '임광현'·국내정치로 기록.
+//   tILYRdDAKl8: 첫 뉴스 인니 산불(분류기 → 재난·재해)인데 '김민석'·국내정치로 기록. 분류기는 맞았고, 다른 이슈의 값을 옮겨 적었다.
+const kkrIssue = { keyword: '임광현', __topic: '국내정치' }, kkr = { keyword: 'kkr', __topic: '증시·금리·환율' };
+const fireIssue = { keyword: '김민석', __topic: '국내정치' }, fire = { keyword: '인니', __topic: '재난·재해' };
+const L1 = leadStory([{ story: 1 }, { story: 0 }, { isOutro: true }], [{ it: kkrIssue }, { it: kkr }], kkrIssue);
+(L1 === kkr) ? ok('[5a] KKR 채권 편 — 첫 화면 뉴스(kkr·증시)를 고른다') : bad(`[5a] ${JSON.stringify(L1)}`);
+const L2 = leadStory([{ isOutro: false, story: 2 }, { story: 3 }], [{ it: { keyword: 'x' } }, { it: { keyword: 'y' } }, { it: fire }, { it: fireIssue }], fireIssue);
+(L2 === fire) ? ok('[5b] 인니 산불 편 — 첫 화면 뉴스(인니·재난)를 고른다') : bad(`[5b] ${JSON.stringify(L2)}`);
+(leadStory([{ say: 'a' }], null, kkrIssue) === kkrIssue) ? ok('[5c] 한 사건 편은 그 이슈 그대로') : bad('[5c]');
 // [4] 연결
 const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
 const pub = readFileSync(new URL('../video-publish.mjs', import.meta.url), 'utf8');
 (!/BRIEF\[i\]/.test(ms) && !/BRIEF\[r\.k\]/.test(ms) && /tagBriefScenes\(/.test(ms))
   ? ok('[4a] make-shorts 가 장면 번호가 아니라 장면이 든 뉴스 번호로 찾는다') : bad('[4a]');
 (/briefMeta\(/.test(ms) && /brief: !!BRIEF/.test(ms)) ? ok('[4b] 메타가 화면에 남은 뉴스만 · brief 표시') : bad('[4b]');
+(/leadStory\(scenes, BRIEF, issue\)/.test(ms) && /keyword: LEAD\.keyword/.test(ms) && /topic: LEAD_TOPIC/.test(ms))
+  ? ok('[4d] 메타의 키·주제가 첫 화면 뉴스 것') : bad('[4d]');
 (/keepFirst: !!last\.brief/.test(pub)) ? ok('[4c] 발행이 브리핑이면 첫 뉴스를 제목으로') : bad('[4c]');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
