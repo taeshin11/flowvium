@@ -30,6 +30,16 @@ if (!ids.length) {
 }
 const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[related]', ...a);
 log(`대상 ${ids.length}편 → 관련 동영상 ${TARGET} ("${MATCH}…")`);
+// 2026-10-19: 처리 중인 영상은 '관련 동영상' 칸이 없다 — 업로드 직후 띄우면 30초 기다리다 실패했다(lib/yt-processing).
+//   API 로 처리 끝을 기다린 뒤 연다(최대 20분). 끝내 안 끝난 편은 실패가 아니라 '처리 중' 으로 적는다.
+{
+  const { waitProcessed } = await import('./lib/yt-processing.mjs');
+  const w = await waitProcessed(ids);
+  if (w.pending.length) log(`아직 처리 중이라 이번엔 못 건다(20분 기다림): ${w.pending.join(', ')}`);
+  if (w.dead.length) log(`처리 실패·거부된 영상이라 건너뛴다: ${w.dead.join(', ')}`);
+  ids = w.ready;
+  if (!ids.length) { log('걸 수 있는 편이 없다 — 끝'); process.exit(0); }
+}
 
 // 같은 프로필을 쓰는 게시물 올리기(youtube-post)와 겹치지 않게 — 크롬 프로필은 한 번에 하나만 열린다.
 const { acquireRunLock } = await import('./lib/run-lock.mjs');
