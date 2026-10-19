@@ -51,5 +51,20 @@ const { needsPin, MAX_PIN_TRIES } = await import('./pin-state.mjs');
 (/failedTries/.test(pc)) ? ok('[15] 달기 실패를 원장에 센다') : bad('[15]');
 const cr = src('cron-runner.mjs');
 (/label: 'pin-sweep',\s+script: 'scripts\/yt-pin-comment\.mjs --recent 336 --then-verify 600'/.test(cr)) ? ok('[16] 매일 최근 14일 빠진 편을 다시 거는 쓸기') : bad('[16] 다시 거는 정기 쓸기가 없다');
+// [17] 2026-10-19: 매일 쓸기와 손 실행(또는 발행 직후 달기·10분 뒤 재확인)이 겹치면 각자 처음 읽은 원장 전체를 덮어써
+//   서로의 기록을 지웠다(실측 18:00~18:21 두 실행이 같은 파일). 한 편씩, 쓰기 직전에 다시 읽고 합친다.
+{
+  const { writeEntry } = await import('./pin-state.mjs');
+  const { mkdtempSync, writeFileSync: wf, readFileSync: rf } = await import('node:fs');
+  const { join: pj } = await import('node:path'); const { tmpdir: td } = await import('node:os');
+  const f = pj(mkdtempSync(pj(td(), 'pin-state-')), 'yt-pinned.json');
+  wf(f, JSON.stringify({ a: { at: '1' } }));
+  writeEntry(f, 'b', () => ({ at: '2' }));                                   // 다른 실행
+  writeEntry(f, 'c', (prev) => ({ ...prev, verifiedAt: '3' }));             // 이 실행 — 처음 읽은 것엔 b 가 없었다
+  writeEntry(f, 'b', (prev) => ({ ...prev, visibleToViewers: true }));
+  const j = JSON.parse(rf(f, 'utf8'));
+  (j.a?.at === '1' && j.b?.at === '2' && j.b?.visibleToViewers === true && j.c?.verifiedAt === '3') ? ok('[17a] 겹친 실행이 서로의 기록을 지우지 않는다') : bad(`[17a] ${JSON.stringify(j)}`);
+  (!/writeFileSync\(STATE/.test(pc) && /writeEntry\(STATE/.test(pc)) ? ok('[17b] yt-pin-comment 의 원장 쓰기가 전부 writeEntry') : bad('[17b] 원장 전체를 덮어쓰는 곳이 남았다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

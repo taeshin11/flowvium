@@ -12,10 +12,10 @@
  */
 import { chromium } from 'playwright';
 import { resolve, join } from 'path';
-import { mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
 import { AD_LINE } from './lib/ad-line.mjs';
-import { needsPin } from './lib/pin-state.mjs';
+import { needsPin, writeEntry } from './lib/pin-state.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -90,7 +90,7 @@ try {
         if (/utm_/.test(txt) || !/aisviagent\.com/.test(txt)) throw new Error(`고친 뒤 글이 "${txt.replace(/\s+/g, ' ').slice(0, 60)}"`);
         log(`${t.id} ✏️ 짧은 주소로 고침`);
       }
-      if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = { at: new Date().toISOString(), kind: t.kind, skipped: 'already' }; writeFileSync(STATE, JSON.stringify(state, null, 1)); continue; }
+      if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = writeEntry(STATE, t.id, () => ({ at: new Date().toISOString(), kind: t.kind, skipped: 'already' })); continue; }
       if (!(await mine.count())) {
         await ph.scrollIntoViewIfNeeded(); await ph.click(); await page.waitForTimeout(1200);
         const box = page.locator('#contenteditable-root').first();
@@ -113,11 +113,10 @@ try {
       await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(5000);
       for (let k = 0; k < 6 && !(await pinnedVisible()); k++) { await page.mouse.wheel(0, 900); await page.waitForTimeout(1500); }
       if (!(await pinnedVisible())) throw new Error('다시 읽었더니 우리 댓글에 고정 표시가 없다');
-      done++; state[t.id] = { at: new Date().toISOString(), kind: t.kind }; log(`${t.id} ✅ 댓글·고정`);
-      writeFileSync(STATE, JSON.stringify(state, null, 1));
+      done++; state[t.id] = writeEntry(STATE, t.id, () => ({ at: new Date().toISOString(), kind: t.kind })); log(`${t.id} ✅ 댓글·고정`);
     } catch (e) {
       failed++; log(`${t.id} 실패: ${String(e?.message ?? e).slice(0, 100)}`);
-      if (!DRY) { const prev = state[t.id] ?? {}; state[t.id] = { ...prev, failedTries: (prev.failedTries ?? 0) + 1, lastError: String(e?.message ?? e).slice(0, 100), lastErrorAt: new Date().toISOString() }; writeFileSync(STATE, JSON.stringify(state, null, 1)); } await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
+      if (!DRY) state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, failedTries: (prev.failedTries ?? 0) + 1, lastError: String(e?.message ?? e).slice(0, 100), lastErrorAt: new Date().toISOString() })); await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
     }
     await page.waitForTimeout(6000);
   }
@@ -143,14 +142,13 @@ if ((AFTER > 0 || VERIFY_ONLY) && !DRY) {
       let r = null;
       for (let k = 0; k < 8 && !r; k++) { await vp.mouse.wheel(0, 900); await vp.waitForTimeout(1500); r = await seen(); }
       const okv = !!(r?.mine && r?.pinned);
-      state[t.id] = { ...(state[t.id] ?? {}), verifiedAt: new Date().toISOString(), visibleToViewers: !!r?.mine, pinnedToViewers: !!r?.pinned };
+      state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, verifiedAt: new Date().toISOString(), visibleToViewers: !!r?.mine, pinnedToViewers: !!r?.pinned }));
       if (!okv) bad++;
       log(`[verify] ${t.id} ${okv ? '✅ 시청자 화면에 우리 고정 댓글' : `❌ ${r ? '보이지만 고정 표시 없음' : '우리 댓글이 안 보인다(스팸 필터?)'}`}`);
       if (!okv) await vp.screenshot({ path: join(shots, `verify-fail-${t.id}.png`) }).catch(() => {});
     } catch (e) { bad++; log(`[verify] ${t.id} ❌ 확인 실패: ${String(e?.message ?? e).slice(0, 80)}`); }
   }
   await vb.close();
-  writeFileSync(STATE, JSON.stringify(state, null, 1));
   log(`[verify] 끝 — 문제 ${bad}편`);
   process.exit(bad ? 1 : 0);
 }
