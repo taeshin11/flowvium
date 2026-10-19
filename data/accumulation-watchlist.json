@@ -1,29 +1,28 @@
 {
-  "generatedAt": "2026-10-19T07:20:23.554Z",
+  "generatedAt": "2026-10-19T22:20:23.311Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 4,
   "strongCount": 1,
-  "watchCount": 2,
+  "watchCount": 3,
   "officialFewAccount": 1,
   "watchlist": [
     {
       "ticker": "060370.KQ",
       "name": "LS마린솔루션",
       "tier": "strong",
-      "score": 69,
+      "score": 59,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.1× 상승(지속 매집)",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-10-12)"
       ],
       "runup20dPct": -5.5,
       "runup5dPct": 3.7,
       "medDollarVolUsd": 2412800,
-      "smartAccum": true,
+      "smartAccum": false,
       "official": {
         "category": "caution",
         "reason": "소수지점/계좌",
@@ -38,13 +37,31 @@
       "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 추세 2.4× 상승(지속 매집)",
         "거래량 4.1× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
       "runup20dPct": -1.2,
       "runup5dPct": 7.3,
       "medDollarVolUsd": 45601,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "024120.KQ",
+      "name": "KB오토시스",
+      "tier": "watch",
+      "score": 37,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 2.3,
+      "runup5dPct": 3.5,
+      "medDollarVolUsd": 22459,
       "smartAccum": true,
       "official": null
     },
