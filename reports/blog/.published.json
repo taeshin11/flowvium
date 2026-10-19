@@ -588,5 +588,16 @@
   "url": "https://flowvium.blogspot.com/2026/10/nvidia-corporationnvda-10-19.html",
   "status": "LIVE",
   "at": "2026-10-18T22:15:05.295Z"
+ },
+ "2026-10-19-afternoon.md": {
+  "skipped": true,
+  "reason": "same-day:2026-10-19-morning.md",
+  "at": "2026-10-19T12:45:00.658Z"
+ },
+ "2026-10-19-shorts-1246.md": {
+  "id": "9181100645774404844",
+  "url": "https://flowvium.blogspot.com/2026/10/03p-5-10-18.html",
+  "status": "LIVE",
+  "at": "2026-10-19T12:45:03.296Z"
  }
 }
