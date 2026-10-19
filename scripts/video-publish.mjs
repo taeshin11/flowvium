@@ -233,8 +233,8 @@ if (USE_EXISTING) {
     try { LAYOUT_ENV = (await import('./lib/explore-slot.mjs')).layoutFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
     catch { /* 모르면 지금 모습 */ }
   }
-  // 2026-10-11 첫 문장 A/B(anchor|question). SHORTS_OPENER 가 주어지면 그 값.
-  let OPENER_ENV = process.env.SHORTS_OPENER ?? 'anchor';
+  // 2026-10-11 첫 문장 A/B(anchor|question) → 10/20 종료, 모든 편 question. SHORTS_OPENER 가 주어지면 그 값.
+  let OPENER_ENV = process.env.SHORTS_OPENER ?? 'question';
   if (isShorts && process.env.SHORTS_OPENER == null) {
     try { OPENER_ENV = (await import('./lib/explore-slot.mjs')).openerFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
     catch { /* 모르면 지금 모습 */ }

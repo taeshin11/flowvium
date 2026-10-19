@@ -59,8 +59,9 @@ export function slotLift(rows) {
 // ── 화면 배분 A/B(2026-10-03) — classic|zoom 반반. 근거는 shorts-layout-ab.test.mjs 머리말.
 export const layoutFor = (seed) => (((mix(Number(seed) + 7919) >>> 3) & 1) ? 'zoom' : 'classic');
 
-// ── 첫 문장 A/B(2026-10-11) — anchor(앵커 단정, 지금 그대로)|question(질문·시청자 이해관계). 근거는 shorts-opener-ab.test.mjs 머리말.
-export const openerFor = (seed) => (((mix(Number(seed) + 15485863) >>> 5) & 1) ? 'question' : 'anchor');
+// ── 첫 문장(2026-10-11 A/B anchor|question 반반 → 2026-10-20 question 기본 · anchor 대조군 1/4). 근거는 shorts-opener-ab.test.mjs [1].
+//   대조군을 남기는 이유: question 은 본 비율이 반대 방향(0.51→0.45, p=0.065) — 조회까지 오르는지 계속 잰다.
+export const openerFor = (seed) => ((mix(Number(seed) + 15485863) >>> 5) % 4 === 0 ? 'anchor' : 'question');
 
 // ── 첫 장면 움직임 A/B(2026-10-17) — push(4초 동안 12% 다가가기)|still(지금 그대로). 근거는 shorts-motion-ab.test.mjs 머리말.
 export const motionFor = (seed) => (((mix(Number(seed) + 104729) >>> 7) & 1) ? 'push' : 'still');

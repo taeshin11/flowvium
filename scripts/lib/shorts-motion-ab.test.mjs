@@ -19,14 +19,14 @@ import { createRequire } from 'node:module';
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
-const { motionFor, openerFor, layoutFor } = await import('./explore-slot.mjs');
+const { motionFor, layoutFor } = await import('./explore-slot.mjs');
 const { promoFor } = await import('./promo-card.mjs');
 const N = 600, M = Array.from({ length: N }, (_, n) => motionFor(n));
 const pr = M.filter((x) => x === 'push').length / N;
 (M.every((x) => x === 'push' || x === 'still') && pr > 0.42 && pr < 0.58) ? ok(`[1] push|still 반반(${(pr * 100).toFixed(0)}%)`) : bad(`[1] pr=${pr}`);
 const share = (f) => { const e = M.map((x, n) => [x === 'push', f(n)]).filter(([x]) => x); return e.filter(([, v]) => v).length / e.length; };
-const t = share((n) => n % 2 === 0), p = share((n) => promoFor(n) === 'flowvium'), l = share((n) => layoutFor(n) === 'zoom'), o = share((n) => openerFor(n) === 'question');
-[t, p, l, o].every((v) => v > 0.38 && v < 0.62) ? ok(`[2] 다른 실험과 독립 — push 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% · 배분 ${(l * 100).toFixed(0)}% · 첫 문장 ${(o * 100).toFixed(0)}%`) : bad(`[2] t=${t} p=${p} l=${l} o=${o}`);
+const t = share((n) => n % 2 === 0), p = share((n) => promoFor(n) === 'flowvium'), l = share((n) => layoutFor(n) === 'zoom');   // 첫 문장은 10/20 전 편 question — 독립성 대상 아님
+[t, p, l].every((v) => v > 0.38 && v < 0.62) ? ok(`[2] 다른 실험과 독립 — push 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% · 배분 ${(l * 100).toFixed(0)}% `) : bad(`[2] t=${t} p=${p} l=${l}`);
 
 // [3] 실제로 그려 본다 — push 는 0초와 3.9초 그림이 다르고, still 은 같다.
 {

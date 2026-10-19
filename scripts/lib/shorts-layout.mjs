@@ -31,8 +31,13 @@
 // 2026-10-03 A/B(lib/shorts-layout-ab.test 머리말): classic = 지금 그대로, zoom = 위 띠 440 · 사진 영역 820 · 4:3 까지 가운데 자르기.
 //   video-publish 가 SHORTS_LAYOUT 으로 고른다(반반). 블러 채우기는 쓰지 않는다(9/21 사장님).
 export const LAYOUT = process.env.SHORTS_LAYOUT === 'zoom' ? 'zoom' : 'classic';
-const HOOK_H = Number(process.env.SHORTS_HOOK_H || (LAYOUT === 'zoom' ? 440 : 560));
-const MEDIA_H = Number(process.env.SHORTS_MEDIA_H || (LAYOUT === 'zoom' ? 820 : 760));
+// 2026-10-20 자막 가림: 로그아웃 iPhone 13 실측 — 자막 둘째 줄(72~81% 지점)이 유튜브 채널명·구독 줄(~77%)에 가렸다.
+//   두 갈래 모두 위 띠·사진을 줄여 자막 두 줄 끝을 72% 안으로(classic 560/760 → 460/700, zoom 440/820 → 400/760).
+//   근거·검사는 shorts-layout-ab.test.mjs [5]. 갈래 차이(zoom 이 위 띠 작고 사진 60px 큼)는 그대로.
+const HOOK_H = Number(process.env.SHORTS_HOOK_H || (LAYOUT === 'zoom' ? 400 : 460));
+const MEDIA_H = Number(process.env.SHORTS_MEDIA_H || (LAYOUT === 'zoom' ? 760 : 700));
+/** 자막 글자 — 위 여백·크기·줄 높이. 오버레이 CSS 와 가림 검사가 같은 값을 쓴다. */
+const CAP_PAD_TOP = 24, CAP_FONT = 76, CAP_LINE = 1.28;
 
 export const SHORTS = {
   W: 1080,
@@ -43,7 +48,7 @@ export const SHORTS = {
   /** 소재 영역. 위·아래 띠 사이. */
   media: { top: HOOK_H, height: MEDIA_H },
   /** 아래 검은 띠(캡션). 남는 만큼. */
-  caption: { top: HOOK_H + MEDIA_H, height: 1920 - HOOK_H - MEDIA_H },
+  caption: { top: HOOK_H + MEDIA_H, height: 1920 - HOOK_H - MEDIA_H, padTop: CAP_PAD_TOP, lineH: CAP_FONT * CAP_LINE },
 };
 
 /** 훅 문구를 두 줄로 나눈다. 뒷줄이 강조(노랑)라 **뒤쪽이 결정적인 말**이어야 한다. */
@@ -160,12 +165,12 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;positi
 .top{position:absolute;left:0;right:0;top:0;height:${g.hook.height}px;background:#000;
   display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 44px;text-align:center}
 .bot{position:absolute;left:0;right:0;top:${g.caption.top}px;height:${g.caption.height}px;background:#000;
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:52px 44px 0;text-align:center}
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:${g.caption.padTop}px 44px 0;text-align:center}
 /* 훅: 1줄 흰색, 2줄 노랑. 참고 화면과 같은 위계 — 눈이 노란 줄에 먼저 간다. */
 .h1{font-size:104px;font-weight:900;color:#fff;line-height:1.16;letter-spacing:-.02em}
 .h2{font-size:112px;font-weight:900;color:#ffd400;line-height:1.16;letter-spacing:-.02em;margin-top:6px}
 /* 캡션: 형광 연두. 검은 띠 위에서 가장 잘 읽히는 색이다. */
-.cap{font-size:76px;font-weight:900;color:#b6ff3b;line-height:1.28;letter-spacing:-.01em;
+.cap{font-size:${CAP_FONT}px;font-weight:900;color:#b6ff3b;line-height:${CAP_LINE};letter-spacing:-.01em;
   text-shadow:0 3px 0 rgba(0,0,0,.55);
   /* 자막 라이브러리가 접어 준 줄바꿈을 그대로 지킨다. 종전엔 호출부가 \n 을 공백으로 바꿔
      브라우저가 다시 흘렸고, 그래서 "…예 / 고를" 처럼 낱말 한가운데서 잘렸다(첫 렌더 실측). */

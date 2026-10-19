@@ -348,11 +348,11 @@ const EXPLORE = process.env.SHORTS_EXPLORE === '1';
 const TREND = process.env.SHORTS_TREND === '1';
 // 2026-10-11 첫 문장 A/B(lib/explore-slot openerFor) — question 칸은 1번 장면 첫 문장을 질문·시청자 이해관계로 연다.
 //   근거: shorts-opener-ab.test.mjs 머리말(196편 전부 초기 풀에서 멈춤 · 상위 채널은 호명·인물·의견으로 연다 · ChatGPT·agy 1순위).
-const OPENER = process.env.SHORTS_OPENER === 'question' ? 'question' : 'anchor';
+const OPENER = process.env.SHORTS_OPENER === 'anchor' ? 'anchor' : 'question';   // 10/20 A/B 종료 — 기본 question
 // 2026-10-17 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor, shorts-motion-ab.test 머리말.
 const MOTION = process.env.SHORTS_MOTION === 'push' ? 'push' : 'still';
 const OPENER_RULE = OPENER === 'question' ? `
-- **[이번 편 실험] 1번 장면 say 의 첫 문장만은 앵커 단정 대신 질문 또는 시청자 이해관계로 연다.** 둘째 문장부터는 위 앵커 규칙 그대로.
+- **1번 장면 say 의 첫 문장만은 앵커 단정 대신 질문 또는 시청자 이해관계로 연다.** 둘째 문장부터는 위 앵커 규칙 그대로.
   · 좋음: "현대차에 무슨 일이 생긴 걸까요?" / "이번 누리호에는 왜 위성이 15기나 실렸을까요?" / "삼성전자 주식 가진 분이라면 이 소식이 중요합니다."
   · 첫 문장 다음에 바로 답의 핵심 사실을 단정형으로 말한다(질문만 던지고 끌지 마라).
   · ⚠ 기사에 있는 사실만 쓴다. 기사에 없는 손해·수익·반응을 암시하지 마라. "충격", "경악" 같은 낚시 금지.

@@ -21,8 +21,16 @@ const probe = (layout) => {
   return JSON.parse(r.stdout || '{}');
 };
 const c = probe('classic'), z = probe('zoom');
-(c.layout === 'classic' && c.g?.hook?.height === 560 && c.g?.media?.height === 760 && !/ih\*1\.3333/.test(c.f)) ? ok('[1] classic = 지금 그대로(560/760, 자르기 없음)') : bad(`[1] ${JSON.stringify(c).slice(0, 200)}`);
-(z.layout === 'zoom' && z.g?.hook?.height === 440 && z.g?.media?.height === 820 && /crop=/.test(z.f) && /0\.7/.test(z.f)) ? ok('[2] zoom = 440/820 + 4:3 까지 가운데 자르기(폭 70% 이상)') : bad(`[2] ${JSON.stringify(z).slice(0, 300)}`);
+// 2026-10-20 두 갈래 모두 자막을 위로(아래 [5]) — classic 560/760 → 460/700, zoom 440/820 → 400/760. 갈래 차이(zoom 이 위 띠 작고 사진 큼)는 그대로.
+(c.layout === 'classic' && c.g?.hook?.height === 460 && c.g?.media?.height === 700 && !/ih\*1\.3333/.test(c.f)) ? ok('[1] classic = 460/700, 자르기 없음') : bad(`[1] ${JSON.stringify(c).slice(0, 200)}`);
+(z.layout === 'zoom' && z.g?.hook?.height === 400 && z.g?.media?.height === 760 && /crop=/.test(z.f) && /0\.7/.test(z.f)) ? ok('[2] zoom = 400/760 + 4:3 까지 가운데 자르기(폭 70% 이상)') : bad(`[2] ${JSON.stringify(z).slice(0, 300)}`);
+// [5] 자막이 유튜브 화면 요소에 가리지 않는다 — 2026-10-20 08:5x 로그아웃 iPhone 13 실측(t5liqNAvbMA 0.5·2·6초):
+//   자막 둘째 줄(원본 72~81% 지점)이 채널명·구독 버튼 줄(약 77% 지점)에 가렸다. agy·ChatGPT 둘 다 올리자(≤75%, 68~70%).
+//   → 자막 두 줄(최대 줄 수, lib/subtitle wrapLines)의 아래 끝을 화면 높이 72% 안에.
+for (const [name, x] of [['classic', c], ['zoom', z]]) {
+  const cap = x.g?.caption, bottom = cap ? cap.top + cap.padTop + 2 * cap.lineH : Infinity;
+  (bottom <= 0.72 * 1920) ? ok(`[5] ${name} 자막 두 줄 끝 ${Math.round(bottom)}px(${(bottom / 19.2).toFixed(1)}%) ≤ 72%`) : bad(`[5] ${name} 자막 끝 ${Math.round(bottom)}px(${(bottom / 19.2).toFixed(1)}%) — 유튜브 채널·구독 줄(~77%)에 가린다`);
+}
 const { layoutFor } = await import('./explore-slot.mjs');
 const { promoFor } = await import('./promo-card.mjs');
 // 2026-10-13 구독 권유 A/B 종료(전 편에 붙음, lib/sub-cta) — 독립성은 남은 실험(제목·광고…)끼리만 본다.
