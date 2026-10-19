@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-18T22:20:23.275Z",
+  "generatedAt": "2026-10-19T07:20:23.554Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
+  "count": 3,
   "strongCount": 1,
-  "watchCount": 3,
+  "watchCount": 2,
   "officialFewAccount": 1,
   "watchlist": [
     {
@@ -14,15 +14,15 @@
       "score": 69,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 2.1× 상승(지속 매집)",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-10-12)"
       ],
-      "runup20dPct": -4.3,
-      "runup5dPct": -2.8,
-      "medDollarVolUsd": 2393303,
+      "runup20dPct": -5.5,
+      "runup5dPct": 3.7,
+      "medDollarVolUsd": 2412800,
       "smartAccum": true,
       "official": {
         "category": "caution",
@@ -32,19 +32,19 @@
       }
     },
     {
-      "ticker": "021040.KQ",
-      "name": "대호특수강",
+      "ticker": "130740.KQ",
+      "name": "티피씨글로벌",
       "tier": "watch",
       "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 4.2× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)",
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 4.1× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 2,
-      "runup5dPct": 2.4,
-      "medDollarVolUsd": 12635,
+      "runup20dPct": -1.2,
+      "runup5dPct": 7.3,
+      "medDollarVolUsd": 45601,
       "smartAccum": true,
       "official": null
     },
@@ -52,33 +52,16 @@
       "ticker": "038500.KQ",
       "name": "삼표시멘트",
       "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 25.2× 상승(지속 매집)",
-        "거래량 8.2× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -11.6,
-      "runup5dPct": -13.7,
-      "medDollarVolUsd": 2037311,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "130740.KQ",
-      "name": "티피씨글로벌",
-      "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 3.8× 급증(가격 평탄)",
+        "거래량 추세 26.1× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -0.5,
-      "runup5dPct": 8.3,
-      "medDollarVolUsd": 45601,
+      "runup20dPct": -8.5,
+      "runup5dPct": -16.2,
+      "medDollarVolUsd": 2037311,
       "smartAccum": true,
       "official": null
     }
