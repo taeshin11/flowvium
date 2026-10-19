@@ -66,5 +66,10 @@ const cr = src('cron-runner.mjs');
   (j.a?.at === '1' && j.b?.at === '2' && j.b?.visibleToViewers === true && j.c?.verifiedAt === '3') ? ok('[17a] 겹친 실행이 서로의 기록을 지우지 않는다') : bad(`[17a] ${JSON.stringify(j)}`);
   (!/writeFileSync\(STATE/.test(pc) && /writeEntry\(STATE/.test(pc)) ? ok('[17b] yt-pin-comment 의 원장 쓰기가 전부 writeEntry') : bad('[17b] 원장 전체를 덮어쓰는 곳이 남았다');
 }
+// [18] 접힌 댓글에서 링크가 보여야 한다 — 10/19 사장님(차꾸 22편: 링크가 7번째 줄이라 '더보기' 전엔 안 보임).
+//   폰 폭 접힌 보기는 첫 ~3줄. 우리 댓글은 한 줄이고 링크가 그 안에 있어야 한다(한 줄 ~70자 넘으면 접힘 줄을 더 먹는다).
+//   10/19 22:5x 로그아웃 iPhone 13 폭 실측: 이 한 줄이 2줄로 그려지고 링크는 1번째 줄.
+(!/\n/.test(AD_LINE) && [...AD_LINE].length <= 70 && /aisviagent\.com/.test(AD_LINE) && /commentFor = \(\) => AD_LINE/.test(pc))
+  ? ok(`[18] 고정 댓글은 한 줄(${[...AD_LINE].length}자)이고 링크가 그 안 — 접힌 보기에서 보인다`) : bad(`[18] 댓글이 길거나 링크가 밖: ${JSON.stringify(AD_LINE)}`);
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
