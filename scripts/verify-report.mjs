@@ -7,7 +7,7 @@ import { emptyCards } from './lib/report-cards.mjs';
 import fs from 'node:fs';
 import { MAGNITUDE_MIN_PCT } from './lib/narrative-fix.mjs';
 import { latinGarbleFragments } from './lib/latin-garble.mjs';   // 임계값 단일 출처 — 생성(softenMagnitude)과 갈라지면 안 된다
-import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex, contradictingSentence, measuredSubjectDirs } from './lib/flow-contradiction.mjs';
+import { isContradiction as isFlowContradiction, contradictionRegex as flowContradictionRegex, contradictingSentence, measuredSubjectDirs, measuredDirection, measuredClaimText } from './lib/flow-contradiction.mjs';
 import { isMovementClaim } from './lib/flow-move-claim.mjs';
 import { detectIndexLevelMismatch } from './lib/index-level-check.mjs';
 
@@ -963,7 +963,9 @@ export async function verifyReport(file, { silent = false } = {}) {
     //   붙은 경우(순매수 둔화)는 정상으로 제외.
     // 2026-08-20: 패턴을 여기 적어두면 교정기(narrative-fix)와 조용히 갈라진다 — 실제로 갈라져서
     //   "외국인 자금 유입을 가속"을 검출기는 잡고 교정기는 못 고쳐 발간만 막혔다. 단일 소스를 쓴다.
-    const measuredDir = /순매도|유출|이탈/.test(krThesis) ? 'sell' : (/순매수|유입/.test(krThesis) ? 'buy' : null);
+    // 2026-10-20: 실측 방향은 교정기와 같은 함수로(lib/flow-contradiction measuredDirection) — 종전 정규식은
+    //   thesis 어딘가의 '유출'(EWY 가격 하락)로 sell 을 정해 맞는 순매수 서술을 막았고 교정기는 못 고쳤다.
+    const measuredDir = measuredDirection(measuredClaimText(r));
     const krSell = measuredDir === 'sell';
     // 2026-09-24: 주체별 실측을 넘긴다. 외국인 순매도·기관 순매수(실측)인 날에
     //   "기관의 풍부한 매수세" 를 모순으로 잡았다(noon 캐치업 오탐 — 서술이 맞았다).

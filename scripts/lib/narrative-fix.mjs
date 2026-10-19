@@ -1,4 +1,4 @@
-import { contradictionRegex as flowContradictionRegex, sentenceContradicts, isContradiction as flowIsContradiction, measuredClaimText, measuredSubjectDirs } from './flow-contradiction.mjs';
+import { contradictionRegex as flowContradictionRegex, sentenceContradicts, isContradiction as flowIsContradiction, measuredClaimText, measuredSubjectDirs, measuredDirection } from './flow-contradiction.mjs';
 // scripts/lib/narrative-fix.mjs
 // 내러티브 결정적 corrector (단일 source of truth — 생성기 + patch-narrative 공용).
 //   "제일 정확한 방법"(2026-06-16 사용자): 지수/종목 등락%를 *실제 일간등락과 대조*해 환각만 제거하고
@@ -308,8 +308,10 @@ export function fixKrFlowContradiction(report, krClaimText) {
   //   모순 문장이 그대로 나갔다. 검출과 교정은 판단뿐 아니라 **입력도 같아야** 한다.
   const claim = measuredClaimText(report, krClaimText);
   if (!claim) return { nFix: 0, log: [] };
-  const measuredBuy = /순매수/.test(claim);
-  const measuredSell = !measuredBuy && /순매도/.test(claim);
+  // 2026-10-20: 방향은 검출기와 같은 함수로 — 종전 /순매수/ 는 기관 절의 순매수도 외국인 방향으로 읽었고 '외인 … 유입' 은 몰랐다.
+  const mDir = measuredDirection(claim);
+  const measuredBuy = mDir === 'buy';
+  const measuredSell = mDir === 'sell';
   if (!measuredBuy && !measuredSell) return { nFix: 0, log: [] };
   // verify-report (b3++) 와 동일 모순 패턴 — 실측 반대방향 + 지속성 서술일 때만(정당한 과거서술 보존)
   // 2026-08-20: 종전 패턴은 (매수세|순매수)+(지속|확대|이어) 형태만 봐서 '유입' 계열을 놓쳤다.

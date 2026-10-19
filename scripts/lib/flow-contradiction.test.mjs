@@ -163,6 +163,22 @@ F.measuredDirection('KR 주요 종목 외국인 순매수 1조원, 기관 순매
     : bad(`놓침: ${wrongBad.map((x) => x.slice(0, 34)).join(' / ')}`);
 }
 
+// [20] 실측 방향은 '외국인/외인' 주체에 붙은 말로만 — 2026-10-20 morning 오탐(push 차단).
+//   thesis "외인 401억 유입 및 …, EWY 1주 -15.1% 유출과 …" — 실측 외인 +401.8억(순매수)인데 검출기가
+//   문자열 어딘가의 '유출'(EWY 가격 하락)을 읽어 sell 로 보고, 맞는 서술 "외국인 402억원 순매수"를 역전이라 막았다.
+//   교정기는 순매수/순매도만 봐서 방향을 몰라 못 고쳤다 — 검출과 교정의 입력·판단이 갈라졌다.
+{
+  const { measuredDirection: md } = F;
+  const th = '외인 401억 유입 및 원화 코스피 반등(+1.8%) 기준을 적용하나, EWY 1주 -15.1% 유출과 기술 심리(47)로 중립입니다.';
+  const cases = [[th, 'buy'], ['외인 +401.8억 유입', 'buy'], ['외국인 자금 이탈이 이어졌다', 'sell'], ['외국인 3천억 순유출', 'sell'],
+    ['EWY 1주 -15.1% 유출', null], ['외국인 순매도 5441억원, 기관 순매수 6343억원', 'sell']];
+  for (const [t, want] of cases) (md(t) === want) ? ok(`[20] measuredDirection("${t.slice(0, 24)}…") = ${want}`) : bad(`[20] "${t.slice(0, 40)}" → ${md(t)} (기대 ${want})`);
+  const vr = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../verify-report.mjs'), 'utf8');
+  const nf = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), './narrative-fix.mjs'), 'utf8');
+  (/measuredDirection\(measuredClaimText\(r\)\)/.test(vr) && !/\/순매도\|유출\|이탈\/\.test\(krThesis\)/.test(vr)) ? ok('[20b] 검출기가 같은 함수로 실측 방향을 읽는다') : bad('[20b] verify-report 가 아직 자기 정규식으로 방향을 읽는다');
+  (/measuredDirection\(claim\)/.test(nf) && !/const measuredBuy = \/순매수\/\.test\(claim\)/.test(nf)) ? ok('[20c] 교정기도 같은 함수') : bad('[20c] narrative-fix 가 아직 /순매수/ 로 방향을 읽는다');
+}
+
 console.log(fail ? `\n결과: 실패 ${fail}건` : '\n결과: 전부 통과');
 process.exit(fail ? 1 : 0);
 
