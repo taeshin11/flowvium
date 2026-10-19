@@ -15,6 +15,7 @@ import { resolve, join } from 'path';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
 import { AD_LINE } from './lib/ad-line.mjs';
+import { needsPin } from './lib/pin-state.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -24,6 +25,8 @@ const FIX = argv.includes('--fix-long-url');   // 달지 않고 시청자 화면
 const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[pin]', ...a);
 const STATE = resolve(ROOT, 'logs/yt-pinned.json');
 const state = (() => { try { return JSON.parse(readFileSync(STATE, 'utf8')); } catch { return {}; } })();
+// 실패 사진 폴더 — 달기와 재확인 둘 다 쓴다(10/16: 달기 블록 안에만 있어 재확인 단독 실행이 ReferenceError 로 죽었다).
+const shots = join(ROOT, 'logs/pin-shots'); mkdirSync(shots, { recursive: true });
 
 // 2026-10-08 사장님 "권장대로": 긴 주소(utm 붙은)는 링크 댓글 스팸 필터에 걸리기 쉽다 — 롱폼도 도메인만 짧게.
 //   (유입은 aisviagent.com 쪽 리퍼러/직접 방문으로 본다. 쇼츠 댓글 링크는 원래 안 눌린다.)
@@ -44,7 +47,7 @@ else {
     try { const r = JSON.parse(readFileSync(resolve(ROOT, `logs/roundup-${day}.json`), 'utf8')); if (r.privacy === 'public' && r.id) targets.push({ id: r.id, kind: 'long' }); } catch { /* 그날 총정리 없음 */ }
   }
 }
-targets = targets.filter((t) => DRY || VERIFY_ONLY || FIX || !state[t.id]);
+targets = targets.filter((t) => DRY || VERIFY_ONLY || FIX || needsPin(state[t.id]));   // lib/pin-state — 재확인 기록만 있는 편도 다시
 log(`대상 ${targets.length}편${DRY ? ' (dry — 글만 채우고 안 올림)' : ''}`);
 if (!targets.length) process.exit(0);
 
@@ -53,7 +56,6 @@ if (!VERIFY_ONLY) {
 const { YT_PROFILE_LOCK } = await import('./lib/site-tour-video.mjs');
 const plock = await (await import('./lib/run-lock.mjs')).acquireRunLock(resolve(ROOT, YT_PROFILE_LOCK), { waitMs: 20 * 60_000, pollMs: 10_000, label: 'yt-pin-comment' });
 if (!plock.ok) { log('유튜브 프로필을 다른 작업이 쓰고 있다 — 다음에 한다'); process.exit(0); }
-const shots = join(ROOT, 'logs/pin-shots'); mkdirSync(shots, { recursive: true });
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
   channel: 'chrome', headless: true, viewport: { width: 1280, height: 1400 }, args: ['--disable-blink-features=AutomationControlled'] });
 const page = ctx.pages()[0] ?? await ctx.newPage();
@@ -114,7 +116,8 @@ try {
       done++; state[t.id] = { at: new Date().toISOString(), kind: t.kind }; log(`${t.id} ✅ 댓글·고정`);
       writeFileSync(STATE, JSON.stringify(state, null, 1));
     } catch (e) {
-      failed++; log(`${t.id} 실패: ${String(e?.message ?? e).slice(0, 100)}`); await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
+      failed++; log(`${t.id} 실패: ${String(e?.message ?? e).slice(0, 100)}`);
+      if (!DRY) { const prev = state[t.id] ?? {}; state[t.id] = { ...prev, failedTries: (prev.failedTries ?? 0) + 1, lastError: String(e?.message ?? e).slice(0, 100), lastErrorAt: new Date().toISOString() }; writeFileSync(STATE, JSON.stringify(state, null, 1)); } await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
     }
     await page.waitForTimeout(6000);
   }

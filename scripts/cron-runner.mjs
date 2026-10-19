@@ -660,6 +660,10 @@ const MAINT_JOBS = [
   // 2026-09-27 사장님 "구독자 올릴수있는건 다 해봐" — 매일 게시물(이미지) 한 편: 최근 24시간 조회 최고 쇼츠.
   //   이미지 게시물은 쇼츠 피드에서 비구독자에게도 추천된다(공식). API 가 없어 브라우저(전용 프로필)로.
   //   19:10 KST(10:10 UTC) — 쇼츠 회차(18:20·21:45)와 엇갈림. 하루 한 번(logs/yt-posts.json).
+  // 2026-10-19 Mac mini2(사장님) 점검: 고정 댓글 없는 편이 있었다(AvHbcWuXvJQ — 10/16 달기 시간초과, 다시 거는 길 없음).
+  //   매일 13:00 KST(04:00 UTC — 정오 보고서 뒤·14:10 첫 쇼츠 전) 최근 14일 발행분 중 lib/pin-state needsPin 인 편만 다시 달고 10분 뒤 시청자 화면 재확인.
+  //   같은 편 3번 실패하면 멈춘다(사람에게). 프로필 잠금을 기다린다(관련 동영상·게시물과 같은 프로필).
+  { label: 'pin-sweep',            script: 'scripts/yt-pin-comment.mjs --recent 336 --then-verify 600', timeoutMs: 2400000, commitPaths: [],                    schedules: ['0 4 * * *'],                  maxAgeH: 30 },
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
   //   2026-09-28: :30 → :50. 보고서 트리거(05:30·10:30·14:30·22:30)와 같은 분이라 '보고서 중이면 쉰다' 검사를 먼저 통과해
   //   보고서와 나란히 렌더했다(9/28 22:30 실패). :50 이면 :30 보고서는 이미 돌고 있어 쉰다(lib/spare-schedule.test).

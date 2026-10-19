@@ -38,5 +38,18 @@ const koCopy = /\n  ko: \{[\s\S]*?\n  \},/.exec(oc)?.[0] ?? '';
 (/CARD && T\.cardLines \? T\.cardLines\.map/.test(oc) && /CARD && T\.cardLines \? '' : /.test(oc)) ? ok('[10] 카드에는 세 줄 말고 다른 문구(초록 띠·구독 줄·다운로드)가 없다') : bad('[10] 카드에 다른 문구가 남는다');
 (/cardSay: '에이스비 에이전트 닷컴, 가입 없이 무료 체험'/.test(koCopy) && /CARD \? \(process\.env\.AISVI_SITE_SPOKEN \|\| T\.cardSay/.test(oc) && !/cardSay[^\n]*구독/.test(koCopy))
   ? ok('[11] 카드 대사 = 공식 카드와 같은 말(구독 줄 없음)') : bad('[11] 카드 대사');
+// 2026-10-19 Mac mini2(사장님) 점검: AvHbcWuXvJQ 가 고정 댓글 없이 사흘. 10/16 달기가 시간초과로 실패 →
+//   10분 뒤 재확인이 state 에 {verifiedAt, visibleToViewers:false} 를 적었고, 달기 쪽은 'state 에 있으면 끝난 편' 으로 봐
+//   다시는 안 골랐다. 재확인의 실패 사진도 shots 가 달기 블록 안에만 있어 ReferenceError 로 죽었다. 다시 거는 정기 쓸기도 없었다.
+const { needsPin, MAX_PIN_TRIES } = await import('./pin-state.mjs');
+(needsPin(undefined) && needsPin({ verifiedAt: 'x', visibleToViewers: false, pinnedToViewers: false })) ? ok('[12a] 재확인 기록만 있는 편(단 적 없음)은 다시 단다') : bad('[12a]');
+(!needsPin({ at: 'x', kind: 'short', verifiedAt: 'y', visibleToViewers: true, pinnedToViewers: true }) && !needsPin({ at: 'x', kind: 'short' })) ? ok('[12b] 달고 고정한 편은 건너뛴다') : bad('[12b]');
+(needsPin({ at: 'x', visibleToViewers: false, pinnedToViewers: false }) && needsPin({ at: 'x', visibleToViewers: true, pinnedToViewers: false })) ? ok('[12c] 시청자 화면에서 안 보이거나 고정 표시 없으면 다시') : bad('[12c]');
+(!needsPin({ verifiedAt: 'x', failedTries: MAX_PIN_TRIES })) ? ok(`[12d] ${MAX_PIN_TRIES}번 실패하면 멈추고 사람에게 남긴다(매일 같은 실패를 되풀이하지 않는다)`) : bad('[12d]');
+(/needsPin\(state\[t\.id\]\)/.test(pc) && !/!state\[t\.id\]\)/.test(pc)) ? ok('[13] 달기 대상 고르기가 needsPin 으로') : bad('[13] 아직 "state 에 있으면 끝" 으로 고른다');
+(/^const shots = /m.test(pc)) ? ok('[14] 실패 사진 폴더가 맨 위에 — 재확인 단독(--verify-only·--then-verify)에서도 쓸 수 있다') : bad('[14] shots 가 달기 블록 안에만 있다');
+(/failedTries/.test(pc)) ? ok('[15] 달기 실패를 원장에 센다') : bad('[15]');
+const cr = src('cron-runner.mjs');
+(/label: 'pin-sweep',\s+script: 'scripts\/yt-pin-comment\.mjs --recent 336 --then-verify 600'/.test(cr)) ? ok('[16] 매일 최근 14일 빠진 편을 다시 거는 쓸기') : bad('[16] 다시 거는 정기 쓸기가 없다');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
