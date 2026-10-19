@@ -1,48 +1,48 @@
 {
- "at": "2026-10-19T07:20:00.070Z",
- "recorded": 8,
- "scored": 8,
+ "at": "2026-10-19T22:20:00.103Z",
+ "recorded": 10,
+ "scored": 10,
  "coverage": {
   "kr": {
-   "sessions": 2,
-   "recorded": 2,
+   "sessions": 1,
+   "recorded": 1,
    "missing": []
   },
   "us": {
-   "sessions": 2,
-   "recorded": 2,
+   "sessions": 3,
+   "recorded": 3,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 4,
+   "n": 6,
    "report": {
-    "calls": 2,
+    "calls": 4,
     "hits": 0,
     "abstain": 2,
     "hitRate": 0
    },
    "base": {
-    "brier": 0.25246965193064325,
+    "brier": 0.23609445668795992,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 4,
-      "meanP": 0.4508623087088991,
-      "observed": 0.5
+      "n": 6,
+      "meanP": 0.45088199404408885,
+      "observed": 0.3333333333333333
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.25246965193064325,
+    "brier": 0.23609445668795992,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 4,
-      "meanP": 0.4508623087088991,
-      "observed": 0.5
+      "n": 6,
+      "meanP": 0.45088199404408885,
+      "observed": 0.3333333333333333
      }
     ],
     "skill": 0
@@ -209,6 +209,39 @@
        "bin": "0.4-0.5",
        "n": 2,
        "meanP": 0.45291163266048495,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    }
+   },
+   "us": {
+    "n": 2,
+    "report": {
+     "calls": 2,
+     "hits": 0,
+     "abstain": 0,
+     "hitRate": 0
+    },
+    "base": {
+     "brier": 0.20334406620259315,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.4509213647144682,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    },
+    "clim": {
+     "brier": 0.20334406620259315,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.4509213647144682,
        "observed": 0
       }
      ],
