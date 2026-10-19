@@ -26,6 +26,7 @@ import { readLog } from './lib/edition-log.mjs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
 import { loadavg, cpus, tmpdir } from 'node:os';
 import { waitForLoad } from './lib/load-wait.mjs';
+import { parseTrial, trialPhase, TRIAL_ENV, recordTrialVideo } from './lib/slot-trial.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
@@ -60,6 +61,18 @@ const run = (args, label) => {
   }
   if (r.status !== 0) throw new Error(`${label} 실패 (exit ${r.status}) — 위 출력을 볼 것`);
 };
+
+// 2026-10-19 시험 칸(lib/slot-trial) — `--trial YYYY-MM-DD:YYYY-MM-DD`(한국 날짜). 기간 밖이면 아무것도 안 하고,
+//   안이면 **그날 기사 풀의 새 이슈만**·예비 없이 낸다(Mac mini2 사장님 결정: 서로 다른 이슈가 충분한 날만). 낼 것이 없으면 거른다.
+const TRIAL_ARG = arg('--trial', null);
+const TRIAL = TRIAL_ARG ? parseTrial(TRIAL_ARG) : null;
+if (TRIAL_ARG) {
+  if (!TRIAL) { console.error(`❌ --trial 기간이 깨졌다: ${TRIAL_ARG}`); process.exit(1); }
+  const ph = trialPhase(Date.now(), TRIAL);
+  if (ph !== 'active') { log(`건너뜀 — 시험 칸 ${TRIAL_ARG} ${ph === 'before' ? '시작 전' : '끝남'}(고장 아님)`); process.exit(0); }
+  Object.assign(process.env, TRIAL_ENV);
+  log(`시험 칸 ${TRIAL_ARG} — 그날 기사 풀의 새 이슈만, 예비 안 씀`);
+}
 
 let LOAD_SPARE_ONLY = null;   // 부하가 끝내 높으면 사유 문자열 — 렌더 없이 예비만 올린다(아래 1. 렌더)
 // ── 0. 기계가 감당할 수 있는가 ──────────────────────────────────────────────
@@ -511,6 +524,10 @@ if (isShorts && last.keyword) {
     } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
     markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null, layout: last.layout ?? null, opener: last.opener ?? null, motion: last.motion ?? null });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
+    if (TRIAL && videoId) {
+      try { recordTrialVideo(resolve(ROOT, 'logs/slot-trial.json'), { trial: TRIAL_ARG, videoId }); log(`시험 칸 원장: ${videoId} → logs/slot-trial.json`); }
+      catch (e) { log(`⚠ 시험 칸 원장에 못 적었다(발행은 됨) — 판정에서 이 편이 빠진다: ${String(e?.message ?? e).slice(0, 80)}`); }
+    }
     // 2026-09-27 사장님 "구독자 올릴수있는건 다 해봐" — 주제 재생목록에 넣는다(채널 페이지 정리). 실패해도 발행은 끝났다.
     if (videoId && last.topic) {
       try {

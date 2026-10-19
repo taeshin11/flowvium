@@ -188,7 +188,8 @@ if (already.size) {
 //   유튜브가 노출까지 누른다. 되돌릴 수 없는 쪽을 피한다.
 // 오늘 것이 다 떨어졌으면 **지난 며칠의 국뽕**에서 꺼낸다(사용자 지시).
 //   국뽕만 꺼낸다 — 사고·시세·정치 공방은 하루 지나면 낡지만 수출·수주·1위는 덜 낡는다.
-if (!fresh.length && wideRows.length) {
+// 2026-10-19 시험 칸(lib/slot-trial, SHORTS_TODAY_ONLY=1)은 여기로 가지 않는다 — '서로 다른 이슈가 충분한 날만' 낸다.
+if (!fresh.length && wideRows.length && process.env.SHORTS_TODAY_ONLY !== '1') {
   // 넓은 풀은 기사가 많아(실측 3,684건) 24개로 뭉치면 덩어리가 커져 응집도에서 다 떨어진다.
   //   잘게 나눌수록 쓸 만한 게 늘어난다 — 실측: 40개→4건, 120개→26건, 250개→66건.
   const wideIssues = topDistinctIssues(wideRows, Number(process.env.SHORTS_WIDE_POOL || 250))

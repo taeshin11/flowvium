@@ -26,7 +26,11 @@ import { ROOT } from './lib/project-root.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
-const LABEL = 'com.spinai.flowvium-video';
+// 2026-10-19 `--trial YYYY-MM-DD:YYYY-MM-DD --times 22:45` → 따로 된 시험 칸(lib/slot-trial). 정규 plist 와 이름이 달라
+//   shorts-today-check·video-backfill 의 편성표(정규 plist)에 섞이지 않고, 기간이 지나면 불려도 아무것도 안 한다.
+const TRIAL = arg('--trial', null);
+if (TRIAL && !argv.includes('--times') && !argv.includes('--uninstall')) { console.error('❌ --trial 에는 --times 가 있어야 한다(예: --times 22:45)'); process.exit(1); }
+const LABEL = TRIAL ? 'com.spinai.flowvium-video-trial' : 'com.spinai.flowvium-video';
 const PLIST = join(homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
 const LOGDIR = join(homedir(), 'flowvium_runtime');
 const LOG = join(LOGDIR, 'video.log');
@@ -72,7 +76,8 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
     <string>${nodeBin}</string>
     <string>${script}</string>
     <string>--locale</string><string>${arg('--locale', 'ko')}</string>
-    <string>--format</string><string>${FORMAT}</string>
+    <string>--format</string><string>${FORMAT}</string>${TRIAL ? `
+    <string>--trial</string><string>${TRIAL}</string>` : ''}
   </array>
   <key>WorkingDirectory</key><string>${ROOT}</string>
   <key>EnvironmentVariables</key>

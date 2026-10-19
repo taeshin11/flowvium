@@ -18,6 +18,7 @@ import { homedir } from 'os';
 import { ROOT } from './lib/project-root.mjs';
 import { pooledRate, median, compareGroups } from './lib/group-compare.mjs';
 import { isReportPipelineRunning } from './lib/report-running.mjs';
+import { trialIds } from './lib/slot-trial.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const SINCE = arg('--since', '2026-10-19T05:00:00Z');
@@ -38,7 +39,9 @@ if (cp.status !== 0 || !file || !existsSync(file)) { log(`❌ channel-performanc
 // 2026-10-19 Mac mini2: 관련 동영상을 나중에 채워 넣은 편(logs/related-backfill.json)은 전·후 어디에도 넣지 않는다 — 비교를 흐린다.
 let backfilled = new Set();
 try { backfilled = new Set(JSON.parse(readFileSync(resolve(ROOT, 'logs/related-backfill.json'), 'utf8')).ids ?? []); } catch { /* 없으면 뺄 것 없음 */ }
-const rows = JSON.parse(readFileSync(file, 'utf8')).rows.filter((r) => r.kind === 'short' && r.views3d > 0 && !backfilled.has(r.id));
+// 2026-10-19: 10/20~10/26 22:45 9번째 칸 시험(lib/slot-trial)도 뺀다 — 같은 기간에 바꾸기 전엔 없던 시각대 편이라 전·후 비교를 흐린다.
+const trialled = trialIds(resolve(ROOT, 'logs/slot-trial.json'));
+const rows = JSON.parse(readFileSync(file, 'utf8')).rows.filter((r) => r.kind === 'short' && r.views3d > 0 && !backfilled.has(r.id) && !trialled.has(r.id));
 const before = rows.filter((r) => r.publishedAt >= BASE_FROM && r.publishedAt < SINCE);
 const after = rows.filter((r) => r.publishedAt >= SINCE);
 
@@ -72,6 +75,6 @@ const summary = `관련 동영상→같은 주제 쇼츠 7일(전 ${before.lengt
   + `내 영상 유입 ${f(100 * (result.ownTraffic.before ?? NaN), 1)}%→${f(100 * (result.ownTraffic.after ?? NaN), 1)}% ${word[result.ownTraffic.verdict]} · `
   + `3일 조회 ${f(result.views3d.before, 0)}→${f(result.views3d.after, 0)} ${word[result.views3d.verdict]} · `
   + `걸기 ✅${linking.ok}/실패${linking.failed} · 쇼츠 ${linking.toShort}/사이트 ${linking.toSite}`;
-writeFileSync(OUT, JSON.stringify({ at: new Date().toISOString(), since: SINCE, baseFrom: BASE_FROM, source: file, excludedBackfill: backfilled.size, n: { before: before.length, after: after.length }, result, linking, summary }, null, 1));
+writeFileSync(OUT, JSON.stringify({ at: new Date().toISOString(), since: SINCE, baseFrom: BASE_FROM, source: file, excludedBackfill: backfilled.size, excludedTrial: trialled.size, n: { before: before.length, after: after.length }, result, linking, summary }, null, 1));
 appendFileSync(resolve(ROOT, 'logs/related-remeasure.log'), `${new Date().toISOString()} ${summary}\n`);
 log(summary);
