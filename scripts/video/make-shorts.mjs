@@ -1861,6 +1861,37 @@ closeGoogleImages();
     }
   } catch (e) { log(`[화면] 얼굴·주어 검사 건너뜀: ${String(e.message).slice(0, 50)}`); }
 
+  // ── 사진 ↔ 장면 뉴스 대조 (2026-10-20, lib/photo-story 머리말) ─────────────────────────────
+  //   CLIP 은 '다른 뉴스의 비슷한 사진' 을 못 가르고(남의 사진 106/162 통과), 로고·표 og:image 도 지나갔다.
+  //   남은 사진 전부를 agy(그림 첨부)에 한 번에 보이고 wrong·not_photo 를 뺀다. 판정을 못 받으면 이유를 남기고 CLIP·얼굴 검사 결과로 간다.
+  // 켜기 전 평가 중(10/20) — 평가 수치가 나오면 기본값을 켠다. 지금은 SHORTS_PHOTO_STORY=1 일 때만.
+  if (process.env.SHORTS_PHOTO_STORY === '1') {
+    try {
+      const { checkPhotoStory, DROP } = await import('../lib/photo-story.mjs');
+      const cand = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media)
+        .map((r) => ({ ...r, still: clipStill(r.x.media) })).filter((r) => r.still);
+      if (cand.length) {
+        const res = await checkPhotoStory(cand.map((r) => ({
+          image: r.still,
+          headline: (BRIEF && Number.isInteger(r.x.story) ? headlines[r.x.story] : headlines[0]) ?? r.x.hook ?? '',
+          say: r.x.say,
+        })));
+        if (!res.verdicts) log(`[화면] 사진·뉴스 대조 못 함 — ${res.why} (CLIP·얼굴 검사만 거쳤다)`);
+        else {
+          let dropped = 0;
+          res.verdicts.forEach((v, n) => {
+            if (!v || !DROP.has(v.verdict)) return;
+            const r = cand[n];
+            log(`[화면] ${r.k + 1} 사진·뉴스 대조에서 뺀다(${v.verdict}) — ${v.why}`);
+            r.x.media = null; r.x.pick = null; r.x.credit = null;
+            dropped += 1;
+          });
+          log(`[화면] 사진·뉴스 대조 ${cand.length}장 중 ${dropped}장 제외${res.why ? ` · ${res.why}` : ''}`);
+        }
+      }
+    } catch (e) { log(`[화면] 사진·뉴스 대조 못 함 — 오류 ${String(e?.message ?? e).slice(0, 60)}`); }
+  }
+
   // ── 소재가 모자라면 Flow Omni Flash ×1 로 한 컷 (2026-09-26 사장님) ─────────────────────
   //   "차단 시간에는 영상 부족하면 omni flash ×1로 써서라도 만들어. 크레딧 쓰면은 차단은 안 시키더라"
   //   되물음 확인: Omni Flash ×1 자동화 허용 · 사건 재현 영상 허용. 그 밖의 Flow 규칙은 lib/flow-omni 가 지킨다
