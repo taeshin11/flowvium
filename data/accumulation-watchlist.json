@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-20T07:20:25.716Z",
+  "generatedAt": "2026-10-20T22:20:25.217Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 6,
-  "strongCount": 2,
-  "watchCount": 4,
+  "count": 2,
+  "strongCount": 1,
+  "watchCount": 1,
   "officialFewAccount": 1,
   "watchlist": [
     {
@@ -31,41 +31,6 @@
       }
     },
     {
-      "ticker": "417200.KQ",
-      "name": "LS머트리얼즈",
-      "tier": "strong",
-      "score": 46,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 4.1× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 2.8,
-      "runup5dPct": -14,
-      "medDollarVolUsd": 5047330,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "048530.KQ",
-      "name": "인트론바이오",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 10.2× 상승(지속 매집)",
-        "거래량 15.8× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 3.4,
-      "runup5dPct": 10.3,
-      "medDollarVolUsd": 135996,
-      "smartAccum": true,
-      "official": null
-    },
-    {
       "ticker": "130740.KQ",
       "name": "티피씨글로벌",
       "tier": "watch",
@@ -79,42 +44,6 @@
       "runup20dPct": -1.7,
       "runup5dPct": 10.3,
       "medDollarVolUsd": 45977,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "069510.KQ",
-      "name": "에스텍",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 11.3,
-      "runup5dPct": 5.4,
-      "medDollarVolUsd": 39186,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "024120.KQ",
-      "name": "KB오토시스",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 1.1,
-      "runup5dPct": 3,
-      "medDollarVolUsd": 22459,
       "smartAccum": true,
       "official": null
     }
