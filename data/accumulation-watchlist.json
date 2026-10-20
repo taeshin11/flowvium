@@ -1,27 +1,27 @@
 {
-  "generatedAt": "2026-10-19T22:20:23.311Z",
+  "generatedAt": "2026-10-20T07:20:25.716Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
-  "strongCount": 1,
-  "watchCount": 3,
+  "count": 6,
+  "strongCount": 2,
+  "watchCount": 4,
   "officialFewAccount": 1,
   "watchlist": [
     {
       "ticker": "060370.KQ",
       "name": "LS마린솔루션",
       "tier": "strong",
-      "score": 59,
+      "score": 55,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.1× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-10-12)"
       ],
-      "runup20dPct": -5.5,
-      "runup5dPct": 3.7,
-      "medDollarVolUsd": 2412800,
+      "runup20dPct": -12.1,
+      "runup5dPct": -3.7,
+      "medDollarVolUsd": 2463261,
       "smartAccum": false,
       "official": {
         "category": "caution",
@@ -31,19 +31,72 @@
       }
     },
     {
+      "ticker": "417200.KQ",
+      "name": "LS머트리얼즈",
+      "tier": "strong",
+      "score": 46,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 4.1× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 2.8,
+      "runup5dPct": -14,
+      "medDollarVolUsd": 5047330,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "048530.KQ",
+      "name": "인트론바이오",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 10.2× 상승(지속 매집)",
+        "거래량 15.8× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 3.4,
+      "runup5dPct": 10.3,
+      "medDollarVolUsd": 135996,
+      "smartAccum": true,
+      "official": null
+    },
+    {
       "ticker": "130740.KQ",
       "name": "티피씨글로벌",
       "tier": "watch",
       "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 4.1× 급증(가격 평탄)",
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 4.3× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -1.2,
-      "runup5dPct": 7.3,
-      "medDollarVolUsd": 45601,
+      "runup20dPct": -1.7,
+      "runup5dPct": 10.3,
+      "medDollarVolUsd": 45977,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "069510.KQ",
+      "name": "에스텍",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 11.3,
+      "runup5dPct": 5.4,
+      "medDollarVolUsd": 39186,
       "smartAccum": true,
       "official": null
     },
@@ -51,34 +104,17 @@
       "ticker": "024120.KQ",
       "name": "KB오토시스",
       "tier": "watch",
-      "score": 37,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 2.3,
-      "runup5dPct": 3.5,
-      "medDollarVolUsd": 22459,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "038500.KQ",
-      "name": "삼표시멘트",
-      "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 26.1× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)",
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -8.5,
-      "runup5dPct": -16.2,
-      "medDollarVolUsd": 2037311,
+      "runup20dPct": 1.1,
+      "runup5dPct": 3,
+      "medDollarVolUsd": 22459,
       "smartAccum": true,
       "official": null
     }
