@@ -118,6 +118,7 @@ import { resolveLlm } from './lib/llm-config.mjs';
 import { resolveCompanyName } from './lib/company-name.mjs';
 import { normalizeCurrencyText } from './lib/currency-format.mjs';
 import { computeKrVerdict, overnightTailRisk } from './lib/kr-verdict.mjs';  // 2026-10-15: KR 판정 lib 로 + 전날 밤 SOX 거부권
+import { finOnce } from './lib/fin-once.mjs';  // 2026-10-20: 매수 고르기와 심판이 같은 재무를 본다(fin-once.test)
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -3794,6 +3795,9 @@ async function safeFetch(url, timeoutMs = 10000) {
     return await res.json();
   } catch { return null; }
 }
+// 종목 재무는 한 실행 안에서 한 번 받은 것을 매수 Stage 3 와 심판(fetchSellSignals)이 같이 쓴다.
+//   10/20 오후: Stage 3 는 V 재무를 받았는데 20초 뒤 심판의 재요청이 실패 → 마진 악화를 못 보고 통과(fin-once.test).
+const FIN = finOnce(safeFetch);
 
 // 2026-06-05: FX 동적 소스 (Yahoo KRW=X = USD/KRW, DX-Y.NYB = DXY). 하드코딩 금지 — 매 실행 라이브.
 //   KR 추천 risk: 원화 급락(USD/KRW 급등)은 KR 주식 약세 신호. 오늘 +2.7% 급등이 KR 급락 동반했는데
@@ -5269,7 +5273,7 @@ async function fetchSellSignals(tickers) {
       const url = isKR
         ? `${SITE}/api/company-kr/${ticker.replace(/\.(KS|KQ)$/, '')}`
         : `${SITE}/api/company-financials/${ticker}`;
-      const d = await safeFetch(url, 5000);
+      const d = await FIN.get(url, 5000);
       if (d) {
         // US: latestAnnual.operatingMarginPct + previousAnnual 비교
         const cur = d.latestAnnual?.operatingMarginPct;
@@ -5284,6 +5288,9 @@ async function fetchSellSignals(tickers) {
     } catch { /* skip */ }
     out.set(ticker, sig);
   }));
+  // 재무를 못 받은 종목은 '신호 없음' 이 아니라 '못 봄' 이다 — 심판 로그에 남긴다.
+  const blind = tickers.slice(0, 24).filter((t) => FIN.misses().some((u) => u.endsWith(`/${t.replace(/\.(KS|KQ)$/, '')}`)));
+  if (blind.length) console.warn(`  [sell-signals] ⚠️ 재무 못 받음 ${blind.length}/${Math.min(24, tickers.length)}: ${blind.join(',')} — 마진·PEG 신호를 못 봤다`);
   return out;
 }
 
@@ -5359,7 +5366,7 @@ async function fetchBuyFundSignals(tickers) {
       const url = isKR
         ? `${SITE}/api/company-kr/${ticker.replace(/\.(KS|KQ)$/, '')}`
         : `${SITE}/api/company-financials/${ticker}`;
-      const d = await safeFetch(url, 5000);
+      const d = await FIN.get(url, 5000);
       if (d) {
         const cur = d.latestAnnual?.operatingMarginPct;
         const prev = d.annuals?.[1]?.operatingMarginPct;
