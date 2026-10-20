@@ -17,6 +17,9 @@ const rule = /\n\.h\{[^}]*\}/.exec(src)?.[0];
 if (!rule) { bad('[0] make-shorts 에서 썸네일 .h 규칙을 못 찾았다'); process.exit(1); }
 
 const { chromium } = await import('playwright');
+// 크롬이 없는 곳(CI 깨끗한 clone — 브라우저를 안 깐다)에서는 잴 수 없다 → 전제조건 스킵(test-env). 10/20 CI 가 여기서 죽었다.
+const { requires } = await import('./test-env.mjs');
+await requires({ paths: [chromium.executablePath()] });
 const b = await chromium.launch();
 try {
   const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
