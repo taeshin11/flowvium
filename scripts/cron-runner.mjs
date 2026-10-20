@@ -678,7 +678,9 @@ const MAINT_JOBS = [
   //   일요일 17:00 KST(08:00 UTC) — 16:20·18:20 쇼츠 사이. 일요일이 실패·보고서로 건너뛰면 월요일 같은 시각이 다시 시도한다
   //   (스크립트가 '이번 주 이미 올림' 이면 아무것도 안 한다 — logs/weekly-explainer.json).
   // { label: 'daily-roundup',     script: 'scripts/video/make-daily-roundup.mjs --upload public', timeoutMs: 900000, commitPaths: [], schedules: ['10 13 * * *'], maxAgeH: 30 },
-  { label: 'weekly-explainer',     script: 'scripts/video/make-weekly-explainer.mjs --upload public', timeoutMs: 3600000, commitPaths: [],                                  schedules: ['0 8 * * 0', '0 8 * * 1'],     maxAgeH: 8 * 24 },
+  // 2026-10-20 중단(데이터로 결정, 사장님 지시로 48h 재측정): 첫 회 vGz0L2eoOF0(10/18 17:00, 공개) 49h 조회 **9** —
+  //   같은 날 같은 나이(44~52h) 쇼츠 8편 조회 222~1,133(중앙 ~1,000). 매일 총정리(4·0·1)를 내린 것과 같은 모양이다. 다시 켜려면 아래 주석을 푼다.
+  // { label: 'weekly-explainer',     script: 'scripts/video/make-weekly-explainer.mjs --upload public', timeoutMs: 3600000, commitPaths: [],                                  schedules: ['0 8 * * 0', '0 8 * * 1'],     maxAgeH: 8 * 24 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
