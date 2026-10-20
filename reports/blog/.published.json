@@ -626,5 +626,17 @@
   "skipped": true,
   "reason": "same-day:2026-10-20-morning.md",
   "at": "2026-10-20T12:45:00.445Z"
+ },
+ "2026-10-20-shorts-2146.md": {
+  "id": "3071787553606069527",
+  "url": "https://flowvium.blogspot.com/2026/10/3-10-20.html",
+  "status": "LIVE",
+  "at": "2026-10-20T22:15:02.875Z"
+ },
+ "2026-10-21-morning.md": {
+  "id": "2215786136311456010",
+  "url": "https://flowvium.blogspot.com/2026/10/10-21-230000.html",
+  "status": "LIVE",
+  "at": "2026-10-20T22:15:04.911Z"
  }
 }
