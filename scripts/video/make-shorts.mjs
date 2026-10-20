@@ -1864,18 +1864,19 @@ closeGoogleImages();
   // ── 사진 ↔ 장면 뉴스 대조 (2026-10-20, lib/photo-story 머리말) ─────────────────────────────
   //   CLIP 은 '다른 뉴스의 비슷한 사진' 을 못 가르고(남의 사진 106/162 통과), 로고·표 og:image 도 지나갔다.
   //   남은 사진 전부를 agy(그림 첨부)에 한 번에 보이고 wrong·not_photo 를 뺀다. 판정을 못 받으면 이유를 남기고 CLIP·얼굴 검사 결과로 간다.
-  // 켜기 전 평가 중(10/20) — 평가 수치가 나오면 기본값을 켠다. 지금은 SHORTS_PHOTO_STORY=1 일 때만.
-  if (process.env.SHORTS_PHOTO_STORY === '1') {
+  //   기본 켬(10/20 평가 뒤, 수치는 lib/photo-story.test 머리말). 끄려면 SHORTS_PHOTO_STORY=0.
+  if (process.env.SHORTS_PHOTO_STORY !== '0') {
     try {
       const { checkPhotoStory, DROP } = await import('../lib/photo-story.mjs');
       const cand = scenes.map((x, k) => ({ k, x })).filter((r) => !r.x.isOutro && r.x.media)
         .map((r) => ({ ...r, still: clipStill(r.x.media) })).filter((r) => r.still);
       if (cand.length) {
+        // 상한 180초 — 평가 19번 중 답한 것은 18~155초(중앙 45초), 1번은 300초까지 멎었다. 멎으면 이유를 남기고 넘어간다.
         const res = await checkPhotoStory(cand.map((r) => ({
           image: r.still,
           headline: (BRIEF && Number.isInteger(r.x.story) ? headlines[r.x.story] : headlines[0]) ?? r.x.hook ?? '',
           say: r.x.say,
-        })));
+        })), { timeoutMs: 180_000 });
         if (!res.verdicts) log(`[화면] 사진·뉴스 대조 못 함 — ${res.why} (CLIP·얼굴 검사만 거쳤다)`);
         else {
           let dropped = 0;
