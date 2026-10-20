@@ -16,6 +16,21 @@ export function needsPin(e) {
 }
 
 /**
+ * '이미 고정돼 있다'(주인 화면) 기록. 앞 기록(실패 수·재확인)을 지우지 않는다.
+ *   2026-10-20: 칸을 통째로 바꿔 failedTries 가 지워졌다 — 시청자에게 안 보이는 편이 매일 다시 골려 상한이 영영 안 걸렸다.
+ */
+export function alreadyEntry(prev = {}, at, kind) {
+  return { ...prev, at, kind, skipped: 'already' };
+}
+
+/** 10분 뒤 시청자 화면 재확인 기록. 안 보이거나 고정이 안 보이면 실패 1회로 센다(같은 실패를 매일 되풀이하지 않게). */
+export function verifiedEntry(prev = {}, r, at) {
+  const visible = !!r?.mine; const pinned = !!r?.pinned;
+  return { ...prev, verifiedAt: at, visibleToViewers: visible, pinnedToViewers: pinned,
+    ...(visible && pinned ? {} : { failedTries: (prev.failedTries ?? 0) + 1 }) };
+}
+
+/**
  * 원장의 한 편만 고쳐 쓴다 — 쓰기 **직전에 파일을 다시 읽어** 합치고, 임시 파일 → rename 으로 바꾼다.
  *   2026-10-19: 매일 쓸기와 손 실행이 겹쳐 각자 처음 읽은 원장 전체를 덮어썼다(서로의 기록을 지움).
  * @param {(prev: object|undefined) => object} fn  그 편의 지금 기록 → 새 기록

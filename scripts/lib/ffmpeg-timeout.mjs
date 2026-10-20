@@ -15,10 +15,12 @@
 export const FFMPEG_TIMEOUT_MS = Number(process.env.FFMPEG_TIMEOUT_MS || 10 * 60_000);
 
 /** spawnSync 옵션에 타임아웃을 얹는다. 호출부가 준 값은 건드리지 않는다. */
+//   2026-10-20: 호출부 4곳이 timeoutMs 로 줬는데 timeout 만 읽어 20~60초 상한이 10분이 됐다 — 둘 다 받는다.
 export function ffmpegOpts(opts = {}) {
+  const { timeoutMs, ...rest } = opts;
   return {
-    ...opts,
-    timeout: opts.timeout ?? FFMPEG_TIMEOUT_MS,
+    ...rest,
+    timeout: opts.timeout ?? timeoutMs ?? FFMPEG_TIMEOUT_MS,
     // SIGTERM 을 무시하고 버티는 경우가 있다 — 막힌 프로세스는 확실히 끊는다.
     killSignal: opts.killSignal ?? 'SIGKILL',
   };

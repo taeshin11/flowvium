@@ -188,5 +188,12 @@ const g = M.SHORTS;
     ? ok('짧은 훅은 그대로 둔다') : bad('짧은 훅을 건드렸다');
 }
 
+// 2026-10-20 사장님 지시(Mac mini2) "시청자가 없으면 아쉬워할까" — 3곳(Claude·ChatGPT·agy 그림 첨부) 모두 CUT:
+//   사진 왼쪽 위 'FLOWVIUM' 글자는 아무 정보가 없다(채널명·아바타는 유튜브가 바로 아래 띄운다). 새 편부터 뺀다.
+{
+  const ms = (await import('node:fs')).readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  const call = /shortsOverlayHtml\(\{[\s\S]*?\}\)\)/.exec(ms)?.[0] ?? '';
+  call && !/brand:/.test(call) ? ok('쇼츠 장면 오버레이에 브랜드 글자를 안 찍는다') : bad('쇼츠 장면 오버레이에 FLOWVIUM 글자가 남았다');
+}
 console.log(fail === 0 ? '\n✅ shorts-layout 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

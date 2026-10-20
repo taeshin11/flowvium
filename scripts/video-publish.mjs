@@ -49,8 +49,12 @@ const log = (...a) => console.log(
 //   **스택 트레이스를 뱉고 exit 1 로 죽었다**(launchd 가 실패로 기록). 감시기도 헛울린다.
 //   거른 것과 고장난 것은 로그에서 한눈에 갈려야 한다.
 const NOTHING_TO_PUBLISH = 3;
-const run = (args, label) => {
-  const r = spawnSync(node, args, { cwd: ROOT, stdio: 'inherit' });
+// 2026-10-20: 업로드에 상한이 없었다 — 소켓 하나가 멎으면 이 프로세스가 락을 쥔 채 영영 살아 있고
+//   뒤 슬롯은 '건너뜀 … 겹치지 않는다'(정상처럼 읽힘)로 끝났다(lib/upload-timeout.test). 렌더에는 이미 상한이 있다.
+const UPLOAD_TIMEOUT_MS = Number(process.env.VIDEO_UPLOAD_TIMEOUT_MIN || 15) * 60_000;
+const run = (args, label, timeoutMs = 0) => {
+  const r = spawnSync(node, args, { cwd: ROOT, stdio: 'inherit', ...(timeoutMs ? { timeout: timeoutMs, killSignal: 'SIGKILL' } : {}) });
+  if (r.error?.code === 'ETIMEDOUT') throw new Error(`${label} 시간 초과(${Math.round(timeoutMs / 60000)}분)로 끊었다 — 멎은 것. 올라갔는지 스튜디오·shorts-reconcile 로 확인할 것`);
   if (r.error) throw new Error(`${label} 실행 실패: ${r.error.message}`);
   if (r.status === NOTHING_TO_PUBLISH) {
     // 첫 낱말이 '건너뜀' 이어야 한다 — check-stall 이 `[publish] (렌더 시작|시작 가능|건너뜀|끝 ·)`
@@ -498,7 +502,7 @@ const upArgs = [resolve(ROOT, 'scripts/youtube-upload.mjs'),
 if (THUMB && existsSync(THUMB)) upArgs.push('--thumb', THUMB);
 // 2026-09-26: 생성 영상(Omni Flash)이 든 편은 유튜브에 '합성 콘텐츠' 로 신고한다 — 사실적인 생성 영상은 알려야 한다.
 if (isShorts && last.synthetic) { upArgs.push('--synthetic'); log('합성 콘텐츠 신고(생성 영상 포함)'); }
-run(upArgs, '업로드');
+run(upArgs, '업로드', UPLOAD_TIMEOUT_MS);
 
 // 편성 대장에 남긴다 — 다음 편이 같은 뉴스를 다시 고르지 않게 한다(2026-09-03 중복 3편 사건).
 //   업로드가 성공한 뒤에만 남긴다. 실패한 편을 "다뤘다"고 적으면 그 뉴스를 영영 놓친다.

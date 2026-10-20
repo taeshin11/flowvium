@@ -15,7 +15,7 @@ import { resolve, join } from 'path';
 import { mkdirSync, readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
 import { AD_LINE } from './lib/ad-line.mjs';
-import { needsPin, writeEntry } from './lib/pin-state.mjs';
+import { needsPin, writeEntry, alreadyEntry, verifiedEntry } from './lib/pin-state.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -90,7 +90,7 @@ try {
         if (/utm_/.test(txt) || !/aisviagent\.com/.test(txt)) throw new Error(`고친 뒤 글이 "${txt.replace(/\s+/g, ' ').slice(0, 60)}"`);
         log(`${t.id} ✏️ 짧은 주소로 고침`);
       }
-      if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = writeEntry(STATE, t.id, () => ({ at: new Date().toISOString(), kind: t.kind, skipped: 'already' })); continue; }
+      if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = writeEntry(STATE, t.id, (prev) => alreadyEntry(prev, new Date().toISOString(), t.kind)); continue; }
       if (!(await mine.count())) {
         await ph.scrollIntoViewIfNeeded(); await ph.click(); await page.waitForTimeout(1200);
         const box = page.locator('#contenteditable-root').first();
@@ -142,7 +142,7 @@ if ((AFTER > 0 || VERIFY_ONLY) && !DRY) {
       let r = null;
       for (let k = 0; k < 8 && !r; k++) { await vp.mouse.wheel(0, 900); await vp.waitForTimeout(1500); r = await seen(); }
       const okv = !!(r?.mine && r?.pinned);
-      state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, verifiedAt: new Date().toISOString(), visibleToViewers: !!r?.mine, pinnedToViewers: !!r?.pinned }));
+      state[t.id] = writeEntry(STATE, t.id, (prev) => verifiedEntry(prev, r, new Date().toISOString()));
       if (!okv) bad++;
       log(`[verify] ${t.id} ${okv ? '✅ 시청자 화면에 우리 고정 댓글' : `❌ ${r ? '보이지만 고정 표시 없음' : '우리 댓글이 안 보인다(스팸 필터?)'}`}`);
       if (!okv) await vp.screenshot({ path: join(shots, `verify-fail-${t.id}.png`) }).catch(() => {});

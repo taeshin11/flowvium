@@ -38,5 +38,14 @@ try {
   ok('깨진 퍼센트 인코딩에 안 죽는다');
 } catch (e) { bad(`깨진 인코딩에 예외: ${e.message}`); }
 
+// 2026-10-20 실물(3eus-sStXNE 4번 장면, 15초): 구글 경로가 '[표] 삼성전자 2012∼2026년 분기별 매출·영업이익 | 연합뉴스' 를 골랐다.
+//   표 기사에는 사진이 없어 og:image 가 **통신사 로고**다 — 화면 15초가 연합뉴스 로고였다(3곳 모두 CUT, 프레임 눈확인).
+//   '[그래픽]' 은 이미 막는다. 같은 관례의 '[표]' 말머리도 사진 기사가 아니다. 제목 중간의 '표'(발표·대표·투표)는 막지 않는다.
+{
+  const t1 = { title: '[표] 삼성전자 2012∼2026년 분기별 매출·영업이익 | 연합뉴스', url: 'https://img.yna.co.kr/x.jpg' };
+  const keep = [{ title: '삼성전자 3분기 실적 발표 현장 | 연합뉴스', url: 'https://x/a.jpg' }, { title: '대표 기자회견', url: 'https://x/b.jpg' }, { title: '투표소 앞 줄 선 시민들', url: 'https://x/c.jpg' }];
+  (!isRealFootage(t1) && keep.every((c) => isRealFootage(c)))
+    ? ok("'[표]' 말머리 기사(사진 없음 → 로고)는 거르고, 발표·대표·투표는 둔다") : bad(`[표] 판정: ${isRealFootage(t1)} / 일반 ${keep.map(isRealFootage)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

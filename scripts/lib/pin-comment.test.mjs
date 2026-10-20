@@ -71,5 +71,20 @@ const cr = src('cron-runner.mjs');
 //   10/19 22:5x 로그아웃 iPhone 13 폭 실측: 이 한 줄이 2줄로 그려지고 링크는 1번째 줄.
 (!/\n/.test(AD_LINE) && [...AD_LINE].length <= 70 && /aisviagent\.com/.test(AD_LINE) && /commentFor = \(\) => AD_LINE/.test(pc))
   ? ok(`[18] 고정 댓글은 한 줄(${[...AD_LINE].length}자)이고 링크가 그 안 — 접힌 보기에서 보인다`) : bad(`[18] 댓글이 길거나 링크가 밖: ${JSON.stringify(AD_LINE)}`);
+// [19] 2026-10-20 코드 점검(Claude·ChatGPT REAL): '이미 고정됨' 갈래가 원장 칸을 통째로 바꿔 failedTries 를 지웠다.
+//   주인 화면엔 고정돼 보이고 시청자 화면엔 안 보이는(스팸 필터) 편은 매일 '이미 있음' → 칸 초기화 → 10분 뒤 false → 다음날 또.
+//   3회 상한이 영영 안 걸린다. 시청자 화면에서 안 보이면 실패 1회로 세고, '이미 있음' 은 그 수를 지우지 않는다.
+{
+  const P = await import('./pin-state.mjs');
+  let e = { at: 't0', verifiedAt: 'v', visibleToViewers: false, pinnedToViewers: false };   // 주인 화면엔 고정, 시청자 화면엔 없음
+  for (let day = 0; day < 4 && P.needsPin(e); day++) {
+    e = P.alreadyEntry?.(e, `d${day}`, 'short') ?? { at: `d${day}`, kind: 'short', skipped: 'already' };
+    e = P.verifiedEntry?.(e, { mine: false, pinned: false }, `v${day}`) ?? { ...e, verifiedAt: `v${day}`, visibleToViewers: false, pinnedToViewers: false };
+  }
+  (!P.needsPin(e) && e.failedTries === P.MAX_PIN_TRIES) ? ok(`[19a] 시청자에게 안 보이는 편은 ${P.MAX_PIN_TRIES}번 뒤 멈춘다(사람에게)`) : bad(`[19a] 매일 다시 단다: ${JSON.stringify(e)}`);
+  const v = P.verifiedEntry?.({ at: 'a', failedTries: 1 }, { mine: true, pinned: true }, 'v');
+  (v?.visibleToViewers === true && v?.failedTries === 1) ? ok('[19b] 보이면 실패 수를 안 올린다') : bad(`[19b] ${JSON.stringify(v)}`);
+  (/alreadyEntry\(prev, /.test(pc) && /verifiedEntry\(prev, r, /.test(pc)) ? ok('[19c] yt-pin-comment 가 두 함수를 쓴다') : bad('[19c] yt-pin-comment 미연결');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

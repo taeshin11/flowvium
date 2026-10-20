@@ -37,7 +37,7 @@ import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '.
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
-import { tagBriefScenes, briefMeta, leadStory } from '../lib/brief-scenes.mjs';
+import { tagBriefScenes, briefMeta, leadStory, thumbHeadline, footageFloor } from '../lib/brief-scenes.mjs';
 import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -1883,6 +1883,8 @@ closeGoogleImages();
     }
   }
 
+  // 2026-10-20: 브리핑은 아래에서 사진 없는 장면을 지운다 — '절반은 실사진' 은 지우기 **전** 장면 수로 센다(lib/brief-scenes footageFloor).
+  const PLANNED_SCENES = scenes.filter((x) => !x.isOutro).length;
   // 2026-09-06: 빈 자리 채우기를 CLIP 블록 **안에** 뒀더니 중복 제거로 뺀 자리는 안 채워져
   //   또 회색 카드가 나갔다(실측 4번 장면). 어느 검사가 뺐든 마지막에 한 번 채운다.
   {
@@ -1939,10 +1941,10 @@ closeGoogleImages();
   // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
   //   백필이 회색 카드 3장 + 임시정부 청사 사진 하나로 한 편을 냈다(내렸다).
   //   카드가 절반을 넘으면 그건 영상이 아니라 빈 화면이다. 절반은 채워야 낸다.
-  const MIN_REAL = Math.max(1, Math.ceil(total / 2));
+  const MIN_REAL = footageFloor(total, PLANNED_SCENES);
   const real = distinctMedia();   // 검사·채우기가 모두 끝난 **지금** 센다
   if (real < MIN_REAL) {
-    console.error(`❌ ${total}장면 중 소재는 ${real}장뿐 — 회색 카드가 절반을 넘는다. 이번 회차를 거른다.`);
+    console.error(`❌ ${Math.max(total, PLANNED_SCENES)}장면(계획) 중 소재는 ${real}장뿐 — 회색 카드가 절반을 넘는다. 이번 회차를 거른다.`);
     console.error('   다음 슬롯이나 백필에서 소재가 잡히면 정상 발행된다.');
     process.exit(3);   // 3 = 낼 것이 없음
   }
@@ -1991,7 +1993,7 @@ for (let i = 0; i < scenes.length; i++) {
       hook: scenes[i].hook,
       caption: scenes[i].cues[k].text,     // 줄바꿈을 지운다 — 라이브러리가 접어 준 대로 쓴다
       credit: scenes[i].credit,
-      brand: 'FLOWVIUM',
+      // 2026-10-20: 사진 왼쪽 위 'FLOWVIUM' 글자를 뺐다 — 시청자 정보가 없다(3곳 투표 3/3 CUT, shorts-layout.test).
     }));
     const f = `${WORK}/ov${i}_${k}.png`;
     await page.screenshot({ path: f, omitBackground: true });
@@ -2064,7 +2066,7 @@ try {
   }
   // 제목은 짧아야 읽힌다. **헤드라인**을 쓴다 — 훅은 말하려고 쓴 문장이라 잘리면 토막이 된다.
   //   자를 때는 낱말 경계에서 자른다. 글자 수로 뚝 자르면 "한화시스템 UA" 같은 게 나온다.
-  const raw = String(headlines[0] || first?.hook || '')
+  const raw = String(thumbHeadline(scenes, headlines, !!BRIEF))   // 2026-10-20: 배경 사진 장면의 뉴스(lib/brief-scenes)
     .replace(/^\[[^\]]*\]\s*/, '')            // [속보] [특징주] 같은 말머리는 뺀다 — 자리만 먹는다
     .replace(/\s+/g, ' ').trim();
   let head = raw;

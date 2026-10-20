@@ -318,5 +318,28 @@ const M = await import('./video-meta.mjs');
     : bad(`조사가 붙어 있다: ${M.buildTags(['호르무즈 이어 홍해마저 이중봉쇄'], [], true).join(', ')}`);
 }
 
+// ── 2026-10-20 사장님 지시(Mac mini2) "시청자가 없으면 아쉬워할까" — 설명란 ──────────────────────────
+//   3곳(Claude·ChatGPT·agy) 투표: 채널 소개 한 줄(3/3 CUT)·구독 권유 줄(3/3 CUT) 은 뺀다.
+//   '오늘 다룬 이슈' 첫 줄이 맨 윗줄(대표 헤드라인)을 글자 그대로 되풀이한다(3곳 모두 지적) — 목록에서 첫 줄과 같은 것은 뺀다.
+//   후원 문단은 사장님이 직접 넣으라 한 것이라 남기되, "매일 다섯 편" 은 지금(하루 8편+)과 다른 숫자다 — 숫자를 박지 않는다.
+{
+  const saved = process.env.DONATION_ACCOUNT;
+  process.env.DONATION_ACCOUNT = '은행 000 홍길동';
+  for (const isKo of [true, false]) {
+    const d = M.buildDescription(['삼성전자 이익 확정', '메모리 가격 상승'], isKo);
+    const lines = d.split('\n');
+    const first = lines[0];
+    const dup = lines.slice(1).filter((l) => l.replace(/^•\s*/, '') === first).length;
+    const tag = isKo ? 'ko' : 'en';
+    dup === 0 ? ok(`[${tag}] 첫 줄 헤드라인을 목록에서 되풀이하지 않는다`) : bad(`[${tag}] 첫 줄이 ${dup}번 더 나온다`);
+    !/군더더기|구독해 두시면|no filler|Subscribe for/.test(d) ? ok(`[${tag}] 채널 소개·구독 권유 줄이 없다`) : bad(`[${tag}] 소개·권유 줄이 남았다`);
+    !/다섯 편|five briefings/.test(d) ? ok(`[${tag}] 하루 편수를 숫자로 박지 않는다`) : bad(`[${tag}] '다섯 편' — 사실과 다르다`);
+    /은행 000 홍길동/.test(d) && /aisviagent|flowvium|출처|credit/i.test(d) ? ok(`[${tag}] 후원·출처 고지는 남는다`) : bad(`[${tag}] 남겨야 할 줄이 빠졌다`);
+  }
+  const one = M.buildDescription(['단독 헤드라인'], true);
+  !/오늘 다룬 이슈/.test(one) ? ok('헤드라인이 하나면 목록 머리도 없다(빈 머리 금지)') : bad('빈 목록 머리가 남는다');
+  if (saved === undefined) delete process.env.DONATION_ACCOUNT; else process.env.DONATION_ACCOUNT = saved;
+}
+
 console.log(fail === 0 ? '\n✅ video-meta 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

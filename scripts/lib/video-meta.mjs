@@ -268,14 +268,15 @@ function donationLines(isKo) {
   return isKo
     ? ['',
       '🙏 이 채널은 유튜브 수익 창출을 하지 않습니다. (끝에 붙는 짧은 소개는 저희가 만든 프로그램입니다)',
-      '매일 다섯 편을 만드는 데 서버비와 데이터 비용이 들어갑니다.',
+      // 2026-10-20: "매일 다섯 편" 이 지금(하루 8편+)과 달랐다 — 편수는 바뀌므로 숫자를 박지 않는다.
+      '매일 여러 편을 만드는 데 서버비와 데이터 비용이 들어갑니다.',
       '솔직히 혼자 감당하기가 버겁습니다. 커피 한 잔 값이라도 보태 주시면',
       '이 채널을 멈추지 않고 계속 이어갈 수 있습니다. 간절히 부탁드립니다.',
       acct,
       '작은 후원 하나가 내일 영상을 만듭니다. 정말 감사합니다.']
     : ['',
       '🙏 This channel is not monetized on YouTube. (The short clip at the end is our own tool.)',
-      'Server and data costs add up for five briefings a day.',
+      'Server and data costs add up for several briefings a day.',
       'Even the price of a coffee helps keep it going. Thank you sincerely.',
       acct];
 }
@@ -284,14 +285,12 @@ const DESC = {
   // 첫 줄은 **대표 헤드라인 하나**다. 종전엔 3개를 이어붙여 벽이 됐다(실측 eoP5ycHs92o).
   //   유튜브는 '더보기' 전에 두어 줄만 보여주므로 이 자리가 사실상 유일하게 읽히는 문장이고,
   //   검색에서도 가장 무겁게 쓰인다. 나머지 헤드라인은 아래 '오늘 다룬 이슈' 가 이미 다 담는다.
+  // 2026-10-20 사장님 지시(Mac mini2) "시청자가 없으면 아쉬워할까" — Claude·ChatGPT·agy 3곳 투표로 뺀 것:
+  //   채널 소개 한 줄·구독 권유 한 줄(3/3 CUT), 목록 첫 줄이 맨 윗줄을 글자 그대로 되풀이(3곳 지적). 근거는 video-meta.test.
+  //   후원 문단·광고 줄·해시태그는 3곳이 CUT 이라 했지만 사장님이 직접 정한 것(후원 09-03, 광고 10-13, 설명·태그 검색)이라 남긴다.
   ko: (top, tags) => [
     top[0] ?? '',
-    '',
-    '오늘 다룬 이슈',
-    ...top.map((h) => `• ${h}`),
-    '',
-    '한국과 미국의 정치·경제를 매일 정리합니다. 군더더기 없이, 과장 없이.',
-    '매일 새 브리핑이 올라옵니다 — 구독해 두시면 놓치지 않습니다.',
+    ...(top.length > 1 ? ['', '오늘 다룬 이슈', ...top.slice(1).map((h) => `• ${h}`)] : []),
     ...donationLines(true),
     '',
     // 2026-09-25: 종전 "영상 소재: 공공 도메인 / CC0 / 아카이브 라이선스." 는 기사 사진을 쓰는 회차
@@ -303,12 +302,7 @@ const DESC = {
   ].join('\n'),
   en: (top, tags) => [
     top[0] ?? '',
-    '',
-    'In this update:',
-    ...top.map((h) => `• ${h}`),
-    '',
-    'Daily US politics and economy, told straight — no filler, no hype.',
-    'Subscribe for a new briefing every day.',
+    ...(top.length > 1 ? ['', 'In this update:', ...top.slice(1).map((h) => `• ${h}`)] : []),
     ...donationLines(false),
     '',
     'Image sources are credited on screen in each scene.',

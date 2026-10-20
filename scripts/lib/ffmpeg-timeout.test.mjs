@@ -38,3 +38,11 @@ test('타임아웃으로 죽은 것과 그냥 실패한 것을 구분해 말한�
   assert.match(f, /Invalid data/);
   assert.equal(describeFfmpegResult({ status: 0 }), null);
 });
+
+// 2026-10-20 코드 점검(Claude·ChatGPT REAL): make-shorts 4곳이 ffmpegOpts({ timeoutMs: 30000 }) 로 불렀는데
+//   여기서는 timeout 만 읽어 20~60초 상한이 전부 10분이 됐다. 이름이 다른 한 글자 차이라 조용히 지나갔다.
+test('timeoutMs 로 줘도 그 값을 상한으로 쓴다(spawnSync 에는 timeout 으로)', () => {
+  const o = ffmpegOpts({ timeoutMs: 30000 });
+  assert.equal(o.timeout, 30000);
+  assert.equal('timeoutMs' in o, false);   // spawnSync 가 모르는 키는 남기지 않는다
+});

@@ -29,3 +29,22 @@ export function leadStory(scenes, brief, issue) {
   const first = (scenes ?? []).find((s) => !s?.isOutro && Number.isInteger(s?.story));
   return (first && brief[first.story]?.it) ?? issue;
 }
+
+/**
+ * 썸네일에 찍을 헤드라인 — 배경 사진 장면(사진 남은 첫 장면)의 뉴스. 2026-10-20.
+ *   종전 headlines[0](처음 고른 순서)은 1번 뉴스가 사진을 잃어 빠지거나 도표 자리바꿈 뒤에는 **다른 뉴스 사진 위에** 찍혔다.
+ *   한 사건 편은 모든 장면이 같은 뉴스라 대표 헤드라인 그대로.
+ */
+export function thumbHeadline(scenes, headlines, brief) {
+  const first = (scenes ?? []).find((s) => !s?.isOutro && s?.media);
+  if (brief && Number.isInteger(first?.story)) return headlines?.[first.story] || first?.hook || '';
+  return headlines?.[0] || first?.hook || '';
+}
+
+/**
+ * '절반은 실사진' 하한. 2026-10-20: 브리핑은 사진 없는 장면을 **먼저 지우고** 세서 total = 남은 장면 = 사진 수 →
+ *   관문이 절대 안 걸렸다(4건 중 1장만 남아도 한 장면 영상). 지우기 전 **계획한** 장면 수로 센다.
+ */
+export function footageFloor(total, planned = 0) {
+  return Math.max(1, Math.ceil(Math.max(total, planned) / 2));
+}

@@ -57,5 +57,25 @@ const pub = readFileSync(new URL('../video-publish.mjs', import.meta.url), 'utf8
 (/leadStory\(scenes, BRIEF, issue\)/.test(ms) && /keyword: LEAD\.keyword/.test(ms) && /topic: LEAD_TOPIC/.test(ms))
   ? ok('[4d] 메타의 키·주제가 첫 화면 뉴스 것') : bad('[4d]');
 (/keepFirst: !!last\.brief/.test(pub)) ? ok('[4c] 발행이 브리핑이면 첫 뉴스를 제목으로') : bad('[4c]');
+// [6] 2026-10-20 코드 점검(Claude·ChatGPT 둘 다 REAL): 썸네일 글자는 headlines[0](처음 고른 순서)인데 배경은 '사진 남은 첫 장면'.
+//   1번 뉴스가 사진을 잃어 빠지거나 도표 자리바꿈으로 순서가 바뀌면 1번 뉴스 제목이 다른 뉴스 사진 위에 찍힌다(유튜브 제목은 첫 화면 뉴스).
+{
+  const BM = await import('./brief-scenes.mjs');
+  const heads = ['A 뉴스', 'B 뉴스', 'C 뉴스'];
+  const sc = [{ story: 1, media: 'b.jpg', hook: 'B 훅' }, { story: 2, media: 'c.jpg' }, { isOutro: true }];
+  (typeof BM.thumbHeadline === 'function' && BM.thumbHeadline(sc, heads, true) === 'B 뉴스' && BM.thumbHeadline([{ media: 'x.jpg', hook: '훅' }], heads, false) === 'A 뉴스')
+    ? ok('[6a] 썸네일 제목 = 배경 사진 장면의 뉴스(브리핑) · 한 사건 편은 대표 헤드라인') : bad('[6a] 썸네일 제목이 배경 사진과 다른 뉴스일 수 있다');
+  (/thumbHeadline\(scenes, headlines, !!BRIEF\)/.test(ms) && !/String\(headlines\[0\] \|\| first\?\.hook/.test(ms))
+    ? ok('[6b] make-shorts 썸네일이 thumbHeadline 을 쓴다') : bad('[6b] make-shorts 썸네일이 아직 headlines[0]');
+}
+// [7] 같은 점검: 브리핑은 사진 없는 장면을 **먼저 지우고** 나서 '절반은 실사진' 을 센다 → total 이 남은 장면 수라 절대 안 걸린다.
+//   4건 중 1장만 남아도 10초짜리 한 장면 영상이 나간다. 기준은 **계획한** 장면 수의 절반이다.
+{
+  const BM = await import('./brief-scenes.mjs');
+  (typeof BM.footageFloor === 'function' && BM.footageFloor(1, 4) === 2 && BM.footageFloor(2, 4) === 2 && BM.footageFloor(3, 3) === 2 && BM.footageFloor(0, 0) === 1)
+    ? ok('[7a] 실사진 하한 = 계획 장면(빼기 전) 절반 — 4건 중 1장은 거른다, 2장은 낸다') : bad('[7a] 하한이 남은 장면 수로 계산된다');
+  (/footageFloor\(total, PLANNED_SCENES\)/.test(ms) && /const PLANNED_SCENES = /.test(ms))
+    ? ok('[7b] make-shorts 관문이 계획 장면 수로 센다') : bad('[7b] make-shorts 관문이 아직 지운 뒤 장면 수로 센다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
