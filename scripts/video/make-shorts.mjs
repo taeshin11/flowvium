@@ -2088,7 +2088,9 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;
 .sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 34%,
   rgba(0,0,0,.20) 62%,rgba(0,0,0,.88) 100%)}
 .h{position:absolute;left:54px;right:54px;top:130px;font-size:118px;font-weight:900;line-height:1.16;
-  color:#ffd400;-webkit-text-stroke:14px #0a0a0a;paint-order:stroke fill;letter-spacing:-.01em}
+  color:#ffd400;-webkit-text-stroke:14px #0a0a0a;paint-order:stroke fill;letter-spacing:-.01em;
+  /* 한글을 음절마다 끊지 않는다 — 10/20 '논란 / 에…' '전공자 / 라…'(shorts-thumb-wrap.test). 한 낱말이 폭을 넘을 때만 자른다. */
+  word-break:keep-all;overflow-wrap:anywhere}
 .m{position:absolute;left:0;right:0;bottom:120px;text-align:center;font-size:44px;font-weight:900;
   color:#fff;letter-spacing:.3em;text-indent:.3em;opacity:.92;-webkit-text-stroke:6px #0a0a0a;paint-order:stroke fill}
 </style><div class="bg"></div><div class="sh"></div>

@@ -24,11 +24,12 @@ export function viewedImages(conversationId, names, { dir = CONV_DIR } = {}) {
     const db = new Database(file, { readonly: true, fileMustExist: true });
     try { rows = db.prepare('SELECT step_payload FROM steps').all(); } finally { db.close(); }
   } catch { return null; }
+  // 여는 도구 이름 바로 뒤(길이 바이트 1~4개)의 인자 JSON 첫 키가 그 파일이다 — 같은 호출에 묶어 센다.
+  //   agy ≤1.4.2: view_file {"AbsolutePath":…}, 1.4.3(2026-10-20~): read_file {"Path":…}. 다른 도구(list_dir 등)의 Path 는 아니다.
   const opened = new Set();
   for (const { step_payload: p } of rows) {
     const s = Buffer.isBuffer(p) ? p.toString('utf8') : String(p ?? '');
-    if (!s.includes('view_file')) continue;
-    for (const m of s.matchAll(/"AbsolutePath":"([^"]+)"/g)) opened.add(basename(m[1]));
+    for (const m of s.matchAll(/(?:view_file|read_file)[^{]{1,4}\{"(?:AbsolutePath|Path)":"([^"]+)"/g)) opened.add(basename(m[1]));
   }
   const want = names.map((n) => basename(n));
   return { viewed: want.filter((n) => opened.has(n)), missing: want.filter((n) => !opened.has(n)) };

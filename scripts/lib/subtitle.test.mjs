@@ -328,5 +328,24 @@ const align = (text, step = 0.1, from = 0) => ({
     : bad(`소수를 쪼갰다: ${JSON.stringify(num)}`);
 }
 
+// ── 10. 두 줄 큐는 **줄마다** maxChars 안 — 합계(24자)만 보고 묶으면 한 줄이 넘친다 ─────
+// 2026-10-20 14:10 쇼츠(qhZwjB8KB5Q) 로그아웃 iPhone 13 폭 실측: "유홍준 / 국립중앙박물관장이 애국지사"(3 / 14자, 한도 12).
+//   합계 19자라 한 큐로 묶였지만 단어 길이(3·9·4)로는 12자 두 줄이 안 나와 남은 말이 둘째 줄에 몰렸고,
+//   그 줄 끝 '사' 가 유튜브 오른쪽 댓글 아이콘에 닿았다. 묶기 전에 실제로 접어 보고 넘치면 큐를 끊는다.
+{
+  const al = (text) => ({ characters: [...text], character_start_times_seconds: [...text].map((_, i) => i * 0.05),
+    character_end_times_seconds: [...text].map((_, i) => (i + 1) * 0.05) });
+  const cases = ['유홍준 국립중앙박물관장이 애국지사 이름을 걸었습니다',
+    '국회 문화체육관광위원회가 19일 국정감사를 열었습니다', '가 나다라마바사아자차카타파하 거너더러머버서어저처커'];
+  const over = [];
+  for (const s of cases) {
+    const cues = M.cuesFromAlignment(al(s), { maxChars: 12, maxLines: 2, maxDur: 99 });
+    for (const c of cues) for (const l of c.text.split('\n')) if (l.length > 12) over.push(l);
+    if (cues.map((c) => c.text.replace(/\n/g, ' ')).join(' ').replace(/\s/g, '') !== s.replace(/\s/g, '')) over.push(`손실: ${s}`);
+    if (cues.some((c) => c.text.split('\n').length > 2)) over.push(`세 줄: ${JSON.stringify(cues)}`);
+  }
+  over.length === 0 ? ok('[10] 두 줄 큐의 줄마다 12자 이하·두 줄 이하·무손실') : bad(`[10] 넘친 줄: ${JSON.stringify(over)}`);
+}
+
 console.log(fail ? `\n❌ subtitle ${fail} 실패` : '\n✅ subtitle 전부 통과');
 process.exit(fail ? 1 : 0);

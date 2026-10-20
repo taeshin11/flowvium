@@ -34,6 +34,20 @@ try {
   all && all.missing.length === 0 ? ok('[2] view_file 로 연 그림은 열린 것') : bad(`[2] ${JSON.stringify(all)}`);
   viewedImages('nope', ['frame0_1s.jpg'], { dir }) === null ? ok('[3] 대화 기록이 없으면 null(모름) — 통과 아님') : bad('[3]');
   viewedImages(undefined, ['a.jpg'], { dir }) === null ? ok('[4] conversation_id 가 없으면 null') : bad('[4]');
+  // [7] 2026-10-20 agy 1.4.3: 그림 열기가 view_file{"AbsolutePath"} → read_file{"Path"} 로 바뀌었다(10/19 21시 대화까지 view_file,
+  //   10/20 08시부터 read_file). 옛 형식만 알아서 그날 쇼츠 눈검증이 전부 '안 열고 답함' → gemini-2.5-flash 로 떨어졌다.
+  //   실제 바이트(대화 1963df69 단계 2, 993KB — 그림 내용이 실렸다): 'read_file\x1a`{"Path":"…/frame0_0s.jpg"}:'.
+  const db2 = new Database(join(dir, 'c2.db'));
+  db2.exec('CREATE TABLE steps (idx INTEGER, step_type INTEGER, step_payload BLOB)');
+  const ins2 = db2.prepare('INSERT INTO steps VALUES (?, ?, ?)');
+  ins2.run(0, 14, Buffer.from('read_file(/private/var/folders/x/T/agy-eye-ab12) prompt frame0_0s.jpg frame1_2s.jpg frame2_4s.jpg'));
+  ins2.run(2, 132, Buffer.from('\x0bcall_129407\x12\x09read_file\x1a`{"Path":"/private/var/folders/x/T/agy-eye-ab12/frame0_0s.jpg"}:\xc2\x01'));
+  ins2.run(3, 132, Buffer.from('\x0bcall_2\x12\x08list_dir\x1a`{"Path":"/private/var/folders/x/T/agy-eye-ab12/frame1_2s.jpg"}:'));   // 여는 도구가 아니다
+  ins2.run(4, 132, Buffer.from('\x0bcall_3\x12\x09read_file\x1a`{"Path":"/private/var/folders/x/T/agy-eye-ab12/notes.txt"} frame2_4s.jpg'));   // 다른 파일을 열고 이름만
+  db2.close();
+  const v2 = viewedImages('c2', ['frame0_0s.jpg', 'frame1_2s.jpg', 'frame2_4s.jpg'], { dir });
+  v2 && v2.viewed.join() === 'frame0_0s.jpg' && v2.missing.join() === 'frame1_2s.jpg,frame2_4s.jpg'
+    ? ok('[7] agy 1.4.3 read_file{"Path"} 로 연 그림도 열린 것 — 다른 도구·다른 파일 옆 이름은 아니다') : bad(`[7] ${JSON.stringify(v2)}`);
 } finally { rmSync(dir, { recursive: true, force: true }); }
 // [5][6] 눈검증 두 길이 이 검사를 실제로 쓴다 — 안 열었으면 '검사함' 이 아니다.
 {
@@ -41,6 +55,10 @@ try {
   const src = (f) => readFileSync(new URL(f, import.meta.url), 'utf8');
   /viewedImages\(j\.conversation_id, names\)/.test(src('./video-eye.mjs')) ? ok('[5] video-eye(쇼츠 프레임) 가 열었는지 확인한다') : bad('[5] video-eye 미연결');
   /viewedImages\(extractJson\(r\.stdout\)\?\.conversation_id, imgs\)/.test(src('./cross-check.mjs')) ? ok('[6] cross-check(그림 첨부 교차검증) 가 열었는지 확인한다') : bad('[6] cross-check 미연결');
+  // [8] 10/20 14:14 발행 로그는 '✅ gemini-2.5-flash 이상 없음' 만 적었다 — agy 를 왜 못 썼는지(그림 안 열고 답함)가 없어
+  //   형식이 바뀐 걸 발행 로그로는 알 수 없었다. agy 가 아닌 눈으로 봤으면 그 이유를 같은 줄에 남긴다.
+  /eye\.model\.startsWith\('agy:'\) \? '' : ` · agy 못 씀: \$\{eyeWhy\(\)\.join\(' · '\) \|\| '이유 없음'\}`/.test(src('../video-publish.mjs'))
+    ? ok('[8] 발행 눈검증이 agy 대신 다른 모델로 봤으면 그 이유를 적는다') : bad('[8] 발행 로그에 agy 를 못 쓴 이유가 없다');
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

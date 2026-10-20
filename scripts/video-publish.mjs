@@ -474,7 +474,7 @@ if (DRY) { log('--dry-run — 업로드하지 않는다'); process.exit(0); }
 //   영상 한 편을 잃는 것보다 사람이 보고 내리는 편이 낫다. 로그에 남기고 계속 간다.
 //   판정이 쌓이면 그때 막을지 정한다.
 try {
-  const { inspectVideo } = await import('./lib/video-eye.mjs');
+  const { inspectVideo, eyeWhy } = await import('./lib/video-eye.mjs');
   const eye = await inspectVideo(VIDEO, { kind: 'shorts', timeoutMs: 120000 });
   if (!eye.checked) log(`[눈검증] 판정 없음 — ${eye.notes}`);   // 못 본 것을 '이상 없음' 으로 적지 않는다
   else if (!eye.ok || eye.issues.length) {
@@ -482,6 +482,8 @@ try {
     for (const i of eye.issues) log(`   · ${i}`);
     log('   → 막지 않는다. 사람이 확인할 것.');
   } else log(`[눈검증] ✅ ${eye.model} 이상 없음 (프레임 ${eye.frames.length}장)`);
+  // agy(argon) 가 아닌 눈으로 봤으면 왜인지 남긴다 — 10/20 agy 1.4.3 형식 변경을 이 줄이 없어 발행 로그로는 못 봤다.
+  if (eye.model) log(`[눈검증] 눈: ${eye.model}${eye.model.startsWith('agy:') ? '' : ` · agy 못 씀: ${eyeWhy().join(' · ') || '이유 없음'}`}`);
   if (THUMB && existsSync(THUMB)) {
     const t = await inspectVideo(THUMB, { kind: 'thumb', frames: 1, durationSec: 1, timeoutMs: 90000 }).catch(() => null);
     if (t?.checked && (!t.ok || t.issues.length)) { log('[눈검증] ⚠ 썸네일:'); for (const i of t.issues) log(`   · ${i}`); }

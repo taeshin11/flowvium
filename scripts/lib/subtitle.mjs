@@ -75,6 +75,13 @@ export function wrapLines(text, maxChars, maxLines = 2) {
 export function cuesFromAlignment(alignment, opts = {}) {
   const { maxChars = 24, maxDur = 3.0, offset = 0, maxLines = 1 } = opts;
   const budget = maxChars * maxLines;   // 큐 하나가 담을 총 글자 수(줄 수 × 줄당 글자)
+  // 묶어도 되는지는 합계가 아니라 **실제로 접은 줄마다** 본다. 2026-10-20: 합계 19자(≤24)라 묶인 "유홍준 국립중앙박물관장이 애국지사"가
+  //   단어 길이 3·9·4 로는 12자 두 줄이 안 나와 둘째 줄 14자 → 폰에서 유튜브 오른쪽 아이콘에 닿았다(subtitle.test [10]).
+  const fits = (text) => {
+    if (maxLines <= 1) return text.length <= maxChars;
+    const lines = wrapLines(text, maxChars, maxLines);
+    return lines.length <= maxLines && lines.every((l) => l.length <= maxChars);
+  };
   const ch = alignment?.characters;
   const st = alignment?.character_start_times_seconds;
   const en = alignment?.character_end_times_seconds;
@@ -114,9 +121,9 @@ export function cuesFromAlignment(alignment, opts = {}) {
     const nextText = parts[n]?.text;
     const ends = isSentenceEnd(p.text, nextText);
     const sep = cur && !p.glue ? ' ' : '';
-    const wouldLen = cur ? cur.text.length + sep.length + p.text.length : p.text.length;
+    const wouldText = cur ? cur.text + sep + p.text : p.text;
     const wouldDur = cur ? en[p.to] - st[cur.from] : en[p.to] - st[p.from];
-    if (cur && wouldLen <= budget && wouldDur <= maxDur && !cur.sentenceEnd) {
+    if (cur && fits(wouldText) && wouldDur <= maxDur && !cur.sentenceEnd) {
       cur.text += sep + p.text;
       cur.to = p.to;
       cur.sentenceEnd = ends;
