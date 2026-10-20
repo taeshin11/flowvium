@@ -77,5 +77,17 @@ const pub = readFileSync(new URL('../video-publish.mjs', import.meta.url), 'utf8
   (/footageFloor\(total, PLANNED_SCENES\)/.test(ms) && /const PLANNED_SCENES = /.test(ms))
     ? ok('[7b] make-shorts 관문이 계획 장면 수로 센다') : bad('[7b] make-shorts 관문이 아직 지운 뒤 장면 수로 센다');
 }
+// [8] 2026-10-20 실측(10/18 21:45 WYtOA2WgZTI 로그): 브리핑 네 장면이 모두 "visual 비어 있음 → 한국어 개체명 'LG전자 신뢰도'" —
+//   빈 visual 을 메우는 개체명을 **네 뉴스 헤드라인을 다 합친 데서** 뽑아 추미애·DMZ·젤렌스키 장면이 LG전자로 사진을 찾았다.
+//   브리핑 장면은 자기 뉴스 헤드라인에서만 뽑는다.
+{
+  const BM = await import('./brief-scenes.mjs');
+  const heads = ['野, 추미애 발언에 맹공', '젤렌스키, 트럼프 대러제재 유예 비판', 'LG전자 신뢰도 1위'];
+  (typeof BM.sceneHeadlines === 'function' && BM.sceneHeadlines({ story: 1 }, heads, true).join() === heads[1]
+    && BM.sceneHeadlines({ story: 1 }, heads, false).join() === heads.join())
+    ? ok('[8a] 브리핑 장면은 자기 뉴스 헤드라인만, 한 사건 편은 전부') : bad('[8a] 브리핑 장면이 남의 뉴스 헤드라인을 섞는다');
+  (/sceneHeadlines\(scenes\[i\], headlines, !!BRIEF\)/.test(ms) && !/const pool = `\$\{scenes\[i\]\.hook \?\? ''\} \$\{headlines\.join\(' '\)\}`/.test(ms))
+    ? ok('[8b] make-shorts 빈 visual 메우기가 sceneHeadlines 를 쓴다') : bad('[8b] make-shorts 가 아직 모든 헤드라인을 합친다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

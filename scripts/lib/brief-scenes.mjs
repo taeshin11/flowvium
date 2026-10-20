@@ -48,3 +48,12 @@ export function thumbHeadline(scenes, headlines, brief) {
 export function footageFloor(total, planned = 0) {
   return Math.max(1, Math.ceil(Math.max(total, planned) / 2));
 }
+
+/**
+ * 장면이 사진·개체명을 찾을 때 볼 헤드라인. 브리핑은 **자기 뉴스 것만**, 한 사건 편은 전부. 2026-10-20.
+ *   종전엔 모든 헤드라인을 합쳐 뽑아, 10/18 브리핑 네 장면이 모두 'LG전자 신뢰도' 로 사진을 찾았다(brief-scenes.test [8]).
+ */
+export function sceneHeadlines(scene, headlines, brief) {
+  if (brief && Number.isInteger(scene?.story) && headlines?.[scene.story]) return [headlines[scene.story]];
+  return [...(headlines ?? [])];
+}

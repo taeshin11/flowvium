@@ -70,7 +70,8 @@ FORM_LIMIT = 0.20
 #   "주제 0.60 vs 미끼 0.16" 으로 나갔다. 주제 문장과의 절대 유사도(코사인) 하한을 같이 건다.
 #   0.16 은 잰 값: 게시 쇼츠 23편 첫 장면 사진 × 자기 헤드라인 0.166~0.348(오탐 0/23),
 #   남의 기사와 짝지은 사진 0.091~0.257(9/23 잡음), 탱크 0.150. 여유가 얇다 — 근거·재측정은 lib/clip-floor.test.mjs.
-SIM_FLOOR = float(os.environ.get("CLIP_SIM_FLOOR", "0.16"))
+# 2026-10-20 재측정 → 0.155: 맞는 사진(젤렌스키 기사, 0.1595)이 걸렸고, 0.15~0.16 사이에서 더 잡는 남의 사진은 없었다(162쌍).
+SIM_FLOOR = float(os.environ.get("CLIP_SIM_FLOOR", "0.155"))
 
 
 def decide(topic_score, decoy_score, form_score, sim):

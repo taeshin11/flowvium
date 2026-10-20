@@ -37,7 +37,7 @@ import { searchCcVideos, downloadCcClip, ccDownloadReady, ccBudgetLeft } from '.
 import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
-import { tagBriefScenes, briefMeta, leadStory, thumbHeadline, footageFloor } from '../lib/brief-scenes.mjs';
+import { tagBriefScenes, briefMeta, leadStory, thumbHeadline, footageFloor, sceneHeadlines } from '../lib/brief-scenes.mjs';
 import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArchiveVideo, searchKoglCommons, pickFootageMany, preferKorean, creditLine, titleRelevant, hasDistinctiveTerm, isRealFootage, koreanEntities, properNounsFrom, preferRecent, dropArchival, needsKoreaAnchor, looksKorean, isBarePlace, canSearchAlone, isVaguePlaceQuery } from '../lib/footage.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
@@ -1383,9 +1383,11 @@ for (let i = 0; i < scenes.length; i++) {
   //   4B 가 지어낸 영어 어구보다, 기사에 실제로 있는 이름이 믿을 만하다.
   //   ⚠ 2026-09-04: 처음엔 고유명사로 **덮어썼는데** 전 장면이 카드가 됐다(중기부 편).
   //   "중기부" 같은 한글 기관명은 아카이브에 거의 없다. 덮지 말고 **먼저 시도할 후보**로만 둔다.
-  const ownNouns = properNounsFrom(`${scenes[i].hook ?? ''} ${headlines.slice(0, 3).join(' ')}`, { max: 2 });
+  // 2026-10-20: 브리핑은 자기 뉴스 헤드라인만 본다(lib/brief-scenes sceneHeadlines) — 다 합치면 남의 뉴스 개체명이 뽑힌다.
+  const ownHeads = sceneHeadlines(scenes[i], headlines, !!BRIEF);
+  const ownNouns = properNounsFrom(`${scenes[i].hook ?? ''} ${ownHeads.slice(0, 3).join(' ')}`, { max: 2 });
   if (!vis) {
-    const pool = `${scenes[i].hook ?? ''} ${headlines.join(' ')}`;
+    const pool = `${scenes[i].hook ?? ''} ${ownHeads.join(' ')}`;
     // 2026-09-03: 종전엔 영문 고유명사를 먼저 썼다. 한국 기사에는 영문이 드물게 섞이는데
     //   그 드문 하나가 뽑히면 엉뚱한 데로 간다 — 실측: 부산 예인선 사고 기사에서 "CCTV" 가 뽑혀
     //   네 장면 전부에 감시카메라와 **중국 CCTV 방송국 건물**이 깔렸다.
