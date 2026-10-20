@@ -2786,11 +2786,11 @@
     "fy": "2025"
   },
   "FDS": {
-    "revUsd": 2321748000,
-    "revYoYPct": 5.4,
-    "opMarginPct": 32.2,
-    "roePct": 27.3,
-    "fy": "2025"
+    "revUsd": 2476256000,
+    "revYoYPct": 6.7,
+    "opMarginPct": 28.3,
+    "roePct": 26.6,
+    "fy": "2026"
   },
   "FICO": {
     "revUsd": 1990869000,
@@ -3231,6 +3231,13 @@
     "revYoYPct": 4.3,
     "opMarginPct": 9.5,
     "roePct": 42.5,
+    "fy": "2025"
+  },
+  "TYL": {
+    "revUsd": 2332340000,
+    "revYoYPct": 9.1,
+    "opMarginPct": 15.3,
+    "roePct": 8.5,
     "fy": "2025"
   },
   "URI": {
