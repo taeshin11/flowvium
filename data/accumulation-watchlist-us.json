@@ -1,43 +1,61 @@
 {
-  "generatedAt": "2026-10-21T13:00:58.087Z",
+  "generatedAt": "2026-10-21T22:22:05.130Z",
   "universe": "US",
   "scanned": 329,
-  "count": 7,
-  "strongCount": 0,
-  "watchCount": 7,
+  "count": 9,
+  "strongCount": 1,
+  "watchCount": 8,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "PPLC",
-      "name": "PPL Corporation Corporate",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
+      "ticker": "CLDT",
+      "name": "Chatham Lodging Trust (REIT)",
+      "tier": "strong",
+      "score": 37,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 3.3,
-      "runup5dPct": 0,
-      "medDollarVolUsd": 1407880,
+      "runup20dPct": 9.6,
+      "runup5dPct": 3.6,
+      "medDollarVolUsd": 3493056,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "AGNCZ",
-      "name": "AGNC Investment Corp. - Deposit",
+      "ticker": "HEPS",
+      "name": "D-Market Electronic Services & ",
       "tier": "watch",
-      "score": 31,
+      "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)",
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 9.1,
+      "runup5dPct": 0.7,
+      "medDollarVolUsd": 435006,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BHFAN",
+      "name": "Brighthouse Financial, Inc. - d",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -6.4,
-      "runup5dPct": -1.9,
-      "medDollarVolUsd": 880649,
+      "runup20dPct": -10.9,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 600750,
       "smartAccum": false,
       "official": null
     },
@@ -48,30 +66,30 @@
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.7× 급증(가격 평탄)",
+        "거래량 추세 1.6× 상승",
+        "거래량 2.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -1.3,
-      "runup5dPct": 4.4,
-      "medDollarVolUsd": 862072,
+      "runup20dPct": -0.2,
+      "runup5dPct": 4.8,
+      "medDollarVolUsd": 834560,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CLDT",
-      "name": "Chatham Lodging Trust (REIT)",
+      "ticker": "AGNCZ",
+      "name": "AGNC Investment Corp. - Deposit",
       "tier": "watch",
       "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 2.0× 상승",
+        "거래량 2.6× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 7.1,
-      "runup5dPct": 1.9,
-      "medDollarVolUsd": 3493056,
+      "runup20dPct": -5.8,
+      "runup5dPct": -0.8,
+      "medDollarVolUsd": 937594,
       "smartAccum": false,
       "official": null
     },
@@ -85,9 +103,9 @@
         "거래량 추세 1.8× 상승",
         "흡수 매집봉 3개(대량거래·가격억제 — 세력 물량흡수)"
       ],
-      "runup20dPct": -2.4,
-      "runup5dPct": 7.3,
-      "medDollarVolUsd": 17122672,
+      "runup20dPct": 2.2,
+      "runup5dPct": 13.5,
+      "medDollarVolUsd": 17811750,
       "smartAccum": false,
       "official": null
     },
@@ -98,12 +116,28 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.4,
-      "runup5dPct": -1,
-      "medDollarVolUsd": 162325,
+      "runup20dPct": -3.3,
+      "runup5dPct": 1.1,
+      "medDollarVolUsd": 173012,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PPLC",
+      "name": "PPL Corporation Corporate",
+      "tier": "watch",
+      "score": 22,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 4.5,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 1407880,
       "smartAccum": false,
       "official": null
     },
@@ -111,14 +145,14 @@
       "ticker": "XBIT",
       "name": "XBiotech Inc.",
       "tier": "watch",
-      "score": 23,
+      "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 2.0× 상승",
         "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.3,
-      "runup5dPct": -6.5,
+      "runup20dPct": -8.7,
+      "runup5dPct": -7.9,
       "medDollarVolUsd": 69978,
       "smartAccum": false,
       "official": null
