@@ -1,48 +1,48 @@
 {
- "at": "2026-10-21T07:20:00.090Z",
- "recorded": 16,
- "scored": 16,
+ "at": "2026-10-21T22:20:00.108Z",
+ "recorded": 18,
+ "scored": 18,
  "coverage": {
   "kr": {
-   "sessions": 4,
-   "recorded": 4,
+   "sessions": 3,
+   "recorded": 3,
    "missing": []
   },
   "us": {
-   "sessions": 4,
-   "recorded": 4,
+   "sessions": 5,
+   "recorded": 5,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 8,
+   "n": 10,
    "report": {
     "calls": 4,
     "hits": 0,
-    "abstain": 4,
+    "abstain": 6,
     "hitRate": 0
    },
    "base": {
-    "brier": 0.2411134145646408,
+    "brier": 0.23354619020782738,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 8,
-      "meanP": 0.4508712729865508,
-      "observed": 0.375
+      "n": 10,
+      "meanP": 0.45086663356341533,
+      "observed": 0.3
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.2411134145646408,
+    "brier": 0.23354619020782738,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 8,
-      "meanP": 0.4508712729865508,
-      "observed": 0.375
+      "n": 10,
+      "meanP": 0.45086663356341533,
+      "observed": 0.3
      }
     ],
     "skill": 0
@@ -240,33 +240,33 @@
     }
    },
    "us": {
-    "n": 4,
+    "n": 6,
     "report": {
      "calls": 2,
      "hits": 0,
-     "abstain": 2,
+     "abstain": 4,
      "hitRate": 0
     },
     "base": {
-     "brier": 0.2297571771986383,
+     "brier": 0.22093054905928344,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 4,
-       "meanP": 0.45088023726420234,
-       "observed": 0.25
+       "n": 6,
+       "meanP": 0.45086951679975945,
+       "observed": 0.16666666666666666
       }
      ],
      "skill": 0
     },
     "clim": {
-     "brier": 0.2297571771986383,
+     "brier": 0.22093054905928344,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 4,
-       "meanP": 0.45088023726420234,
-       "observed": 0.25
+       "n": 6,
+       "meanP": 0.45086951679975945,
+       "observed": 0.16666666666666666
       }
      ],
      "skill": 0
