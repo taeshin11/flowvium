@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-21T07:20:24.213Z",
+  "generatedAt": "2026-10-21T22:20:23.073Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 1,
@@ -8,20 +8,19 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "043370.KQ",
-      "name": "피에이치에이",
+      "ticker": "048530.KQ",
+      "name": "인트론바이오",
       "tier": "watch",
-      "score": 41,
+      "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "거래량 추세 10.9× 상승(지속 매집)",
+        "거래량 15.7× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 5.8,
-      "runup5dPct": 8.5,
-      "medDollarVolUsd": 129059,
+      "runup20dPct": -1,
+      "runup5dPct": 4.8,
+      "medDollarVolUsd": 136355,
       "smartAccum": true,
       "official": null
     }
