@@ -5,10 +5,37 @@
       "date": "2026-10-22",
       "reason": "FRED 400/HTML — FRED 점검 HTML 을 웹서버(10/16 빌드)가 거시지표로 읽어 earlyWarning 이 HY·IG 400% 로 high(58/50). 배포 21:38, 저녁 재발간 21:50(generatedAt 12:50:28Z, 오염 아님)",
       "reports": [
-        { "file": "report-2026-10-22-morning-ko.json", "generatedAt": "2026-10-21T20:34:22.655Z" },
-        { "file": "report-2026-10-22-noon-ko.json", "generatedAt": "2026-10-22T01:36:46.851Z" },
-        { "file": "report-2026-10-22-afternoon-ko.json", "generatedAt": "2026-10-22T05:34:48.462Z" },
-        { "file": "report-2026-10-22-evening-ko.json", "generatedAt": "2026-10-22T11:06:40.369Z" }
+        {
+          "file": "report-2026-10-22-morning-ko.json",
+          "generatedAt": "2026-10-21T20:34:22.655Z"
+        },
+        {
+          "file": "report-2026-10-22-noon-ko.json",
+          "generatedAt": "2026-10-22T01:36:46.851Z"
+        },
+        {
+          "file": "report-2026-10-22-afternoon-ko.json",
+          "generatedAt": "2026-10-22T05:34:48.462Z"
+        },
+        {
+          "file": "report-2026-10-22-evening-ko.json",
+          "generatedAt": "2026-10-22T11:06:40.369Z"
+        }
+      ],
+      "dbFixes": [
+        {
+          "table": "macro_snapshots",
+          "id": 732,
+          "report_id": "2026-10-22:afternoon:ko",
+          "setNull": [
+            "fed_rate",
+            "hy_oas",
+            "ig_oas",
+            "gdp_growth"
+          ],
+          "was": 400.0,
+          "why": "관측이 아닌 값(점검 HTML) — 모르는 값은 NULL"
+        }
       ]
     }
   ]
