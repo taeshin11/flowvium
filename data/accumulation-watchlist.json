@@ -1,28 +1,10 @@
 {
-  "generatedAt": "2026-10-21T22:20:23.073Z",
+  "generatedAt": "2026-10-22T07:20:25.248Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 0,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "048530.KQ",
-      "name": "인트론바이오",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 10.9× 상승(지속 매집)",
-        "거래량 15.7× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -1,
-      "runup5dPct": 4.8,
-      "medDollarVolUsd": 136355,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
