@@ -650,7 +650,10 @@ const MAINT_JOBS = [
   //   자동 생성 뉴스 요약 9편/일이 정확히 그 모양이다. 하루 2편(회당 1편)으로 나눠 올린다.
   //   대본(hooks)이 남은 편만 쓴다. 헤드라인만으로는 제목 나열이라 얇은 글이 된다.
   //   2026-09-19: agy 전환으로 실측 91초(3블록). 예산은 blog-post 와 같은 이유로 올린다.
-  { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --max-items 5',  timeoutMs: 480000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
+  //   2026-10-22 쉼(Mac mini2 — 블로그 담당 결정): 글 72→90편 늘어도 누적 조회 20→22·7일 2(logs/platform-daily.json).
+  //   블로그는 하루 1편(blog-post 아침 글)만 남기고 쇼츠 글은 멈춘다. 10/29 재측정에서 7일 조회 10 미만이면 중단을 사장님께 올린다.
+  //   되살리려면 아래 줄의 주석을 푼다. 기존 글은 그대로 둔다.
+  // { label: 'shorts-blog',          script: 'scripts/make-shorts-blog.mjs --max-items 5',  timeoutMs: 480000,  commitPaths: ['reports/blog'],                       schedules: ['40 3 * * *', '40 12 * * *'],  maxAgeH: 20 },
   // 2026-09-25 사장님 "우리가 놓친 요소가 없는지 항상 확인해야되. 너무 빨리 팔지는 않았는지도".
   //   청산 품질(손절·목표·매도엔진 매도 뒤 20거래일)을 손으로 돌릴 때만 봤다 — 마지막이 일주일 전이었다.
   //   매주 일요일 04:40 KST(토 19:40 UTC): 토요일 tune-sell-rules 뒤, 아침 보고서 준비(05:30~) 전.

@@ -1971,6 +1971,27 @@ closeGoogleImages();
     }
   } catch (e) { log(`[화면] 썸네일 자리 점검 건너뜀: ${String(e.message).slice(0, 40)}`); }
 
+  // ── 첫 화면 얼굴 (2026-10-22 KPI 2차, lib/face-opener.test 머리말) ───────────────────────
+  //   얼굴로 여는 편 본 비율 중앙 0.49·실패 1/64, 얼굴 없이 여는 편 0.33·실패 6/36(100편). 한 이슈 편만 그림을 바꾼다.
+  try {
+    const { faceOpenerIndex } = await import('../lib/face-opener.mjs');
+    const { faceCount } = await import('../lib/face-check.mjs');
+    const { clipCharts } = await import('../lib/clip-gate.mjs');
+    const fc = new Map();
+    const facesAt = (k) => { const m = scenes[k]?.media; if (!m) return null; if (!fc.has(m)) fc.set(m, faceCount(clipStill(m))); return fc.get(m); };
+    const idx = scenes.map((x, k) => k).filter((k) => !scenes[k].isOutro && scenes[k].media);
+    let charts = null;
+    const chartAt = (k) => { charts ??= clipCharts(idx.map((i) => scenes[i].media)); const i = idx.indexOf(k); return i < 0 ? null : charts[i]; };
+    const k = faceOpenerIndex(scenes, { facesAt, chartAt, brief: !!BRIEF });
+    if (k > 0) {
+      const { swapScenePair } = await import('../lib/scene-swap.mjs');
+      const first = scenes.findIndex((x) => !x.isOutro);
+      swapScenePair(scenes, first, k, { brief: false });
+      for (const f of ['faces', 'sourceTitle']) { const t = scenes[first][f]; scenes[first][f] = scenes[k][f]; scenes[k][f] = t; }
+      log(`[화면] 첫 화면에 얼굴이 없다 — ${k + 1}번 얼굴 사진(${fc.get(scenes[first].media)}명)과 그림을 바꾼다`);
+    }
+  } catch (e) { log(`[화면] 첫 화면 얼굴 점검 건너뜀: ${String(e.message).slice(0, 40)}`); }
+
   const total = scenes.filter((x) => !x.isOutro).length;
   // 2026-09-05: "하나도 없으면" 만 막았더니 **4장면 중 1장만 있는 편**이 통과했다.
   //   백필이 회색 카드 3장 + 임시정부 청사 사진 하나로 한 편을 냈다(내렸다).
