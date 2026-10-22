@@ -2715,6 +2715,13 @@
     "roePct": null,
     "fy": "2025"
   },
+  "SATS": {
+    "revUsd": 15004989000,
+    "revYoYPct": -5.2,
+    "opMarginPct": null,
+    "roePct": -251.4,
+    "fy": "2025"
+  },
   "EIX": {
     "revUsd": 19317000000,
     "revYoYPct": 9.8,
@@ -3064,13 +3071,6 @@
     "opMarginPct": 24.8,
     "roePct": 20.1,
     "fy": "2025"
-  },
-  "PSKY": {
-    "revUsd": 29213000000,
-    "revYoYPct": -1.5,
-    "opMarginPct": -18,
-    "roePct": -37.9,
-    "fy": "2024"
   },
   "PNR": {
     "revUsd": 4176000000,
@@ -3588,13 +3588,6 @@
     "revYoYPct": 4.7,
     "opMarginPct": 5,
     "roePct": 34,
-    "fy": "2025"
-  },
-  "WBD": {
-    "revUsd": 37296000000,
-    "revYoYPct": -5.1,
-    "opMarginPct": 2,
-    "roePct": 2,
     "fy": "2025"
   },
   "FOX": {
