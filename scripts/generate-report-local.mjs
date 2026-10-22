@@ -3892,6 +3892,13 @@ async function gatherContext() {
     namedFetch('optionsFlow',       `${base}/api/options-flow`, 10000),   // 2026-06-13: UOA vol/OI 파생 (매수·매도 micro 신호)
     namedFetch('blockTrades',       `${base}/api/block-trades`, 15000),   // 2026-06-13: 5분봉 버스트 proxy
   ]);
+  // 2026-10-22: 점검 HTML 을 읽은 지표(actual 400 · releaseDate HTML)를 뺀다 — lib/macro-valid.test 머리말.
+  if (Array.isArray(macro?.indicators)) {
+    const { validMacroIndicators } = await import('./lib/macro-valid.mjs');
+    const v = validMacroIndicators(macro.indicators);
+    if (v.dropped.length) console.warn(`  ⚠️ [macro] 관측이 아닌 지표 ${v.dropped.length}개 제외: ${v.dropped.join(', ')}`);
+    macro.indicators = v.kept;
+  }
 
   // 2026-06-05: FX 동적 수집 (Yahoo KRW=X/DXY — 외부 권위 소스, 하드코딩 아님). KR 추천 risk 핵심.
   const fx = await fetchFX();
