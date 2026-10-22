@@ -11,6 +11,9 @@
  *   - 도표(0.3 이상)는 후보가 아니다.
  *   - 다른 사람 얼굴을 첫 화면에 올리지 않는다: 첫 장면 자막의 첫 말을 사람 이름으로 **가정**하고
  *     그 사진을 낸 기사 제목에 그 이름이 없으면 후보에서 뺀다(face-check personMismatch 를 isPerson=true 로 — 더 엄한 쪽).
+ *   - 2026-10-22 Mac mini2(같은 날 트롯픽에 다른 사람 사진이 나가 비공개): 첫 자막의 첫 말이 **사람 이름으로 판정된 때만**
+ *     (personLeads → firstIsPerson === true) 바꾼다. 모르거나 사람이 아니거나 한 글자 말("왜")이면 지금처럼 그대로 낸다.
+ *   - 새 사진을 들이지 않는다 — 이미 그 편에 실린(검사를 통과한) 사진끼리만 자리를 바꾼다.
  */
 import { readFileSync } from 'fs';
 import { faceOpenerIndex } from './face-opener.mjs';
@@ -21,7 +24,7 @@ const sc = (hook, media, sourceTitle) => ({ hook, media, sourceTitle });
 const faces = (m) => (k) => m[k];
 {
   const s = [sc('한동훈 사퇴 압박 커지나', 'bldg.jpg', '한동훈 사퇴론'), sc('당내 반발', 'x.jpg', '한동훈 사퇴론 확산'), sc('끝', null)];
-  const r = faceOpenerIndex(s, { facesAt: faces([0, 1]) });
+  const r = faceOpenerIndex(s, { facesAt: faces([0, 1]), firstIsPerson: true });
   r === 1 ? ok('[1] 첫 화면 얼굴 0 → 같은 사람 기사 얼굴 사진(1번)과 바꾼다') : bad(`[1] ${r}`);
 }
 {
@@ -36,7 +39,7 @@ const faces = (m) => (k) => m[k];
 }
 {
   const s = [sc('한동훈 사퇴', 'a.jpg', '한동훈'), sc('b', 'b.jpg', '젤렌스키 방한'), sc('c', 'c.jpg', '한동훈 기자회견')];
-  const r = faceOpenerIndex(s, { facesAt: faces([0, 1, 1]) });
+  const r = faceOpenerIndex(s, { facesAt: faces([0, 1, 1]), firstIsPerson: true });
   r === 2 ? ok('[4] 첫 자막의 이름이 없는 기사의 얼굴(젤렌스키)은 건너뛰고 2번') : bad(`[4] ${r}`);
 }
 {
@@ -45,8 +48,19 @@ const faces = (m) => (k) => m[k];
   r === -1 ? ok('[5] 브리핑은 바꾸지 않는다') : bad(`[5] ${r}`);
 }
 {
-  const s = [sc('기준금리 동결', 'a.jpg', 't'), sc('b', 'chart.jpg', '기준금리 동결 그래프'), sc('c', 'c.jpg', '기준금리 동결 총재')];
-  const r = faceOpenerIndex(s, { facesAt: faces([0, 1, 1]), chartAt: (k) => [0, 0.9, 0.1][k] });
+  const s = [sc('한동훈 사퇴', 'a.jpg', 't'), sc('b', 'b.jpg', '한동훈 기자회견')];
+  const a = faceOpenerIndex(s, { facesAt: faces([0, 1]), firstIsPerson: null });
+  const b = faceOpenerIndex(s, { facesAt: faces([0, 1]), firstIsPerson: false });
+  (a === -1 && b === -1) ? ok('[9] 첫 말이 사람 이름인지 모르거나(null) 아니면(false) 바꾸지 않는다') : bad(`[9] ${a} ${b}`);
+}
+{
+  const s = [sc('왜 사퇴했나', 'a.jpg', 't'), sc('b', 'b.jpg', '한동훈 기자회견')];
+  const r = faceOpenerIndex(s, { facesAt: faces([0, 1]), firstIsPerson: true });
+  r === -1 ? ok('[10] 첫 말이 한 글자("왜") — 이름 대조를 못 하니 바꾸지 않는다') : bad(`[10] ${r}`);
+}
+{
+  const s = [sc('이창용 동결', 'a.jpg', 't'), sc('b', 'chart.jpg', '이창용 그래프'), sc('c', 'c.jpg', '이창용 총재 회견')];
+  const r = faceOpenerIndex(s, { facesAt: faces([0, 1, 1]), chartAt: (k) => [0, 0.9, 0.1][k], firstIsPerson: true });
   r === 2 ? ok('[6] 도표 후보는 건너뛴다') : bad(`[6] ${r}`);
 }
 {

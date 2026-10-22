@@ -1982,7 +1982,15 @@ closeGoogleImages();
     const idx = scenes.map((x, k) => k).filter((k) => !scenes[k].isOutro && scenes[k].media);
     let charts = null;
     const chartAt = (k) => { charts ??= clipCharts(idx.map((i) => scenes[i].media)); const i = idx.indexOf(k); return i < 0 ? null : charts[i]; };
-    const k = faceOpenerIndex(scenes, { facesAt, chartAt, brief: !!BRIEF });
+    // 첫 말이 사람 이름인지는 바꿀 후보가 있을 때만 agy 에 묻는다(모르면 그대로 — 10/22 트롯픽 다른 사람 사진 건).
+    const first0 = scenes.findIndex((x) => !x.isOutro);
+    let k = faceOpenerIndex(scenes, { facesAt, chartAt, brief: !!BRIEF, firstIsPerson: true });
+    if (k > 0) {
+      const { personLeads } = await import('../lib/face-check.mjs');
+      const isPerson = (await personLeads([scenes[first0].hook]))?.[0] ?? null;
+      k = faceOpenerIndex(scenes, { facesAt, chartAt, brief: !!BRIEF, firstIsPerson: isPerson });
+      if (k < 0) log(`[화면] 첫 화면에 얼굴이 없지만 첫 말이 사람 이름으로 확인되지 않아(${isPerson}) 그대로 간다`);
+    }
     if (k > 0) {
       const { swapScenePair } = await import('../lib/scene-swap.mjs');
       const first = scenes.findIndex((x) => !x.isOutro);
