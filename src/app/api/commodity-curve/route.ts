@@ -4,6 +4,7 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
+import { parseFredCsv } from '@/lib/fred-csv';
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min memory
 const REDIS_TTL = 6 * 60 * 60;       // 6h Redis
@@ -62,16 +63,8 @@ async function fetchFREDSeries(series: string, days = 14): Promise<{ latest: num
       { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000), cache: 'no-store' }
     );
     if (!res.ok) return null;
-    const text = await res.text();
-    const lines = text.trim().split('\n').slice(1);
-    const values: number[] = [];
-    for (const line of lines) {
-      const val = line.split(',')[1]?.trim();
-      if (val && val !== '.') {
-        const n = parseFloat(val);
-        if (!isNaN(n) && n > 0) values.push(n);
-      }
-    }
+    // 2026-10-22: 공용 parseFredCsv(lib/fred-csv) — 점검 HTML 을 숫자로 읽지 않는다.
+    const values = parseFredCsv(await res.text()).map((o) => o.value).filter((n) => n > 0);
     if (!values.length) return null;
     return { latest: parseFloat(values[values.length - 1].toFixed(2)), prev: values.length >= 2 ? parseFloat(values[values.length - 2].toFixed(2)) : null };
   } catch { return null; }

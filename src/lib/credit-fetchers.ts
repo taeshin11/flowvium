@@ -21,6 +21,7 @@ export interface LiveCreditData {
 }
 
 import { logger } from './logger';
+import { parseFredCsv } from '@/lib/fred-csv';
 
 const COMMON_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
@@ -75,14 +76,8 @@ export async function fetchUS(): Promise<LiveCreditData | null> {
       logger.warn('credit.us', 'fred_csv_http_error', { status: res.status, durationMs: Date.now() - start });
       return null;
     }
-    const text = await res.text();
-    const rows = text.trim().split('\n').slice(1)
-      .map(line => {
-        const [date, val] = line.split(',');
-        const value = parseFloat(val);
-        return (!date || isNaN(value)) ? null : { date: date.trim(), value };
-      })
-      .filter((x): x is { date: string; value: number } => x !== null);
+    // 2026-10-22: 공용 parseFredCsv(lib/fred-csv) — 점검 HTML 을 숫자로 읽지 않는다.
+    const rows = parseFredCsv(await res.text());
 
     const last = rows[rows.length - 1];
     if (!last) { logger.warn('credit.us', 'fred_csv_no_data'); return null; }

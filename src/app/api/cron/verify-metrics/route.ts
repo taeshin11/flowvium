@@ -26,6 +26,7 @@ import { logger, loggedRedisSet } from '@/lib/logger';
 import { logMetrics } from '@/lib/metrics-db';
 import { YAHOO_HEADERS } from '@/lib/yahoo-finance';
 import { isGarbage as isGarbageText, isKnownSource, GARBAGE_MIN_LEN, ALLOWED_AI_SOURCES, FALLBACK_SOURCES } from '@/lib/strategy-quality';
+import { parseFredCsv } from '@/lib/fred-csv';
 
 export const dynamic = 'force-dynamic';
 
@@ -881,13 +882,8 @@ async function verifyAccuracyStack(base: string): Promise<MetricItem[]> {
     if (!fredRes.ok || !ourRes.ok) throw new Error(`fred=${fredRes.status} ours=${ourRes.status}`);
     const csv = await fredRes.text();
     const ourData = await ourRes.json();
-    // CSV: observation_date,T10Y2Y\n... — take last non-'.' value
-    const lines = csv.trim().split('\n').slice(1);
-    let fredSpread: number | null = null;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const val = lines[i].split(',')[1]?.trim();
-      if (val && val !== '.') { const n = parseFloat(val); if (!isNaN(n)) { fredSpread = n; break; } }
-    }
+    // CSV: observation_date,T10Y2Y\n... — 마지막 관측. 2026-10-22: 공용 parseFredCsv(점검 HTML 이면 null).
+    const fredSpread: number | null = parseFredCsv(csv).at(-1)?.value ?? null;
     const ourSpread = ourData?.yieldCurve?.spread10y2y;
     if (fredSpread == null || typeof ourSpread !== 'number') {
       items.push({ key: 'accuracy.curve', label: 'FRED 10Y-2Y spread 대조', group: 'accuracy', status: 'error',

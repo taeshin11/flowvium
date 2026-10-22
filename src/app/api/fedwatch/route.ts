@@ -14,6 +14,7 @@ import { logger, loggedRedisSet} from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { computeMeetings, postMeetingContract, fedwatchCacheKey, type FomcMeetingCalc } from '@/lib/fedwatch-calc';
+import { parseFredCsv } from '@/lib/fred-csv';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -42,9 +43,8 @@ async function fredLatest(id: string): Promise<{ date: string; value: number } |
     const cosd = new Date(Date.now() - 45 * 86400_000).toISOString().slice(0, 10);
     const res = await fetch(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${id}&cosd=${cosd}`, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
     if (!res.ok) return null;
-    const rows = (await res.text()).trim().split('\n').slice(1).map((l) => l.split(',')).filter(([, v]) => v && v !== '.');
-    const last = rows.at(-1);
-    return last ? { date: last[0], value: Number(last[1]) } : null;
+    // 2026-10-22: 공용 parseFredCsv(lib/fred-csv) — 점검 HTML 을 숫자로 읽지 않는다.
+    return parseFredCsv(await res.text()).at(-1) ?? null;
   } catch { return null; }
 }
 

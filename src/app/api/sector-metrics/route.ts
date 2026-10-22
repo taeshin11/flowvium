@@ -17,6 +17,7 @@ import { macroCacheKey } from '@/lib/macro-cache-key';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import { logger, loggedFetch, loggedRedisSet } from '@/lib/logger';
+import { parseFredCsv } from '@/lib/fred-csv';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -50,18 +51,9 @@ async function fetchFredLatest(seriesId: string): Promise<number | null> {
       if (res) logger.warn('sector-metrics', 'fred_http_error', { seriesId, status: res.status });
       return null;
     }
-    const text = await res.text();
-    const rows = text
-      .trim()
-      .split('\n')
-      .slice(1)
-      .map((line) => {
-        const [, val] = line.split(',');
-        const value = parseFloat(val);
-        return isNaN(value) ? null : value;
-      })
-      .filter((v): v is number => v !== null);
-    return rows.length ? rows[rows.length - 1] : null;
+    // 2026-10-22: 공용 parseFredCsv — 점검 HTML 의 '400' 을 값으로 읽던 해석을 바꿨다(lib/fred-csv).
+    const rows = parseFredCsv(await res.text());
+    return rows.length ? rows[rows.length - 1].value : null;
   } catch (err) {
     logger.error('sector-metrics', 'fred_error', { seriesId, error: err });
     return null;

@@ -16,6 +16,7 @@ import { logMetrics } from '@/lib/metrics-db';
 import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
+import { parseFredCsv } from '@/lib/fred-csv';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -104,14 +105,10 @@ async function fetchFREDCsv(series: string, monthsBack: number = 15): Promise<Ar
       logger.warn('macro-indicators', 'fred_csv_http_error', { series, status: res.status });
       return [];
     }
-    const text = await res.text();
-    return text.trim().split('\n').slice(1)
-      .map(line => {
-        const [date, val] = line.split(',');
-        const value = parseFloat(val);
-        return (!date || isNaN(value)) ? null : { date: date.trim(), value };
-      })
-      .filter((x): x is { date: string; value: number } => x !== null);
+    // 2026-10-22: 점검 중 HTML 을 숫자로 읽던 해석 → 공용 parseFredCsv(헤더·날짜 검사, 아니면 []).
+    const obs = parseFredCsv(await res.text());
+    if (!obs.length) logger.warn('macro-indicators', 'fred_csv_not_csv', { series });
+    return obs;
   } catch (err) {
     logger.error('macro-indicators', 'fred_csv_error', { series, error: err });
     return [];

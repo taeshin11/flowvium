@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
 import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { createMemoryCache } from '@/lib/memory-cache';
+import { parseFredCsv } from '@/lib/fred-csv';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -86,20 +87,9 @@ export interface YieldCurveData {
   source: 'fred' | 'fred-stale' | 'cached-stale' | 'empty';
 }
 
-function parseFredCsv(csv: string): Map<string, number> {
-  const map = new Map<string, number>();
-  const lines = csv.trim().split('\n');
-  for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split(',');
-    if (parts.length < 2) continue;
-    const date = parts[0].trim();
-    const val = parts[1].trim();
-    if (val && val !== '.' && val !== 'NA') {
-      const n = parseFloat(val);
-      if (!isNaN(n)) map.set(date, n);
-    }
-  }
-  return map;
+// 2026-10-22: 공용 parseFredCsv(lib/fred-csv) — 점검 HTML 줄('<link …,400,…')이 날짜 키로 들어가 최신일이 되던 해석을 바꿨다.
+function fredCsvMap(csv: string): Map<string, number> {
+  return new Map(parseFredCsv(csv).map((o) => [o.date, o.value] as const));
 }
 
 function closestValueOnOrBefore(map: Map<string, number>, targetDate: string, windowDays = 7): number | null {
@@ -121,7 +111,7 @@ async function fetchSeries(id: string, cosd: string, coed: string): Promise<Map<
       logger.warn('yield-curve', 'fred_http_error', { id, status: res.status });
       return new Map();
     }
-    return parseFredCsv(await res.text());
+    return fredCsvMap(await res.text());
   } catch (err) {
     logger.error('yield-curve', 'fred_fetch_error', { id, error: err });
     return new Map();
