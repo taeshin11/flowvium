@@ -36,6 +36,7 @@ import { speakLatin } from './kr-latin.mjs';
 import { speakWords } from './kr-pron.mjs';
 import { earCheckAndRepair } from './ear-check.mjs';
 import { cleanVoOut } from './vo-burst.mjs';
+import { koEngine } from './gemini-tts.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -231,13 +232,91 @@ export function synthesizeKoreanMelo(texts, opts = {}) {
 /**
  * 한국어 배치 합성 — 엔진 한 칸.
  *
- * 기본은 melo. KO_TTS_ENGINE=qwen 으로 되돌릴 수 있다.
+ * 기본은 melo. KO_TTS_ENGINE=gemini 면 Gemini 'Kore'(2026-10-22, 유료 등급 전제 — lib/gemini-tts koEngine), 실패하면 회차 전체를 melo 로. qwen 도 고를 수 있다.
  * **조용히 떨어지지 않는다** — 어느 엔진이 돌았는지, 왜 바뀌었는지 찍는다.
  * 목소리가 바뀐 걸 모르고 발행하는 게 느린 것보다 나쁘다.
  */
+// ── Gemini TTS 'Kore' (2026-10-22 사용자 비교 청취 "Kore 로 하자", lib/gemini-tts.test.mjs 머리말) ──────────
+function geminiKey() {
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try { return /^GEMINI_API_KEY\s*=\s*(.+)$/m.exec(readFileSync(resolve(ROOT, '.env.local'), 'utf8'))?.[1].trim().replace(/^['"]|['"]$/g, '') ?? ''; }
+  catch { return ''; }
+}
+
+function recordEngine(x) {
+  try {
+    mkdirSync(join(ROOT, 'logs'), { recursive: true });
+    appendFileSync(join(ROOT, 'logs/tts-engine.jsonl'), `${JSON.stringify({ at: new Date().toISOString(), ...x })}\n`);
+  } catch { /* 기록 실패는 발행을 막지 않는다 — 로그 줄은 이미 남았다 */ }
+}
+
+/**
+ * Gemini TTS 로 여러 문장을 합성한다(문장마다 한 번 부른다). 소리는 대본 글 그대로 — Gemini 는 숫자·약어를 스스로 읽는다
+ * (10/22 되들음: 1.05%·26,702.86·8% 원문과 같음). 자막 시각은 whisper 로 되들어 편다(gemini_align.py). 반환 계약은 Melo 와 같다.
+ */
+export function synthesizeKoreanGemini(texts, opts = {}) {
+  const { outPrefix, display = null, timeoutMs = 15 * 60_000 } = opts;
+  if (!outPrefix) throw new Error('outPrefix 가 필요하다');
+  const key = geminiKey();
+  if (!key) throw new Error('GEMINI_API_KEY 없음');
+  const py = meloPythonPath();
+  const script = resolve(ROOT, 'scripts/tts/gemini_align.py');
+  if (!existsSync(py)) throw new Error(`정렬용 venv 없음: ${py}`);
+  mkdirSync(dirname(outPrefix), { recursive: true });
+  const tag = `gemini-${process.pid}-${Math.abs(hash(texts.join('|')))}`;
+  const tf = join(tmpdir(), `${tag}.json`); const wf = join(tmpdir(), `${tag}.wavs.json`);
+  const df = join(tmpdir(), `${tag}.display.json`); const jf = join(tmpdir(), `${tag}.out.json`);
+  try {
+    writeFileSync(tf, JSON.stringify(texts), 'utf8');
+    let fetched;
+    try {
+      fetched = JSON.parse(execFileSync(process.execPath, [resolve(ROOT, 'scripts/tts/gemini_fetch.mjs'), tf, outPrefix], {
+        timeout: timeoutMs, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GEMINI_API_KEY: key } }));
+    } catch (e) { throw new Error(`Gemini 호출 실패 — ${String(e.stderr || e.message).trim().split('\n').pop().slice(0, 160)}`); }
+    const wavs = fetched.out.map((o) => o.path);
+    writeFileSync(wf, JSON.stringify(wavs), 'utf8');
+    writeFileSync(df, JSON.stringify(display && display.length === texts.length ? display : texts), 'utf8');
+    execFileSync(py, [script, '--wavs-file', wf, '--display-texts-file', df, '--json-out', jf,
+      '--tempo', String(Number(process.env.KO_TTS_GEMINI_TEMPO || 1.0))], {
+      timeout: timeoutMs, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, FFMPEG_BIN: process.env.FFMPEG_BIN || ffmpegBin() } });
+    const out = JSON.parse(readFileSync(jf, 'utf8'));
+    if (!Array.isArray(out) || out.length !== texts.length) throw new Error(`결과 개수 불일치 — 입력 ${texts.length}, 출력 ${out?.length}`);
+    out.tokens = fetched.out.reduce((n, o) => n + (o.tokens ?? 0), 0);
+    out.model = fetched.model; out.voice = fetched.voice;
+    const cleaned = cleanVoOut(out);
+    return Object.assign(cleaned, { tokens: out.tokens, model: out.model, voice: out.voice });
+  } finally {
+    for (const f of [tf, wf, df, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
+  }
+}
+
 export function synthesizeKoreanAuto(texts, opts = {}) {
-  const want = (process.env.KO_TTS_ENGINE || 'melo').toLowerCase();
   const log = opts.log ?? ((m) => console.log(`  [ko-tts] ${m}`));
+  const want = koEngine({ hasKey: !!geminiKey() });
+  if (want === 'gemini') {
+    log('엔진 gemini 선택 (KO_TTS_ENGINE=gemini)');
+    if (!opts.outPrefix) throw new Error('outPrefix 가 필요하다');   // 부르는 쪽 실수 — 엔진 실패로 세지 않는다
+    try {
+      const out = synthesizeKoreanGemini(texts, opts);
+      log(`엔진 gemini (${out.model} · ${out.voice}) · ${texts.length}문장 · 오디오 토큰 ${out.tokens}`);
+      recordEngine({ engine: 'gemini', model: out.model, voice: out.voice, sentences: texts.length, tokens: out.tokens });
+      if (process.env.EAR_CHECK === '0') return out;
+      let n = 0;
+      return earCheckAndRepair({
+        texts,
+        out: out.map((o) => ({ ...o, spoken: undefined })),
+        synth: (sp, disp) => synthesizeKoreanGemini(sp, { ...opts, display: disp, outPrefix: `${opts.outPrefix}-ear${++n}` }),
+        transcribe: (items) => transcribeKo(items.map((x) => x.path)),
+        log,
+        record: (x) => recordEngine({ engine: 'gemini', ear: x }),
+      }).out;
+    } catch (e) {
+      // 회차 전체를 melo 로 — 한 편 안에서 목소리가 섞이지 않게. 한도(429) 소진도 여기로 온다.
+      const why = String(e?.message ?? e).slice(0, 200);
+      log(`⚠️ gemini 실패 → 이 회차는 melo 로 읽는다. 이유: ${why}`);
+      recordEngine({ engine: 'melo', fallbackFrom: 'gemini', why });
+    }
+  }
 
   if (want === 'qwen') {
     log('엔진 qwen (KO_TTS_ENGINE 지정)');

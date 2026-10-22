@@ -38,17 +38,18 @@ const M = await import('./tts-korean.mjs');
   if (!r.ok) { console.log('\n❌ 1건 실패'); process.exit(1); }
 }
 
-// [2] 디스패처가 기본으로 melo 를 고르고, 고른 걸 말한다
+// [2] KO_TTS_ENGINE=melo 면 melo 를 고르고, 고른 걸 말한다
+//   (2026-10-22 기본은 gemini 'Kore' 로 바뀌었다 — lib/gemini-tts.test [5]. melo 는 고정값·실패 시 대체로 남는다.)
 {
   const said = [];
   const prev = process.env.KO_TTS_ENGINE;
-  delete process.env.KO_TTS_ENGINE;
+  process.env.KO_TTS_ENGINE = 'melo';
   try {
     // 합성까지 가지 않게 outPrefix 를 빼고 부른다 — 고른 엔진만 보고 싶다.
     try { M.synthesizeKoreanAuto(['시험'], { log: (m) => said.push(m) }); } catch { /* outPrefix 없음 */ }
-  } finally { if (prev) process.env.KO_TTS_ENGINE = prev; }
+  } finally { prev ? (process.env.KO_TTS_ENGINE = prev) : delete process.env.KO_TTS_ENGINE; }
   said.some((m) => /엔진 melo/.test(m))
-    ? ok(`기본 엔진이 melo 이고 로그로 말한다: "${said.find((m) => /엔진/.test(m))}"`)
+    ? ok(`KO_TTS_ENGINE=melo 면 melo 이고 로그로 말한다: "${said.find((m) => /엔진/.test(m))}"`)
     : bad(`엔진 선택을 말하지 않는다 — 목소리가 바뀌어도 모른다 (로그: ${JSON.stringify(said)})`);
 }
 
