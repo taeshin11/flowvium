@@ -15,6 +15,7 @@ import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { fetchBars } from './lib/ohlc.mjs';
 import { scoreRecord, aggregate, missType, coverage } from './lib/forecast-ledger.mjs';
+import { loadContamination, splitContaminated } from './lib/data-contamination.mjs';
 
 const DIR = process.env.FORECAST_DIR ?? resolve(ROOT, 'data');   // 시험할 때만 바꾼다 — 운영 장부를 건드리지 않게
 const LEDGER = resolve(DIR, 'forecast-ledger.jsonl');
@@ -82,7 +83,11 @@ for (const r of ledger) {
 // 집계 — ISO 주(목표일 기준)
 const all = readJsonl(SCORES).filter((s) => !s.noSession);
 const isoWeek = (d) => { const t = new Date(`${d}T00:00:00Z`); const wd = (t.getUTCDay() + 6) % 7; t.setUTCDate(t.getUTCDate() - wd + 3); const y = t.getUTCFullYear(); const w1 = new Date(Date.UTC(y, 0, 4)); return `${y}-W${String(1 + Math.round(((t - w1) / 864e5 - 3 + ((w1.getUTCDay() + 6) % 7)) / 7)).padStart(2, '0')}`; };
-const recs = all.map((s) => ({ market: s.market, week: isoWeek(s.targetDate), scored: s }));
+// 2026-10-22: 입력이 오염된 보고서 판에서 나온 줄은 적중률에서 빼고 따로 센다 — 장부·채점 줄은 그대로(lib/data-contamination.test).
+const ledgerById = new Map(ledger.map((r) => [r.id, r]));
+const split = splitContaminated(all, loadContamination(resolve(DIR, 'data-contamination.json')), (s) => ledgerById.get(s.id) ?? { id: s.id });
+if (split.contaminated.n) log(`오염 판에서 나온 ${split.contaminated.n}줄은 집계에서 뺀다(오염일 ${split.contaminated.days.join(', ')})`);
+const recs = split.clean.map((s) => ({ market: s.market, week: isoWeek(s.targetDate), scored: s }));
 const weeks = {};
 for (const w of [...new Set(recs.map((r) => r.week))].sort()) weeks[w] = aggregate(recs.filter((r) => r.week === w));
 const misses = all.filter((s) => s.miss).map((s) => ({ id: s.id, ret: s.ret, types: s.miss.types }));
@@ -98,5 +103,5 @@ for (const [market, sym] of [['kr', '^KS11'], ['us', '^GSPC']]) {
   const sessions = (b?.bars ?? []).map((x) => day(x.t)).filter((d) => d >= first && now >= closedAt({ market, targetDate: d }));
   cov[market] = coverage({ sessions, recorded: [...new Set(mine.map((r) => r.targetDate))] });
 }
-writeFileSync(SUMMARY, JSON.stringify({ at: now.toISOString(), recorded: ledger.length, scored: all.length, coverage: cov, overall: aggregate(recs), weeks, missByType, misses }, null, 1));
+writeFileSync(SUMMARY, JSON.stringify({ at: now.toISOString(), recorded: ledger.length, scored: all.length, contaminated: split.contaminated, coverage: cov, overall: aggregate(recs), weeks, missByType, misses }, null, 1));
 log(`채점 ${added}줄 추가 · 누적 ${all.length} · 놓친 날 ${misses.length} → ${SUMMARY}`);
