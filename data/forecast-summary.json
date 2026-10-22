@@ -1,16 +1,28 @@
 {
- "at": "2026-10-22T07:20:00.060Z",
- "recorded": 20,
- "scored": 20,
+ "at": "2026-10-22T22:20:00.110Z",
+ "recorded": 22,
+ "scored": 22,
+ "contaminated": {
+  "n": 4,
+  "ids": [
+   "kr-KOSPI-2026-10-22",
+   "kr-KOSDAQ-2026-10-22",
+   "us-S&P500-2026-10-22",
+   "us-NASDAQ-2026-10-22"
+  ],
+  "days": [
+   "2026-10-22"
+  ]
+ },
  "coverage": {
   "kr": {
-   "sessions": 4,
-   "recorded": 4,
+   "sessions": 3,
+   "recorded": 3,
    "missing": []
   },
   "us": {
-   "sessions": 4,
-   "recorded": 4,
+   "sessions": 5,
+   "recorded": 5,
    "missing": []
   }
  },
@@ -49,20 +61,20 @@
    }
   },
   "kr": {
-   "n": 10,
+   "n": 8,
    "report": {
     "calls": 4,
     "hits": 0,
-    "abstain": 6,
+    "abstain": 4,
     "hitRate": 0
    },
    "base": {
-    "brier": 0.34010397306406276,
+    "brier": 0.3327705353448437,
     "calibration": [
      {
       "bin": "0.3-0.4",
-      "n": 4,
-      "meanP": 0.39204931713578695,
+      "n": 2,
+      "meanP": 0.39191042047531993,
       "observed": 1
      },
      {
@@ -90,16 +102,16 @@
       "observed": 0
      }
     ],
-    "skill": -0.4006538845570733
+    "skill": -0.45511168340888863
    },
    "clim": {
-    "brier": 0.2428179986603995,
+    "brier": 0.22869071779099628,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 10,
-      "meanP": 0.4528947570928314,
-      "observed": 0.4
+      "n": 8,
+      "meanP": 0.452886153456159,
+      "observed": 0.25
      }
     ],
     "skill": 0
@@ -183,20 +195,20 @@
   },
   "2026-W43": {
    "kr": {
-    "n": 8,
+    "n": 6,
     "report": {
      "calls": 2,
      "hits": 0,
-     "abstain": 6,
+     "abstain": 4,
      "hitRate": 0
     },
     "base": {
-     "brier": 0.3629673029108013,
+     "brier": 0.3608104959007554,
      "calibration": [
       {
        "bin": "0.3-0.4",
-       "n": 4,
-       "meanP": 0.39204931713578695,
+       "n": 2,
+       "meanP": 0.39191042047531993,
        "observed": 1
       },
       {
@@ -224,16 +236,16 @@
        "observed": 0
       }
      ],
-     "skill": -0.439009854653428
+     "skill": -0.5253911480489646
     },
     "clim": {
-     "brier": 0.2522340633992521,
+     "brier": 0.2365363771529986,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 8,
-       "meanP": 0.45289492621447924,
-       "observed": 0.5
+       "n": 6,
+       "meanP": 0.4528835110727987,
+       "observed": 0.3333333333333333
       }
      ],
      "skill": 0
