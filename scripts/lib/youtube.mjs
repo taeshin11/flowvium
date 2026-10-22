@@ -182,8 +182,10 @@ export function uploadRequestBody(o) {
       defaultLanguage: o.locale ?? 'ko',
       defaultAudioLanguage: o.locale ?? 'ko',
     },
+    // o.publishAt(ISO): 예약 공개 — API 규칙상 그때까지 private 로 두어야 한다(2026-10-22 시장 요약 한국·유럽판).
     status: {
-      privacyStatus: o.privacy ?? 'private', selfDeclaredMadeForKids: false,
+      privacyStatus: o.publishAt ? 'private' : (o.privacy ?? 'private'), selfDeclaredMadeForKids: false,
+      ...(o.publishAt ? { publishAt: o.publishAt } : {}),
       ...(o.synthetic ? { containsSyntheticMedia: true } : {}),
     },
   };

@@ -681,6 +681,13 @@ const MAINT_JOBS = [
   // 2026-10-20 중단(데이터로 결정, 사장님 지시로 48h 재측정): 첫 회 vGz0L2eoOF0(10/18 17:00, 공개) 49h 조회 **9** —
   //   같은 날 같은 나이(44~52h) 쇼츠 8편 조회 222~1,133(중앙 ~1,000). 매일 총정리(4·0·1)를 내린 것과 같은 모양이다. 다시 켜려면 아래 주석을 푼다.
   // { label: 'weekly-explainer',     script: 'scripts/video/make-weekly-explainer.mjs --upload public', timeoutMs: 3600000, commitPaths: [],                                  schedules: ['0 8 * * 0', '0 8 * * 1'],     maxAgeH: 8 * 24 },
+  // 2026-10-22 사장님: 매일 시장 요약 롱폼(레퍼런스 오선의 미국 증시 '오늘의 요약'). 근거·규칙 lib/market-brief.test.mjs.
+  //   미국판: 아침 보고서가 07:00 에 끝난 뒤 KST 07:05·07:25·07:45 (UTC 22시). 휴장(뉴욕 마감일 ≠ 어제)·창 밖(06:30~11:00)이면 스크립트가 거른다.
+  //   한국·유럽판: 저녁 보고서(20:00~21:30) 전 KST 19:35 에 만들어 '미국 개장 1시간 전'(서머타임 21:30 / 해제 뒤 22:30) 예약 공개.
+  //     놓치면 보고서 뒤 21:35·21:55 에 다시(그때는 바로 공개). 같은 날 같은 판은 한 번만(logs/market-brief.json).
+  //   쇼츠와 같은 렌더 락(logs/video-publish.lock)을 최대 20분 기다린다.
+  { label: 'market-brief-us',      script: 'scripts/video/make-market-brief.mjs --edition us --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['5,25,45 22 * * *'],             maxAgeH: 30 },
+  { label: 'market-brief-kreu',    script: 'scripts/video/make-market-brief.mjs --edition kreu --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['35 10 * * *', '35,55 12 * * *'], maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },
