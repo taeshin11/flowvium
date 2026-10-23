@@ -691,6 +691,12 @@ const MAINT_JOBS = [
   //   쇼츠와 같은 렌더 락(logs/video-publish.lock)을 최대 20분 기다린다.
   { label: 'market-brief-us',      script: 'scripts/video/make-market-brief.mjs --edition us --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['5,25,45 22 * * *'],             maxAgeH: 30 },
   { label: 'market-brief-kreu',    script: 'scripts/video/make-market-brief.mjs --edition kreu --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['35 10 * * *', '35,55 12 * * *'], maxAgeH: 30 },
+  // 2026-10-23 사장님 "한국사람들 점심시간이랑 퇴근시간에 많이 볼 수 있도록 한국장 중간과 끝나고도 롱폼 정리".
+  //   오전판: 오전장 정리 기사가 11:30 께 나온다(10/22 실측) → KST 11:35·11:50·12:05 에 만들어 12:00 공개(10분 안쪽이거나 지났으면 바로).
+  //   마감판: 마감 종합 기사가 15:45~16:30 에 나온다 → KST 16:40·17:00·17:20 에 만들어 18:00(퇴근길) 예약 공개.
+  //   창(오전판 11:20~13:30, 마감판 16:20~19:30)·장 상태(오전판 = 장중, 마감판 = 마감)·휴장은 스크립트가 거른다.
+  { label: 'market-brief-krmid',   script: 'scripts/video/make-market-brief.mjs --edition krmid --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['35,50 2 * * *', '5 3 * * *'],  maxAgeH: 30 },
+  { label: 'market-brief-krclose', script: 'scripts/video/make-market-brief.mjs --edition krclose --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['40 7 * * *', '0,20 8 * * *'], maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },

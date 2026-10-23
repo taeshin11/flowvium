@@ -2,6 +2,8 @@
  * market-brief.mjs — 매일 시장 요약 롱폼의 순수 규칙. 근거는 market-brief.test.mjs 머리말.
  *   판(edition): 'us'   = 아침(KST 07시대) 미국 증시 요약 — 전날 뉴욕 마감 + 오늘 일정
  *               'kreu' = 미국 개장 1시간 전 한국·유럽 증시 요약 — 오늘 한국 마감·유럽 장중 + 오늘 밤 일정
+ *               'krmid' = 점심(12:00 공개) 한국 증시 오전 요약 — 장중 숫자 + 오전장 기사 (사장님 10/23 "점심시간·퇴근시간")
+ *               'krclose' = 퇴근길(18:00 공개) 한국 증시 마감 요약 — 마감 숫자 + 마감 기사
  */
 
 const KST = 9 * 3600e3;
@@ -15,10 +17,23 @@ export const EDITIONS = {
   },
   kreu: {
     label: '한국·유럽 증시 요약', badge: ['FLOWVIUM', '한국·유럽 증시'],
-    indices: ['KOSPI', 'KOSDAQ', '.STOXX50E', '.GDAXI', '.FTSE', '.FCHI'], required: ['KOSPI', 'KOSDAQ'],
+    indices: ['KOSPI', 'KOSDAQ', '.STOXX50E', '.GDAXI', '.FTSE', '.FCHI'], required: ['KOSPI', 'KOSDAQ'], afterKst: '15:20',
     articles: /(코스피|코스닥).*마감|마감.*(코스피|코스닥)|\[외환\]|유럽\s*증시|\[특징주\].*마감|마감시황/,
   },
+  krmid: {
+    label: '한국 증시 오전 요약', badge: ['FLOWVIUM', '한국 증시 오전'],
+    indices: ['KOSPI', 'KOSDAQ'], required: ['KOSPI', 'KOSDAQ'], live: true,
+    // 오전장 정리 기사(10/22 실측: "코스피, 2% 넘게 내리며 5,600선 공방…" 11:30). 마감 기사는 아직 없다 — 있으면 어제 것이다.
+    articles: /^(?!.*마감).*((코스피|코스닥).*(출발|공방|장중|오전|상승세|하락세|강세|약세|낙폭|상승폭|반등|급락|급등)|\[외환\])/,
+  },
+  krclose: {
+    label: '한국 증시 마감 요약', badge: ['FLOWVIUM', '한국 증시 마감'],
+    indices: ['KOSPI', 'KOSDAQ'], required: ['KOSPI', 'KOSDAQ'], afterKst: '15:20',
+    articles: /(코스피|코스닥).*마감|마감.*(코스피|코스닥)|\[외환\].*마감|\[특징주\].*마감|마감시황|(코스피|코스닥).*\(종합\)/,
+  },
 };
+/** 판마다 공개 시각(KST). null = 다 만들면 바로 공개. */
+const PUBLISH_KST = { krmid: '12:00', krclose: '18:00' };
 export const INDEX_NAMES = {
   '.INX': 'S&P 500', '.IXIC': '나스닥', '.DJI': '다우', '.SOX': '필라델피아 반도체',
   KOSPI: '코스피', KOSDAQ: '코스닥', '.STOXX50E': '유로스톡스50', '.GDAXI': '독일 DAX', '.FTSE': '영국 FTSE', '.FCHI': '프랑스 CAC40',
@@ -60,10 +75,19 @@ export function usOpenKst(dateKst) {
   return { ms, hhmm: kstHHMM(ms) };
 }
 
+/** 판의 공개 시각(ms). 한국·유럽판 = 미국 개장 1시간 전, 오전판 12:00, 마감판 18:00, 미국판 null(바로). */
+export function publishTargetMs(edition, dateKst) {
+  if (edition === 'kreu') return usOpenKst(dateKst).ms - 3600e3;
+  const hm = PUBLISH_KST[edition];
+  return hm ? Date.parse(`${dateKst}T${hm}:00+09:00`) : null;
+}
+
 /** 이 시각에 이 판을 만들어도 되나. 러너가 놓친 잡을 아무 때나 소급하므로(startupCatchup) 스크립트가 직접 막는다. */
 export function inWindow(edition, nowMs) {
   const hm = kstHHMM(nowMs);
   if (edition === 'us') return hm >= '06:30' && hm < '11:00' ? { ok: true } : { ok: false, why: `KST ${hm} — 미국판은 06:30~11:00 에만` };
+  if (edition === 'krmid') return hm >= '11:20' && hm < '13:30' ? { ok: true } : { ok: false, why: `KST ${hm} — 오전판은 11:20~13:30 에만` };
+  if (edition === 'krclose') return hm >= '16:20' && hm < '19:30' ? { ok: true } : { ok: false, why: `KST ${hm} — 마감판은 16:20~19:30 에만` };
   const open = usOpenKst(kstDate(nowMs));
   return hm >= '18:00' && nowMs < open.ms ? { ok: true, openMs: open.ms } : { ok: false, why: `KST ${hm} — 한국·유럽판은 18:00 ~ 미국 개장(${open.hhmm}) 전에만` };
 }
@@ -76,7 +100,8 @@ export function sessionCheck(edition, quotes, { nowMs = Date.now() } = {}) {
     const q = (quotes ?? []).find((x) => x?.code === code);
     if (!q) return { ok: false, why: `${INDEX_NAMES[code] ?? code} 시세 없음` };
     if (q.day !== want) return { ok: false, why: `${INDEX_NAMES[code] ?? code} 마지막 거래일 ${q.day} ≠ ${want} (휴장·지연)` };
-    if (!q.closed) return { ok: false, why: `${INDEX_NAMES[code] ?? code} 아직 장중` };
+    // 오전판은 장중 숫자로 만든다 — 이미 마감이면(조기 마감·소급 실행) 오전 요약이 아니다.
+    if (EDITIONS[edition].live ? q.closed : !q.closed) return { ok: false, why: `${INDEX_NAMES[code] ?? code} ${q.closed ? '이미 마감' : '아직 장중'}` };
   }
   return { ok: true, day: want };
 }
@@ -93,13 +118,15 @@ export function calendarRows(events, { fromMs, toMs }) {
 
 /** 판의 장 마감 기사. 속보·스팟(본문 없음)은 빼고, 같은 매체의 같은 머리("뉴욕증시,")는 가장 늦은 판(종합)만. */
 export function pickArticles(edition, rows) {
-  const re = EDITIONS[edition].articles;
+  const { articles: re, afterKst } = EDITIONS[edition];
+  // 한국 마감 기사는 그날 장이 끝난 뒤에 나온 것만(10/21: 아침 "[마켓뷰] …뉴욕증시 혼조 마감…코스피 향방은" 이 '마감' 낱말로 들어왔다).
+  const late = (r) => !afterKst || kstHHMM(Date.parse(r.captured_at)) >= afterKst;
   const keyOf = (r) => { const h = String(r.headline ?? '').replace(/\s+/g, ''); const c = h.indexOf(',');
     return `${r.source ?? ''}|${c > 0 && c <= 8 ? h.slice(0, c) : h.slice(0, 14)}`; };
   const by = new Map();
   for (const r of rows ?? []) {
     const h = String(r.headline ?? '');
-    if (!re.test(h) || /^\s*\[(속보|스팟)\]/.test(h)) continue;
+    if (!re.test(h) || /^\s*\[(속보|스팟)\]/.test(h) || !late(r)) continue;
     const k = keyOf(r); const prev = by.get(k);
     if (!prev || String(r.captured_at) > String(prev.captured_at)) by.set(k, r);
   }

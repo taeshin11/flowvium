@@ -109,5 +109,56 @@ const M = await import('./market-brief.mjs');
   const c = uploadRequestBody({ title: 't', privacy: 'public' });
   (c.status.privacyStatus === 'public' && !('publishAt' in c.status)) ? ok('[10b] 예약 없으면 그대로') : bad(`[10b] ${JSON.stringify(c.status)}`);
 }
+// [11] 한국 오전판(krmid)·마감판(krclose) — 사장님 10/23 "한국사람들 점심시간이랑 퇴근시간에 많이 볼 수 있도록 한국장 중간과 끝나고도".
+//   오전판은 장중 숫자(아직 안 끝난 장)로 만들고 12:00 KST 에, 마감판은 마감 숫자로 18:00 KST 에 공개한다.
+//   기사 시각 실측(10/22 news_archive): 오전장 정리 11:30·11:40, 마감 종합 15:45~16:30.
+{
+  const at = (iso) => Date.parse(iso);
+  const open = [{ code: 'KOSPI', closed: false, day: '2026-10-22' }, { code: 'KOSDAQ', closed: false, day: '2026-10-22' }];
+  const shut = open.map((x) => ({ ...x, closed: true }));
+  const noon = at('2026-10-22T02:35:00Z');   // KST 11:35
+  (M.sessionCheck('krmid', open, { nowMs: noon }).ok && !M.sessionCheck('krmid', shut, { nowMs: noon }).ok)
+    ? ok('[11] 오전판: 장중이어야 만든다(마감이면 안 만든다)') : bad('[11]');
+  (!M.sessionCheck('krmid', open.map((x) => ({ ...x, day: '2026-10-21' })), { nowMs: noon }).ok) ? ok('[11b] 오전판: 오늘 장이 아니면(휴장) 안 만든다') : bad('[11b]');
+  const eve = at('2026-10-22T07:40:00Z');    // KST 16:40
+  (M.sessionCheck('krclose', shut, { nowMs: eve }).ok && !M.sessionCheck('krclose', open, { nowMs: eve }).ok)
+    ? ok('[11c] 마감판: 마감이어야 만든다') : bad('[11c]');
+}
+// [12] 시각 창 — 오전판 KST 11:20~13:30, 마감판 16:20~19:30. 창 밖 소급 실행은 거른다.
+{
+  const at = (iso) => Date.parse(iso);
+  (M.inWindow('krmid', at('2026-10-22T02:35:00Z')).ok && !M.inWindow('krmid', at('2026-10-22T00:30:00Z')).ok && !M.inWindow('krmid', at('2026-10-22T04:31:00Z')).ok)
+    ? ok('[12] 오전판은 KST 11:20~13:30 에만') : bad('[12]');
+  (M.inWindow('krclose', at('2026-10-22T07:40:00Z')).ok && !M.inWindow('krclose', at('2026-10-22T06:00:00Z')).ok && !M.inWindow('krclose', at('2026-10-22T10:31:00Z')).ok)
+    ? ok('[12b] 마감판은 KST 16:20~19:30 에만') : bad('[12b]');
+}
+// [13] 공개 시각 — 오전판 12:00, 마감판 18:00, 한국·유럽판 미국 개장 1시간 전, 미국판은 바로.
+{
+  const t = (e) => { const ms = M.publishTargetMs(e, '2026-10-22'); return ms === null ? null : new Date(ms).toISOString(); };
+  (t('krmid') === '2026-10-22T03:00:00.000Z' && t('krclose') === '2026-10-22T09:00:00.000Z' && t('kreu') === '2026-10-22T12:30:00.000Z' && t('us') === null)
+    ? ok('[13] 공개 시각 12:00 · 18:00 · 개장 1시간 전 · 미국판 즉시') : bad(`[13] ${['krmid', 'krclose', 'kreu', 'us'].map(t).join(' ')}`);
+}
+// [14] 기사 — 오전판은 오전장 기사(마감·속보·스팟 X), 마감판은 마감 기사.
+{
+  const rows = [
+    { headline: '코스피, 2% 넘게 내리며 5,600선 공방…삼전 닉스 3%대 하락', captured_at: '2026-10-22T02:30:00Z' },
+    { headline: '코스피, 1.1% 하락 출발후 낙폭 축소 시도…코스닥은 0.9%↓', captured_at: '2026-10-22T00:15:00Z' },
+    { headline: '[스팟] 코스피 65.55포인트(1.14%) 내린 5670.11 출발', captured_at: '2026-10-22T00:05:00Z' },
+    { headline: '코스피, 3.5% 급락한 5,533…메타 호실적에도 AI 의구심 지속(종합)', captured_at: '2026-10-22T07:30:00Z' },
+    { headline: '코스피, 낙폭 키워 3.5% 급락 마감…코스닥도 3.6%↓', captured_at: '2026-10-22T06:45:00Z' },
+  ];
+  const mid = M.pickArticles('krmid', rows.filter((r) => r.captured_at < '2026-10-22T03:00:00Z'));
+  (mid.length >= 1 && mid.every((r) => !/마감|\[스팟\]/.test(r.headline)) && mid.some((r) => /공방/.test(r.headline)))
+    ? ok('[14] 오전판: 오전장 기사(스팟 X)') : bad(`[14] ${mid.map((r) => r.headline).join(' / ')}`);
+  const cl = M.pickArticles('krclose', rows);
+  (cl.length >= 1 && cl.every((r) => /마감|종합/.test(r.headline)) && !cl.some((r) => /출발|공방/.test(r.headline)))
+    ? ok('[14b] 마감판: 마감 기사만') : bad(`[14b] ${cl.map((r) => r.headline).join(' / ')}`);
+  // 10/21 실측: 아침 08:15 "[마켓뷰] 메타 실적발표 앞두고 뉴욕증시 혼조 마감…코스피 향방은" 이 '마감' 낱말로 마감판에 들어왔다.
+  //   한국 마감 기사는 장이 끝난 뒤(KST 15:20~)에 나온 것만 — 한국·유럽판도 같다.
+  const pre = { headline: '[마켓뷰] 메타 실적발표 앞두고 뉴욕증시 혼조 마감…코스피 향방은', captured_at: '2026-10-20T23:15:03Z' };
+  (!M.pickArticles('krclose', [pre]).length && !M.pickArticles('kreu', [pre]).length) ? ok('[14d] 장 마감 전 기사는 마감판·한국·유럽판에서 뺀다') : bad('[14d]');
+  /【한국 증시 오전 요약】/.test(M.briefTitle({ edition: 'krmid', hook: 'a', date: '2026-10-22' })) && /【한국 증시 마감 요약】/.test(M.briefTitle({ edition: 'krclose', hook: 'a', date: '2026-10-22' }))
+    ? ok('[14c] 제목 머리') : bad('[14c]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

@@ -4,13 +4,15 @@
  *
  *   --edition us    아침(KST 07시대): 전날 뉴욕 마감 요약 + 오늘 주요 일정(경제지표·실적)
  *   --edition kreu  미국 개장 1시간 전: 오늘 한국 마감 + 유럽 장중 + 오늘 밤 일정 — 보고서(20:00~21:30) 전에 만들어 예약 공개
+ *   --edition krmid   점심(12:00 공개): 한국 증시 오전장(장중 숫자) + 오늘 밤 일정 — 사장님 10/23 "점심시간·퇴근시간에 많이 보도록"
+ *   --edition krclose 퇴근길(18:00 공개): 오늘 한국 증시 마감 + 오늘 밤 일정
  *
  * 숫자: 지수는 네이버 지수 API(거래소 종가·등락률·장 상태). 이유·종목 이야기는 그날 마감 기사 본문(news_archive → 원문).
  *   대본 관문은 주간 해설과 같다 — 근거에 없는 숫자·한글 숫자·채널 의견·끝맺음 아닌 문장을 빼고, agy 검증 패스가 근거 없는 문장을 뺀다.
  * 화면: 검은 제목 카드 → 지수판 → 이야기마다 기사 사진(CLIP 배너·중복 + 사진·뉴스 대조) → 일정판. 낭독 자막. 레퍼런스 구성 그대로.
  * 썸네일: 레퍼런스 꼴 — 사진 전면 + 빨간 날짜 띠 + 흰 띠 위 검은 큰 질문 + 우상단 배지.
  *
- * 사용: node scripts/video/make-market-brief.mjs --edition us|kreu [--upload public|private] [--out <폴더>] [--script-only] [--force]
+ * 사용: node scripts/video/make-market-brief.mjs --edition us|kreu|krmid|krclose [--upload public|private] [--out <폴더>] [--script-only] [--force]
  *   --force 는 시각 창·'오늘 이미 올림' 을 건너뛴다(시험용). 장이 실제로 열렸는지(sessionCheck)는 건너뛰지 않는다.
  */
 import ffmpegPath from 'ffmpeg-static';
@@ -24,12 +26,12 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, usOpenKst, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, thumbDate } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, thumbDate } from '../lib/market-brief.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const ED = arg('edition');
-if (!EDITIONS[ED]) { console.error('--edition us|kreu'); process.exit(2); }
+if (!EDITIONS[ED]) { console.error(`--edition ${Object.keys(EDITIONS).join('|')}`); process.exit(2); }
 const E = EDITIONS[ED];
 const UPLOAD = arg('upload');
 const FORCE = argv.includes('--force');
@@ -68,8 +70,8 @@ const quotes = (await Promise.all(E.indices.map(async (code) => {
 }))).filter(Boolean);
 const sess = sessionCheck(ED, quotes, { nowMs: NOW });
 if (!sess.ok) skip(sess.why);
-// 유럽은 이 시각 장중이다 — 장중 값이라고 밝혀 읽는다(마감 숫자로 오해하지 않게).
-const FACTS = quotes.map((q) => `${factLine(q)}${q.closed ? ' 마감' : ' 장중'}`);
+// 유럽(한국·유럽판)·한국(오전판)은 이 시각 장중이다 — 장중 값이라고, 몇 시 값인지 밝혀 읽는다(마감 숫자로 오해하지 않게).
+const FACTS = quotes.map((q) => `${factLine(q)}${q.closed ? ' 마감' : ` 장중${/T\d\d:\d\d/.test(q.at ?? '') && !q.code.startsWith('.') ? ` ${q.at.slice(11, 16)} 기준` : ''}`}`);
 log(`[지수] ${FACTS.join(' · ')}`);
 
 // ── 2. 기사 ──────────────────────────────────────────────────────────────────────
@@ -85,7 +87,8 @@ const wraps = pickArticles(ED, rows).slice(0, 6);
 // 10/22 첫 시험: '실적|주가' 같은 넓은 말이 한국 종목 기사(LS일렉·삼성E&A)를 미국판에 끌어왔다 — 판의 시장을 가리키는 말만.
 const STORY_RE = ED === 'us'
   ? /뉴욕|월가|美|미\s?증시|나스닥|S&P|다우|국채|연준|파월|엔비디아|테슬라|애플|마이크로소프트|아마존|메타|알파벳|구글|스페이스X|마켓워치|블룸버그/
-  : /\[특징주\]|코스피|코스닥|외국인|환율|원\/달러|유럽\s?증시|삼성전자|SK하이닉스/;
+  : ED === 'kreu' ? /\[특징주\]|코스피|코스닥|외국인|환율|원\/달러|유럽\s?증시|삼성전자|SK하이닉스/
+  : /\[특징주\]|코스피|코스닥|외국인|환율|원\/달러|삼성전자|SK하이닉스/;
 const seen = new Set(wraps.map((r) => r.link));
 const extra = rows.filter((r) => STORY_RE.test(r.headline) && !/^\s*\[(속보|스팟)\]/.test(r.headline) && !seen.has(r.link))
   .filter((r) => { const k = r.headline.replace(/\s/g, '').slice(0, 12); if (seen.has(k)) return false; seen.add(k); return true; })
@@ -104,7 +107,8 @@ log(`[기사] 마감 기사 ${wraps.length}건 + 관련 ${extra.length}건 → �
 if (docs.filter((d) => d.wrap).length < 1) skip('본문을 받은 장 마감 기사가 없다 — 이유 없이 숫자만 읽는 영상은 만들지 않는다');
 
 // ── 3. 일정(경제지표 ForexFactory 주간 JSON · 실적 Nasdaq) ──────────────────────
-const calTo = ED === 'us' ? NOW + 24 * 3600e3 : NOW + 12 * 3600e3;
+// 오전판은 낮 12시 공개라 오늘 밤 미국 일정까지 닿도록 14시간.
+const calTo = NOW + ({ us: 24, krmid: 14 }[ED] ?? 12) * 3600e3;
 let econ = [];
 try { const r = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(15_000) });
   if (r.ok) econ = calendarRows(await r.json(), { fromMs: NOW, toMs: calTo }); } catch (e) { log(`[일정] 경제지표 못 받음: ${e.message}`); }
@@ -115,7 +119,7 @@ try { const r = await fetch(`https://api.nasdaq.com/api/calendar/earnings?date=$
     cap: Number(String(x.marketCap ?? '').replace(/[$,]/g, '')) || 0 })).filter((x) => x.when && x.cap >= 30e9).sort((a, b) => b.cap - a.cap).slice(0, 6);
 } catch (e) { log(`[일정] 실적 못 받음: ${e.message}`); }
 // 한국·유럽판은 오늘 밤 장전 실적만(장후는 내일 아침 미국판이 다룬다).
-if (ED === 'kreu') earn = earn.filter((x) => x.when === '장전');
+if (ED !== 'us') earn = earn.filter((x) => x.when === '장전');
 const CAL = [...econ.map((e) => ({ kind: 'econ', ...e })), ...earn.map((x) => ({ kind: 'earn', ...x }))];
 log(`[일정] 지표 ${econ.length} · 실적 ${earn.length}`);
 const calLines = CAL.map((c, i) => c.kind === 'econ'
@@ -132,15 +136,20 @@ const SCRIPT_SCHEMA = { type: 'object', properties: {
   required: ['kind', 'heading', 'sentences', 'sources'] } },
   calendar_ko: { type: 'array', items: { type: 'object', properties: { i: { type: 'integer' }, ko: { type: 'string' } }, required: ['i', 'ko'] } } },
 required: ['hook', 'thumb', 'chapters', 'calendar_ko'] };
-const scope = ED === 'us'
-  ? '어젯밤 뉴욕 증시 마감을 아침 출근길 투자자에게 2분 남짓으로 요약한다.'
-  : '오늘 한국 증시 마감과 유럽 증시 장중 흐름을, 미국 장 시작 1시간 전에 2분 남짓으로 요약한다.';
+const scope = {
+  us: '어젯밤 뉴욕 증시 마감을 아침 출근길 투자자에게 2분 남짓으로 요약한다.',
+  kreu: '오늘 한국 증시 마감과 유럽 증시 장중 흐름을, 미국 장 시작 1시간 전에 2분 남짓으로 요약한다.',
+  krmid: '오늘 한국 증시 오전장 흐름을 점심시간 직장인 투자자에게 2분 남짓으로 요약한다. 장은 아직 열려 있다.',
+  krclose: '오늘 한국 증시 마감을 퇴근길 투자자에게 2분 남짓으로 요약한다.',
+}[ED];
+const marketHeading = { us: '뉴욕 증시 마감', kreu: '한국·유럽 증시', krmid: '한국 증시 오전장', krclose: '한국 증시 마감' }[ED];
 const scriptPrompt = [
   `너는 한국 증시 뉴스 유튜브의 대본 작가다. ${scope}`,
   '근거는 아래 [지수]·[기사]·[일정] 뿐이다. **거기 없는 사실·숫자·인물·발언·전망을 쓰지 마라.** 숫자는 적힌 그대로 옮긴다.',
   '구성(chapters):',
-  ` 1) kind "market" heading "${ED === 'us' ? '뉴욕 증시 마감' : '한국·유럽 증시'}" — 첫 문장은 "${Number(DATE.slice(5, 7))}월 ${Number(DATE.slice(8))}일 ${E.label}입니다." 그다음 지수마다 등락률(%)과 종가, 그리고 그 이유 한두 문장.`,
+  ` 1) kind "market" heading "${marketHeading}" — 첫 문장은 "${Number(DATE.slice(5, 7))}월 ${Number(DATE.slice(8))}일 ${E.label}입니다." 그다음 지수마다 등락률(%)과 종가, 그리고 그 이유 한두 문장.`,
   ED === 'kreu' ? '    유럽 지수는 [지수]에 "장중" 으로 적힌 값이다 — "장중" 이라고 밝혀 쓴다.' : '',
+  ED === 'krmid' ? '    지수는 [지수]에 "장중 HH:MM 기준" 으로 적힌 아직 끝나지 않은 장의 값이다 — "마감" "마쳤습니다" 를 쓰지 말고 "오전 11시 35분 기준" 처럼 시각을 밝혀 쓴다.' : '',
   ' 2) kind "story" 2~4개 — 오늘 시장을 움직인 종목·이슈 하나씩(heading 12자 이내, 회사·이슈 이름). 무엇이 몇 % 움직였고 왜인지, 기사에 있는 증권가·전문가 말이 **그 장의 회사·이슈에 관한 것이면** 누가 했는지 밝혀 한 문장 옮긴다(시장 전체 논평은 market 장에).',
   ` 3) kind "calendar" heading "${ED === 'us' ? '오늘 주요 일정' : '오늘 밤 주요 일정'}" — [일정] 중 중요한 것 3~5개를 시각과 함께 읽는다(한국 시각, "밤 9시 30분" 처럼). 예상치·이전치 숫자는 읽지 마라(화면에 나온다). 일정이 없으면 이 장을 빼라.`,
   '문장 규칙: 합니다체. 한 문장 20~55자. 각 문장은 "니다." 등 완결된 말로 끝낸다. 숫자는 아라비아 숫자("1.05%", "26,702.86"), 지수 소수점은 둘째 자리까지 그대로.',
@@ -332,7 +341,7 @@ const headHtml = (c) => `<!doctype html><meta charset="utf-8"><style>${BASE}body
 .d{font-size:52px;font-weight:700;color:#cbd5e1}.t{font-size:124px;font-weight:900;margin-top:22px;padding:0 80px}</style><div class="d">${esc(E.label)}</div><div class="t">${esc(c.heading)}</div>`;
 const outroHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center}
 .t{font-size:76px;font-weight:900;line-height:1.35}.t span{color:#ffd400}.s{font-size:40px;color:#cbd5e1;margin-top:30px}</style>
-<div class="t">매일 아침 7시 <span>미국 증시 요약</span><br>미국 개장 1시간 전 <span>한국·유럽 증시 요약</span></div><div class="s">flowvium.net</div>`;
+<div class="t">아침 7시 <span>미국 증시</span> · 낮 12시 <span>한국 오전장</span><br>저녁 6시 <span>한국 마감</span> · 미국 개장 1시간 전 <span>한국·유럽</span></div><div class="s">매일 · flowvium.net</div>`;
 const br = await chromium.launch({ headless: true });
 const pg = await br.newPage({ viewport: { width: 1920, height: 1080 } });
 const shot = async (html, f, transparent = false) => { await pg.setContent(html); await pg.waitForTimeout(120); await pg.screenshot({ path: f, omitBackground: transparent }); };
@@ -426,10 +435,10 @@ if (UPLOAD) {
   const { loadEnvLocal } = await import('../lib/llm-config.mjs'); loadEnvLocal();
   const bad = channelMismatch(await currentChannel(), process.env.YOUTUBE_CHANNEL_ID);
   if (bad) die(bad);
-  const target = ED === 'kreu' ? usOpenKst(DATE).ms - 3600e3 : null;
+  const target = publishTargetMs(ED, DATE);
   const publishAt = UPLOAD === 'public' && target && target - Date.now() > 10 * 60_000 ? new Date(target).toISOString() : null;
   const u = await upload({ file: FINAL, title, description, privacy: UPLOAD, publishAt,
-    tags: [E.label.replace(/\s/g, ''), '증시요약', ED === 'us' ? '미국증시' : '한국증시', ED === 'us' ? '나스닥' : '코스피', ED === 'us' ? '뉴욕증시' : '유럽증시', '주식', '경제', 'Flowvium'] });
+    tags: [E.label.replace(/\s/g, ''), '증시요약', ED === 'us' ? '미국증시' : '한국증시', ED === 'us' ? '나스닥' : '코스피', ED === 'us' ? '뉴욕증시' : ED === 'kreu' ? '유럽증시' : '코스닥', '주식', '경제', 'Flowvium'] });
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
   history.push({ edition: ED, date: DATE, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), at: new Date().toISOString() });
