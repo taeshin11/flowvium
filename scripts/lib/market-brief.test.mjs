@@ -241,5 +241,13 @@ const M = await import('./market-brief.mjs');
   (M.thumbPhoto('krclose', [c[0], c[2]], docs) === null) ? ok('[21b] 그런 사진이 없으면 사진 없이') : bad('[21b]');
   (M.thumbPhoto('krmid', c, docs)?.file === 'am.jpg') ? ok('[21c] 장중판·미국판은 첫 사진 그대로') : bad('[21c]');
 }
+// [22] 코스피·코스닥이 엇갈린 날은 제목 숫자에 둘 다 — 10/23 마감판 "코스닥 -1.6%, AI 투자 우려에 코스닥 급락" 은 코스피 +0.30% 상승 마감을
+//   빼서 그날 한국 증시 전체가 급락한 것처럼 읽혔다(agy 교차). 칩(썸네일 큰 숫자)은 가장 크게 움직인 것 그대로.
+{
+  const m = M.headlineMove([{ code: 'KOSPI', pct: 0.3 }, { code: 'KOSDAQ', pct: -1.62 }]);
+  (m.text === '코스피 +0.3%·코스닥 -1.6%' && m.chip === '코스닥 ▼1.6%') ? ok('[22] 엇갈리면 제목에 둘 다, 칩은 큰 쪽') : bad(`[22] ${JSON.stringify(m)}`);
+  const same = M.headlineMove([{ code: 'KOSPI', pct: -2.05 }, { code: 'KOSDAQ', pct: -3.35 }]);
+  (same.text === '코스닥 -3.4%') ? ok('[22b] 같은 쪽이면 큰 쪽 하나') : bad(`[22b] ${same.text}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

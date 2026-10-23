@@ -145,7 +145,11 @@ export function headlineMove(quotes) {
   if (!qs.length) return null;
   const q = qs.reduce((a, b) => (Math.abs(b.pct) > Math.abs(a.pct) ? b : a));
   const arrow = q.pct > 0 ? '▲' : q.pct < 0 ? '▼' : '';
-  return { code: q.code, pct: q.pct, up: q.pct > 0, chip: `${SHORT[q.code]} ${arrow}${Math.abs(q.pct).toFixed(1)}%`, text: `${SHORT[q.code]} ${q.pct > 0 ? '+' : q.pct < 0 ? '-' : ''}${Math.abs(q.pct).toFixed(1)}%` };
+  const signed = (x) => `${SHORT[x.code]} ${x.pct > 0 ? '+' : x.pct < 0 ? '-' : ''}${Math.abs(x.pct).toFixed(1)}%`;
+  // 코스피·코스닥이 엇갈린 날(한쪽 오름·한쪽 내림)은 제목 숫자에 둘 다 — 10/23 마감판이 코스피 상승을 빼 '증시 급락' 처럼 읽혔다(agy).
+  const kp = qs.find((x) => x.code === 'KOSPI'); const kq = qs.find((x) => x.code === 'KOSDAQ');
+  const mixed = kp && kq && Math.sign(Number(kp.pct.toFixed(1))) * Math.sign(Number(kq.pct.toFixed(1))) < 0;
+  return { code: q.code, pct: q.pct, up: q.pct > 0, chip: `${SHORT[q.code]} ${arrow}${Math.abs(q.pct).toFixed(1)}%`, text: mixed ? `${signed(kp)}·${signed(kq)}` : signed(q) };
 }
 
 /** 거래 시각(현지 시각대가 붙은 ISO) → 한국 시각 "HH:MM". 없으면 ''. 유럽 현지 시각을 그대로 읽으면 7~8시간 틀린다. */
