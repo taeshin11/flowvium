@@ -135,8 +135,8 @@ export const BATCH_SEP = ' ';
 
 /**
  * 묶음 소리(texts 를 BATCH_SEP 로 이은 것)를 문장 조각으로 자른다. alignment 는 이은 글 전체의 글자 시각(whisper, ±0.2초 흔들림).
- * 경계 ±1.2초 안의 쉼(0.12초↑) 가운데 길고 가까운 것의 가운데를 자른다.
- * 못 믿을 때는 던진다: 그런 쉼이 없거나, 조각 길이가 글자 수와 3배 넘게 어긋날 때.
+ * 경계마다 ±3초 안의 쉼(0.12초↑)을 순서대로 하나씩 배정한다(길고 가까울수록 좋음, 합이 최대인 조합). 쉼의 가운데를 자른다.
+ * 못 믿을 때는 던진다: 그런 배정이 없거나, 조각 길이가 글자 수와 3배 넘게 어긋날 때.
  * 반환: [{ start, end (표본 번호), alignment(조각 처음 기준 시각) }]
  */
 export function splitBatch({ pcm, rate, texts, alignment }) {
@@ -160,21 +160,27 @@ export function splitBatch({ pcm, rate, texts, alignment }) {
     if (q && s0 < 0) s0 = x;
     if (!q && s0 >= 0) { const e0 = Math.min(total, x - hop + frame); if ((e0 - s0) / rate >= 0.12) pauses.push([s0, e0]); s0 = -1; }
   }
-  const cuts = [0];
+  // whisper 는 긴 소리에서 경계를 1~2초 틀리게 짚는다(10/23 실측: 문장 끝 1.1초 늦게, 29초 묶음에서 2.1초 이르게).
+  // 경계마다 ±3초 안의 쉼을 후보로, 경계마다 **다른** 쉼을 **순서대로** 배정하는 조합 중 점수 합이 가장 큰 것을 고른다
+  // (점수 = 쉼 길이 − 0.3×짐작과의 거리). 문장 사이 쉼(0.75초↑)은 문장 안 쉼(0.3초↓)보다 길어서 대개 그쪽이 이긴다.
+  const at = []; for (let k = 0; k < n - 1; k++) at.push((en[lastSpoken(ranges[k])] + st[firstSpoken(ranges[k + 1])]) / 2);
+  const cand = pauses.filter(([p0, p1]) => p0 > 0 && p1 < total).map(([p0, p1]) => ({ mid: Math.round((p0 + p1) / 2), len: (p1 - p0) / rate }));
+  const score = (k, c) => (Math.abs(c.mid / rate - at[k]) > 3 ? -Infinity : c.len - 0.3 * Math.abs(c.mid / rate - at[k]));
+  // best[k][j] = 경계 0..k 를 배정하고 경계 k 에 후보 j 를 쓸 때의 최고 합
+  const best = []; const from = [];
   for (let k = 0; k < n - 1; k++) {
-    // whisper 는 문장 끝 글자를 다음 낱말에 1초 넘게 늦게 붙이기도 한다(10/23 실측) — 경계 ±1.2초에서
-    // 긴 쉼일수록, 경계에 가까울수록 낫다(길이 − 0.3×거리). 앞 자른 곳보다 뒤, 첫·끝 쉼(앞뒤 무음)은 뺀다.
-    const at = (en[lastSpoken(ranges[k])] + st[firstSpoken(ranges[k + 1])]) / 2;
-    let best = null; let bestScore = -Infinity;
-    for (const [p0, p1] of pauses) {
-      const mid = (p0 + p1) / 2;
-      if (p0 === 0 || p1 >= total || mid <= cuts[k] + frame || Math.abs(mid / rate - at) > 1.2) continue;
-      const sc = (p1 - p0) / rate - 0.3 * Math.abs(mid / rate - at);
-      if (sc > bestScore) { bestScore = sc; best = Math.round(mid); }
-    }
-    if (best == null) throw new Error(`${k + 1}·${k + 2}번 문장 경계(${at.toFixed(2)}초) 근처에 쉼이 없다`);
-    cuts.push(best);
+    best.push(cand.map(() => -Infinity)); from.push(cand.map(() => -1));
+    cand.forEach((c, j) => {
+      const sc = score(k, c); if (sc === -Infinity) return;
+      if (k === 0) { best[k][j] = sc; return; }
+      for (let i = 0; i < j; i++) if (best[k - 1][i] + sc > best[k][j]) { best[k][j] = best[k - 1][i] + sc; from[k][j] = i; }
+    });
   }
+  let j = best.length ? best[n - 2].indexOf(Math.max(...best[n - 2])) : -1;
+  if (j < 0 || best[n - 2][j] === -Infinity) throw new Error(`문장 경계 ${n - 1}곳에 맞는 쉼을 순서대로 못 찾음(짐작 ${at.map((x) => x.toFixed(2)).join(', ')}초)`);
+  const picked = [];
+  for (let k = n - 2; k >= 0; k--) { picked.unshift(cand[j].mid); j = from[k][j]; }
+  const cuts = [0, ...picked];
   cuts.push(total);
   const perChar = total / rate / texts.reduce((s, t) => s + t.length, 0);
   return texts.map((t, k) => {

@@ -111,9 +111,11 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   (pieces[1].alignment.characters.join('') === '라마바사.' && pieces[1].alignment.character_start_times_seconds[0] >= 0 && pieces[1].alignment.character_start_times_seconds[0] < 0.2)
     ? ok('[11b] 조각마다 자기 글자·시각(조각 처음 기준)') : bad(`[11b] ${JSON.stringify(pieces[1].alignment).slice(0, 200)}`);
   (pieces[2].end === pcm.length && pieces[0].start === 0) ? ok('[11c] 처음·끝까지 빠짐없이') : bad('[11c]');
+  // [11d] 쉼이 없는 소리(문장이 붙어 나옴)는 자를 곳이 없다 → 던진다. (정렬 시각이 엉터리여도 진짜 쉼이 있으면 [11f] 처럼 쉼으로 자른다.)
   let threw = false;
-  try { splitBatch({ pcm, rate, texts, alignment: { characters: [...joined], character_start_times_seconds: st.map(() => 0.5), character_end_times_seconds: en.map(() => 0.5) } }); } catch { threw = true; }
-  threw ? ok('[11d] 경계를 못 잡으면 던진다') : bad('[11d] 엉터리 정렬을 그냥 잘랐다');
+  const flat = Int16Array.from(seg(3.7, 8000));
+  try { splitBatch({ pcm: flat, rate, texts, alignment: { characters: [...joined], character_start_times_seconds: st, character_end_times_seconds: en } }); } catch { threw = true; }
+  threw ? ok('[11d] 쉼이 없으면 던진다') : bad('[11d] 쉼 없는 소리를 그냥 잘랐다');
 }
 // [11e] 10/23 실측(Kore 광고 두 문장 이음): whisper 가 앞 문장 끝 "요" 를 1.1초 늦게(다음 문장 첫 낱말에) 붙였다.
 //   좁은 창(경계 −0.1~+0.3초)은 진짜 쉼(6.4~7.3초)을 못 보고 "종목" 안의 짧은 틈을 잘랐다 → 앞 조각 끝에 "종목!" 이 들림.
@@ -133,6 +135,25 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const ps = splitBatch({ pcm, rate, texts, alignment: { characters: joined, character_start_times_seconds: st, character_end_times_seconds: en } });
   const cut = ps[1].start / rate;
   (cut > 6.5 && cut < 7.2) ? ok(`[11e] 정렬이 늦어도 긴 쉼에서 자른다(${cut.toFixed(2)})`) : bad(`[11e] ${cut.toFixed(2)} — 진짜 쉼은 6.4~7.3`);
+}
+// [11f] 10/23 16:03 실호출(Kore, 4문장 29초 한 묶음): 문장 사이 쉼 7.46(+0.78)·15.43(+0.83)·22.21(+0.75), 문장 안 쉼은 0.28초 이하.
+//   whisper 는 긴 소리에서 2·3번 경계를 13.75초로 2.1초 일찍 짚었다 → ±1.2초 창에 쉼이 없어 던짐(묶음 통째 문장별 재호출 = 호출 5번).
+//   넓게(±3초) 보되 경계마다 다른 쉼을, 순서대로 배정한다(합이 가장 좋은 조합).
+{
+  const { splitBatch } = await import('./gemini-tts.mjs');
+  const rate = 1000; const seg = (sec, amp) => Array.from({ length: Math.round(sec * rate) }, (_, k) => (amp ? Math.round(amp * Math.sin(k)) : 0));
+  const plan = [[0, 0.32, 0], [0.32, 4.21, 1], [4.21, 4.43, 0], [4.43, 7.46, 1], [7.46, 8.24, 0], [8.24, 10.97, 1], [10.97, 11.2, 0], [11.2, 15.43, 1],
+    [15.43, 16.26, 0], [16.26, 19.52, 1], [19.52, 19.75, 0], [19.75, 22.21, 1], [22.21, 22.96, 0], [22.96, 25.95, 1], [25.95, 26.18, 0], [26.18, 29.08, 1]];
+  const pcm = Int16Array.from(plan.flatMap(([a, b, on]) => seg(b - a, on ? 8000 : 0)));
+  const texts = ['가'.repeat(30) + '.', '나'.repeat(30) + '.', '다'.repeat(30) + '.', '라'.repeat(30) + '.'];
+  // whisper 경계 짐작: 7.6 · 13.75(2.1초 이름) · 22.4
+  const bounds = [[0.4, 7.5], [7.7, 13.7], [13.8, 22.3], [22.5, 28.9]];
+  const st = []; const en = [];
+  bounds.forEach(([a, b], k) => { for (let j = 0; j < 31; j++) { st.push(a + (b - a) * j / 31); en.push(a + (b - a) * (j + 1) / 31); } if (k < 3) { st.push(b); en.push(b); } });
+  let cuts = null; let err = null;
+  try { cuts = splitBatch({ pcm, rate, texts, alignment: { characters: [...texts.join(' ')], character_start_times_seconds: st, character_end_times_seconds: en } }).slice(1).map((p) => p.start / rate); } catch (e) { err = e.message; }
+  (cuts && cuts[0] > 7.46 && cuts[0] < 8.24 && cuts[1] > 15.43 && cuts[1] < 16.26 && cuts[2] > 22.21 && cuts[2] < 22.96)
+    ? ok(`[11f] 정렬이 2초 어긋나도 문장 쉼에 배정(${cuts.map((c) => c.toFixed(2)).join(', ')})`) : bad(`[11f] ${err ?? JSON.stringify(cuts)}`);
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
