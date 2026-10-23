@@ -9,6 +9,8 @@
  * 문구는 지어내지 않는다 — 쇼츠 광고(make-outro-clip)·사이트에 이미 있는 말만:
  *   AISVI: "말하는 대로 컴퓨터를 조종합니다"(사이트) · "가입 없이 바로 무료 체험"(lib/ad-line) · 화면 = aisvi-demo.mp4(가로 시연, 폰에 말함 → 메일 작성 → 전송)
  *   FLOWVIUM: "하루 5번 AI 시장 리포트 · 무료"(쇼츠 카드) · 실제 최고 적중(lib/best-hit, 쇼츠 카드와 같은 날 같은 건)
+ *     근거·면책 문구는 쇼츠 카드(make-outro-clip .f)와 같은 규칙. 10/23 agy 눈검증: 24px 회색 면책은 폰에서 안 읽힌다 → 32px 밝게,
+ *     말로 하는 "설명란 링크" 를 화면에도.
  * 읽는 소리: 라틴 문자는 한글 음으로(flowvium.net → "플로우 비오모 …" 전례) — "에이스비"(사장님이 정한 발음) · "플로비움 닷넷"(채널이 쓰는 소리).
  *
  * 사용: node scripts/video/make-brief-ads.mjs --brand aisvi|flowvium
@@ -52,10 +54,10 @@ if (BRAND === 'aisvi') {
   const hitHtml = hit?.best ? `<div class="hk">AI 추천 실제 수익</div><div class="hp">+${hit.best.pnl}%</div>
 <div class="hn">${esc(hit.best.name ?? hit.best.ticker)} <span>${esc(String(hit.best.ticker).replace(/\.(KS|KQ)$/, ''))}</span></div>
 <div class="hd">${md(hit.best.from)} 추천 → ${md(hit.best.to)} ${hit.best.outcome === 'hit_target' ? '목표가 도달' : '매도'}</div>
-<div class="hs">추천 ${hit.evaluated.toLocaleString('en-US')}건 평가 중 실제 수익 20% 이상 기록 · 과거 수익이 미래 수익을 보장하지 않습니다</div>` : '';
+<div class="hs">추천 ${hit.evaluated.toLocaleString('ko-KR')}건 중 ${hit.of > 1 ? `수익 20% 이상 ${hit.of}건 중 하나` : '최고 기록'}<br>과거 수익이 미래 수익을 보장하지 않습니다</div>` : '';
   log(hit?.best ? `적중 ${hit.best.ticker} +${hit.best.pnl}% (${hit.rank}/${hit.of})` : '적중 기록 없음 — 브랜드만');
   panel = `<div class="k" style="color:#c4b5fd">AI 투자 종목 추천</div><div class="w">FLOWVIUM</div><div class="bar" style="background:#7c3aed"></div>
-<div class="u">flowvium.net</div><div class="pill">하루 5번 AI 시장 리포트 · 무료</div>`;
+<div class="u">flowvium.net</div><div class="pill">하루 5번 AI 시장 리포트 · 무료</div><div class="n">종목별 분석은 설명란 링크에서</div>`;
   video = null; panel = { left: hitHtml, right: panel };
 }
 
@@ -77,7 +79,7 @@ const BASE = `*{margin:0;box-sizing:border-box}body{width:1920px;height:1080px;f
 .l{position:absolute;left:0;top:0;width:1020px;height:1080px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:radial-gradient(120% 90% at 50% 30%,#1d1b3a 0%,#0b0a1a 70%)}
 .hk{font-size:50px;font-weight:800;color:#c4b5fd}.hp{font-size:210px;font-weight:900;color:#22c55e;line-height:1.05;letter-spacing:-4px}
 .hn{font-size:56px;font-weight:800;margin-top:10px}.hn span{color:#94a3b8;font-weight:700}.hd{font-size:40px;color:#cbd5e1;margin-top:14px;font-weight:700}
-.hs{font-size:24px;color:#64748b;margin-top:26px;padding:0 60px}`;
+.hs{font-size:32px;color:#cbd5e1;margin-top:30px;padding:0 60px;line-height:1.45;font-weight:600}.n{font-size:36px;font-weight:700;color:#e2e8f0;margin-top:30px}`;
 const html = video
   ? `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:transparent}.bg{position:absolute;inset:0;background:#0b0a1a;clip-path:polygon(1220px 0,1920px 0,1920px 1080px,1220px 1080px)}</style><div class="bg"></div><div class="r">${panel}</div>`
   : `<!doctype html><meta charset="utf-8"><style>${BASE}</style><div class="l">${panel.left}</div><div class="r">${panel.right}</div>`;
