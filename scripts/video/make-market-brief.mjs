@@ -26,7 +26,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL, staleMoves, isLateDoc, thumbPhoto } from '../lib/market-brief.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -154,6 +154,7 @@ const scriptPrompt = [
   '구성(chapters):',
   ` 1) kind "market" heading "${marketHeading}" — 첫 문장은 "${DAY_MD} ${SPOKEN}입니다." 그다음 **가장 크게 움직인 지수부터** 등락률(%) 위주로(종가는 대표 지수 하나만), 그리고 그 이유 한두 문장. 거의 안 움직인 지수는 짧게 묶거나 빼라.`,
   ED === 'kreu' ? '    유럽 지수는 [지수]에 "장중" 으로 적힌 값이다 — "장중" 이라고 밝혀 쓴다.' : '',
+  ED === 'krclose' ? '    "(장중)" 이 붙은 기사의 등락률(%)·주가(원)는 마감 값이 아니다 — 쓰지 마라. 종목 등락은 장중 표시 없는 기사 숫자만. 실적·금액·사건은 장중 기사도 써도 된다.' : '',
   ED === 'krclose' ? '    유럽 지수는 [지수]에 "장중" 으로 적힌 값이다 — market 장 끝에 "유럽 증시는 장 초반 …" 한 문장으로만, 숫자만 짧게(이유를 지어내지 마라).' : '',
   '    지수판 화면에 모든 숫자가 나온다 — 거의 안 움직인 지수까지 다 읽지 마라. "한편" "보도에 따르면" "살펴보겠습니다" 같은 연결어·예고 문장 금지.',
   ED === 'krmid' ? '    지수는 [지수]에 "장중 HH:MM 기준" 으로 적힌 아직 끝나지 않은 장의 값이다 — "마감" "마쳤습니다" 를 쓰지 말고 "오전 11시 35분 기준" 처럼 시각을 밝혀 쓴다.' : '',
@@ -170,7 +171,7 @@ const scriptPrompt = [
   'calendar_ko: [일정] 각 줄 번호 i 의 한국어 이름(14자 이내, 예 "신규 실업수당 청구건수", 실적은 "프록터앤드갬블 실적"). 숫자는 넣지 마라.', '',
   '[지수]', ...FACTS, '',
   '[일정]', ...(calLines.length ? calLines : ['(없음)']), '',
-  '[기사]', ...docs.map((d, i) => `[${i}] ${d.source} · ${d.headline}\n${d.text}`),
+  '[기사]', ...docs.map((d, i) => `[${i}] ${d.source} · ${kstClock(d.captured_at)} 기사${isLateDoc(ED, d.captured_at) ? '' : '(장중)'} · ${d.headline}\n${d.text}`),
 ].filter((x) => x !== '').join('\n');
 const { agyReport } = await import('../lib/agy-report.mjs');
 let script = null;
@@ -183,6 +184,9 @@ if (!script) die('대본을 못 받았다');
 // 일정 이름(한국어) — 숫자를 지어 넣었거나 길면 원문 이름을 쓴다.
 const calKo = new Map((script.calendar_ko ?? []).filter((x) => Number.isInteger(x.i) && CAL[x.i] && x.ko && String(x.ko).length <= 18 && !/\d/.test(x.ko)).map((x) => [x.i, String(x.ko).trim()]));
 CAL.forEach((c, i) => { c.ko = calKo.get(i) ?? (c.kind === 'econ' ? c.title : `${c.name} 실적`); });
+// 마감판: 종목 등락률·주가는 장 끝난 뒤 기사·지수표에서만(lib staleMoves — 10/23 장중 "6.5%" 가 마감 결과처럼 나감).
+const LATE_CORPUS = docs.every((d) => isLateDoc(ED, d.captured_at)) ? null
+  : [...FACTS, ...FACTS.map((f) => f.replace(/,/g, '')), ...docs.filter((d) => isLateDoc(ED, d.captured_at)).map((d) => `${d.headline} ${d.text}`)].join('\n');
 const CORPUS = flattenKoNumbers([
   ...FACTS, ...FACTS.map((f) => f.replace(/,/g, '')),
   ...CAL.map((c) => c.kind === 'econ' ? `${c.kst} ${Number(c.kst.slice(0, 2)) % 12 || 12}시 ${c.kst.slice(3)}분 ${c.country} ${c.ko} ${c.title} ${c.forecast ?? ''} ${c.previous ?? ''}` : `${c.when} ${c.symbol} ${c.ko}`),
@@ -197,6 +201,8 @@ for (const c of chapters) c.sentences = c.sentences.filter((s) => {
   if (bad.length) { log(`[검사] 숫자 근거 없음(${bad.join(',')}) — 뺀다: ${s.slice(0, 50)}`); return false; }
   const hn = hangulNumerals(s); if (hn.length) { log(`[검사] 숫자를 한글로 씀(${hn.join(',')}) — 뺀다: ${s.slice(0, 50)}`); return false; }
   if (isEditorial(s)) { log(`[검사] 출처 없는 당위·기대 — 뺀다: ${s.slice(0, 50)}`); return false; }
+  const stale = LATE_CORPUS ? staleMoves(s, { lateCorpus: LATE_CORPUS }) : [];
+  if (stale.length) { log(`[검사] 장중 기사 등락·주가를 마감처럼(${stale.join(',')}) — 뺀다: ${s.slice(0, 50)}`); return false; }
   if (!END.test(s)) { log(`[검사] 끝맺음 아님 — 뺀다: ${s.slice(0, 50)}`); return false; }
   return true;
 });
@@ -342,10 +348,12 @@ const BASE = `*{margin:0;box-sizing:border-box}body{width:1920px;height:1080px;f
 // 지수판 — 브랜드 머리띠(사이트 파랑 #4F8FBF) + 이름 왼쪽 · 값·등락 오른쪽 정렬 열(10/23 agy·Claude: 값 열이 들쭉날쭉했다).
 const BRAND = '#4F8FBF';
 const hhmm = (q) => kstClock(q.at);
-const boardHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#0b1220;color:#fff;padding:0 190px;display:flex;flex-direction:column;justify-content:center}
+// 아래 자막 띠(≈ 아래 200px)를 비운다 — 10/23 마감판(6줄)에서 자막이 프랑스 CAC40 줄을 덮었다. 줄이 많으면 줄 간격을 줄인다.
+const rowPad = quotes.length > 4 ? 12 : 24;
+const boardHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#0b1220;color:#fff;padding:0 190px 200px;display:flex;flex-direction:column;justify-content:center}
 .top{position:absolute;left:0;right:0;top:0;height:14px;background:${BRAND}}
 h1{font-size:58px;font-weight:900;margin-bottom:10px}.sub{font-size:34px;color:#8FB8D8;font-weight:700;margin-bottom:40px}
-.r{display:grid;grid-template-columns:1fr 440px 330px;align-items:baseline;border-bottom:2px solid #1f2937;padding:24px 0}
+.r{display:grid;grid-template-columns:1fr 440px 330px;align-items:baseline;border-bottom:2px solid #1f2937;padding:${rowPad}px 0}
 .n{font-size:62px;font-weight:800}.v{font-size:62px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}.p{font-size:62px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}.s{font-size:32px;color:#94a3b8;margin-left:16px;font-weight:700}</style>
 <div class="top"></div><h1>${esc(DAY_MD)} ${esc(SESSION_LABEL[ED])}</h1><div class="sub">FLOWVIUM</div>${quotes.map((q) => `<div class="r"><div class="n">${esc(q.name)}${q.closed ? '' : `<span class="s">장중${hhmm(q) ? ` ${hhmm(q)}` : ''}</span>`}</div><div class="v">${q.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div class="p" style="color:${q.pct > 0 ? up : q.pct < 0 ? dn : '#fff'}">${q.pct > 0 ? '▲' : q.pct < 0 ? '▼' : ''} ${Math.abs(q.pct).toFixed(2)}%</div></div>`).join('')}`;
 // "200K" → "20만" (한국 시청자 단위). 나머지(%, B 등)는 원문 그대로.
@@ -433,7 +441,9 @@ if (!(LEN >= 80 && LEN <= 300)) die(`길이 ${LEN?.toFixed(0)}초 — 80~300초 
 const THUMB = join(OUT, 'thumb.jpg');
 {
   const story = chapters.find((c) => c.kind === 'story');
-  const pic = (allowed.get(chapters.indexOf(story)) ?? [])[0] ?? [...allowed.values()].flat()[0] ?? null;   // 대조를 통과한 사진만
+  // 대조를 통과한 사진만, 첫 이야기 장 것 먼저. 마감판은 장 끝난 뒤 기사 사진만(lib thumbPhoto — 10/23 오전 시세판 사진이 마감판 썸네일에).
+  const pic = thumbPhoto(ED, [...(allowed.get(chapters.indexOf(story)) ?? []), ...[...allowed.values()].flat()], docs);
+  if (!pic && allowed.size) log('[썸네일] 장 끝난 뒤 기사 사진이 없다 — 사진 없이');
   // 10/23 사장님 "너무 오선을 따라한 형태다" → 데이터 우선 꼴(agy·Claude 검토 종합): 왼쪽 짙은 판에 그날 가장 크게 움직인 지수
   //   숫자(색 칩 위 흰 글씨 — 남색 위 파랑 글씨는 폰에서 묻힌다) + 2줄 핵심(노랑·흰, 줄당 7자 안). 오른쪽에 사진(채도 낮춤).
   //   빨간 날짜 띠·흰 띠·우상단 배지는 없앤다. 오른쪽 아래는 비운다(영상 길이 표시 자리).

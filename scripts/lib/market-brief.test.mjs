@@ -220,5 +220,26 @@ const M = await import('./market-brief.mjs');
   (f.name === 'aisvi' && f.fallback && /brief-ad-aisvi\.mp4$/.test(f.path)) ? ok('[19b] 원하는 광고 없으면 다른 쪽') : bad(`[19b] ${JSON.stringify(f)}`);
   (M.briefPromo(h(0), { exists: () => false }).path === null) ? ok('[19c] 둘 다 없으면 광고 없이') : bad('[19c]');
 }
+// [20] 마감판 등락률·주가는 장 끝난 뒤 근거에서만 — 10/23 첫 마감판 "삼성E&A는 … 6.5% 급등했습니다": 10시 [특징주] 기사의 장중 숫자
+//   (실제 마감 +7.22%, 네이버). 관련 기사는 아침부터 모으므로 장중 숫자가 마감 결과처럼 읽혔다. 금액(억·조)·실적은 장중 기사도 근거가 된다.
+{
+  const late = '[특징주] 디티에스 상장 첫날 35.14% 오른 2만5천원에 마감. 코스피 5,550.30 (+0.30%) 마감';
+  (JSON.stringify(M.staleMoves('삼성E&A는 깜짝 실적에 힘입어 6.5% 급등했습니다.', { lateCorpus: late })) === '["6.5%"]')
+    ? ok('[20] 장중 기사에만 있는 등락률을 잡는다') : bad(`[20] ${JSON.stringify(M.staleMoves('삼성E&A는 깜짝 실적에 힘입어 6.5% 급등했습니다.', { lateCorpus: late }))}`);
+  (M.staleMoves('디티에스는 공모가 대비 35.14% 오른 2만5천원에 마감했습니다.', { lateCorpus: late }).length === 0) ? ok('[20b] 마감 기사 숫자는 통과') : bad('[20b]');
+  (M.staleMoves('3분기 영업이익이 5천6억원을 기록했습니다.', { lateCorpus: late }).length === 0) ? ok('[20c] 금액(억원)은 등락이 아니라 통과') : bad('[20c]');
+  (M.staleMoves('주가는 5만9천원에 거래됐습니다.', { lateCorpus: late }).length === 1) ? ok('[20d] 장중 주가(원)도 잡는다') : bad(`[20d] ${JSON.stringify(M.staleMoves('주가는 5만9천원에 거래됐습니다.', { lateCorpus: late }))}`);
+  (M.isLateDoc('krclose', '2026-10-23T06:30:00Z') && !M.isLateDoc('krclose', '2026-10-23T01:10:00Z') && M.isLateDoc('us', '2026-10-23T01:10:00Z'))
+    ? ok('[20e] 15:20(KST) 뒤 기사만 마감 근거, 기준 없는 판은 전부') : bad('[20e]');
+}
+// [21] 마감판 썸네일 사진은 장 끝난 뒤 기사의 것만 — 10/23 첫 마감판 썸네일: 오전 기사 사진 속 시세판 "KOSPI 5,363.62 ▼3.07%"
+//   (그날 코스피는 +0.30% 마감). 사진 속 숫자는 못 읽으니 사진이 나온 기사 시각으로 거른다. 없으면 사진 없이(짙은 판).
+{
+  const docs = [{ captured_at: '2026-10-23T01:20:00Z' }, { captured_at: '2026-10-23T06:40:00Z' }];
+  const c = [{ file: 'am.jpg', doc: 0 }, { file: 'pm.jpg', doc: 1 }, { file: 'x.jpg', doc: -1 }];
+  (M.thumbPhoto('krclose', c, docs)?.file === 'pm.jpg') ? ok('[21] 마감판은 장 끝난 뒤 기사 사진') : bad(`[21] ${JSON.stringify(M.thumbPhoto('krclose', c, docs))}`);
+  (M.thumbPhoto('krclose', [c[0], c[2]], docs) === null) ? ok('[21b] 그런 사진이 없으면 사진 없이') : bad('[21b]');
+  (M.thumbPhoto('krmid', c, docs)?.file === 'am.jpg') ? ok('[21c] 장중판·미국판은 첫 사진 그대로') : bad('[21c]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

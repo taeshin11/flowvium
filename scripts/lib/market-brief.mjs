@@ -5,6 +5,7 @@
  *               'krmid' = 점심(12:00 공개) 한국 증시 오전 요약 — 장중 숫자 + 오전장 기사 (사장님 10/23 "점심시간·퇴근시간")
  *               'krclose' = 퇴근길(18:00 공개) 한국 증시 마감 요약 — 마감 숫자 + 마감 기사
  */
+import { ungroundedNumbers } from './weekly-explainer.mjs';
 
 const KST = 9 * 3600e3;
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
@@ -224,4 +225,29 @@ export function briefPromo(history, { exists }) {
   const want = n % 2 === 0 ? 'aisvi' : 'flowvium';
   for (const name of [want, want === 'aisvi' ? 'flowvium' : 'aisvi']) if (exists(BRIEF_ADS[name])) return { name, path: BRIEF_ADS[name], fallback: name !== want };
   return { name: null, path: null, fallback: false };
+}
+
+/**
+ * 마감판(afterKst 가 있고 장중판이 아닌 판)의 등락률(%)·주가(원, 억·조 금액 말고)는 장 끝난 뒤 근거(lateCorpus)에 있어야 한다.
+ * 10/23 첫 마감판: "삼성E&A … 6.5% 급등했습니다" — 아침 10시 [특징주] 기사의 장중 숫자였다(실제 마감 +7.22%).
+ * 돌려주는 것: 장 끝난 뒤 근거에 없는 등락률·주가(없으면 빈 배열).
+ */
+export function staleMoves(sentence, { lateCorpus }) {
+  return ungroundedNumbers(sentence, lateCorpus).filter((raw) => { const r = raw.replace(/\s+/g, ''); return /%$/.test(r) || (/원$/.test(r) && !/[억조]/.test(r)); });
+}
+/** 이 기사가 그 판의 '장 끝난 뒤' 근거인가. afterKst 없는 판(미국판)은 모두, 장중판은 해당 없음(true). */
+export function isLateDoc(edition, capturedAt) {
+  const { afterKst, live } = EDITIONS[edition] ?? {};
+  return live || !afterKst || kstHHMM(Date.parse(capturedAt)) >= afterKst;
+}
+/**
+ * 썸네일 사진. 마감판은 장 끝난 뒤 기사(isLateDoc)에서 나온 사진만 — 10/23 오전 기사 사진 속 시세판(KOSPI ▼3.07%)이
+ * +0.30% 로 끝난 날 마감판 썸네일에 나갔다. 사진 속 숫자는 못 읽으니 출처 기사 시각으로 거른다. 없으면 null(사진 없이).
+ * candidates: [{ file, doc }] (doc = docs 번호, 기사 밖에서 찾은 사진은 -1). 장중판·미국판은 첫 사진.
+ */
+export function thumbPhoto(edition, candidates, docs) {
+  const { afterKst, live } = EDITIONS[edition] ?? {};
+  const list = candidates ?? [];
+  if (live || !afterKst) return list[0] ?? null;
+  return list.find((c) => c.doc >= 0 && docs[c.doc] && isLateDoc(edition, docs[c.doc].captured_at)) ?? null;
 }
