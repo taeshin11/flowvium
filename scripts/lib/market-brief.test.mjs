@@ -191,5 +191,22 @@ const M = await import('./market-brief.mjs');
   const ids = (ci) => (got.get(ci) ?? []).map((x) => x.id).join(',');
   (ids(1) === 'meta,trader' && ids(2) === '' && ids(3) === 'oil') ? ok('[17] 사진 한 장은 한 장(章)만 · 자기 사진 먼저') : bad(`[17] 1=${ids(1)} 2=${ids(2)} 3=${ids(3)}`);
 }
+// [18] '오늘 체크' 고르기 — 10/23 오전판 시험 렌더: 프랑스 제조업·서비스업 PMI(같은 16:15)를 둘 다 골라 "같은 시각인 …" 으로 읽었다.
+//   한국 시청자에겐 미국 지표가 먼저(중요도 High → 미국 → 이른 시각), 같은 시각·같은 나라는 하나만, 실적은 1곳.
+{
+  const ev = [
+    { ms: 1, impact: 'Medium', country: '유로존', title: 'French Flash Manufacturing PMI' },
+    { ms: 1, impact: 'Medium', country: '유로존', title: 'French Flash Services PMI' },
+    { ms: 2, impact: 'Medium', country: '유로존', title: 'German Flash Manufacturing PMI' },
+    { ms: 5, impact: 'Medium', country: '미국', title: 'Flash Manufacturing PMI' },
+    { ms: 5, impact: 'Medium', country: '미국', title: 'Flash Services PMI' },
+    { ms: 6, impact: 'High', country: '미국', title: 'UoM Consumer Sentiment' },
+  ];
+  const got = M.pickCalendar(ev, [{ symbol: 'AXP' }, { symbol: 'X' }]);
+  const t = got.map((c) => c.title ?? c.symbol).join(' / ');
+  (t === 'Flash Manufacturing PMI / UoM Consumer Sentiment / AXP') ? ok('[18] 오늘 체크: High·미국 먼저, 같은 시각 하나, 시각 순 + 실적 1') : bad(`[18] ${t}`);
+  const noEarn = M.pickCalendar(ev, []).map((c) => c.title).join(' / ');
+  (noEarn.split(' / ').length === 3) ? ok('[18b] 실적 없으면 지표 3개') : bad(`[18b] ${noEarn}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

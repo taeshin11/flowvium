@@ -26,7 +26,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, SESSION_LABEL } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, SESSION_LABEL } from '../lib/market-brief.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -124,10 +124,8 @@ try { const r = await fetch(`https://api.nasdaq.com/api/calendar/earnings?date=$
 } catch (e) { log(`[일정] 실적 못 받음: ${e.message}`); }
 // 한국·유럽판은 오늘 밤 장전 실적만(장후는 내일 아침 미국판이 다룬다).
 if (ED !== 'us') earn = earn.filter((x) => x.when === '장전');
-// '오늘 체크' 는 2~3개(10/23 ChatGPT·agy). 화면과 낭독이 같은 것을 말하도록 **여기서 미리 고른다** — 첫 렌더에서 낭독은
-//   미시간·아멕스를 읽는데 화면은 PMI 6줄이었다. 지표: 중요도 High 먼저, 같으면 이른 시각. 실적: 시총 가장 큰 1곳.
-const econPick = [...econ].sort((a, b) => (a.impact === 'High' ? 0 : 1) - (b.impact === 'High' ? 0 : 1) || a.ms - b.ms).slice(0, earn.length ? 2 : 3).sort((a, b) => a.ms - b.ms);
-const CAL = [...econPick.map((e) => ({ kind: 'econ', ...e })), ...earn.slice(0, 1).map((x) => ({ kind: 'earn', ...x }))];
+// '오늘 체크' 2~3개 — 화면과 낭독이 같은 것을 말하도록 여기서 고른다(lib pickCalendar: High → 미국 → 이른 시각, 같은 시각 하나).
+const CAL = pickCalendar(econ, earn);
 log(`[일정] 지표 ${econ.length} · 실적 ${earn.length}`);
 const calLines = CAL.map((c, i) => c.kind === 'econ'
   ? `(${i}) ${c.kstDay === DATE ? '' : '다음 날 '}${c.kst} ${c.country} ${c.title}${c.forecast ? ` 예상 ${c.forecast}` : ''}${c.previous ? ` 이전 ${c.previous}` : ''}`
@@ -160,7 +158,7 @@ const scriptPrompt = [
   '    지수판 화면에 모든 숫자가 나온다 — 거의 안 움직인 지수까지 다 읽지 마라. "한편" "보도에 따르면" "살펴보겠습니다" 같은 연결어·예고 문장 금지.',
   ED === 'krmid' ? '    지수는 [지수]에 "장중 HH:MM 기준" 으로 적힌 아직 끝나지 않은 장의 값이다 — "마감" "마쳤습니다" 를 쓰지 말고 "오전 11시 35분 기준" 처럼 시각을 밝혀 쓴다.' : '',
   ' 2) kind "story" 2~4개 — 오늘 시장을 움직인 종목·이슈 하나씩(heading 12자 이내, 회사·이슈 이름). 무엇이 몇 % 움직였고 왜인지, 기사에 있는 증권가·전문가 말이 **그 장의 회사·이슈에 관한 것이면** 누가 했는지 밝혀 한 문장 옮긴다(시장 전체 논평은 market 장에).',
-  ` 3) kind "calendar" heading "${ED === 'us' ? '오늘 체크' : '오늘 밤 체크'}" — [일정] 을 **모두** 한 문장씩 시각과 함께 읽는다(한국 시각, "밤 9시 30분" 처럼). 예상치·이전치 숫자는 읽지 마라(화면에 나온다). 일정이 없으면 이 장을 빼라.`,
+  ` 3) kind "calendar" heading "${ED === 'krclose' ? '오늘 밤 체크' : '오늘 체크'}" — [일정] 을 **모두** 한 문장씩 시각과 함께 읽는다(한국 시각, "밤 9시 30분" 처럼). 예상치·이전치 숫자는 읽지 마라(화면에 나온다). 일정이 없으면 이 장을 빼라.`,
   '문장 규칙: 합니다체. 한 문장 20~55자. 각 문장은 "니다." 등 완결된 말로 끝낸다. 숫자는 아라비아 숫자("1.05%", "26,702.86"), 지수 소수점은 둘째 자리까지 그대로.',
   '"여러분" "충격" "경악" 금지. 기자 이름·매체 서명 읽지 마라. 화면 지시어 금지. 투자 권유·매수 매도 제안 금지. 채널의 의견·당위·전망 금지(말한 사람을 밝혀 옮길 때만).',
   `분량: 모든 문장 합계 ${B.min}~${B.max}자(목표 ${B.target}자).`,
@@ -168,7 +166,7 @@ const scriptPrompt = [
   // 10/22 첫 시험: 예시로 레퍼런스 영상 제목을 그대로 줬더니 그 제목을 그대로 베꼈다 — 예시 문장을 주지 않는다.
   'hook: 오늘 시장의 핵심을 말하는 결론형 한 줄(22자 이내, 물음표 금지 — 영상이 답하지 않는 질문은 낚시다). **가장 크게 움직인 지수의 이유**(market 장의 이유)에서 뽑아라 — 이야기 장 하나의 곁가지 회사로 낚지 마라. 숫자를 넣지 마라(제목 앞에 숫자가 따로 붙는다).',
   '  이미 일어난 일을 "~할까요?" 로 묻지 마라(10/22 시험: 이미 오른 장을 "반등할까요?"). 묻는다면 아직 안 정해진 것(합병 성사, 상승 지속, 오늘 밤 지표)을 묻는다.',
-  'thumb_lines: 썸네일 큰 글 2줄. 각 줄 2~7자 명사구(예 ["AI 투자 불안", "반도체 급락"]). 숫자·물음표 없이.',
+  'thumb_lines: 썸네일 큰 글 **정확히 2줄**, 오늘 시장의 결론(market 장의 이유). 각 줄 띄어쓰기 포함 **8자 이하** 명사구(예 ["AI 투자 불안", "반도체 급락"]). 숫자·물음표 없이.',
   'calendar_ko: [일정] 각 줄 번호 i 의 한국어 이름(14자 이내, 예 "신규 실업수당 청구건수", 실적은 "프록터앤드갬블 실적"). 숫자는 넣지 마라.', '',
   '[지수]', ...FACTS, '',
   '[일정]', ...(calLines.length ? calLines : ['(없음)']), '',
@@ -226,8 +224,12 @@ const hook = ungroundedNumbers(script.hook, CORPUS).length ? chapters.find((c) =
 const MOVE = headlineMove(quotes);
 // 썸네일 2줄 — 각 2~7자(폰에서 읽히는 크기, agy·Claude 검토). 못 받으면 이야기 장 제목 두 개.
 const thumbLines = (() => {
-  const t = (script.thumb_lines ?? []).map((x) => String(x).replace(/[?？!]/g, '').trim()).filter((x) => x.length >= 2 && x.length <= 7 && !/\d/.test(x)).slice(0, 2);
-  return t.length === 2 ? t : chapters.filter((c) => c.kind === 'story').map((c) => c.heading.slice(0, 7)).slice(0, 2);
+  // 10/23 오전판 시험: 줄이 7자를 넘어 버려지고 이야기 장 제목(회사 이름 둘)으로 떨어졌다 — 8자까지 받고, 버린 이유를 남긴다.
+  const raw = (script.thumb_lines ?? []).map((x) => String(x).replace(/[?？!]/g, '').trim());
+  const t = raw.filter((x) => x.length >= 2 && x.length <= 8 && !/\d/.test(x)).slice(0, 2);
+  if (t.length === 2) return t;
+  log(`[썸네일] 2줄 못 씀(${JSON.stringify(raw)}) — 이야기 장 제목으로`);
+  return chapters.filter((c) => c.kind === 'story').map((c) => c.heading.slice(0, 8)).slice(0, 2);
 })();
 const thumbLine = thumbLines.join(' ');
 const title = briefTitle({ edition: ED, move: MOVE, hook, day: DAY });

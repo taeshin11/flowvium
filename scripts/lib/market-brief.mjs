@@ -194,3 +194,22 @@ export function claimPhotos(allowed, order) {
   for (const ci of order) out.set(ci, (allowed.get(ci) ?? []).filter((m) => owner.get(m) === ci).sort((a, b) => (b.forCi === ci) - (a.forCi === ci)));
   return out;
 }
+
+/**
+ * '오늘 체크' 2~3개(10/23 ChatGPT·agy). 화면과 낭독이 같은 것을 말하도록 렌더 전에 고른다.
+ * 순서: 중요도 High → 미국(한국 시청자) → 이른 시각. 같은 시각·같은 나라는 하나만(10/23 오전판: 프랑스 PMI 둘을 "같은 시각인 …" 으로 읽었다).
+ * 실적은 시총 가장 큰 1곳(부르는 쪽이 정렬해 준다). 결과는 지표 시각 순 + 실적.
+ */
+export function pickCalendar(econ, earn) {
+  const rank = (e) => [e.impact === 'High' ? 0 : 1, e.country === '미국' ? 0 : 1, e.ms];
+  const cmp = (a, b) => { const x = rank(a); const y = rank(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
+  const want = (earn ?? []).length ? 2 : 3;
+  const seen = new Set(); const out = [];
+  for (const e of [...(econ ?? [])].sort(cmp)) {
+    const k = `${e.ms}|${e.country}`;
+    if (seen.has(k)) continue;
+    seen.add(k); out.push(e);
+    if (out.length === want) break;
+  }
+  return [...out.sort((a, b) => a.ms - b.ms).map((e) => ({ kind: 'econ', ...e })), ...(earn ?? []).slice(0, 1).map((x) => ({ kind: 'earn', ...x }))];
+}
