@@ -695,10 +695,11 @@ const MAINT_JOBS = [
   //   오늘 밤 미국 일정은 18:00 마감판 일정 장이 맡는다. 다시 켜려면 아래 주석을 푼다.
   // { label: 'market-brief-kreu',    script: 'scripts/video/make-market-brief.mjs --edition kreu --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['35 10 * * *', '35,55 12 * * *'], maxAgeH: 30 },
   // 2026-10-23 사장님 "한국사람들 점심시간이랑 퇴근시간에 많이 볼 수 있도록 한국장 중간과 끝나고도 롱폼 정리".
-  //   오전판: 오전장 정리 기사가 11:30 께 나온다(10/22 실측) → KST 11:35·11:50·12:05 에 만들어 12:00 공개(10분 안쪽이거나 지났으면 바로).
+  //   오전판: 오전장 정리 기사가 11:30 께 나온다(10/22 실측). 그런데 점심 보고서(10:30 시작)가 12:00 정시 발간까지 기다리며
+  //     파이프라인을 쥐고 있어 그 전에는 렌더가 비켜선다(report-running) — 10/23 확인. 그래서 KST 12:03·12:18·12:33 에 만들어 바로 공개.
   //   마감판: 마감 종합 기사가 15:45~16:30 에 나온다 → KST 16:40·17:00·17:20 에 만들어 18:00(퇴근길) 예약 공개.
   //   창(오전판 11:20~13:30, 마감판 16:20~19:30)·장 상태(오전판 = 장중, 마감판 = 마감)·휴장은 스크립트가 거른다.
-  { label: 'market-brief-krmid',   script: 'scripts/video/make-market-brief.mjs --edition krmid --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['35,50 2 * * *', '5 3 * * *'],  maxAgeH: 30 },
+  { label: 'market-brief-krmid',   script: 'scripts/video/make-market-brief.mjs --edition krmid --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['3,18,33 3 * * *'],              maxAgeH: 30 },
   { label: 'market-brief-krclose', script: 'scripts/video/make-market-brief.mjs --edition krclose --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['40 7 * * *', '0,20 8 * * *'], maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
