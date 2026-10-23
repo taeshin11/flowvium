@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-10-22T22:43:15.819Z",
+  "generatedAt": "2026-10-23T13:01:04.995Z",
   "universe": "US",
   "scanned": 329,
-  "count": 7,
-  "strongCount": 1,
-  "watchCount": 6,
+  "count": 4,
+  "strongCount": 2,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "CLDT",
+      "name": "Chatham Lodging Trust (REIT)",
+      "tier": "strong",
+      "score": 37,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 6.3,
+      "runup5dPct": 0.8,
+      "medDollarVolUsd": 3493056,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "EEA",
       "name": "The European Equity Fund, Inc.",
@@ -15,98 +33,28 @@
       "coFire": 3,
       "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.4× 급증(가격 평탄)",
+        "거래량 3.8× 급증(가격 평탄)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
       "runup20dPct": -4.1,
-      "runup5dPct": 0.3,
+      "runup5dPct": -0.9,
       "medDollarVolUsd": 173012,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PPLC",
-      "name": "PPL Corporation Corporate",
+      "ticker": "BHFAN",
+      "name": "Brighthouse Financial, Inc. - d",
       "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": 6,
-      "runup5dPct": 1.5,
-      "medDollarVolUsd": 1407880,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CLDT",
-      "name": "Chatham Lodging Trust (REIT)",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 2.9× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.9,
-      "runup5dPct": 3,
-      "medDollarVolUsd": 3493056,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "HEPS",
-      "name": "D-Market Electronic Services & ",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 10.7,
-      "runup5dPct": 2.2,
-      "medDollarVolUsd": 449004,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "AFB",
-      "name": "AllianceBernstein National Muni",
-      "tier": "watch",
-      "score": 24,
+      "score": 18,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.5× 상승",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": 0.5,
-      "runup5dPct": 5.5,
-      "medDollarVolUsd": 834560,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "AGNCZ",
-      "name": "AGNC Investment Corp. - Deposit",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승",
-        "거래량 2.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -5.6,
-      "runup5dPct": -0.6,
-      "medDollarVolUsd": 983003,
+      "runup20dPct": -10.3,
+      "runup5dPct": -0.7,
+      "medDollarVolUsd": 600750,
       "smartAccum": false,
       "official": null
     },
@@ -117,10 +65,10 @@
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.0× 상승",
+        "거래량 2.8× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.6,
+      "runup20dPct": -8.8,
       "runup5dPct": -8.8,
       "medDollarVolUsd": 69324,
       "smartAccum": false,
