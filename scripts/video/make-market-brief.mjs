@@ -26,7 +26,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, SESSION_LABEL } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, SESSION_LABEL } from '../lib/market-brief.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -313,6 +313,8 @@ log(`[사진] ${imgs.length}장`);
 
 // ── 7. 화면 조각 계획 — 장마다: market = 제목 카드(첫 문장) → 지수판 · story = 사진(두 문장마다) · calendar = 일정판
 const segs = []; const useCount = new Map(); let last = null;
+// 사진 한 장은 한 장(章)만(lib claimPhotos — 10/23 시험 렌더: 트레이더 사진이 세 장에 떴다).
+const mine = claimPhotos(allowed, chapters.map((c, i) => (c.kind === 'story' ? i : -1)).filter((i) => i >= 0));
 for (let ci = 0; ci < chapters.length; ci++) {
   const c = chapters[ci]; const ss = sents.filter((x) => x.ci === ci);
   // 10/23: 검은 '날짜+판 이름' 첫 화면은 레퍼런스 꼴이고 지수판 머리와 겹친다(agy·Claude) — 첫 문장부터 지수판.
@@ -320,7 +322,7 @@ for (let ci = 0; ci < chapters.length; ci++) {
   if (c.kind === 'calendar') { segs.push({ ci, card: 'calendar', sents: ss }); continue; }
   // 그 장이 인용한 기사의 사진만 쓴다. 10/22 첫 렌더: 남의 장 사진으로 채웠더니 '메타' 장에 스페이스X 로켓이 떴다(쇼츠 V5 재사용과 같은 결함).
   //   사진이 없는 장은 큰 제목 카드(레퍼런스의 검은 제목 화면) — 틀린 사진보다 낫다.
-  const own = allowed.get(ci) ?? [];
+  const own = mine.get(ci) ?? [];
   if (!own.length) { segs.push({ ci, card: 'head', sents: ss }); continue; }
   for (let k = 0; k < ss.length; k += 2) {
     const pool = own.length > 1 ? own.filter((m) => m !== last) : own;

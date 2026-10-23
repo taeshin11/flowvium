@@ -182,5 +182,14 @@ const M = await import('./market-brief.mjs');
   (M.kstClock('2026-10-23T11:35:00+02:00') === '18:35' && M.kstClock('2026-10-23T11:34:58+09:00') === '11:34' && M.kstClock(null) === '')
     ? ok('[16b] 장중 시각은 한국 시각으로(유럽 현지 시각을 그대로 쓰지 않는다)') : bad(`[16b] ${M.kstClock('2026-10-23T11:35:00+02:00')}`);
 }
+// [17] 사진은 한 장(章)만 쓴다 — 10/23 시험 렌더 agy 눈검증: 마감 종합 기사의 트레이더 사진이 반도체·국제유가 장에 모두 떴다
+//   (세 장이 같은 마감 기사를 인용). 그 장만을 위해 찾은 사진(forCi)이 먼저, 공용 사진은 처음 인용한 장만. 남는 장은 제목 카드.
+{
+  const trader = { id: 'trader', doc: 0 }; const meta = { id: 'meta', doc: -1, forCi: 1 }; const oil = { id: 'oil', doc: 3 };
+  const allowed = new Map([[1, [trader, meta]], [2, [trader]], [3, [trader, oil]]]);
+  const got = M.claimPhotos(allowed, [1, 2, 3]);
+  const ids = (ci) => (got.get(ci) ?? []).map((x) => x.id).join(',');
+  (ids(1) === 'meta,trader' && ids(2) === '' && ids(3) === 'oil') ? ok('[17] 사진 한 장은 한 장(章)만 · 자기 사진 먼저') : bad(`[17] 1=${ids(1)} 2=${ids(2)} 3=${ids(3)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

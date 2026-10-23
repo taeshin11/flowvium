@@ -178,3 +178,19 @@ export function thumbDate(date) {
   const [y, m, d] = String(date).split('-').map(Number);
   return `${String(y).slice(2)}년 ${m}월 ${d}일 (${DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
 }
+
+/**
+ * 사진을 장(章)에 하나씩만 나눈다 — 같은 사진이 여러 장에 뜨지 않게(10/23 시험 렌더: 마감 종합 기사의 트레이더 사진이
+ * 반도체·국제유가 장에 모두 떴다. 세 장이 같은 마감 기사를 인용했기 때문). 그 장을 위해 찾은 사진(forCi)이 먼저 자리를 잡고,
+ * 공용 사진은 장 순서대로 처음 인용한 장이 갖는다. 사진이 안 남은 장은 부르는 쪽이 제목 카드로 둔다.
+ * @param {Map<number, object[]>} allowed 장 번호 → 대조를 통과한 사진들
+ * @param {number[]} order 장 번호(화면 순서)
+ */
+export function claimPhotos(allowed, order) {
+  const owner = new Map();
+  for (const ci of order) for (const m of allowed.get(ci) ?? []) if (m.forCi === ci && !owner.has(m)) owner.set(m, ci);
+  for (const ci of order) for (const m of allowed.get(ci) ?? []) if (!owner.has(m)) owner.set(m, ci);
+  const out = new Map();
+  for (const ci of order) out.set(ci, (allowed.get(ci) ?? []).filter((m) => owner.get(m) === ci).sort((a, b) => (b.forCi === ci) - (a.forCi === ci)));
+  return out;
+}
