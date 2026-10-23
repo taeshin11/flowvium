@@ -115,3 +115,94 @@ export function ttsSettings({ fileText = '', env = process.env } = {}) {
   }
   return { key: file.GEMINI_API_KEY || env.GEMINI_API_KEY || '', engine: env.KO_TTS_ENGINE_FORCE || file.KO_TTS_ENGINE || env.KO_TTS_ENGINE || '' };   // FORCE = 한 번만 바꿔 돌릴 때(시험·손 실행)
 }
+
+/**
+ * 문장 묶기(10/23). 하루 한도가 프로젝트·모델당 100회(12:07 429 GenerateRequestsPerDayPerProjectPerModel=100)라
+ * 문장마다 부르면 롱폼 한 편이 33회다. 이어진 문장을 maxChars 까지 한 호출로 묶는다 — 순서는 그대로, 한도보다 긴 문장은 혼자.
+ */
+export const GEMINI_BATCH_CHARS = Number(process.env.KO_TTS_GEMINI_BATCH_CHARS || 320);
+export function batchTexts(texts, { maxChars = GEMINI_BATCH_CHARS } = {}) {
+  const groups = []; let cur = []; let n = 0;
+  texts.forEach((t, i) => {
+    const len = String(t).length;
+    if (cur.length && n + len > maxChars) { groups.push(cur); cur = []; n = 0; }
+    cur.push(i); n += len;
+  });
+  if (cur.length) groups.push(cur);
+  return groups;
+}
+export const BATCH_SEP = ' ';
+
+/**
+ * 묶음 소리(texts 를 BATCH_SEP 로 이은 것)를 문장 조각으로 자른다. alignment 는 이은 글 전체의 글자 시각(whisper, ±0.2초 흔들림).
+ * 경계 ±1.2초 안의 쉼(0.12초↑) 가운데 길고 가까운 것의 가운데를 자른다.
+ * 못 믿을 때는 던진다: 그런 쉼이 없거나, 조각 길이가 글자 수와 3배 넘게 어긋날 때.
+ * 반환: [{ start, end (표본 번호), alignment(조각 처음 기준 시각) }]
+ */
+export function splitBatch({ pcm, rate, texts, alignment }) {
+  const chars = alignment.characters; const st = alignment.character_start_times_seconds; const en = alignment.character_end_times_seconds;
+  const n = texts.length; const total = pcm.length;
+  if (n === 1) return [{ start: 0, end: total, alignment }];
+  const ranges = []; let off = 0;
+  for (const t of texts) { ranges.push([off, off + t.length]); off += t.length + BATCH_SEP.length; }
+  if (chars.length !== off - BATCH_SEP.length) throw new Error(`정렬 글자 수 ${chars.length} ≠ 이은 글 ${off - BATCH_SEP.length}`);
+  const spoken = (c) => /[^\s.,!?·…"'“”‘’()~-]/.test(c);
+  const lastSpoken = ([a, b]) => { for (let k = b - 1; k >= a; k--) if (spoken(chars[k])) return k; return b - 1; };
+  const firstSpoken = ([a, b]) => { for (let k = a; k < b; k++) if (spoken(chars[k])) return k; return a; };
+  const frame = Math.max(1, Math.round(rate * 0.02));
+  const level = (from) => { let sum = 0; const to = Math.min(total, from + frame); for (let k = from; k < to; k++) sum += Math.abs(pcm[k]); return sum / Math.max(1, to - from); };
+  const levels = []; for (let k = 0; k + frame <= total; k += frame) levels.push(level(k));
+  const loud = [...levels].sort((a, b) => a - b)[Math.floor(levels.length * 0.75)] || 1;   // 말소리 크기(상위 25% 경계)
+  // 조용한 구간(말소리의 5% 아래)을 이어 붙여 쉼 목록을 만든다. 0.12초보다 짧은 것은 낱말 사이 틈이라 버린다.
+  const hop = Math.max(1, frame >> 1); const quiet = loud * 0.05; const pauses = [];
+  for (let x = 0, s0 = -1; x + frame <= total + hop; x += hop) {
+    const q = x + frame <= total && level(x) <= quiet;
+    if (q && s0 < 0) s0 = x;
+    if (!q && s0 >= 0) { const e0 = Math.min(total, x - hop + frame); if ((e0 - s0) / rate >= 0.12) pauses.push([s0, e0]); s0 = -1; }
+  }
+  const cuts = [0];
+  for (let k = 0; k < n - 1; k++) {
+    // whisper 는 문장 끝 글자를 다음 낱말에 1초 넘게 늦게 붙이기도 한다(10/23 실측) — 경계 ±1.2초에서
+    // 긴 쉼일수록, 경계에 가까울수록 낫다(길이 − 0.3×거리). 앞 자른 곳보다 뒤, 첫·끝 쉼(앞뒤 무음)은 뺀다.
+    const at = (en[lastSpoken(ranges[k])] + st[firstSpoken(ranges[k + 1])]) / 2;
+    let best = null; let bestScore = -Infinity;
+    for (const [p0, p1] of pauses) {
+      const mid = (p0 + p1) / 2;
+      if (p0 === 0 || p1 >= total || mid <= cuts[k] + frame || Math.abs(mid / rate - at) > 1.2) continue;
+      const sc = (p1 - p0) / rate - 0.3 * Math.abs(mid / rate - at);
+      if (sc > bestScore) { bestScore = sc; best = Math.round(mid); }
+    }
+    if (best == null) throw new Error(`${k + 1}·${k + 2}번 문장 경계(${at.toFixed(2)}초) 근처에 쉼이 없다`);
+    cuts.push(best);
+  }
+  cuts.push(total);
+  const perChar = total / rate / texts.reduce((s, t) => s + t.length, 0);
+  return texts.map((t, k) => {
+    const start = cuts[k]; const end = cuts[k + 1]; const sec = (end - start) / rate; const want = t.length * perChar;
+    if (sec < want / 3 || sec > want * 3) throw new Error(`${k + 1}번 조각 ${sec.toFixed(2)}초 — 글자 수로 본 ${want.toFixed(2)}초와 3배 넘게 다르다`);
+    const [a, b] = ranges[k]; const s0 = start / rate;
+    const clip = (x) => Math.min(sec, Math.max(0, x - s0));
+    return { start, end, alignment: { characters: chars.slice(a, b), character_start_times_seconds: st.slice(a, b).map(clip), character_end_times_seconds: en.slice(a, b).map(clip) } };
+  });
+}
+
+/** 16비트 PCM wav 읽기·쓰기(조각 자르기용). 다른 형식이면 던진다. */
+export function readWav16(buf) {
+  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') throw new Error('wav 아님');
+  let p = 12; let fmt = null;
+  while (p + 8 <= buf.length) {
+    const id = buf.toString('ascii', p, p + 4); const size = buf.readUInt32LE(p + 4);
+    if (id === 'fmt ') fmt = { format: buf.readUInt16LE(p + 8), channels: buf.readUInt16LE(p + 10), rate: buf.readUInt32LE(p + 12), bits: buf.readUInt16LE(p + 22) };
+    if (id === 'data') {
+      if (!fmt || fmt.format !== 1 || fmt.bits !== 16 || fmt.channels !== 1) throw new Error(`16비트 모노 PCM 아님: ${JSON.stringify(fmt)}`);
+      const data = buf.subarray(p + 8, p + 8 + Math.min(size, buf.length - p - 8));
+      return { rate: fmt.rate, pcm: new Int16Array(data.buffer.slice(data.byteOffset, data.byteOffset + (data.length & ~1))) };
+    }
+    p += 8 + size + (size & 1);
+  }
+  throw new Error('wav data 없음');
+}
+export function writeWav16(pcm, rate) {
+  const body = Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength);
+  return Buffer.concat([wavHeader(body.length, rate), body]);
+}

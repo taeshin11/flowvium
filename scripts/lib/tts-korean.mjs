@@ -27,7 +27,7 @@
  *   { path, alignment, durationSec, note }
  */
 import { execFileSync } from 'child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
 import { homedir, tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
 import { ROOT } from './project-root.mjs';
@@ -36,7 +36,7 @@ import { speakLatin } from './kr-latin.mjs';
 import { speakWords } from './kr-pron.mjs';
 import { earCheckAndRepair, sentenceScore, SENTENCE_MIN } from './ear-check.mjs';
 import { cleanVoOut } from './vo-burst.mjs';
-import { koEngine, ttsSettings } from './gemini-tts.mjs';
+import { koEngine, ttsSettings, batchTexts, BATCH_SEP, splitBatch, readWav16, writeWav16 } from './gemini-tts.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -253,21 +253,54 @@ function recordEngine(x) {
 }
 
 /**
- * Gemini TTS 로 여러 문장을 합성한다(문장마다 한 번 부른다). 소리는 대본 글 그대로 — Gemini 는 숫자·약어를 스스로 읽는다
+ * Gemini TTS 로 여러 문장을 합성한다. 10/23 부터 이어진 문장을 묶어 한 번에 부르고(batchTexts) 쉼에서 문장으로 자른다(splitBatch) —
+ * 하루 한도 100회(프로젝트·모델당)에 롱폼 3편·쇼츠·광고가 들어가게. 자르기를 못 믿는 묶음은 그 묶음만 문장마다 다시 부른다(opts.batch=false). 소리는 대본 글 그대로 — Gemini 는 숫자·약어를 스스로 읽는다
  * (10/22 되들음: 1.05%·26,702.86·8% 원문과 같음). 자막 시각은 whisper 로 되들어 편다(gemini_align.py). 반환 계약은 Melo 와 같다.
  */
 export function synthesizeKoreanGemini(texts, opts = {}) {
-  const { outPrefix, display = null, timeoutMs = 15 * 60_000 } = opts;
+  const { outPrefix, display = null, timeoutMs = 15 * 60_000, batch = true } = opts;
   if (!outPrefix) throw new Error('outPrefix 가 필요하다');
+  const say = opts.log ?? ((m) => console.error(`  [gemini-tts] ${m}`));
+  const shown = display && display.length === texts.length ? display : texts;
+  const groups = batch ? batchTexts(texts) : texts.map((_, i) => [i]);
+  if (groups.length < texts.length) {
+    const made = synthesizeGeminiRaw(groups.map((g) => g.map((i) => texts[i]).join(BATCH_SEP)), {
+      ...opts, outPrefix: `${outPrefix}b`, display: groups.map((g) => g.map((i) => shown[i]).join(BATCH_SEP)) });
+    const out = new Array(texts.length);
+    groups.forEach((g, gi) => {
+      const m = made[gi];
+      if (g.length === 1) { const path = `${outPrefix}${g[0]}.wav`; renameSync(m.path, path); out[g[0]] = { ...m, path }; return; }
+      try {
+        const { pcm, rate } = readWav16(readFileSync(m.path));
+        const paths = splitBatch({ pcm, rate, texts: g.map((i) => shown[i]), alignment: m.alignment }).map((p, k) => {
+          const path = `${outPrefix}${g[k]}.wav`;
+          writeFileSync(path, writeWav16(pcm.subarray(p.start, p.end), rate));
+          return path;
+        });
+        // 묶음 정렬은 자를 자리 찾기에만 쓴다 — 긴 소리에서 whisper 시각이 0.4초쯤 밀린다(10/23 실측). 조각마다 다시 맞춘다(배속은 이미 됐다).
+        geminiAlign(paths, g.map((i) => shown[i]), { tempo: 1.0, timeoutMs: opts.timeoutMs }).forEach((a, k) => { out[g[k]] = a; });
+      } catch (e) {
+        say(`묶음 ${gi + 1}(${g.length}문장) 자르기를 못 믿는다 — 이 묶음만 문장마다 다시 부른다: ${String(e?.message ?? e).slice(0, 100)}`);
+        const one = synthesizeKoreanGemini(g.map((i) => texts[i]), { ...opts, display: g.map((i) => shown[i]), outPrefix: `${outPrefix}s${gi}-`, batch: false });
+        g.forEach((i, k) => { const path = `${outPrefix}${i}.wav`; renameSync(one[k].path, path); out[i] = { ...one[k], path }; });
+        made.tokens += one.tokens ?? 0;
+      }
+    });
+    say(`묶어 부르기 — ${texts.length}문장을 ${groups.length}번에`);
+    const cleaned = cleanVoOut(out);
+    return Object.assign(cleaned, { tokens: made.tokens, model: made.model, voice: made.voice });
+  }
+  return synthesizeGeminiRaw(texts, opts);
+}
+
+/** 글 하나 = 호출 하나 = wav 하나(묶지 않는다). 자막 시각은 whisper 정렬. */
+function synthesizeGeminiRaw(texts, opts) {
+  const { outPrefix, display = null, timeoutMs = 15 * 60_000 } = opts;
   const key = geminiKey();
   if (!key) throw new Error('GEMINI_API_KEY 없음');
-  const py = meloPythonPath();
-  const script = resolve(ROOT, 'scripts/tts/gemini_align.py');
-  if (!existsSync(py)) throw new Error(`정렬용 venv 없음: ${py}`);
   mkdirSync(dirname(outPrefix), { recursive: true });
   const tag = `gemini-${process.pid}-${Math.abs(hash(texts.join('|')))}`;
-  const tf = join(tmpdir(), `${tag}.json`); const wf = join(tmpdir(), `${tag}.wavs.json`);
-  const df = join(tmpdir(), `${tag}.display.json`); const jf = join(tmpdir(), `${tag}.out.json`);
+  const tf = join(tmpdir(), `${tag}.json`);
   try {
     writeFileSync(tf, JSON.stringify(texts), 'utf8');
     let fetched;
@@ -275,20 +308,33 @@ export function synthesizeKoreanGemini(texts, opts = {}) {
       fetched = JSON.parse(execFileSync(process.execPath, [resolve(ROOT, 'scripts/tts/gemini_fetch.mjs'), tf, outPrefix], {
         timeout: timeoutMs, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GEMINI_API_KEY: key } }));
     } catch (e) { throw new Error(`Gemini 호출 실패 — ${String(e.stderr || e.message).trim().split('\n').pop().slice(0, 160)}`); }
-    const wavs = fetched.out.map((o) => o.path);
-    writeFileSync(wf, JSON.stringify(wavs), 'utf8');
-    writeFileSync(df, JSON.stringify(display && display.length === texts.length ? display : texts), 'utf8');
-    execFileSync(py, [script, '--wavs-file', wf, '--display-texts-file', df, '--json-out', jf,
-      '--tempo', String(Number(process.env.KO_TTS_GEMINI_TEMPO || 1.0))], {
-      timeout: timeoutMs, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, FFMPEG_BIN: process.env.FFMPEG_BIN || ffmpegBin() } });
-    const out = JSON.parse(readFileSync(jf, 'utf8'));
-    if (!Array.isArray(out) || out.length !== texts.length) throw new Error(`결과 개수 불일치 — 입력 ${texts.length}, 출력 ${out?.length}`);
+    const out = geminiAlign(fetched.out.map((o) => o.path), display && display.length === texts.length ? display : texts,
+      { tempo: Number(process.env.KO_TTS_GEMINI_TEMPO || 1.0), timeoutMs });
     out.tokens = fetched.out.reduce((n, o) => n + (o.tokens ?? 0), 0);
     out.model = fetched.model; out.voice = fetched.voice;
     const cleaned = cleanVoOut(out);
     return Object.assign(cleaned, { tokens: out.tokens, model: out.model, voice: out.voice });
   } finally {
-    for (const f of [tf, wf, df, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
+    try { unlinkSync(tf); } catch { /* noop */ }
+  }
+}
+
+/** wav 마다 whisper 로 되들어 자막 글자 시각을 붙인다(gemini_align.py). tempo 는 배속(1 이면 소리를 안 건드린다). */
+function geminiAlign(wavs, displays, { tempo = 1.0, timeoutMs = 15 * 60_000 } = {}) {
+  const py = meloPythonPath();
+  if (!existsSync(py)) throw new Error(`정렬용 venv 없음: ${py}`);
+  const tag = `gemini-align-${process.pid}-${Math.abs(hash(wavs.join('|')))}`;
+  const wf = join(tmpdir(), `${tag}.wavs.json`); const df = join(tmpdir(), `${tag}.display.json`); const jf = join(tmpdir(), `${tag}.out.json`);
+  try {
+    writeFileSync(wf, JSON.stringify(wavs), 'utf8');
+    writeFileSync(df, JSON.stringify(displays), 'utf8');
+    execFileSync(py, [resolve(ROOT, 'scripts/tts/gemini_align.py'), '--wavs-file', wf, '--display-texts-file', df, '--json-out', jf, '--tempo', String(tempo)], {
+      timeout: timeoutMs, stdio: ['ignore', 'ignore', 'inherit'], env: { ...process.env, FFMPEG_BIN: process.env.FFMPEG_BIN || ffmpegBin() } });
+    const out = JSON.parse(readFileSync(jf, 'utf8'));
+    if (!Array.isArray(out) || out.length !== wavs.length) throw new Error(`결과 개수 불일치 — 입력 ${wavs.length}, 출력 ${out?.length}`);
+    return out;
+  } finally {
+    for (const f of [wf, df, jf]) { try { unlinkSync(f); } catch { /* noop */ } }
   }
 }
 

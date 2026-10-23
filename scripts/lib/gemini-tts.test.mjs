@@ -83,5 +83,56 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const r3 = ttsSettings({ fileText: 'KO_TTS_ENGINE=gemini\n', env: {} });
   (r3.key === '' && r3.engine === 'gemini') ? ok('[9c] 키가 없으면 빈 값(엔진은 koEngine 이 melo 로 돌린다)') : bad(`[9c] ${JSON.stringify(r3)}`);
 }
+// [10] 문장 묶기 — 10/23 12:07 하루 한도 429(GenerateRequestsPerDayPerProjectPerModel=100). 롱폼이 문장마다 한 번씩 불러
+//   한 편 33회 + 되듣기 재호출 → 하루 롱폼 3편·쇼츠·광고가 100회에 못 들어간다. 이어진 문장을 글자 수 한도까지 한 호출로 묶는다.
+{
+  const { batchTexts } = await import('./gemini-tts.mjs');
+  const g = batchTexts(['가'.repeat(100), '나'.repeat(100), '다'.repeat(100), '라'.repeat(250), '마'.repeat(50)], { maxChars: 320 });
+  (JSON.stringify(g) === JSON.stringify([[0, 1, 2], [3, 4]])) ? ok('[10] 순서 그대로, 한도 안에서 묶는다') : bad(`[10] ${JSON.stringify(g)}`);
+  (JSON.stringify(batchTexts(['가'.repeat(500), '나'], { maxChars: 320 })) === JSON.stringify([[0], [1]])) ? ok('[10b] 한도보다 긴 문장은 혼자') : bad('[10b]');
+}
+// [11] 묶음 소리를 문장으로 자른다 — 자르는 자리는 whisper 글자 시각(±0.2초 흔들림) 근처의 가장 조용한 곳.
+//   정렬이 문장 경계를 못 잡으면(순서 뒤집힘·너무 짧은 조각) 던진다 — 부르는 쪽이 그 묶음만 문장별로 다시 부른다.
+{
+  const { splitBatch } = await import('./gemini-tts.mjs');
+  const rate = 1000; const seg = (sec, amp) => Array.from({ length: Math.round(sec * rate) }, (_, k) => (amp ? Math.round(amp * Math.sin(k)) : 0));
+  // 말 1.0초 · 쉼 0.4초 · 말 1.5초 · 쉼 0.4초 · 말 0.8초
+  const pcm = Int16Array.from([...seg(1.0, 8000), ...seg(0.4, 0), ...seg(1.5, 8000), ...seg(0.4, 0), ...seg(0.8, 8000)]);
+  const texts = ['가나다.', '라마바사.', '아자.'];
+  const joined = texts.join(' ');   // 가나다. 라마바사. 아자.
+  // whisper 같은 시각: 실제 경계보다 0.15초 늦게·이르게 흔들림
+  const st = []; const en = [];
+  const span = (from, to, n) => { for (let k = 0; k < n; k++) { st.push(from + (to - from) * k / n); en.push(from + (to - from) * (k + 1) / n); } };
+  span(0, 1.15, 4); st.push(1.15); en.push(1.15); span(1.25, 2.95, 5); st.push(2.95); en.push(2.95); span(3.15, 3.7, 3);
+  const pieces = splitBatch({ pcm, rate, texts, alignment: { characters: [...joined], character_start_times_seconds: st, character_end_times_seconds: en } });
+  const cuts = pieces.slice(1).map((p) => p.start / rate);
+  (pieces.length === 3 && cuts[0] > 1.0 && cuts[0] < 1.4 && cuts[1] > 2.9 && cuts[1] < 3.3)
+    ? ok(`[11] 쉼 안에서 자른다(${cuts.map((c) => c.toFixed(2)).join(', ')})`) : bad(`[11] ${JSON.stringify(cuts)}`);
+  (pieces[1].alignment.characters.join('') === '라마바사.' && pieces[1].alignment.character_start_times_seconds[0] >= 0 && pieces[1].alignment.character_start_times_seconds[0] < 0.2)
+    ? ok('[11b] 조각마다 자기 글자·시각(조각 처음 기준)') : bad(`[11b] ${JSON.stringify(pieces[1].alignment).slice(0, 200)}`);
+  (pieces[2].end === pcm.length && pieces[0].start === 0) ? ok('[11c] 처음·끝까지 빠짐없이') : bad('[11c]');
+  let threw = false;
+  try { splitBatch({ pcm, rate, texts, alignment: { characters: [...joined], character_start_times_seconds: st.map(() => 0.5), character_end_times_seconds: en.map(() => 0.5) } }); } catch { threw = true; }
+  threw ? ok('[11d] 경계를 못 잡으면 던진다') : bad('[11d] 엉터리 정렬을 그냥 잘랐다');
+}
+// [11e] 10/23 실측(Kore 광고 두 문장 이음): whisper 가 앞 문장 끝 "요" 를 1.1초 늦게(다음 문장 첫 낱말에) 붙였다.
+//   좁은 창(경계 −0.1~+0.3초)은 진짜 쉼(6.4~7.3초)을 못 보고 "종목" 안의 짧은 틈을 잘랐다 → 앞 조각 끝에 "종목!" 이 들림.
+//   문장 사이 쉼은 길고(0.3초↑) 낱말 사이 틈은 짧다(0.1초↓) — 넓게 보고 긴 쉼을 고른다.
+{
+  const { splitBatch } = await import('./gemini-tts.mjs');
+  const rate = 1000; const seg = (sec, amp) => Array.from({ length: Math.round(sec * rate) }, (_, k) => (amp ? Math.round(amp * Math.sin(k)) : 0));
+  // 말 6.4초 · 쉼 0.9초 · 말 0.3초 · 틈 0.07초 · 말 3.33초
+  const pcm = Int16Array.from([...seg(6.4, 8000), ...seg(0.9, 0), ...seg(0.3, 8000), ...seg(0.07, 0), ...seg(3.33, 8000)]);
+  const texts = ['가'.repeat(20) + '.', '나'.repeat(10) + '.'];
+  const joined = [...texts.join(' ')];
+  const st = []; const en = [];
+  for (let k = 0; k < 19; k++) { st.push(k * 0.33); en.push((k + 1) * 0.33); }
+  st.push(7.36); en.push(7.48); st.push(7.48); en.push(7.6); st.push(7.6); en.push(7.72);   // "가"(마지막)·"."·" " 가 늦게 붙음
+  for (let k = 0; k < 10; k++) { st.push(7.72 + k * 0.3); en.push(7.72 + (k + 1) * 0.3); }
+  st.push(10.7); en.push(10.8);
+  const ps = splitBatch({ pcm, rate, texts, alignment: { characters: joined, character_start_times_seconds: st, character_end_times_seconds: en } });
+  const cut = ps[1].start / rate;
+  (cut > 6.5 && cut < 7.2) ? ok(`[11e] 정렬이 늦어도 긴 쉼에서 자른다(${cut.toFixed(2)})`) : bad(`[11e] ${cut.toFixed(2)} — 진짜 쉼은 6.4~7.3`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
