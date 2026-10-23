@@ -102,3 +102,16 @@ export async function takeSlot(file, { rpm = GEMINI_RPM, log = () => {} } = {}) 
     } finally { try { rmdirSync(lock); } catch { /* 이미 풂 */ } }
   }
 }
+
+/**
+ * TTS 키·엔진 — .env.local 파일 값이 물려받은 환경보다 먼저(10/23). 오래 떠 있는 cron-runner 는 시작할 때 읽은 값을 자식에게 물려주고,
+ * runner·loadEnvLocal 둘 다 '이미 있으면 안 덮는다'라서, 파일에서 키를 바꿔도 러너가 다시 뜰 때까지 옛 무료 키로 돌았다.
+ */
+export function ttsSettings({ fileText = '', env = process.env } = {}) {
+  const file = {};
+  for (const line of String(fileText).split('\n')) {
+    const m = /^\s*(GEMINI_API_KEY|KO_TTS_ENGINE)\s*=\s*(.*?)\s*$/.exec(line);
+    if (m) file[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+  return { key: file.GEMINI_API_KEY || env.GEMINI_API_KEY || '', engine: env.KO_TTS_ENGINE_FORCE || file.KO_TTS_ENGINE || env.KO_TTS_ENGINE || '' };   // FORCE = 한 번만 바꿔 돌릴 때(시험·손 실행)
+}

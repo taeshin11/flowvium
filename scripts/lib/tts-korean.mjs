@@ -36,7 +36,7 @@ import { speakLatin } from './kr-latin.mjs';
 import { speakWords } from './kr-pron.mjs';
 import { earCheckAndRepair, sentenceScore, SENTENCE_MIN } from './ear-check.mjs';
 import { cleanVoOut } from './vo-burst.mjs';
-import { koEngine } from './gemini-tts.mjs';
+import { koEngine, ttsSettings } from './gemini-tts.mjs';
 import { createRequire } from 'module';
 
 /** ffmpeg-static 의 실제 경로. 파이썬 쪽에 넘겨 배속에 쓰게 한다. */
@@ -237,11 +237,13 @@ export function synthesizeKoreanMelo(texts, opts = {}) {
  * 목소리가 바뀐 걸 모르고 발행하는 게 느린 것보다 나쁘다.
  */
 // ── Gemini TTS 'Kore' (2026-10-22 사용자 비교 청취 "Kore 로 하자", lib/gemini-tts.test.mjs 머리말) ──────────
-function geminiKey() {
-  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-  try { return /^GEMINI_API_KEY\s*=\s*(.+)$/m.exec(readFileSync(resolve(ROOT, '.env.local'), 'utf8'))?.[1].trim().replace(/^['"]|['"]$/g, '') ?? ''; }
-  catch { return ''; }
+// 키·엔진은 .env.local 파일이 먼저(lib/gemini-tts ttsSettings, 10/23) — 오래 떠 있는 cron-runner 가 옛 무료 키를 물려준다.
+function ttsConf() {
+  let fileText = '';
+  try { fileText = readFileSync(resolve(ROOT, '.env.local'), 'utf8'); } catch { /* 없으면 환경 값 */ }
+  return ttsSettings({ fileText, env: process.env });
 }
+function geminiKey() { return ttsConf().key; }
 
 function recordEngine(x) {
   try {
@@ -316,7 +318,8 @@ function wholeSentenceCheck(texts, out, { synth, log, record }) {
 
 export function synthesizeKoreanAuto(texts, opts = {}) {
   const log = opts.log ?? ((m) => console.log(`  [ko-tts] ${m}`));
-  const want = koEngine({ hasKey: !!geminiKey() });
+  const conf = ttsConf();
+  const want = koEngine({ env: { KO_TTS_ENGINE: conf.engine }, hasKey: !!conf.key });
   if (want === 'gemini') {
     log('엔진 gemini 선택 (KO_TTS_ENGINE=gemini)');
     if (!opts.outPrefix) throw new Error('outPrefix 가 필요하다');   // 부르는 쪽 실수 — 엔진 실패로 세지 않는다

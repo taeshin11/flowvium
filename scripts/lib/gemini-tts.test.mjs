@@ -71,5 +71,17 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   (slotWaitMs(full.slice(1), { rpm: 9, now }) === 0) ? ok('[8c] 8번이면 바로') : bad('[8c]');
   (slotWaitMs([now - 70_000, ...full.slice(1)], { rpm: 9, now }) === 0) ? ok('[8d] 60초 지난 기록은 안 센다') : bad('[8d]');
 }
+// [9] 키·엔진은 .env.local 파일이 이긴다 — 10/23: 오래 떠 있는 cron-runner 가 시작할 때 읽은 옛 무료 키를 자식에게 물려준다
+//   (loadEnvLocal·runner 둘 다 '이미 있으면 안 덮는다'). 파일을 바꿔도 러너가 다시 뜰 때까지 옛 키·엔진 없음으로 돌았다.
+{
+  const { ttsSettings } = await import('./gemini-tts.mjs');
+  const file = '# c\nGEMINI_API_KEY=NEWKEY\nKO_TTS_ENGINE=gemini\n';
+  const r = ttsSettings({ fileText: file, env: { GEMINI_API_KEY: 'OLDKEY' } });
+  (r.key === 'NEWKEY' && r.engine === 'gemini') ? ok('[9] 파일 값이 물려받은 환경보다 먼저') : bad(`[9] ${JSON.stringify(r)}`);
+  const r2 = ttsSettings({ fileText: '', env: { GEMINI_API_KEY: 'ENVKEY', KO_TTS_ENGINE: 'melo' } });
+  (r2.key === 'ENVKEY' && r2.engine === 'melo') ? ok('[9b] 파일에 없으면 환경 값') : bad(`[9b] ${JSON.stringify(r2)}`);
+  const r3 = ttsSettings({ fileText: 'KO_TTS_ENGINE=gemini\n', env: {} });
+  (r3.key === '' && r3.engine === 'gemini') ? ok('[9c] 키가 없으면 빈 값(엔진은 koEngine 이 melo 로 돌린다)') : bad(`[9c] ${JSON.stringify(r3)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
