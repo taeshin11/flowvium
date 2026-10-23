@@ -84,5 +84,17 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   (r.checked === 0 && /whisper 없음/.test(r.skipped ?? '')) ? ok(`[6] 귀 없음 → 판정 없음(${r.skipped})`) : bad(`[6] ${JSON.stringify(r)}`);
 }
 
+// [S] 문장 전체 되듣기 점수(Gemini 전용, 10/23). Gemini 는 같은 글도 매번 다르게 읽는다(10/22 "요약입니다" → "우역입니다").
+//   실측(10/23, Kore 32문장 → whisper): 최저 0.80 — 표기 차이(디티에스↔DTS, 두 배↔2배, 5만9천원↔59,000)뿐이었다. 문턱 0.7.
+{
+  const { sentenceScore, SENTENCE_MIN } = await import('./ear-check.mjs');
+  const a = sentenceScore('디티에스 주가는 장 초반 공모가의 두 배를 넘어 3만8천400원까지 치솟았습니다.', 'DTS 주가는 장 초반, 공모가의 2배를 넘어 38,400원까지 치솟았습니다.');
+  const b = sentenceScore('메타 주가는 대규모 인공지능 투자 부담이 부각되며 7.0% 급락했습니다.', '메타 주가는 대규모 인공지능 투자 부담이 부각되며 7.0% 급락했습니다.');
+  const c = sentenceScore('메타 주가는 대규모 인공지능 투자 부담이 부각되며 7.0% 급락했습니다.', '메타 주가는 대규모');
+  const d = sentenceScore('오늘 시장 요약입니다.', '오늘 시장 우역입니다.');
+  (a >= SENTENCE_MIN && b === 1 && c < SENTENCE_MIN && SENTENCE_MIN === 0.7)
+    ? ok(`[S] 표기 차이는 통과(${a.toFixed(2)}) · 같으면 1 · 반 넘게 빠지면 걸린다(${c.toFixed(2)})`) : bad(`[S] a=${a} b=${b} c=${c}`);
+  (d < 1) ? ok(`[S2] 낱말 하나 틀리면 점수가 준다(${d.toFixed(2)}) — 문턱은 넘을 수 있다(낱말 오독은 약어 귀검증·사람 귀가 맡는다)`) : bad('[S2]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

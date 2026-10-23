@@ -34,7 +34,7 @@ import { ROOT } from './project-root.mjs';
 import { speakNumbers } from './kr-number.mjs';
 import { speakLatin } from './kr-latin.mjs';
 import { speakWords } from './kr-pron.mjs';
-import { earCheckAndRepair } from './ear-check.mjs';
+import { earCheckAndRepair, sentenceScore, SENTENCE_MIN } from './ear-check.mjs';
 import { cleanVoOut } from './vo-burst.mjs';
 import { koEngine } from './gemini-tts.mjs';
 import { createRequire } from 'module';
@@ -290,6 +290,30 @@ export function synthesizeKoreanGemini(texts, opts = {}) {
   }
 }
 
+/**
+ * Gemini 문장 전체 되듣기(10/23). 약어 귀검증(earCheckAndRepair)은 약어가 든 문장만 본다 — Gemini 는 평범한 낱말도 매번 다르게 읽는다
+ * (10/22 "요약입니다" → "우역입니다"). 모든 문장을 받아써 sentenceScore < SENTENCE_MIN(0.7, 실측 근거는 ear-check) 인 문장만
+ * 다시 부른다(최대 2번, 더 나은 쪽을 쓴다). 끝내 낮으면 가장 나은 것으로 내고 기록한다 — 회차를 버리지 않는다.
+ */
+function wholeSentenceCheck(texts, out, { synth, log, record }) {
+  let heardNow;
+  try { heardNow = transcribeKo(out.map((o) => o.path)); }
+  catch (e) { log(`[귀검증·문장] 판정 없음 — whisper 못 씀: ${String(e?.message ?? e).slice(0, 80)}`); return out; }
+  const best = out.map((o, i) => ({ o, score: sentenceScore(texts[i], heardNow[i]), heard: heardNow[i] }));
+  const low = () => best.map((b, i) => (b.score < SENTENCE_MIN ? i : -1)).filter((i) => i >= 0);
+  if (!low().length) { log(`[귀검증·문장] ✅ ${texts.length}문장 모두 통과(최저 ${Math.min(...best.map((b) => b.score)).toFixed(2)})`); return out; }
+  for (let round = 1; round <= 2 && low().length; round++) {
+    const idx = low();
+    for (const i of idx) log(`[귀검증·문장] ⚠ ${i + 1}번 ${best[i].score.toFixed(2)} — 들린 말 "${String(best[i].heard).slice(0, 50)}" · 다시 부른다(${round})`);
+    let made; let again;
+    try { made = synth(idx); again = transcribeKo(made.map((m) => m.path)); }
+    catch (e) { log(`[귀검증·문장] 다시 만들기 실패: ${String(e?.message ?? e).slice(0, 80)}`); break; }
+    idx.forEach((i, k) => { const sc = sentenceScore(texts[i], again[k]); if (sc > best[i].score) best[i] = { o: made[k], score: sc, heard: again[k] }; });
+  }
+  for (const i of low()) { log(`[귀검증·문장] ❗ ${i + 1}번 끝내 ${best[i].score.toFixed(2)} — 가장 나은 것으로 낸다`); record({ text: texts[i], heard: best[i].heard, score: best[i].score }); }
+  return best.map((b) => b.o);
+}
+
 export function synthesizeKoreanAuto(texts, opts = {}) {
   const log = opts.log ?? ((m) => console.log(`  [ko-tts] ${m}`));
   const want = koEngine({ hasKey: !!geminiKey() });
@@ -302,7 +326,7 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
       recordEngine({ engine: 'gemini', model: out.model, voice: out.voice, sentences: texts.length, tokens: out.tokens });
       if (process.env.EAR_CHECK === '0') return out;
       let n = 0;
-      return earCheckAndRepair({
+      const fixed = earCheckAndRepair({
         texts,
         out: out.map((o) => ({ ...o, spoken: undefined })),
         synth: (sp, disp) => synthesizeKoreanGemini(sp, { ...opts, display: disp, outPrefix: `${opts.outPrefix}-ear${++n}` }),
@@ -310,6 +334,9 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
         log,
         record: (x) => recordEngine({ engine: 'gemini', ear: x }),
       }).out;
+      return wholeSentenceCheck(texts, fixed, {
+        synth: (idx) => synthesizeKoreanGemini(idx.map((i) => texts[i]), { ...opts, outPrefix: `${opts.outPrefix}-whole${++n}` }),
+        log, record: (x) => recordEngine({ engine: 'gemini', whole: x }) });
     } catch (e) {
       // 회차 전체를 melo 로 — 한 편 안에서 목소리가 섞이지 않게. 한도(429) 소진도 여기로 온다.
       const why = String(e?.message ?? e).slice(0, 200);

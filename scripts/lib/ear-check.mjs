@@ -105,3 +105,22 @@ export function earCheckAndRepair({ texts, out, synth, transcribe, log, record }
   }
   return { out: next, checked: items.length, fixed, unresolved };
 }
+
+/**
+ * 문장 전체 되듣기 점수(0~1) — 원문과 받아쓴 말의 글자 편집 거리 비율(공백·문장부호 무시).
+ * Gemini 전용(10/23): Gemini 는 같은 글도 매번 다르게 읽는다(10/22 "요약입니다" → "우역입니다"). 낱말을 빼먹거나 엉뚱하게 읽은 문장을 잡는다.
+ * 실측(10/23 Kore 32문장): 최저 0.80, 낮은 쪽은 표기 차이(디티에스↔DTS, 두 배↔2배)뿐 → 문턱 0.7.
+ */
+export const SENTENCE_MIN = 0.7;
+export function sentenceScore(text, heardText) {
+  const norm = (s) => String(s ?? '').replace(/[\s.,!?·…"'“”‘’()%\-~]/g, '').toLowerCase();
+  const a = norm(text); const b = norm(heardText);
+  if (!a.length && !b.length) return 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return 1 - prev[b.length] / Math.max(a.length, b.length);
+}

@@ -24,7 +24,7 @@ function wavHeader(pcmBytes, rate, channels = 1, bits = 16) {
 /** 응답 JSON → WAV Buffer. 소리가 없으면 이유를 담아 던진다. */
 export function parseGeminiAudio(json) {
   if (!json || typeof json !== 'object') throw new Error('응답이 JSON 이 아니다');
-  if (json.error) throw new Error(`API 오류 ${json.error.code ?? ''} ${String(json.error.message ?? '').slice(0, 120)}`);
+  { const e = geminiError(json); if (e) throw Object.assign(new Error(e.message), e); }
   const parts = json.candidates?.[0]?.content?.parts ?? [];
   const p = parts.find((x) => x?.inlineData?.data && /^audio\//i.test(x.inlineData.mimeType ?? ''));
   if (!p) throw new Error(`소리 없음 — ${json.candidates?.[0]?.finishReason ?? ''} ${String(parts.find((x) => x?.text)?.text ?? '').slice(0, 60)}`);
@@ -47,4 +47,58 @@ export function koEngine({ env = process.env, hasKey }) {
   const want = String(env.KO_TTS_ENGINE ?? '').toLowerCase();
   if (want === 'gemini') return hasKey ? 'gemini' : 'melo';
   return want || 'melo';
+}
+
+/**
+ * API 오류 → {code, quotaId, quotaValue, retryMs, message}. 오류가 없으면 null.
+ * 10/23 유료 키 32문장(동시 3)에서 429 "exceeded your current quota" 만 남아 어떤 한도인지 몰랐다 — 한도 이름·값·기다릴 시간을 싣는다.
+ */
+export function geminiError(json) {
+  const e = json?.error; if (!e) return null;
+  const det = Array.isArray(e.details) ? e.details : [];
+  const v = det.find((d) => /QuotaFailure/.test(d?.['@type'] ?? ''))?.violations?.[0] ?? null;
+  const delay = det.find((d) => /RetryInfo/.test(d?.['@type'] ?? ''))?.retryDelay ?? null;
+  const retryMs = delay && /^[\d.]+s$/.test(delay) ? Math.round(parseFloat(delay) * 1000) : null;
+  const quotaValue = v?.quotaValue != null && Number.isFinite(Number(v.quotaValue)) ? Number(v.quotaValue) : null;
+  const msg = `API 오류 ${e.code ?? ''}${v?.quotaId ? ` ${v.quotaId}=${quotaValue ?? '?'}` : ''}${retryMs ? ` (${retryMs / 1000}초 뒤)` : ''} ${String(e.message ?? '').slice(0, 100)}`;
+  return { code: e.code ?? null, quotaId: v?.quotaId ?? null, quotaValue, retryMs, message: msg };
+}
+
+/**
+ * 분당 한도까지 남은 기다림(ms). 최근 60초 안 호출 시각들(stamps)이 rpm 개 이상이면, 그중 rpm 번째로 최근 것이 60초를 넘길 때까지.
+ * 10/23 실측 한도: GenerateRequestsPerMinutePerProjectPerModel=10(유료 Tier 1). 쇼츠·롱폼·광고가 같은 프로젝트 한도를 쓴다.
+ */
+export function slotWaitMs(stamps, { rpm, now = Date.now() }) {
+  const recent = (stamps ?? []).filter((t) => now - t < 60_000).sort((a, b) => b - a);
+  if (recent.length < rpm) return 0;
+  return Math.max(0, recent[rpm - 1] + 60_000 - now);
+}
+
+/** 프로세스 사이에서 같이 세는 호출 기록 파일. mkdir 잠금으로 읽고-쓰기를 한 번에 한다. */
+export const GEMINI_RPM = Number(process.env.KO_TTS_GEMINI_RPM || 9);   // 한도 10 에서 하나 남긴다(다른 프로세스와 겹칠 틈)
+export async function takeSlot(file, { rpm = GEMINI_RPM, log = () => {} } = {}) {
+  const { readFileSync, writeFileSync, mkdirSync, rmdirSync, statSync } = await import('fs');
+  const lock = `${file}.lock`;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  for (;;) {
+    try { mkdirSync(lock); } catch {
+      // 주인이 죽어 남은 잠금(30초 넘음)은 걷는다 — 잠금 안에서는 파일 읽고 쓰기만 한다(수 ms).
+      try { if (Date.now() - statSync(lock).mtimeMs > 30_000) rmdirSync(lock); } catch { /* 이미 없음 */ }
+      await sleep(50); continue;
+    }
+    let stamps = [];
+    try {
+      try { stamps = JSON.parse(readFileSync(file, 'utf8')); } catch { stamps = []; }
+      const now = Date.now();
+      const wait = slotWaitMs(stamps, { rpm, now });
+      if (wait === 0) {
+        writeFileSync(file, JSON.stringify([...stamps.filter((t) => now - t < 60_000), now]));
+        return;
+      }
+      log(`분당 한도(${rpm}) — ${Math.ceil(wait / 1000)}초 기다린다`);
+      rmdirSync(lock);
+      await sleep(wait + 50);
+      continue;
+    } finally { try { rmdirSync(lock); } catch { /* 이미 풂 */ } }
+  }
 }

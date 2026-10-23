@@ -138,3 +138,7 @@ data/visits.db-shm
 
 # 2026-09-30: 매일 아침 사이트 화면으로 다시 굽는 2초 카드 — 추적하지 않는다
 assets/outro/flowvium-card*.mp4
+
+# 2026-10-23 Gemini TTS 분당 한도 같이 세기(scripts/lib/gemini-tts takeSlot)
+logs/gemini-tts-calls.json
+logs/gemini-tts-calls.json.lock/

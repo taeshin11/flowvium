@@ -48,5 +48,28 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const s = readFileSync(new URL('./tts-korean.mjs', import.meta.url), 'utf8');
   (/synthesizeKoreanGemini\(/.test(s) && /tts-engine\.jsonl/.test(s)) ? ok('[6] synthesizeKoreanAuto 가 gemini 를 쓰고 바뀐 이유를 남긴다') : bad('[6] tts-korean 연결 안 됨');
 }
+// [7] 429 는 어떤 한도에 걸렸는지(quotaId·값)와 기다리라는 시간(retryDelay)을 이유에 싣는다.
+//   10/23 유료 키로 32문장(동시 3)을 부르자 429 "exceeded your current quota" 만 남아 무슨 한도인지 몰랐다.
+{
+  const { geminiError } = await import('./gemini-tts.mjs');
+  const e = geminiError({ error: { code: 429, status: 'RESOURCE_EXHAUSTED', message: 'You exceeded your current quota', details: [
+    { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: 'GenerateRequestsPerMinutePerProjectPerModel', quotaValue: '10' }] },
+    { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: '17s' }] } });
+  (e.code === 429 && e.quotaId === 'GenerateRequestsPerMinutePerProjectPerModel' && e.quotaValue === 10 && e.retryMs === 17000 && /PerMinute.*10/.test(e.message))
+    ? ok('[7] 429 → quotaId·값·retryDelay') : bad(`[7] ${JSON.stringify(e)}`);
+  (geminiError({ candidates: [] }) === null) ? ok('[7b] 오류 없으면 null') : bad('[7b]');
+}
+// [8] 분당 한도 지키기 — 10/23 실측: 유료(Tier 1) 키 한도는 GenerateRequestsPerMinutePerProjectPerModel=10.
+//   문장마다 동시 3개로 부르면 32문장 중 9개째에 429. 프로세스가 여럿(쇼츠·롱폼·광고)이라 파일 하나로 같이 센다.
+//   최근 60초 안 호출이 rpm 개면 가장 오래된 것이 60초를 넘길 때까지 기다린다.
+{
+  const { slotWaitMs } = await import('./gemini-tts.mjs');
+  const now = 100_000;
+  (slotWaitMs([], { rpm: 9, now }) === 0) ? ok('[8] 기록 없으면 바로') : bad('[8]');
+  const full = Array.from({ length: 9 }, (_, k) => now - 50_000 + k * 1000);   // 50초 전부터 9번
+  (slotWaitMs(full, { rpm: 9, now }) === 10_000) ? ok('[8b] 60초 안 9번이면 가장 오래된 것이 빠질 때까지(10초)') : bad(`[8b] ${slotWaitMs(full, { rpm: 9, now })}`);
+  (slotWaitMs(full.slice(1), { rpm: 9, now }) === 0) ? ok('[8c] 8번이면 바로') : bad('[8c]');
+  (slotWaitMs([now - 70_000, ...full.slice(1)], { rpm: 9, now }) === 0) ? ok('[8d] 60초 지난 기록은 안 센다') : bad('[8d]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
