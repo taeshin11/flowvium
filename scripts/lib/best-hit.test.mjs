@@ -40,5 +40,14 @@ const r = pickBestHit(rows);
   (h.hits.map((x) => x.ticker).join() === 'A,B' && h.evaluated === 5) ? ok(`[5] 20% 이상 실제 수익만(${h.hits.map((x) => `${x.ticker} +${x.pnl}%`).join(', ')})`) : bad(`[5] ${JSON.stringify(h)}`);
   (pickHits([row({ pnl_pct: 12 })], { min: 20 }).hits.length === 0) ? ok('[5b] 없으면 빈 목록') : bad('[5b]');
 }
+// [6] 오늘의 적중 — 쇼츠 카드(refresh-flowvium-card)와 롱폼 광고(make-brief-ads)가 **같은 날 같은 건**을 쓴다(10/23 한 곳으로 모음).
+{
+  const { hitOfDay } = await import('./best-hit.mjs');
+  const hits = [{ ticker: 'A' }, { ticker: 'B' }, { ticker: 'C' }];
+  const d0 = Date.parse('2026-10-23T00:00:00+09:00');
+  const a = hitOfDay(hits, 7, d0); const b = hitOfDay(hits, 7, d0 + 3600e3 * 23); const c = hitOfDay(hits, 7, d0 + 864e5);
+  (a.best.ticker === b.best.ticker && a.best.ticker !== c.best.ticker && a.of === 3 && a.evaluated === 7) ? ok('[6] 한국 날짜 하루 동안 같은 건, 다음 날 다음 건') : bad(`[6] ${JSON.stringify([a, b, c])}`);
+  (hitOfDay([], 7, d0) === null) ? ok('[6b] 없으면 null') : bad('[6b]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

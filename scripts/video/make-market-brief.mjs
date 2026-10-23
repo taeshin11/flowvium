@@ -26,7 +26,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, SESSION_LABEL } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL } from '../lib/market-brief.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -396,6 +396,13 @@ for (const [k, s] of segs.entries()) {
 }
 ff(['-loop', '1', '-t', '3', '-i', join(OUT, 'c_outro.png'), '-f', 'lavfi', '-t', '3', '-i', 'anullsrc=r=44100:cl=mono', '-vf', 'fps=30,format=yuv420p', ...venc, '-shortest', join(OUT, 'p_outro.mp4')], '끝 카드');
 parts.push(join(OUT, 'p_outro.mp4'));
+// 끝 광고(가로 긴 버전) — 올린 롱폼 수로 aisvi/flowvium 번갈아(lib briefPromo). 본편과 같은 규격으로 다시 굽는다(-c copy 로 이어 붙이려고).
+const PROMO = briefPromo(history, { exists: (rel) => existsSync(join(ROOT, rel)) });
+if (PROMO.path) {
+  ff(['-i', join(ROOT, PROMO.path), '-vf', 'scale=1920:1080,fps=30,format=yuv420p', '-af', 'aresample=44100,aformat=channel_layouts=mono', ...venc, join(OUT, 'p_ad.mp4')], '끝 광고');
+  parts.push(join(OUT, 'p_ad.mp4'));
+  log(`[화면] 끝 광고 ${PROMO.name}${PROMO.fallback ? '(원한 광고가 없어 대신)' : ''}`);
+} else log('[화면] 끝 광고 파일이 없다 — 없이 간다 (node scripts/video/make-brief-ads.mjs --brand aisvi|flowvium)');
 writeFileSync(join(OUT, 'list.txt'), parts.map((p) => `file '${p}'`).join('\n'));
 const JOINED = join(OUT, 'joined.mp4');
 ff(['-f', 'concat', '-safe', '0', '-i', join(OUT, 'list.txt'), '-c', 'copy', JOINED], '이어 붙이기');
@@ -475,7 +482,7 @@ if (UPLOAD) {
     tags: [E.label.replace(/\s/g, ''), '증시요약', ED === 'us' ? '미국증시' : '한국증시', ED === 'us' ? '나스닥' : '코스피', ED === 'us' ? '뉴욕증시' : ED === 'kreu' ? '유럽증시' : '코스닥', '주식', '경제', 'Flowvium'] });
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
-  history.push({ edition: ED, date: DATE, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), at: new Date().toISOString() });
+  history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), at: new Date().toISOString() });
   writeFileSync(HIST, JSON.stringify(history, null, 2));
   if (UPLOAD === 'public') {
     const out = openSync(join(ROOT, 'logs/pin-comment.log'), 'a');

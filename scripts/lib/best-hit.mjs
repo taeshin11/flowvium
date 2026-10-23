@@ -35,3 +35,18 @@ export function pickHits(rows, { min = 20 } = {}) {
       from: String(r.generated_at).slice(0, 10), to: String(r.evaluated_at).slice(0, 10), outcome: r.outcome }));
   return { evaluated: done.length, hits };
 }
+
+/** 오늘(한국 날짜)의 적중 한 건 — 쇼츠 카드와 롱폼 광고가 같은 날 같은 건을 쓴다(10/23 한 곳으로). */
+export function hitOfDay(hits, evaluated, nowMs = Date.now()) {
+  if (!hits?.length) return null;
+  const day = Math.floor((nowMs + 9 * 3600e3) / 864e5);
+  return { evaluated, best: hits[day % hits.length], rank: (day % hits.length) + 1, of: hits.length };
+}
+
+/** DB 에서 실제 수익 min% 이상 적중을 읽어 오늘 것을 고른다(refresh-flowvium-card 와 같은 질의). */
+export function todaysHit(db, { min = Number(process.env.FLOWVIUM_HIT_MIN || 20), nowMs = Date.now() } = {}) {
+  const { hits, evaluated } = pickHits(db.prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
+    r.entry_low, r.entry_high, r.price_at_gen, o.high_seen, o.low_seen
+    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all(), { min });
+  return hitOfDay(hits, evaluated, nowMs);
+}

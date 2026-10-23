@@ -208,5 +208,17 @@ const M = await import('./market-brief.mjs');
   const noEarn = M.pickCalendar(ev, []).map((c) => c.title).join(' / ');
   (noEarn.split(' / ').length === 3) ? ok('[18b] 실적 없으면 지표 3개') : bad(`[18b] ${noEarn}`);
 }
+// [19] 끝 광고 — 사장님 10/23 "롱폼 맨끝에 플로븀, 에이스비 광고 번갈아 … 쇼츠처럼" · "롱폼에서는 광고 설명 긴버젼으로".
+//   올린 롱폼 수로 번갈아(0 → aisvi, 1 → flowvium …). 원하는 파일이 없으면 다른 쪽, 둘 다 없으면 없이.
+{
+  const h = (n) => Array.from({ length: n }, (_, i) => ({ id: `v${i}` })).concat([{ id: null }]);
+  const has = () => true;
+  (M.briefPromo(h(0), { exists: has }).name === 'aisvi' && M.briefPromo(h(1), { exists: has }).name === 'flowvium' && M.briefPromo(h(2), { exists: has }).name === 'aisvi')
+    ? ok('[19] 올린 수로 번갈아(id 없는 기록은 안 센다)') : bad('[19]');
+  const onlyAisvi = (p) => /aisvi/.test(p);
+  const f = M.briefPromo(h(1), { exists: onlyAisvi });
+  (f.name === 'aisvi' && f.fallback && /brief-ad-aisvi\.mp4$/.test(f.path)) ? ok('[19b] 원하는 광고 없으면 다른 쪽') : bad(`[19b] ${JSON.stringify(f)}`);
+  (M.briefPromo(h(0), { exists: () => false }).path === null) ? ok('[19c] 둘 다 없으면 광고 없이') : bad('[19c]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

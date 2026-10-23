@@ -213,3 +213,15 @@ export function pickCalendar(econ, earn) {
   }
   return [...out.sort((a, b) => a.ms - b.ms).map((e) => ({ kind: 'econ', ...e })), ...(earn ?? []).slice(0, 1).map((x) => ({ kind: 'earn', ...x }))];
 }
+
+/**
+ * 끝 광고(가로 긴 버전, scripts/video/make-brief-ads) — 올린 롱폼 수로 aisvi/flowvium 번갈아. 사장님 10/23
+ * "롱폼 맨끝에 플로븀, 에이스비 광고 번갈아 붙여라 마찬가지로 쇼츠처럼" · "롱폼에서는 광고 설명 긴버젼으로".
+ */
+export const BRIEF_ADS = { aisvi: 'assets/outro/brief-ad-aisvi.mp4', flowvium: 'assets/outro/brief-ad-flowvium.mp4' };
+export function briefPromo(history, { exists }) {
+  const n = (history ?? []).filter((h) => h?.id).length;
+  const want = n % 2 === 0 ? 'aisvi' : 'flowvium';
+  for (const name of [want, want === 'aisvi' ? 'flowvium' : 'aisvi']) if (exists(BRIEF_ADS[name])) return { name, path: BRIEF_ADS[name], fallback: name !== want };
+  return { name: null, path: null, fallback: false };
+}

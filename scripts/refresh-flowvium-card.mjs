@@ -19,15 +19,11 @@ rmSync(TMP, { force: true });
 let HIT = null;
 try {
   const { openDb } = await import('./lib/db.mjs');
-  const { pickHits } = await import('./lib/best-hit.mjs');
-  // 사장님 9/30 "최소 20% 넘는거로 다 해놔" — 실제 수익 20% 이상 전부를 날마다 하나씩 돌린다.
+  const { todaysHit } = await import('./lib/best-hit.mjs');
+  // 사장님 9/30 "최소 20% 넘는거로 다 해놔" — 실제 수익 20% 이상 전부를 날마다 하나씩 돌린다(lib/best-hit todaysHit — 롱폼 광고와 같은 건).
   const MIN = Number(process.env.FLOWVIUM_HIT_MIN || 20);
-  const { hits, evaluated } = pickHits(openDb().prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
-    r.entry_low, r.entry_high, r.price_at_gen, o.high_seen, o.low_seen
-    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all(), { min: MIN });
-  const day = Math.floor((Date.now() + 9 * 3600e3) / 864e5);
-  HIT = hits.length ? { evaluated, best: hits[day % hits.length], rank: (day % hits.length) + 1, of: hits.length } : null;
-  log(HIT ? `실제 수익 ${MIN}% 이상 ${hits.length}건 — 오늘은 ${HIT.best.ticker} +${HIT.best.pnl}% (평가 ${evaluated}건 중)` : `실제 수익 ${MIN}% 이상 기록이 없다 — 사이트 화면으로`);
+  HIT = todaysHit(openDb(), { min: MIN });
+  log(HIT ? `실제 수익 ${MIN}% 이상 ${HIT.of}건 — 오늘은 ${HIT.best.ticker} +${HIT.best.pnl}% (평가 ${HIT.evaluated}건 중)` : `실제 수익 ${MIN}% 이상 기록이 없다 — 사이트 화면으로`);
 } catch (e) { log(`추천 기록을 못 읽었다 — 사이트 화면으로: ${String(e?.message ?? e).slice(0, 80)}`); }
 const r = spawnSync(process.execPath, [resolve(ROOT, 'scripts/video/make-outro-clip.mjs'), '--card', '--brand', 'flowvium', '--out', TMP],
   { cwd: ROOT, encoding: 'utf8', timeout: 5 * 60_000, killSignal: 'SIGKILL', env: { ...process.env, ...(HIT?.best ? { FLOWVIUM_HIT: JSON.stringify(HIT) } : {}) } });
@@ -47,3 +43,9 @@ const bad = [
 if (bad.length) { rmSync(TMP, { force: true }); log(`재 보니 안 맞다(${bad.join(' · ')}) — 어제 카드를 그대로 쓴다`); process.exit(1); }
 renameSync(TMP, OUT);
 log(`✅ 바꿔 끼웠다 — ${sec.toFixed(2)}초 · 1080x1920 · ${hz}Hz · 밝기 ${Number(y).toFixed(0)}`);
+// 2026-10-23 롱폼(증시 요약) 끝 광고 가로 긴 버전도 같은 날 같은 적중으로 다시 굽는다(make-brief-ads). 실패해도 쇼츠 카드는 이미 바뀌었다.
+{
+  const a = spawnSync(process.execPath, [resolve(ROOT, 'scripts/video/make-brief-ads.mjs'), '--brand', 'flowvium'],
+    { cwd: ROOT, encoding: 'utf8', timeout: 10 * 60_000, killSignal: 'SIGKILL' });
+  log(a.status === 0 ? '✅ 롱폼 광고(가로)도 다시 구웠다' : `⚠ 롱폼 광고(가로) 못 구웠다 — 어제 것을 쓴다: ${String(a.stderr || a.stdout).trim().split('\n').slice(-1)[0]?.slice(0, 160)}`);
+}
