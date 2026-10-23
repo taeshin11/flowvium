@@ -86,5 +86,54 @@ const cr = src('cron-runner.mjs');
   (v?.visibleToViewers === true && v?.failedTries === 1) ? ok('[19b] 보이면 실패 수를 안 올린다') : bad(`[19b] ${JSON.stringify(v)}`);
   (/alreadyEntry\(prev, /.test(pc) && /verifiedEntry\(prev, r, /.test(pc)) ? ok('[19c] yt-pin-comment 가 두 함수를 쓴다') : bad('[19c] yt-pin-comment 미연결');
 }
+// [20]~[24] 2026-10-23 사장님 "댓글다는게 좀 미흡할때가 많네"(Mac mini2 경유): 지난 7일 공개분 로그아웃 점검 ①있다 ②작성자가 채널
+//   ③고정 ④'자세히 보기' 없이 핵심 줄이 보인다 ⑤스팸 필터로 사라지지 않았다 + 앞으로는 발행 뒤 15분 안 달기 → 고정 → +10분 재확인 → +24시간 재확인,
+//   한 단계라도 실패하면 멈춘다. 실측 구멍: 예약 공개 롱폼(한국 마감판 h_nRYqiJDEg)은 공개 전(비공개)에 달려다 '댓글 칸 없음' 으로 실패했고,
+//   매일 쓸기는 쇼츠 원장·총정리만 봐 장 요약 롱폼을 못 골랐다 — 고정 댓글 없이 공개됐다. +24시간 재확인은 없었다.
+{
+  const P = await import('./pin-state.mjs');
+  const th = (o) => ({ author: '@flowvium', text: AD_LINE, pinned: true, moreShown: false, index: 0, ...o });
+  const J = (ts) => P.judgeViewer?.(ts) ?? { ok: null, missing: ['judgeViewer 없음'] };
+  const j0 = J([th()]);
+  (j0.ok === true && j0.missing.length === 0) ? ok('[20a] 다섯 가지 다 맞으면 통과') : bad(`[20a] ${JSON.stringify(j0)}`);
+  const j1 = J([{ author: '@viewer', text: '좋아요', pinned: false, moreShown: false, index: 0 }]);
+  (j1.ok === false && j1.missing.includes('present')) ? ok('[20b] 우리 댓글이 시청자 화면에 없으면(스팸 필터·안 달림) 실패') : bad(`[20b] ${JSON.stringify(j1)}`);
+  const j2 = J([th({ author: '@someone', text: `@flowvium ${AD_LINE}` })]);
+  (j2.ok === false && j2.missing.includes('author')) ? ok('[20c] 남이 같은 글을 옮겨 단 것은 우리 댓글이 아니다(작성자 정확히 @flowvium)') : bad(`[20c] ${JSON.stringify(j2)}`);
+  const j3 = J([{ author: '@x', text: 'hi', pinned: false, moreShown: false, index: 0 }, th({ pinned: false, index: 1 })]);
+  (j3.ok === false && j3.missing.includes('pinned')) ? ok('[20d] 고정 표시가 없으면 실패') : bad(`[20d] ${JSON.stringify(j3)}`);
+  const j4 = J([th({ moreShown: true })]);
+  (j4.ok === false && j4.missing.includes('fullLine')) ? ok('[20e] \'자세히 보기\' 가 떠 있으면(접혀 핵심 줄이 잘림) 실패') : bad(`[20e] ${JSON.stringify(j4)}`);
+  const D = (e, ageMin) => P.dueChecks?.(e, Date.parse('2026-10-23T00:00:00Z') + ageMin * 60e3) ?? ['dueChecks 없음'];
+  const at = '2026-10-23T00:00:00Z';
+  (D({ at }, 5).length === 0) ? ok('[21a] 단 지 10분 전에는 재확인 안 한다') : bad(`[21a] ${D({ at }, 5)}`);
+  (JSON.stringify(D({ at }, 11)) === '["v10"]') ? ok('[21b] 10분 지나면 +10분 재확인') : bad(`[21b] ${D({ at }, 11)}`);
+  (D({ at, verifiedAt: '2026-10-23T00:11:00Z' }, 60).length === 0) ? ok('[21c] +10분 재확인을 했으면 24시간까지 쉰다') : bad(`[21c] ${D({ at, verifiedAt: '2026-10-23T00:11:00Z' }, 60)}`);
+  (JSON.stringify(D({ at, verifiedAt: '2026-10-23T00:11:00Z' }, 24 * 60 + 1)) === '["v24"]') ? ok('[21d] 24시간 지나면 +24시간 재확인') : bad(`[21d] ${D({ at, verifiedAt: '2026-10-23T00:11:00Z' }, 24 * 60 + 1)}`);
+  (D({ at, verifiedAt: '2026-10-23T00:11:00Z', recheck24At: '2026-10-24T00:05:00Z' }, 30 * 60).length === 0) ? ok('[21e] +24시간 재확인은 한 번') : bad('[21e]');
+  (D({ at: '2026-10-22T23:00:00Z', verifiedAt: '2026-10-22T23:11:00Z' }, 20).length === 0 && JSON.stringify(D({ at, verifiedAt: '2026-10-22T23:11:00Z' }, 11)) === '["v10"]')
+    ? ok('[21f] 다시 단 편은(at 이 재확인보다 뒤) +10분 재확인을 다시') : bad('[21f]');
+  (D({ verifiedAt: 'x' }, 60 * 30).length === 0) ? ok('[21g] 단 적 없는 편은 재확인 대상이 아니다(달기 대상)') : bad('[21g]');
+  const vf = P.verifiedEntry({ at }, { ok: false, missing: ['fullLine'], present: true, pinned: true }, 'v');
+  (vf.failedTries === 1 && P.needsPin(vf) === true) ? ok('[22a] 접힘·작성자 실패도 실패 1회 + 다시 달기 대상') : bad(`[22a] ${JSON.stringify(vf)}`);
+  const v24 = P.verifiedEntry({ at, verifiedAt: 'a' }, { ok: true, missing: [], present: true, pinned: true }, 'b', 'v24');
+  (v24.recheck24At === 'b' && v24.verifiedAt === 'a' && P.needsPin(v24) === false) ? ok('[22b] +24시간 재확인은 recheck24At 에 따로 적는다') : bad(`[22b] ${JSON.stringify(v24)}`);
+  (P.pinHealthy?.({ at, verifiedAt: 'a', visibleToViewers: true, pinnedToViewers: true }) === true && P.pinHealthy?.({ failedTries: 1, lastError: 'x' }) === false
+    && P.pinHealthy?.(v24) === true && P.pinHealthy?.(vf) === false) ? ok('[22c] pinHealthy — 정시 점검이 문제 편을 센다') : bad('[22c] pinHealthy');
+}
+{
+  // [23] yt-pin-comment --due: 채널 업로드 목록(API)의 **공개** 편만 단다(예약·비공개 편은 공개 뒤에) · 하루 상한 · 실패하면 멈춘다
+  (/'--due'|includes\('--due'\)/.test(pc) && /privacyStatus === 'public'/.test(pc) && /relatedPlaylists/.test(pc)) ? ok('[23a] --due 는 채널 업로드 목록에서 공개된 편을 고른다(쇼츠·롱폼·수동 업로드 모두)') : bad('[23a] --due 없음');
+  (/dueChecks\(state\[t\.id\]/.test(pc)) ? ok('[23b] --due 가 +10분·+24시간 재확인을 고른다') : bad('[23b]');
+  (/judgeViewer\(/.test(pc) && /moreShown: \[\.\.\.th\.querySelectorAll\('#expander #more'\)\]/.test(pc) && /#author-text/.test(pc)) ? ok('[23c] 재확인이 judgeViewer(작성자 칸·자세히 보기 포함)') : bad('[23c]');
+  (/pin-alert\.jsonl/.test(pc) && /멈춘다/.test(pc)) ? ok('[23d] 실패하면 알림 기록을 남기고 멈춘다') : bad('[23d]');
+  (/DAY_MAX/.test(pc)) ? ok('[23e] 새로 다는 댓글은 하루 상한') : bad('[23e]');
+  (/label: 'pin-watch',\s+script: 'scripts\/yt-pin-comment\.mjs --due'/.test(cr) && /schedules: \['\*\/10 \* \* \* \*'\]/.test(cr.match(/label: 'pin-watch'.*$/m)?.[0] ?? ''))
+    ? ok('[23f] pin-watch 10분마다(발행 뒤 15분 안)') : bad('[23f] pin-watch 일정 없음');
+  const mb = src('video/make-market-brief.mjs');
+  (/if \(UPLOAD === 'public' && !publishAt\)/.test(mb)) ? ok('[24a] 예약 공개 롱폼은 업로드 직후 달지 않는다(공개 전엔 댓글 칸이 없다 — pin-watch 가 공개 뒤에)') : bad('[24a] 예약 편도 바로 단다');
+  const tc = src('shorts-today-check.mjs');
+  (/pinHealthy/.test(tc)) ? ok('[24b] 정시 점검이 고정 댓글 문제 편을 알린다') : bad('[24b] 정시 점검에 고정 댓글 없음');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

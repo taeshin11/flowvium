@@ -12,7 +12,7 @@ export const MAX_PIN_TRIES = 3;
 export function needsPin(e) {
   if ((e?.failedTries ?? 0) >= MAX_PIN_TRIES) return false;
   if (!e?.at) return true;
-  return e.visibleToViewers === false || e.pinnedToViewers === false;
+  return e.visibleToViewers === false || e.pinnedToViewers === false || (e.viewerMissing?.length ?? 0) > 0;
 }
 
 /**
@@ -23,11 +23,55 @@ export function alreadyEntry(prev = {}, at, kind) {
   return { ...prev, at, kind, skipped: 'already' };
 }
 
-/** 10분 뒤 시청자 화면 재확인 기록. 안 보이거나 고정이 안 보이면 실패 1회로 센다(같은 실패를 매일 되풀이하지 않게). */
-export function verifiedEntry(prev = {}, r, at) {
-  const visible = !!r?.mine; const pinned = !!r?.pinned;
-  return { ...prev, verifiedAt: at, visibleToViewers: visible, pinnedToViewers: pinned,
-    ...(visible && pinned ? {} : { failedTries: (prev.failedTries ?? 0) + 1 }) };
+/**
+ * 시청자 화면(로그아웃) 재확인 기록. 다섯 가지(judgeViewer) 중 하나라도 빠지면 실패 1회로 센다(같은 실패를 매일 되풀이하지 않게).
+ *   r 은 judgeViewer 결과 {ok, missing, present, pinned} — 옛 형식 {mine, pinned} 도 받는다.
+ *   check 'v24'(+24시간 재확인)는 recheck24At, 'audit'(일괄 점검)은 auditAt 에 따로 적는다 — +10분 기록(verifiedAt)을 덮으면
+ *   dueChecks 가 제때 할 재확인을 빼먹거나 다시 고른다.
+ */
+export function verifiedEntry(prev = {}, r, at, check = 'v10') {
+  const judged = r && 'ok' in r;
+  const visible = judged ? !!r.present : !!r?.mine; const pinned = !!r?.pinned;
+  const good = judged ? r.ok === true : visible && pinned;
+  return { ...prev, ...({ v24: { recheck24At: at }, audit: { auditAt: at } }[check] ?? { verifiedAt: at }), visibleToViewers: visible, pinnedToViewers: pinned,
+    ...(judged ? { viewerMissing: r.missing } : {}),
+    ...(good ? {} : { failedTries: (prev.failedTries ?? 0) + 1 }) };
+}
+
+/**
+ * 시청자 화면 판정 — 2026-10-23 사장님 "댓글다는게 좀 미흡할때가 많네"(Mac mini2 경유)의 다섯 가지.
+ *   ①present 우리 광고 줄(aisviagent.com)이 보인다 — 없으면 안 달렸거나 스팸 필터(⑤) ②author 작성자 칸이 정확히 @flowvium
+ *   (남이 같은 글·@flowvium 을 옮겨 단 것은 아니다) ③pinned 고정 표시가 보인다 ④fullLine '자세히 보기' 가 안 떠 있다
+ *   (접혀 핵심 줄이 잘리지 않는다). 고정 댓글은 맨 위라 순서는 따로 안 본다.
+ * @param {{author:string, text:string, pinned:boolean, moreShown:boolean}[]} threads  로그아웃 화면의 댓글 스레드들
+ */
+export function judgeViewer(threads, { handle = '@flowvium', key = 'aisviagent.com' } = {}) {
+  const withKey = (threads ?? []).filter((t) => String(t.text ?? '').includes(key));
+  const mine = withKey.find((t) => t.author === handle) ?? null;
+  const missing = [];
+  if (!withKey.length) missing.push('present');
+  else if (!mine) missing.push('author');
+  if (!mine?.pinned) missing.push('pinned');
+  if (mine?.moreShown) missing.push('fullLine');
+  return { ok: missing.length === 0, missing, present: !!mine, pinned: !!mine?.pinned };
+}
+
+/**
+ * 이 편에 지금 할 재확인 — 'v10'(단 뒤 10분) · 'v24'(단 뒤 24시간, 한 번, 7일 안). 단 적 없는 편(at 없음)은 달기 대상이지 재확인 대상이 아니다.
+ *   다시 단 편(at 이 verifiedAt 보다 뒤)은 +10분을 다시 본다.
+ */
+export function dueChecks(e, nowMs = Date.now()) {
+  if (!e?.at) return [];
+  const age = nowMs - Date.parse(e.at);
+  if (!(age >= 0)) return [];
+  if (age >= 10 * 60e3 && !(e.verifiedAt && Date.parse(e.verifiedAt) >= Date.parse(e.at))) return ['v10'];
+  if (age >= 24 * 3600e3 && age < 7 * 864e5 && !e.recheck24At) return ['v24'];
+  return [];
+}
+
+/** 정시 점검용 — 달았고, 마지막 시청자 화면 확인에서 빠진 게 없다. */
+export function pinHealthy(e) {
+  return !!e?.at && e.visibleToViewers !== false && e.pinnedToViewers !== false && !(e.viewerMissing?.length);
 }
 
 /**

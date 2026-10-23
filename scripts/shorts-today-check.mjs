@@ -31,8 +31,16 @@ const f = recentFailures(tail, { hours: Math.min(3, sinceMidnightH) });
 const behind = passed - published;
 // 오탐을 줄인다(Mac mini2: 푸시는 정말 문제일 때만). 한 회차 건너뜀은 평소에도 난다(보고서 겹침·부하 — 예비가 메운다).
 //   알릴 것: 두 회차 이상 모자람, 또는 인증 실패(사람·코드가 손대야 풀린다). 나머지는 ⚠ 로만 찍는다.
-const bad = behind >= 2 || f.auth > 0;
+// 2026-10-23 사장님 "댓글다는게 좀 미흡할때가 많네": 고정 댓글 단계(pin-watch)가 실패해 멈춘 편 — 지난 24시간 알림 중 아직 안 풀린 것.
+const { pinHealthy } = await import('./lib/pin-state.mjs');
+const readJson = (p, d) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return d; } };
+const pinState = readJson(join(import.meta.dirname, '../logs/yt-pinned.json'), {});
+const alerts = (() => { try { return readFileSync(join(import.meta.dirname, '../logs/pin-alert.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; } })();
+const pinBad = [...new Set(alerts.filter((a) => Date.now() - Date.parse(a.at) < 864e5)   // '-' = 편이 아니라 목록 단계 실패
+  .filter((a) => a.id === '-' || !pinHealthy(pinState[a.id])).map((a) => a.id))];
+const bad = behind >= 2 || f.auth > 0 || pinBad.length > 0;
 const warn = !bad && (behind >= 1 || f.upload > 0);
 console.log(`${bad ? '❌' : warn ? '⚠️' : '✅'} ${day} 쇼츠 ${published}편 발행 / 지난 슬롯 ${passed}${behind > 0 ? ` (${behind}편 모자람)` : ''}`
-  + `${f.auth ? ` · 인증 실패 ${f.auth}` : ''}${f.upload ? ` · 업로드 실패 ${f.upload}` : ''}${f.lastLine ? ` · ${f.lastLine.slice(0, 80)}` : ''}`);
+  + `${f.auth ? ` · 인증 실패 ${f.auth}` : ''}${f.upload ? ` · 업로드 실패 ${f.upload}` : ''}${f.lastLine ? ` · ${f.lastLine.slice(0, 80)}` : ''}`
+  + `${pinBad.length ? ` · 고정 댓글 문제 ${pinBad.length}편(${pinBad.slice(0, 3).join(',')} — logs/pin-alert.jsonl)` : ''}`);
 process.exit(bad ? 1 : 0);

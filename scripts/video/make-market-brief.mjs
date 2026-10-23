@@ -494,11 +494,11 @@ if (UPLOAD) {
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
   history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), at: new Date().toISOString() });
   writeFileSync(HIST, JSON.stringify(history, null, 2));
-  if (UPLOAD === 'public') {
+  // 예약 공개 편은 여기서 달지 않는다 — 공개 전(비공개)엔 댓글 칸이 없어 실패만 센다(10/23 h_nRYqiJDEg 실패 2회 → 고정 댓글 없이 공개).
+  //   공개되면 pin-watch(cron-runner, 10분마다 yt-pin-comment --due)가 채널 업로드 목록에서 잡아 달고 +10분·+24시간 재확인한다.
+  if (UPLOAD === 'public' && !publishAt) {
     const out = openSync(join(ROOT, 'logs/pin-comment.log'), 'a');
-    // 예약 공개는 공개 뒤에야 댓글이 보인다 — 공개 시각 + 10분에 확인한다.
-    const delay = publishAt ? Math.max(600, Math.round((Date.parse(publishAt) - Date.now()) / 1000) + 600) : 600;
-    spawn(process.execPath, [join(ROOT, 'scripts/yt-pin-comment.mjs'), '--ids', u.id, '--kind', 'long', '--then-verify', String(delay)], { detached: true, stdio: ['ignore', out, out] }).unref();
+    spawn(process.execPath, [join(ROOT, 'scripts/yt-pin-comment.mjs'), '--ids', u.id, '--kind', 'long', '--then-verify', '600'], { detached: true, stdio: ['ignore', out, out] }).unref();
   }
 }
 lock.release();

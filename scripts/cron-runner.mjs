@@ -667,6 +667,12 @@ const MAINT_JOBS = [
   //   매일 13:00 KST(04:00 UTC — 정오 보고서 뒤·14:10 첫 쇼츠 전) 최근 14일 발행분 중 lib/pin-state needsPin 인 편만 다시 달고 10분 뒤 시청자 화면 재확인.
   //   같은 편 3번 실패하면 멈춘다(사람에게). 프로필 잠금을 기다린다(관련 동영상·게시물과 같은 프로필).
   { label: 'pin-sweep',            script: 'scripts/yt-pin-comment.mjs --recent 336 --then-verify 600', timeoutMs: 2400000, commitPaths: [],                    schedules: ['0 4 * * *'],                  maxAgeH: 30 },
+  // 2026-10-23 사장님 "댓글다는게 좀 미흡할때가 많네"(Mac mini2 경유): 발행 뒤 15분 안 달기 → 고정 → +10분·+24시간 로그아웃 재확인.
+  //   발행 경로마다 붙인 달기(video-publish 등)는 그대로 두고, 이 잡이 채널 업로드 목록의 **공개** 편을 10분마다 본다 —
+  //   예약 공개 롱폼(한국 마감판)은 공개 전엔 댓글 칸이 없어 업로드 직후 달기가 실패했고 다시 고르는 길이 없었다.
+  //   할 일 없으면 API 3단위만 쓰고 끝(창 없음). 실패하면 logs/pin-alert.jsonl 에 남기고 멈춘다 → 정시 점검(shorts-today-check)이 알린다.
+  //   보고서 중에도 돈다 — 창 없는 브라우저 하나·몇 편이라 가볍고, 늦으면 '15분 안' 을 못 지킨다.
+  { label: 'pin-watch',            script: 'scripts/yt-pin-comment.mjs --due',      timeoutMs: 1500000, commitPaths: [], duringReport: true,                  schedules: ['*/10 * * * *'],               maxAgeH: 2 },
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
   //   2026-09-28: :30 → :50. 보고서 트리거(05:30·10:30·14:30·22:30)와 같은 분이라 '보고서 중이면 쉰다' 검사를 먼저 통과해
   //   보고서와 나란히 렌더했다(9/28 22:30 실패). :50 이면 :30 보고서는 이미 돌고 있어 쉰다(lib/spare-schedule.test).
