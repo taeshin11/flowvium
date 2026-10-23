@@ -30,7 +30,12 @@ const VERIFY_ONLY = argv.includes('--verify-only');
 const DUE = argv.includes('--due');
 const ALL = argv.includes('--all');
 const FIX = argv.includes('--fix-long-url');   // 달지 않고 시청자 화면 재확인만(--then-verify 초 뒤, 기본 0)
-const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[pin]', ...a);
+// --due 는 cron-runner 가 띄워 출력이 남지 않는다 — logs/pin-comment.log 에도 적는다(발행 직후 달기와 같은 파일).
+const log = (...a) => {
+  const line = [new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[pin]', ...a].join(' ');
+  console.log(line);
+  if (argv.includes('--due')) try { appendFileSync(resolve(ROOT, 'logs/pin-comment.log'), line + '\n'); } catch { /* 기록 실패는 일을 막지 않는다 */ }
+};
 const STATE = resolve(ROOT, 'logs/yt-pinned.json');
 const state = (() => { try { return JSON.parse(readFileSync(STATE, 'utf8')); } catch { return {}; } })();
 // 실패 사진 폴더 — 달기와 재확인 둘 다 쓴다(10/16: 달기 블록 안에만 있어 재확인 단독 실행이 ReferenceError 로 죽었다).
