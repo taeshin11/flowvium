@@ -26,7 +26,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, thumbDate } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, SESSION_LABEL } from '../lib/market-brief.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -70,8 +70,12 @@ const quotes = (await Promise.all(E.indices.map(async (code) => {
 }))).filter(Boolean);
 const sess = sessionCheck(ED, quotes, { nowMs: NOW });
 if (!sess.ok) skip(sess.why);
+// 다룬 장의 날짜 — 미국판은 뉴욕 날짜(10/23 아침에 올리는 영상은 10/22 장). 화면·제목·첫 문장은 이 날짜를 쓴다(Claude 검토 10/23).
+const DAY = sess.day;
+const DAY_MD = `${Number(DAY.slice(5, 7))}월 ${Number(DAY.slice(8))}일`;
+const SPOKEN = { us: '미국 증시 마감', kreu: '한국·유럽 증시', krmid: '한국 증시 오전장', krclose: '한국 증시 마감' }[ED];
 // 유럽(한국·유럽판)·한국(오전판)은 이 시각 장중이다 — 장중 값이라고, 몇 시 값인지 밝혀 읽는다(마감 숫자로 오해하지 않게).
-const FACTS = quotes.map((q) => `${factLine(q)}${q.closed ? ' 마감' : ` 장중${/T\d\d:\d\d/.test(q.at ?? '') && !q.code.startsWith('.') ? ` ${q.at.slice(11, 16)} 기준` : ''}`}`);
+const FACTS = quotes.map((q) => `${factLine(q)}${q.closed ? ' 마감' : ` 장중${kstClock(q.at) ? ` ${kstClock(q.at)} 기준` : ''}`}`);
 log(`[지수] ${FACTS.join(' · ')}`);
 
 // ── 2. 기사 ──────────────────────────────────────────────────────────────────────
@@ -120,7 +124,10 @@ try { const r = await fetch(`https://api.nasdaq.com/api/calendar/earnings?date=$
 } catch (e) { log(`[일정] 실적 못 받음: ${e.message}`); }
 // 한국·유럽판은 오늘 밤 장전 실적만(장후는 내일 아침 미국판이 다룬다).
 if (ED !== 'us') earn = earn.filter((x) => x.when === '장전');
-const CAL = [...econ.map((e) => ({ kind: 'econ', ...e })), ...earn.map((x) => ({ kind: 'earn', ...x }))];
+// '오늘 체크' 는 2~3개(10/23 ChatGPT·agy). 화면과 낭독이 같은 것을 말하도록 **여기서 미리 고른다** — 첫 렌더에서 낭독은
+//   미시간·아멕스를 읽는데 화면은 PMI 6줄이었다. 지표: 중요도 High 먼저, 같으면 이른 시각. 실적: 시총 가장 큰 1곳.
+const econPick = [...econ].sort((a, b) => (a.impact === 'High' ? 0 : 1) - (b.impact === 'High' ? 0 : 1) || a.ms - b.ms).slice(0, earn.length ? 2 : 3).sort((a, b) => a.ms - b.ms);
+const CAL = [...econPick.map((e) => ({ kind: 'econ', ...e })), ...earn.slice(0, 1).map((x) => ({ kind: 'earn', ...x }))];
 log(`[일정] 지표 ${econ.length} · 실적 ${earn.length}`);
 const calLines = CAL.map((c, i) => c.kind === 'econ'
   ? `(${i}) ${c.kstDay === DATE ? '' : '다음 날 '}${c.kst} ${c.country} ${c.title}${c.forecast ? ` 예상 ${c.forecast}` : ''}${c.previous ? ` 이전 ${c.previous}` : ''}`
@@ -130,12 +137,12 @@ const calLines = CAL.map((c, i) => c.kind === 'econ'
 const CPS = 7.4;   // 멜로 실측 7.47자/초(lib/weekly-explainer)
 const B = { min: Math.round(85 * CPS), max: Math.round(190 * CPS), target: Math.round(140 * CPS) };
 const SCRIPT_SCHEMA = { type: 'object', properties: {
-  hook: { type: 'string' }, thumb: { type: 'string' },
+  hook: { type: 'string' }, thumb_lines: { type: 'array', items: { type: 'string' } },
   chapters: { type: 'array', items: { type: 'object', properties: {
     kind: { type: 'string' }, heading: { type: 'string' }, sentences: { type: 'array', items: { type: 'string' } }, sources: { type: 'array', items: { type: 'integer' } } },
   required: ['kind', 'heading', 'sentences', 'sources'] } },
   calendar_ko: { type: 'array', items: { type: 'object', properties: { i: { type: 'integer' }, ko: { type: 'string' } }, required: ['i', 'ko'] } } },
-required: ['hook', 'thumb', 'chapters', 'calendar_ko'] };
+required: ['hook', 'thumb_lines', 'chapters', 'calendar_ko'] };
 const scope = {
   us: '어젯밤 뉴욕 증시 마감을 아침 출근길 투자자에게 2분 남짓으로 요약한다.',
   kreu: '오늘 한국 증시 마감과 유럽 증시 장중 흐름을, 미국 장 시작 1시간 전에 2분 남짓으로 요약한다.',
@@ -147,19 +154,21 @@ const scriptPrompt = [
   `너는 한국 증시 뉴스 유튜브의 대본 작가다. ${scope}`,
   '근거는 아래 [지수]·[기사]·[일정] 뿐이다. **거기 없는 사실·숫자·인물·발언·전망을 쓰지 마라.** 숫자는 적힌 그대로 옮긴다.',
   '구성(chapters):',
-  ` 1) kind "market" heading "${marketHeading}" — 첫 문장은 "${Number(DATE.slice(5, 7))}월 ${Number(DATE.slice(8))}일 ${E.label}입니다." 그다음 지수마다 등락률(%)과 종가, 그리고 그 이유 한두 문장.`,
+  ` 1) kind "market" heading "${marketHeading}" — 첫 문장은 "${DAY_MD} ${SPOKEN}입니다." 그다음 **가장 크게 움직인 지수부터** 등락률(%) 위주로(종가는 대표 지수 하나만), 그리고 그 이유 한두 문장. 거의 안 움직인 지수는 짧게 묶거나 빼라.`,
   ED === 'kreu' ? '    유럽 지수는 [지수]에 "장중" 으로 적힌 값이다 — "장중" 이라고 밝혀 쓴다.' : '',
+  ED === 'krclose' ? '    유럽 지수는 [지수]에 "장중" 으로 적힌 값이다 — market 장 끝에 "유럽 증시는 장 초반 …" 한 문장으로만, 숫자만 짧게(이유를 지어내지 마라).' : '',
+  '    지수판 화면에 모든 숫자가 나온다 — 거의 안 움직인 지수까지 다 읽지 마라. "한편" "보도에 따르면" "살펴보겠습니다" 같은 연결어·예고 문장 금지.',
   ED === 'krmid' ? '    지수는 [지수]에 "장중 HH:MM 기준" 으로 적힌 아직 끝나지 않은 장의 값이다 — "마감" "마쳤습니다" 를 쓰지 말고 "오전 11시 35분 기준" 처럼 시각을 밝혀 쓴다.' : '',
   ' 2) kind "story" 2~4개 — 오늘 시장을 움직인 종목·이슈 하나씩(heading 12자 이내, 회사·이슈 이름). 무엇이 몇 % 움직였고 왜인지, 기사에 있는 증권가·전문가 말이 **그 장의 회사·이슈에 관한 것이면** 누가 했는지 밝혀 한 문장 옮긴다(시장 전체 논평은 market 장에).',
-  ` 3) kind "calendar" heading "${ED === 'us' ? '오늘 주요 일정' : '오늘 밤 주요 일정'}" — [일정] 중 중요한 것 3~5개를 시각과 함께 읽는다(한국 시각, "밤 9시 30분" 처럼). 예상치·이전치 숫자는 읽지 마라(화면에 나온다). 일정이 없으면 이 장을 빼라.`,
+  ` 3) kind "calendar" heading "${ED === 'us' ? '오늘 체크' : '오늘 밤 체크'}" — [일정] 을 **모두** 한 문장씩 시각과 함께 읽는다(한국 시각, "밤 9시 30분" 처럼). 예상치·이전치 숫자는 읽지 마라(화면에 나온다). 일정이 없으면 이 장을 빼라.`,
   '문장 규칙: 합니다체. 한 문장 20~55자. 각 문장은 "니다." 등 완결된 말로 끝낸다. 숫자는 아라비아 숫자("1.05%", "26,702.86"), 지수 소수점은 둘째 자리까지 그대로.',
   '"여러분" "충격" "경악" 금지. 기자 이름·매체 서명 읽지 마라. 화면 지시어 금지. 투자 권유·매수 매도 제안 금지. 채널의 의견·당위·전망 금지(말한 사람을 밝혀 옮길 때만).',
   `분량: 모든 문장 합계 ${B.min}~${B.max}자(목표 ${B.target}자).`,
   'sources: 그 장에서 쓴 기사 번호들(정수). market 장은 쓴 기사 번호, calendar 장은 [].',
   // 10/22 첫 시험: 예시로 레퍼런스 영상 제목을 그대로 줬더니 그 제목을 그대로 베꼈다 — 예시 문장을 주지 않는다.
-  'hook: 오늘 시장의 핵심을 묻는 한 줄(22자 이내, 질문형 허용). 오늘 기사에 나온 회사·이슈 이름을 넣어라. 숫자를 넣으면 근거와 같아야 한다.',
+  'hook: 오늘 시장의 핵심을 말하는 결론형 한 줄(22자 이내, 물음표 금지 — 영상이 답하지 않는 질문은 낚시다). **가장 크게 움직인 지수의 이유**(market 장의 이유)에서 뽑아라 — 이야기 장 하나의 곁가지 회사로 낚지 마라. 숫자를 넣지 마라(제목 앞에 숫자가 따로 붙는다).',
   '  이미 일어난 일을 "~할까요?" 로 묻지 마라(10/22 시험: 이미 오른 장을 "반등할까요?"). 묻는다면 아직 안 정해진 것(합병 성사, 상승 지속, 오늘 밤 지표)을 묻는다.',
-  'thumb: 썸네일 큰 글 한 줄(4~12자, hook 을 줄인 것).',
+  'thumb_lines: 썸네일 큰 글 2줄. 각 줄 2~7자 명사구(예 ["AI 투자 불안", "반도체 급락"]). 숫자·물음표 없이.',
   'calendar_ko: [일정] 각 줄 번호 i 의 한국어 이름(14자 이내, 예 "신규 실업수당 청구건수", 실적은 "프록터앤드갬블 실적"). 숫자는 넣지 마라.', '',
   '[지수]', ...FACTS, '',
   '[일정]', ...(calLines.length ? calLines : ['(없음)']), '',
@@ -179,7 +188,7 @@ CAL.forEach((c, i) => { c.ko = calKo.get(i) ?? (c.kind === 'econ' ? c.title : `$
 const CORPUS = flattenKoNumbers([
   ...FACTS, ...FACTS.map((f) => f.replace(/,/g, '')),
   ...CAL.map((c) => c.kind === 'econ' ? `${c.kst} ${Number(c.kst.slice(0, 2)) % 12 || 12}시 ${c.kst.slice(3)}분 ${c.country} ${c.ko} ${c.title} ${c.forecast ?? ''} ${c.previous ?? ''}` : `${c.when} ${c.symbol} ${c.ko}`),
-  ...docs.map((d) => `${d.headline} ${d.text}`), DATE, `${Number(DATE.slice(5, 7))}월 ${Number(DATE.slice(8))}일`].join('\n'));
+  ...docs.map((d) => `${d.headline} ${d.text}`), DATE, DAY, DAY_MD].join('\n'));
 const END = /(니다|니까|세요|까요)[.?!]?["”’)]*$/;
 let chapters = script.chapters.map((c) => ({ kind: ['market', 'story', 'calendar'].includes(c.kind) ? c.kind : 'story', heading: String(c.heading).trim().slice(0, 14),
   sources: (c.sources ?? []).filter((n) => Number.isInteger(n) && docs[n]), sentences: (c.sentences ?? []).map((s) => String(s).replace(/\s+/g, ' ').trim()).filter(Boolean) }));
@@ -198,7 +207,7 @@ for (const c of chapters) c.sentences = c.sentences.filter((s) => {
   const flat = chapters.flatMap((c, ci) => c.sentences.map((s, si) => ({ ci, si, s })));
   const raw = await agyReport([
     '아래 "문장" 각각이 "근거"([지수]·[일정]·[기사])로 뒷받침되는지 판정하라. 근거에 없는 사실·숫자·인물·발언·인과·전망을 담은 문장, 근거를 틀리게 옮긴 문장(오름/내림, 숫자, 누가 말했나)의 번호를 unsupported 에 넣어라.',
-    '"10월 22일 미국 증시 요약입니다." 같은 안내 문장은 통과다. 근거를 요약·재진술한 것은 통과다. 일정 시각은 [일정] 의 한국 시각과 같아야 한다.', '',
+    `"${DAY_MD} ${SPOKEN}입니다." 같은 안내 문장은 통과다.` + ' 근거를 요약·재진술한 것은 통과다. 일정 시각은 [일정] 의 한국 시각과 같아야 한다.', '',
     '## 문장', ...flat.map((x, i) => `${i}: ${x.s}`), '', '## 근거', '[지수]', ...FACTS, '[일정]', ...CAL.map((c, i) => `${calLines[i]} = ${c.ko}`), '[기사]', ...docs.map((d, i) => `[${i}] ${d.headline}\n${d.text}`)].join('\n'),
   { label: `brief-verify-${ED}`, chain: verifyChain(), timeoutMs: 300_000, schema: { type: 'object', properties: {
     unsupported: { type: 'array', items: { type: 'integer' } }, reasons: { type: 'array', items: { type: 'string' } } }, required: ['unsupported'] } });
@@ -214,10 +223,16 @@ if (chapters[0]?.kind !== 'market') die('첫 장(지수 마감)이 관문에서 
 if (!chapters.some((c) => c.kind === 'story')) die('이야기 장이 하나도 안 남았다');
 if (total() < B.min) die(`관문 뒤 분량 ${total()}자 — 1분 반이 안 된다`);
 const hook = ungroundedNumbers(script.hook, CORPUS).length ? chapters.find((c) => c.kind === 'story').heading : String(script.hook).trim().slice(0, 24);
-const thumbLine = (() => { const t = String(script.thumb ?? '').trim(); return t.length >= 4 && t.length <= 12 && !ungroundedNumbers(t, CORPUS).length ? t : hook.slice(0, 12); })();
-const title = briefTitle({ edition: ED, hook, date: DATE });
+const MOVE = headlineMove(quotes);
+// 썸네일 2줄 — 각 2~7자(폰에서 읽히는 크기, agy·Claude 검토). 못 받으면 이야기 장 제목 두 개.
+const thumbLines = (() => {
+  const t = (script.thumb_lines ?? []).map((x) => String(x).replace(/[?？!]/g, '').trim()).filter((x) => x.length >= 2 && x.length <= 7 && !/\d/.test(x)).slice(0, 2);
+  return t.length === 2 ? t : chapters.filter((c) => c.kind === 'story').map((c) => c.heading.slice(0, 7)).slice(0, 2);
+})();
+const thumbLine = thumbLines.join(' ');
+const title = briefTitle({ edition: ED, move: MOVE, hook, day: DAY });
 rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true });
-writeFileSync(join(OUT, 'script.json'), JSON.stringify({ edition: ED, date: DATE, title, hook, thumbLine, facts: FACTS, calendar: CAL, chapters, docs: docs.map((d) => ({ source: d.source, headline: d.headline, link: d.link })) }, null, 2));
+writeFileSync(join(OUT, 'script.json'), JSON.stringify({ edition: ED, date: DATE, day: DAY, title, hook, thumbLines, facts: FACTS, calendar: CAL, chapters, docs: docs.map((d) => ({ source: d.source, headline: d.headline, link: d.link })) }, null, 2));
 log(`[대본] 제목 "${title}" · 썸네일 "${thumbLine}" → ${join(OUT, 'script.json')}`);
 if (SCRIPT_ONLY) process.exit(0);
 
@@ -300,7 +315,8 @@ log(`[사진] ${imgs.length}장`);
 const segs = []; const useCount = new Map(); let last = null;
 for (let ci = 0; ci < chapters.length; ci++) {
   const c = chapters[ci]; const ss = sents.filter((x) => x.ci === ci);
-  if (c.kind === 'market') { segs.push({ ci, card: 'title', sents: ss.slice(0, 1) }); if (ss.length > 1) segs.push({ ci, card: 'board', sents: ss.slice(1) }); continue; }
+  // 10/23: 검은 '날짜+판 이름' 첫 화면은 레퍼런스 꼴이고 지수판 머리와 겹친다(agy·Claude) — 첫 문장부터 지수판.
+  if (c.kind === 'market') { segs.push({ ci, card: 'board', sents: ss }); continue; }
   if (c.kind === 'calendar') { segs.push({ ci, card: 'calendar', sents: ss }); continue; }
   // 그 장이 인용한 기사의 사진만 쓴다. 10/22 첫 렌더: 남의 장 사진으로 채웠더니 '메타' 장에 스페이스X 로켓이 떴다(쇼츠 V5 재사용과 같은 결함).
   //   사진이 없는 장은 큰 제목 카드(레퍼런스의 검은 제목 화면) — 틀린 사진보다 낫다.
@@ -319,15 +335,18 @@ log(`[화면] 조각 ${segs.length}개 — 사진 ${segs.filter((s) => s.card ==
 const FONT = "'Apple SD Gothic Neo',sans-serif";
 const up = '#ff4d4f'; const dn = '#3b82f6';   // 한국 시세 관례: 오름 빨강·내림 파랑
 const BASE = `*{margin:0;box-sizing:border-box}body{width:1920px;height:1080px;font-family:${FONT};position:relative;overflow:hidden}`;
-const titleHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff}
-.d{font-size:84px;font-weight:800}.t{font-size:120px;font-weight:900;margin-top:18px}</style><div class="d">${esc(thumbDate(DATE))}</div><div class="t">${esc(E.label)}</div>`;
-const boardHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#0b0f17;color:#fff;padding:0 170px;display:flex;flex-direction:column;justify-content:center}
-h1{font-size:54px;font-weight:800;color:#cbd5e1;margin-bottom:46px}.r{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #1f2937;padding:24px 0}
-.n{font-size:62px;font-weight:800}.v{font-size:62px;font-weight:700;font-variant-numeric:tabular-nums}.p{font-size:62px;font-weight:900;width:330px;text-align:right}.s{font-size:34px;color:#94a3b8;margin-left:18px}</style>
-<h1>${esc(thumbDate(DATE))} · ${esc(E.label)}</h1>${quotes.map((q) => `<div class="r"><div class="n">${esc(q.name)}${q.closed ? '' : '<span class="s">장중</span>'}</div><div class="v">${q.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div class="p" style="color:${q.pct > 0 ? up : q.pct < 0 ? dn : '#fff'}">${q.pct > 0 ? '▲' : q.pct < 0 ? '▼' : ''} ${Math.abs(q.pct).toFixed(2)}%</div></div>`).join('')}`;
+// 지수판 — 브랜드 머리띠(사이트 파랑 #4F8FBF) + 이름 왼쪽 · 값·등락 오른쪽 정렬 열(10/23 agy·Claude: 값 열이 들쭉날쭉했다).
+const BRAND = '#4F8FBF';
+const hhmm = (q) => kstClock(q.at);
+const boardHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#0b1220;color:#fff;padding:0 190px;display:flex;flex-direction:column;justify-content:center}
+.top{position:absolute;left:0;right:0;top:0;height:14px;background:${BRAND}}
+h1{font-size:58px;font-weight:900;margin-bottom:10px}.sub{font-size:34px;color:#8FB8D8;font-weight:700;margin-bottom:40px}
+.r{display:grid;grid-template-columns:1fr 440px 330px;align-items:baseline;border-bottom:2px solid #1f2937;padding:24px 0}
+.n{font-size:62px;font-weight:800}.v{font-size:62px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}.p{font-size:62px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}.s{font-size:32px;color:#94a3b8;margin-left:16px;font-weight:700}</style>
+<div class="top"></div><h1>${esc(DAY_MD)} ${esc(SESSION_LABEL[ED])}</h1><div class="sub">FLOWVIUM</div>${quotes.map((q) => `<div class="r"><div class="n">${esc(q.name)}${q.closed ? '' : `<span class="s">장중${hhmm(q) ? ` ${hhmm(q)}` : ''}</span>`}</div><div class="v">${q.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div><div class="p" style="color:${q.pct > 0 ? up : q.pct < 0 ? dn : '#fff'}">${q.pct > 0 ? '▲' : q.pct < 0 ? '▼' : ''} ${Math.abs(q.pct).toFixed(2)}%</div></div>`).join('')}`;
 // "200K" → "20만" (한국 시청자 단위). 나머지(%, B 등)는 원문 그대로.
 const koUnit = (v) => { const m = /^(-?[\d.]+)K$/.exec(String(v)); if (!m) return String(v); const n = Number(m[1]) * 1000; return n >= 10000 ? `${(n / 10000).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}만` : n.toLocaleString('ko-KR'); };
-const calRows = CAL.slice(0, 11);
+const calRows = CAL;   // 위에서 고른 2~3개 — 낭독과 같은 줄
 const calHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#0b0f17;color:#fff;padding:0 300px;display:flex;flex-direction:column;justify-content:center}
 h1{font-size:54px;font-weight:800;color:#cbd5e1;margin-bottom:34px}.r{display:flex;align-items:center;gap:30px;border-bottom:2px solid #1f2937;padding:16px 0;font-size:42px}
 .k{width:200px;font-weight:800;font-variant-numeric:tabular-nums}.c{font-size:30px;background:#334155;border-radius:8px;padding:4px 14px;width:150px;text-align:center}.e{flex:1;font-weight:700}.f{font-size:30px;color:#94a3b8}</style>
@@ -339,13 +358,14 @@ const OV_CSS = `${BASE}body{background:transparent}.tag{position:absolute;left:5
 const ovHtml = (s) => `<!doctype html><meta charset="utf-8"><style>${OV_CSS}</style><div class="shade"></div><div class="tag">${esc(chapters[s.ci].heading)}</div>${s.img ? `<div class="cr">사진: ${esc(s.img.source)}</div>` : ''}`;
 const headHtml = (c) => `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center}
 .d{font-size:52px;font-weight:700;color:#cbd5e1}.t{font-size:124px;font-weight:900;margin-top:22px;padding:0 80px}</style><div class="d">${esc(E.label)}</div><div class="t">${esc(c.heading)}</div>`;
-const outroHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center}
-.t{font-size:76px;font-weight:900;line-height:1.35}.t span{color:#ffd400}.s{font-size:40px;color:#cbd5e1;margin-top:30px}</style>
-<div class="t">아침 7시 <span>미국 증시</span> · 낮 12시 <span>한국 오전장</span><br>저녁 6시 <span>한국 마감</span> · 미국 개장 1시간 전 <span>한국·유럽</span></div><div class="s">매일 · flowvium.net</div>`;
+// 끝 카드 — 시계 시각 세 편 + 왜 설명란을 누르나(무료 AI 리포트). 3초(10/23 agy·Claude: 주소만 덩그러니·"개장 1시간 전" 계산은 불필요).
+const outroHtml = `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:#0b1220;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#fff;text-align:center}
+.top{position:absolute;left:0;right:0;top:0;height:14px;background:${BRAND}}.t{font-size:72px;font-weight:900;line-height:1.5}.t span{color:#FFD400}.s{font-size:44px;color:#cbd5e1;margin-top:40px;font-weight:700}</style>
+<div class="top"></div><div class="t">매일 <span>07시</span> 미국 증시 · <span>12시</span> 한국 오전장 · <span>18시</span> 한국 마감</div><div class="s">종목별 무료 AI 투자 리포트는 설명란 링크에서</div>`;
 const br = await chromium.launch({ headless: true });
 const pg = await br.newPage({ viewport: { width: 1920, height: 1080 } });
 const shot = async (html, f, transparent = false) => { await pg.setContent(html); await pg.waitForTimeout(120); await pg.screenshot({ path: f, omitBackground: transparent }); };
-await shot(titleHtml, join(OUT, 'c_title.png')); await shot(boardHtml, join(OUT, 'c_board.png')); await shot(calHtml, join(OUT, 'c_cal.png')); await shot(outroHtml, join(OUT, 'c_outro.png'));
+await shot(boardHtml, join(OUT, 'c_board.png')); await shot(calHtml, join(OUT, 'c_cal.png')); await shot(outroHtml, join(OUT, 'c_outro.png'));
 for (const [k, s] of segs.entries()) { if (s.card === 'photo') await shot(ovHtml(s), join(OUT, `ov${k}.png`), true); if (s.card === 'head') await shot(headHtml(chapters[s.ci]), join(OUT, `h${k}.png`)); }
 await br.close();
 
@@ -365,12 +385,12 @@ for (const [k, s] of segs.entries()) {
       `[0:v]scale=2150:1210:force_original_aspect_ratio=increase,crop=2150:1210,crop=1920:1080:x='${X}':y='(ih-1080)/2',fps=30[bg];[bg][1:v]overlay=0:0,format=yuv420p[v]`,
       '-map', '[v]', '-map', '2:a', '-t', d.toFixed(3), ...venc, out], `조각 ${k}`);
   } else {
-    const card = { title: 'c_title.png', board: 'c_board.png', calendar: 'c_cal.png', head: `h${k}.png` }[s.card];
+    const card = { board: 'c_board.png', calendar: 'c_cal.png', head: `h${k}.png` }[s.card];
     ff(['-loop', '1', '-i', join(OUT, card), '-i', wav, '-vf', 'fps=30,format=yuv420p', '-map', '0:v', '-map', '1:a', '-t', d.toFixed(3), ...venc, out], `조각 ${k}`);
   }
   parts.push(out); t += probe(out).dur;
 }
-ff(['-loop', '1', '-t', '4', '-i', join(OUT, 'c_outro.png'), '-f', 'lavfi', '-t', '4', '-i', 'anullsrc=r=44100:cl=mono', '-vf', 'fps=30,format=yuv420p', ...venc, '-shortest', join(OUT, 'p_outro.mp4')], '끝 카드');
+ff(['-loop', '1', '-t', '3', '-i', join(OUT, 'c_outro.png'), '-f', 'lavfi', '-t', '3', '-i', 'anullsrc=r=44100:cl=mono', '-vf', 'fps=30,format=yuv420p', ...venc, '-shortest', join(OUT, 'p_outro.mp4')], '끝 카드');
 parts.push(join(OUT, 'p_outro.mp4'));
 writeFileSync(join(OUT, 'list.txt'), parts.map((p) => `file '${p}'`).join('\n'));
 const JOINED = join(OUT, 'joined.mp4');
@@ -403,27 +423,37 @@ const THUMB = join(OUT, 'thumb.jpg');
 {
   const story = chapters.find((c) => c.kind === 'story');
   const pic = (allowed.get(chapters.indexOf(story)) ?? [])[0] ?? [...allowed.values()].flat()[0] ?? null;   // 대조를 통과한 사진만
+  // 10/23 사장님 "너무 오선을 따라한 형태다" → 데이터 우선 꼴(agy·Claude 검토 종합): 왼쪽 짙은 판에 그날 가장 크게 움직인 지수
+  //   숫자(색 칩 위 흰 글씨 — 남색 위 파랑 글씨는 폰에서 묻힌다) + 2줄 핵심(노랑·흰, 줄당 7자 안). 오른쪽에 사진(채도 낮춤).
+  //   빨간 날짜 띠·흰 띠·우상단 배지는 없앤다. 오른쪽 아래는 비운다(영상 길이 표시 자리).
   const tb = await chromium.launch({ headless: true }); const tp = await tb.newPage({ viewport: { width: 1280, height: 720 } });
-  await tp.setContent(`<!doctype html><meta charset="utf-8"><style>*{margin:0;box-sizing:border-box}body{width:1280px;height:720px;background:#111;font-family:${FONT};position:relative;overflow:hidden}
-.bg{position:absolute;inset:0;width:1280px;height:720px;object-fit:cover}.nb{position:absolute;inset:0;background:linear-gradient(135deg,#0b0f17,#1e293b)}
-.date{position:absolute;left:40px;top:416px;background:#e11d1d;color:#fff;font-size:44px;font-weight:900;padding:10px 60px 10px 24px;clip-path:polygon(0 0,100% 0,calc(100% - 40px) 100%,0 100%)}
-.band{position:absolute;left:56px;right:24px;top:520px;height:140px;background:#fff;display:flex;align-items:center;justify-content:center;padding:0 30px}
-.band div{font-size:104px;font-weight:900;color:#000;white-space:nowrap;letter-spacing:-2px}
-.badge{position:absolute;right:40px;top:18px;background:#7f1d1d;color:#fff;font-size:26px;font-weight:900;padding:12px 16px;line-height:1.35;text-align:center;border:2px solid #fff}</style>
-${pic ? `<img class="bg" src="data:image/jpeg;base64,${readFileSync(pic.file).toString('base64')}">` : '<div class="nb"></div>'}
-<div class="date">${esc(thumbDate(DATE))}</div><div class="band"><div>${esc(thumbLine)}</div></div><div class="badge">${E.badge.map(esc).join('<br>')}</div>`);
-  await tp.evaluate(() => { const el = document.querySelector('.band div'); let f = parseFloat(getComputedStyle(el).fontSize); while (el.scrollWidth > 1140 && f > 48) { f -= 4; el.style.fontSize = `${f}px`; } });
+  await tp.setContent(`<!doctype html><meta charset="utf-8"><style>*{margin:0;box-sizing:border-box}body{width:1280px;height:720px;background:#0E1A2B;font-family:${FONT};position:relative;overflow:hidden}
+.ph{position:absolute;right:0;top:0;width:640px;height:720px;object-fit:cover;filter:saturate(.8) brightness(.92)}.nb{position:absolute;right:0;top:0;width:640px;height:720px;background:linear-gradient(135deg,#1e293b,#0b1220)}
+.pan{position:absolute;left:0;top:0;width:760px;height:720px;background:#0E1A2B;clip-path:polygon(0 0,100% 0,84% 100%,0 100%)}
+.bar{position:absolute;left:0;top:0;width:760px;height:12px;background:${BRAND};clip-path:polygon(0 0,100% 0,99.8% 100%,0 100%)}
+.brand{position:absolute;left:52px;top:40px;font-size:30px;font-weight:900;color:${BRAND};letter-spacing:2px}
+.chip{position:absolute;left:44px;top:110px;padding:6px 30px 14px;border-radius:14px;color:#fff;font-size:116px;font-weight:900;white-space:nowrap;letter-spacing:-3px}
+.l{position:absolute;left:52px;font-size:112px;font-weight:900;white-space:nowrap;letter-spacing:-4px;text-shadow:0 4px 0 rgba(0,0,0,.35)}</style>
+${pic ? `<img class="ph" src="data:image/jpeg;base64,${readFileSync(pic.file).toString('base64')}">` : '<div class="nb"></div>'}
+<div class="pan"></div><div class="bar"></div><div class="brand">FLOWVIUM <span style="color:#cbd5e1">· ${esc(ED === 'us' ? '미국' : '한국')} ${esc(DAY.slice(5).replace('-', '/').replace(/^0/, '').replace('/0', '/'))}${ED === 'krmid' ? ' 오전' : ''}</span></div>
+${MOVE ? `<div class="chip" style="background:${MOVE.up ? '#E5262B' : MOVE.pct < 0 ? '#1F5BFF' : '#475569'}">${esc(MOVE.chip)}</div>` : ''}
+<div class="l" style="top:${MOVE ? 300 : 200}px;color:#FFD400">${esc(thumbLines[0] ?? '')}</div><div class="l" style="top:${MOVE ? 450 : 350}px;color:#fff">${esc(thumbLines[1] ?? '')}</div>`);
+  await tp.evaluate(() => { for (const el of document.querySelectorAll('.chip,.l')) { let f = parseFloat(getComputedStyle(el).fontSize); while (el.getBoundingClientRect().right > 680 && f > 56) { f -= 4; el.style.fontSize = `${f}px`; } } });
   await tp.screenshot({ path: THUMB, type: 'jpeg', quality: 88 }); await tb.close();
 }
 const timeline = []; { let acc = 0; for (const [k, s] of segs.entries()) { if (!segs.slice(0, k).some((x) => x.ci === s.ci)) timeline.push({ title: chapters[s.ci].heading, start: Math.round(acc) }); acc += probe(parts[k]).dur; } }
 const { chapterLines } = await import('../lib/roundup.mjs');
-const { trackedUrl } = await import('../lib/site-link.mjs');
+// 설명란 — 10/23 agy·Claude: 추적 꼬리표(utm)·수집처 이름(ForexFactory·Nasdaq)·줄마다 "마감"·포인트 변동은 시청자에게 소음.
+//   첫 줄 = 가장 크게 움직인 지수와 그 이유(검색 목록 미리보기에 보이는 두 줄). 참고 기사는 장마다 하나.
+const pctLine = (q) => `· ${q.name} ${q.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${q.pct > 0 ? '+' : ''}${q.pct.toFixed(2)}%)${q.closed ? '' : ` 장중${hhmm(q) ? ` ${hhmm(q)}` : ''}`}`;
+const outlet = (src) => String(src).replace(/\s*(국제|경제|사회)$/, '');
+// 장마다 아직 안 쓴 첫 기사 — 모든 장이 마감 종합 기사 하나를 먼저 인용해 참고 기사가 1건만 남았다(10/23 시험 렌더).
+const refs = []; for (const c of chapters) { if (c.kind === 'calendar') continue; const n = c.sources.find((x) => Number.isInteger(x) && !refs.includes(x)); if (n !== undefined) refs.push(n); }
 const description = [chapters[0].sentences.slice(1, 3).join(' '), '',
+  '📈 매일 무료 AI 투자 리포트: https://flowvium.net/ko/report', '',
   ...chapterLines(timeline), '',
-  '📊 지수', ...FACTS.map((f) => `· ${f}`), '',
-  `📈 매일 AI 투자 리포트(무료): ${trackedUrl({ source: 'youtube', medium: `brief-${ED}`, campaign: DATE })}`, '',
-  '참고 기사:', ...[...new Set(chapters.flatMap((c) => c.sources))].map((n) => `· ${docs[n].source} — ${docs[n].headline} ${docs[n].link}`), '',
-  '지수: 네이버 증권 · 경제지표 일정: ForexFactory · 실적 일정: Nasdaq',
+  ...quotes.map(pctLine), '',
+  '참고 기사', ...refs.map((n) => `· ${outlet(docs[n].source)} — ${docs[n].headline} ${docs[n].link}`), '',
   '※ 기사·시세를 정리한 요약이며 특정 종목의 매수·매도 권유가 아닙니다.',
   `#${ED === 'us' ? '미국증시' : '한국증시'} #증시요약 #${ED === 'us' ? '나스닥' : '코스피'} #주식 #Flowvium`].join('\n').slice(0, 4800);
 writeFileSync(join(OUT, 'meta.json'), JSON.stringify({ edition: ED, date: DATE, title, description, seconds: LEN }, null, 2));

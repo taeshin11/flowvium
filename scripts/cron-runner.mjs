@@ -690,7 +690,10 @@ const MAINT_JOBS = [
   //     놓치면 보고서 뒤 21:35·21:55 에 다시(그때는 바로 공개). 같은 날 같은 판은 한 번만(logs/market-brief.json).
   //   쇼츠와 같은 렌더 락(logs/video-publish.lock)을 최대 20분 기다린다.
   { label: 'market-brief-us',      script: 'scripts/video/make-market-brief.mjs --edition us --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['5,25,45 22 * * *'],             maxAgeH: 30 },
-  { label: 'market-brief-kreu',    script: 'scripts/video/make-market-brief.mjs --edition kreu --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['35 10 * * *', '35,55 12 * * *'], maxAgeH: 30 },
+  // 2026-10-23 한국·유럽판 중단 — 18:00 마감판과 한국 마감이 겹친다(사장님 "왜 이게 고쳐지지 않는건지").
+  //   유럽만 남기면 이유를 댈 기사가 없다(10/21 16~21시 유럽 증시 기사 0건). agy·Claude 검토 일치: 하루 3편(07·12·18시).
+  //   오늘 밤 미국 일정은 18:00 마감판 일정 장이 맡는다. 다시 켜려면 아래 주석을 푼다.
+  // { label: 'market-brief-kreu',    script: 'scripts/video/make-market-brief.mjs --edition kreu --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['35 10 * * *', '35,55 12 * * *'], maxAgeH: 30 },
   // 2026-10-23 사장님 "한국사람들 점심시간이랑 퇴근시간에 많이 볼 수 있도록 한국장 중간과 끝나고도 롱폼 정리".
   //   오전판: 오전장 정리 기사가 11:30 께 나온다(10/22 실측) → KST 11:35·11:50·12:05 에 만들어 12:00 공개(10분 안쪽이거나 지났으면 바로).
   //   마감판: 마감 종합 기사가 15:45~16:30 에 나온다 → KST 16:40·17:00·17:20 에 만들어 18:00(퇴근길) 예약 공개.

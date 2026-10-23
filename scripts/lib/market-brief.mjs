@@ -28,7 +28,8 @@ export const EDITIONS = {
   },
   krclose: {
     label: '한국 증시 마감 요약', badge: ['FLOWVIUM', '한국 증시 마감'],
-    indices: ['KOSPI', 'KOSDAQ'], required: ['KOSPI', 'KOSDAQ'], afterKst: '15:20',
+    // 10/23 한국·유럽판을 없애며 유럽 지수 숫자(장중)를 여기 싣는다 — 이유 기사가 없어 숫자만(ChatGPT·Claude 검토).
+    indices: ['KOSPI', 'KOSDAQ', '.STOXX50E', '.GDAXI', '.FTSE', '.FCHI'], required: ['KOSPI', 'KOSDAQ'], afterKst: '15:20',
     articles: /(코스피|코스닥).*마감|마감.*(코스피|코스닥)|\[외환\].*마감|\[특징주\].*마감|마감시황|(코스피|코스닥).*\(종합\)/,
   },
 };
@@ -133,12 +134,40 @@ export function pickArticles(edition, rows) {
   return [...by.values()].sort((a, b) => String(b.captured_at).localeCompare(String(a.captured_at)));
 }
 
-/** "【미국 증시 요약】 {핵심 질문} | 10월 22일(목)" — 100자 안. */
-export function briefTitle({ edition, hook, date }) {
-  const [y, m, d] = String(date).split('-').map(Number);
-  const head = `【${EDITIONS[edition].label}】 `;
-  const tail = ` | ${m}월 ${d}일(${DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
-  let h = String(hook ?? '').replace(/#\S+/g, '').replace(/\s{2,}/g, ' ').trim();
+/** 제목·화면 꼬리 — 다룬 장(시장·시점). 검색어("미국 증시"·"한국 증시")를 그대로 둔다. */
+export const SESSION_LABEL = { us: '미국 증시 마감', kreu: '한국·유럽 증시', krmid: '한국 증시 오전', krclose: '한국 증시 마감' };
+const SHORT = { '.INX': 'S&P500', '.IXIC': '나스닥', '.DJI': '다우', '.SOX': '반도체', KOSPI: '코스피', KOSDAQ: '코스닥' };
+
+/** 그날 가장 크게 움직인 지수 한 줄("반도체 -6.7%") — 제목 맨 앞·썸네일 큰 숫자. 유럽 지수(짧은 이름 없음)는 고르지 않는다. */
+export function headlineMove(quotes) {
+  const qs = (quotes ?? []).filter((q) => SHORT[q?.code] && Number.isFinite(q?.pct));
+  if (!qs.length) return null;
+  const q = qs.reduce((a, b) => (Math.abs(b.pct) > Math.abs(a.pct) ? b : a));
+  const arrow = q.pct > 0 ? '▲' : q.pct < 0 ? '▼' : '';
+  return { code: q.code, pct: q.pct, up: q.pct > 0, chip: `${SHORT[q.code]} ${arrow}${Math.abs(q.pct).toFixed(1)}%`, text: `${SHORT[q.code]} ${q.pct > 0 ? '+' : q.pct < 0 ? '-' : ''}${Math.abs(q.pct).toFixed(1)}%` };
+}
+
+/** 거래 시각(현지 시각대가 붙은 ISO) → 한국 시각 "HH:MM". 없으면 ''. 유럽 현지 시각을 그대로 읽으면 7~8시간 틀린다. */
+export function kstClock(at) {
+  const ms = Date.parse(at ?? '');
+  return Number.isFinite(ms) ? kstHHMM(ms) : '';
+}
+
+/** "10/22(목)" — 다룬 장의 날짜. */
+export function shortDay(day) {
+  const [y, m, d] = String(day).split('-').map(Number);
+  return `${m}/${d}(${DOW[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+}
+
+/**
+ * "반도체 -6.7%, {핵심} | 10/22(목) 미국 증시 마감" — 100자 안.
+ * 2026-10-23 사장님 "너무 오선을 따라한 형태다": 레퍼런스 머리 【…요약】 를 버리고 숫자를 맨 앞에(agy·Claude 검토 일치).
+ * 날짜는 다룬 장의 날짜(미국판은 뉴욕 날짜) — 올린 날(한국 날짜)이 아니다.
+ */
+export function briefTitle({ edition, move, hook, day }) {
+  const head = move?.text ? `${move.text}, ` : '';
+  const tail = ` | ${shortDay(day)} ${SESSION_LABEL[edition]}`;
+  let h = String(hook ?? '').replace(/#\S+/g, '').replace(/\s{2,}/g, ' ').replace(/[?？!]+$/, '').trim();
   const room = 100 - head.length - tail.length;
   if (h.length > room) h = `${h.slice(0, room - 1)}…`;
   return `${head}${h}${tail}`;

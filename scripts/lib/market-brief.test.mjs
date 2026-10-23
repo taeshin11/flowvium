@@ -89,12 +89,27 @@ const M = await import('./market-brief.mjs');
   const kr = M.pickArticles('kreu', rows);
   (kr.length === 1 && /코스피/.test(kr[0].headline)) ? ok('[7b] 한국·유럽판: 코스피 마감 기사만(재료 사건 기사 X)') : bad(`[7b] ${kr.map((r) => r.headline).join(' / ')}`);
 }
-// [8] 제목 — 앞머리에 무슨 영상인지(레퍼런스 【미국 증시 요약】) + 핵심 질문 + 날짜. 100자 안.
+// [8] 제목 — 사장님 10/23 "너무 오선을 따라한 형태다, 차이를 줘야지". 레퍼런스 머리 【미국 증시 요약】 를 버리고
+//   그날 가장 크게 움직인 지수 숫자를 맨 앞에(agy·Claude 검토 일치). 날짜는 **다룬 장의 날짜** — 미국판이 10/23(한국 날짜)로
+//   10/22 뉴욕 장을 다뤄 헷갈렸다(Claude 검토). 100자 안.
 {
-  const t = M.briefTitle({ edition: 'us', hook: 'AI 투자 우려는 끝났나?', date: '2026-10-22' });
-  (t === '【미국 증시 요약】 AI 투자 우려는 끝났나? | 10월 22일(목)') ? ok('[8] 제목 꼴') : bad(`[8] ${t}`);
-  (M.briefTitle({ edition: 'kreu', hook: 'x'.repeat(200), date: '2026-10-22' }).length <= 100) ? ok('[8b] 100자 안') : bad('[8b]');
-  /【한국·유럽 증시 요약】/.test(M.briefTitle({ edition: 'kreu', hook: 'a', date: '2026-10-22' })) ? ok('[8c] 한국·유럽판 머리') : bad('[8c]');
+  const move = { text: '반도체 -6.7%' };
+  const t = M.briefTitle({ edition: 'us', move, hook: 'AI 투자 불안 다시 커지나', day: '2026-10-22' });
+  (t === '반도체 -6.7%, AI 투자 불안 다시 커지나 | 10/22(목) 미국 증시 마감') ? ok('[8] 제목 꼴: 숫자 먼저 · 다룬 장 날짜') : bad(`[8] ${t}`);
+  (M.briefTitle({ edition: 'krclose', move, hook: 'x'.repeat(200), day: '2026-10-22' }).length <= 100) ? ok('[8b] 100자 안') : bad('[8b]');
+  (!/【|】/.test(M.briefTitle({ edition: 'krmid', move, hook: 'a', day: '2026-10-22' })) && / 한국 증시 오전$/.test(M.briefTitle({ edition: 'krmid', move, hook: 'a', day: '2026-10-22' })))
+    ? ok('[8c] 레퍼런스 머리(【】) 없음 · 오전판 꼬리') : bad(`[8c] ${M.briefTitle({ edition: 'krmid', move, hook: 'a', day: '2026-10-22' })}`);
+}
+// [15] 대표 숫자 — 그 판 지수 중 가장 크게 움직인 것, 짧은 이름 + 소수 첫째 자리(썸네일 8자 안).
+{
+  const qs = [{ code: '.INX', pct: -1.21 }, { code: '.IXIC', pct: -2.6 }, { code: '.DJI', pct: 0.02 }, { code: '.SOX', pct: -6.72 }];
+  const m = M.headlineMove(qs);
+  (m.text === '반도체 -6.7%' && m.up === false && m.text.length <= 9) ? ok('[15] 가장 크게 움직인 지수 · 짧은 이름(9자 안 — agy 7~9자·Claude 8자 권고)') : bad(`[15] ${JSON.stringify(m)}`);
+  const k = M.headlineMove([{ code: 'KOSPI', pct: 3.29 }, { code: 'KOSDAQ', pct: 1.4 }]);
+  (k.text === '코스피 +3.3%' && k.up === true) ? ok('[15b] 오름은 + 부호') : bad(`[15b] ${JSON.stringify(k)}`);
+  (M.headlineMove([]) === null) ? ok('[15c] 지수 없으면 null') : bad('[15c]');
+  // 썸네일 칩은 화살표(ChatGPT 검토: "나스닥 ▼ 2.60%" 꼴 — 칩 색과 화살표가 방향을 같이 말한다)
+  (m.chip === '반도체 ▼6.7%' && k.chip === '코스피 ▲3.3%') ? ok('[15d] 썸네일 칩 화살표') : bad(`[15d] ${m.chip} / ${k.chip}`);
 }
 // [9] 썸네일 날짜 띠 — 레퍼런스 꼴 "26년 10월 22일 (목)"
 {
@@ -157,8 +172,15 @@ const M = await import('./market-brief.mjs');
   //   한국 마감 기사는 장이 끝난 뒤(KST 15:20~)에 나온 것만 — 한국·유럽판도 같다.
   const pre = { headline: '[마켓뷰] 메타 실적발표 앞두고 뉴욕증시 혼조 마감…코스피 향방은', captured_at: '2026-10-20T23:15:03Z' };
   (!M.pickArticles('krclose', [pre]).length && !M.pickArticles('kreu', [pre]).length) ? ok('[14d] 장 마감 전 기사는 마감판·한국·유럽판에서 뺀다') : bad('[14d]');
-  /【한국 증시 오전 요약】/.test(M.briefTitle({ edition: 'krmid', hook: 'a', date: '2026-10-22' })) && /【한국 증시 마감 요약】/.test(M.briefTitle({ edition: 'krclose', hook: 'a', date: '2026-10-22' }))
-    ? ok('[14c] 제목 머리') : bad('[14c]');
+  / 한국 증시 오전$/.test(M.briefTitle({ edition: 'krmid', hook: 'a', day: '2026-10-22' })) && / 한국 증시 마감$/.test(M.briefTitle({ edition: 'krclose', hook: 'a', day: '2026-10-22' }))
+    ? ok('[14c] 제목 꼬리(오전·마감)') : bad('[14c]');
+}
+// [16] 마감판(18:00)은 유럽 지수 숫자도 싣는다(한국·유럽판을 없애며 — ChatGPT·Claude 검토). 필수는 한국 둘뿐(유럽 휴장이어도 만든다).
+{
+  const E = M.EDITIONS.krclose;
+  (E.indices.includes('.GDAXI') && E.required.join() === 'KOSPI,KOSDAQ') ? ok('[16] 마감판: 유럽 지수 포함 · 필수는 코스피·코스닥') : bad(`[16] ${E.indices} / ${E.required}`);
+  (M.kstClock('2026-10-23T11:35:00+02:00') === '18:35' && M.kstClock('2026-10-23T11:34:58+09:00') === '11:34' && M.kstClock(null) === '')
+    ? ok('[16b] 장중 시각은 한국 시각으로(유럽 현지 시각을 그대로 쓰지 않는다)') : bad(`[16b] ${M.kstClock('2026-10-23T11:35:00+02:00')}`);
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
