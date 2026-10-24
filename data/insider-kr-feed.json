@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-23T22:30:08.141Z",
+  "generatedAt": "2026-10-24T07:30:01.842Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
-  "totalRecent": 925,
+  "totalRecent": 910,
   "feed": [
     {
       "ticker": "205100.KQ",
@@ -241,24 +241,6 @@
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023000119"
     },
     {
-      "ticker": "295310.KQ",
-      "name": "에이치브이엠",
-      "rceptNo": "20261023000408",
-      "filedAt": "2026-10-23",
-      "kind": "insider",
-      "reporter": "나혜성",
-      "role": "비등기임원",
-      "title": "이사",
-      "relation": null,
-      "sharesAfter": 9440,
-      "sharesDelta": 2000,
-      "ratioAfter": 0.07,
-      "ratioDelta": 0.01,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023000408"
-    },
-    {
       "ticker": "490470.KQ",
       "name": "세미파이브",
       "rceptNo": "20261023000132",
@@ -275,6 +257,24 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023000132"
+    },
+    {
+      "ticker": "295310.KQ",
+      "name": "에이치브이엠",
+      "rceptNo": "20261023000408",
+      "filedAt": "2026-10-23",
+      "kind": "insider",
+      "reporter": "나혜성",
+      "role": "비등기임원",
+      "title": "이사",
+      "relation": null,
+      "sharesAfter": 9440,
+      "sharesDelta": 2000,
+      "ratioAfter": 0.07,
+      "ratioDelta": 0.01,
+      "direction": "buy",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261023000408"
     },
     {
       "ticker": "005930.KS",
