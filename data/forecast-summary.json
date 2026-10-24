@@ -1,5 +1,5 @@
 {
- "at": "2026-10-23T22:20:00.092Z",
+ "at": "2026-10-24T07:20:00.086Z",
  "recorded": 26,
  "scored": 26,
  "contaminated": {
@@ -16,8 +16,8 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 5,
-   "recorded": 5,
+   "sessions": 6,
+   "recorded": 6,
    "missing": []
   },
   "us": {
