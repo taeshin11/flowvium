@@ -36,9 +36,9 @@
     "tag": "RPO"
   },
   "DHR": {
-    "rpoUsd": 7500000000,
-    "rpoYoYPct": 53.1,
-    "end": "2026-06-26",
+    "rpoUsd": 7400000000,
+    "rpoYoYPct": 51,
+    "end": "2026-09-25",
     "tag": "RPO"
   },
   "SYK": {
@@ -66,9 +66,9 @@
     "tag": "RPO"
   },
   "HON": {
-    "rpoUsd": 38008000000,
-    "rpoYoYPct": 3.8,
-    "end": "2026-06-30",
+    "rpoUsd": 18798000000,
+    "rpoYoYPct": -51.9,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "UNP": {
@@ -90,9 +90,9 @@
     "tag": "RPO"
   },
   "GE": {
-    "rpoUsd": 210790000000,
-    "rpoYoYPct": 20.9,
-    "end": "2026-06-30",
+    "rpoUsd": 212084000000,
+    "rpoYoYPct": 20.3,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "ETN": {
@@ -374,8 +374,8 @@
   "NSC": {
     "rpoUsd": 0,
     "rpoYoYPct": null,
-    "end": "2026-06-30",
-    "tag": "deferred"
+    "end": "2026-09-30",
+    "tag": "RPO"
   },
   "CSX": {
     "rpoUsd": 0,
@@ -402,9 +402,9 @@
     "tag": "RPO"
   },
   "DOV": {
-    "rpoUsd": 331237000,
-    "rpoYoYPct": -7.7,
-    "end": "2026-06-30",
+    "rpoUsd": 348332000,
+    "rpoYoYPct": 4.5,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "AME": {
@@ -462,21 +462,21 @@
     "tag": "RPO"
   },
   "RTX": {
-    "rpoUsd": 289000000000,
-    "rpoYoYPct": 22.5,
-    "end": "2026-06-30",
+    "rpoUsd": 340000000000,
+    "rpoYoYPct": 35.5,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "LMT": {
-    "rpoUsd": 230400000000,
-    "rpoYoYPct": 38.4,
-    "end": "2026-06-28",
+    "rpoUsd": 292000000000,
+    "rpoYoYPct": 63,
+    "end": "2026-09-27",
     "tag": "RPO"
   },
   "NOC": {
-    "rpoUsd": 104700000000,
-    "rpoYoYPct": 16.7,
-    "end": "2026-06-30",
+    "rpoUsd": 109600000000,
+    "rpoYoYPct": 19.9,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "LHX": {
@@ -564,9 +564,9 @@
     "tag": "deferred"
   },
   "T": {
-    "rpoUsd": 44582000000,
-    "rpoYoYPct": 6.1,
-    "end": "2026-06-30",
+    "rpoUsd": 42922000000,
+    "rpoYoYPct": 2.2,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "VZ": {
@@ -588,9 +588,9 @@
     "tag": "RPO"
   },
   "OMC": {
-    "rpoUsd": 425400000,
+    "rpoUsd": 426000000,
     "rpoYoYPct": null,
-    "end": "2026-03-31",
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "CCI": {
@@ -642,9 +642,9 @@
     "tag": "RPO"
   },
   "DOW": {
-    "rpoUsd": 587000000,
-    "rpoYoYPct": -23.7,
-    "end": "2026-03-31",
+    "rpoUsd": 618000000,
+    "rpoYoYPct": -15.9,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "CF": {
@@ -720,9 +720,9 @@
     "tag": "deferred"
   },
   "PHM": {
-    "rpoUsd": 512255000,
-    "rpoYoYPct": -1.6,
-    "end": "2026-06-30",
+    "rpoUsd": 515886000,
+    "rpoYoYPct": 9.6,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "BBY": {
@@ -774,9 +774,9 @@
     "tag": "deferred"
   },
   "IBM": {
-    "rpoUsd": 68000000000,
-    "rpoYoYPct": 3,
-    "end": "2026-06-30",
+    "rpoUsd": 69000000000,
+    "rpoYoYPct": 7.8,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "FISV": {
@@ -840,15 +840,15 @@
     "tag": "RPO"
   },
   "NDAQ": {
-    "rpoUsd": 3614000000,
-    "rpoYoYPct": 8.8,
-    "end": "2026-06-30",
+    "rpoUsd": 3631000000,
+    "rpoYoYPct": 13.1,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "MSCI": {
-    "rpoUsd": 2414400000,
-    "rpoYoYPct": 15.8,
-    "end": "2026-06-30",
+    "rpoUsd": 2586200000,
+    "rpoYoYPct": 16.6,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "MO": {
@@ -972,9 +972,9 @@
     "tag": "RPO"
   },
   "META": {
-    "rpoUsd": 1160000000,
-    "rpoYoYPct": 32.4,
-    "end": "2026-06-30",
+    "rpoUsd": 1190000000,
+    "rpoYoYPct": 28.8,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "INTC": {
@@ -1152,9 +1152,9 @@
     "tag": "RPO"
   },
   "TDY": {
-    "rpoUsd": 5176100000,
-    "rpoYoYPct": 16.2,
-    "end": "2026-06-28",
+    "rpoUsd": 5514400000,
+    "rpoYoYPct": 20.7,
+    "end": "2026-09-27",
     "tag": "RPO"
   },
   "GGG": {
@@ -1182,9 +1182,9 @@
     "tag": "RPO"
   },
   "TSLA": {
-    "rpoUsd": 10050000000,
-    "rpoYoYPct": -3.2,
-    "end": "2026-06-30",
+    "rpoUsd": 10730000000,
+    "rpoYoYPct": 10.5,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "MU": {
@@ -1200,9 +1200,9 @@
     "tag": "deferred"
   },
   "LRCX": {
-    "rpoUsd": 2433996000,
-    "rpoYoYPct": -9.2,
-    "end": "2026-06-28",
+    "rpoUsd": 2661231000,
+    "rpoYoYPct": -3.9,
+    "end": "2026-09-27",
     "tag": "RPO"
   },
   "KLAC": {
@@ -1362,9 +1362,9 @@
     "tag": "deferred"
   },
   "CBRE": {
-    "rpoUsd": 469000000,
-    "rpoYoYPct": 11.7,
-    "end": "2026-06-30",
+    "rpoUsd": 554000000,
+    "rpoYoYPct": 45,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "CNP": {
@@ -1434,9 +1434,9 @@
     "tag": "RPO"
   },
   "SATS": {
-    "rpoUsd": 1400000000,
-    "rpoYoYPct": -12.5,
-    "end": "2026-03-31",
+    "rpoUsd": 1300000000,
+    "rpoYoYPct": -18.8,
+    "end": "2026-06-30",
     "tag": "RPO"
   },
   "EME": {
@@ -1452,9 +1452,9 @@
     "tag": "RPO"
   },
   "EFX": {
-    "rpoUsd": 75800000,
-    "rpoYoYPct": -18.5,
-    "end": "2026-06-30",
+    "rpoUsd": 136500000,
+    "rpoYoYPct": 62.1,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "ERIE": {
@@ -1614,9 +1614,9 @@
     "tag": "deferred"
   },
   "MCO": {
-    "rpoUsd": 1648000000,
-    "rpoYoYPct": 0.8,
-    "end": "2026-06-30",
+    "rpoUsd": 1455000000,
+    "rpoYoYPct": 2,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "MSI": {
@@ -1668,9 +1668,9 @@
     "tag": "RPO"
   },
   "ROL": {
-    "rpoUsd": 249243000,
-    "rpoYoYPct": 2.4,
-    "end": "2026-06-30",
+    "rpoUsd": 247818000,
+    "rpoYoYPct": 1.3,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "ROP": {
@@ -1698,9 +1698,9 @@
     "tag": "RPO"
   },
   "SYF": {
-    "rpoUsd": 1700000000,
+    "rpoUsd": 1800000000,
     "rpoYoYPct": 0,
-    "end": "2026-06-30",
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "TPL": {
@@ -1722,9 +1722,9 @@
     "tag": "RPO"
   },
   "URI": {
-    "rpoUsd": 183000000,
-    "rpoYoYPct": -1.6,
-    "end": "2026-03-31",
+    "rpoUsd": 243000000,
+    "rpoYoYPct": 34.3,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "VLTO": {
@@ -1812,9 +1812,9 @@
     "tag": "deferred"
   },
   "LUV": {
-    "rpoUsd": 8184000000,
-    "rpoYoYPct": -1.4,
-    "end": "2026-06-30",
+    "rpoUsd": 8277000000,
+    "rpoYoYPct": 1.9,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "AAL": {
@@ -1842,9 +1842,9 @@
     "tag": "RPO"
   },
   "MEDP": {
-    "rpoUsd": 3500000000,
-    "rpoYoYPct": 0,
-    "end": "2026-06-30",
+    "rpoUsd": 3800000000,
+    "rpoYoYPct": 8.6,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "RARE": {
@@ -2268,9 +2268,9 @@
     "tag": "RPO"
   },
   "CACI": {
-    "rpoUsd": 12800000000,
-    "rpoYoYPct": 5.8,
-    "end": "2026-06-30",
+    "rpoUsd": 14300000000,
+    "rpoYoYPct": 9.2,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "ALNY": {
