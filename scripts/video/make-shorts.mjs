@@ -341,6 +341,8 @@ let BRIEF_POOL = [];
 let RECENT_HEADS = [];
 /** 반응 약한 갈래인가. 성적을 못 읽으면 아무도 약하지 않다(판단하지 않는다). */
 let IS_WEAK = () => false;
+/** 공인도 대립도 없는(또는 용어 중심·공인 없는) 헤드라인인가 — lib/headline-hook. 표시를 못 달면 아무도 약하지 않다. */
+let IS_HOOK_WEAK = () => false;
 // 2026-09-30 실험 칸(lib/explore-slot) — video-publish 가 여섯 편에 한 편 SHORTS_EXPLORE=1 을 준다.
 //   이 편은 조회수 성적(약한 갈래·주제 등급)으로 뒤로 미는 것을 하지 않고, 최근 14일에 적게 다룬 주제를 앞으로 둔다.
 const EXPLORE = process.env.SHORTS_EXPLORE === '1';
@@ -596,6 +598,27 @@ if (FORCE_ISSUE) {
       log(`[편성] 트렌드 칸 — 주제어 ${tr.terms.slice(0, 8).join('·')} · 1순위 ${before} → ${issue.keyword}${hit.length ? ` (겹침 ${hit.join('·')})` : ' (겹치는 후보 없음 — 보통 편으로 기록)'}`);
     }
   } catch (e) { log(`[편성] 트렌드 칸 건너뜀: ${String(e.message).slice(0, 60)}`); }
+  // 2026-10-24 사장님 "지표가 자라는지 보고 안 되면 고쳐라"(Mac mini2 경유): 공인 실명/직함도 대립도 없는 헤드라인
+  //   (또는 용어 중심인데 공인 없는 것)은 붕괴(첫 화면에서 넘김) 22% · 평균 0.83 — 나머지 약 5% · 1.03 (7주 382편, 근거 lib/headline-hook.test).
+  //   주제 등급·트렌드 정렬 **뒤**, 소재 탐색 **앞**에 건다 — 뒤 정렬이 덮지 않게. 거르지 않는다(전부 약하면 순서 그대로).
+  //   실험 칸은 예외 — 대조군으로 남겨 붕괴율을 비교한다(ChatGPT·agy·Claude 교차 검증 2/3).
+  if (!EXPLORE) try {
+    const { classifyHooks, hookWeak, orderByHook } = await import('../lib/headline-hook.mjs');
+    const TOP = Number(process.env.SHORTS_TOPIC_POOL || 15);
+    const head = fresh.slice(0, TOP);
+    let why = '';
+    const flags = await classifyHooks(head.map((c) => (c.headlines ?? [])[0] ?? c.keyword), { onReject: (w) => { why = w; } });
+    if (flags) {
+      head.forEach((c, i) => { c.__hook = flags[i]; });
+      IS_HOOK_WEAK = (c) => hookWeak(c.__hook);
+      const before = fresh[0]?.keyword;
+      const { order, moved } = orderByHook(head, flags);
+      fresh = [...order, ...fresh.slice(TOP)];
+      issue = fresh[0];
+      log(`[편성] 공인·대립 표시 — 약한 헤드라인 ${head.filter((c) => hookWeak(c.__hook)).length}/${head.length}`
+        + `${moved ? ` 뒤로` : head.every((c) => hookWeak(c.__hook)) ? ' (전부 약해 순서 유지)' : ''} · 1순위 ${before} → ${issue.keyword}`);
+    } else log(`[편성] 공인·대립 표시 실패(agy: ${why || '사유 없음'}) — 순서 유지`);
+  } catch (e) { log(`[편성] 공인·대립 표시 건너뜀: ${String(e.message).slice(0, 60)}`); }
 
   const scored = [];
   for (const cand of fresh.slice(0, PROBE_N)) {
@@ -637,7 +660,8 @@ if (FORCE_ISSUE) {
   //   더 센 뉴스를 사진 한 장 차이로 잃는 것은 손해다.
   //   ENOUGH 는 브리핑이 못 만들어졌을 때를 위한 2차 기준으로만 남긴다.
   const okCand = (x, min) => x.n >= min && !UNSAFE_THUMB(x.cand);
-  const usable = scored.find((x) => okCand(x, 1) && !IS_WEAK(x.cand))   // 자극도 1순위 중 사진이 있는 것
+  const usable = scored.find((x) => okCand(x, 1) && !IS_WEAK(x.cand) && !IS_HOOK_WEAK(x.cand))   // 공인·대립 있는 것 중 사진이 있는 것(10/24)
+    ?? scored.find((x) => okCand(x, 1) && !IS_WEAK(x.cand))             // 자극도 1순위 중 사진이 있는 것
     ?? scored.find((x) => okCand(x, 1))                                 // 약한 갈래라도 사진이 있으면
     ?? scored.find((x) => x.n >= ENOUGH);                               // 그것도 없으면 사진 수로
   if (usable) {
