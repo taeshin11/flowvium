@@ -2716,11 +2716,11 @@
     "fy": "2025"
   },
   "SATS": {
-    "revUsd": 15004989000,
-    "revYoYPct": -5.2,
+    "revUsd": 3650000,
+    "revYoYPct": 1217.5,
     "opMarginPct": null,
-    "roePct": -251.4,
-    "fy": "2025"
+    "roePct": -229.5,
+    "fy": "2024"
   },
   "EIX": {
     "revUsd": 19317000000,
