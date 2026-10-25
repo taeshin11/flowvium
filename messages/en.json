@@ -47,7 +47,8 @@
     "privacy": "Privacy Policy",
     "share": "Share",
     "terms": "Terms of Service",
-    "mail": "Email settings"
+    "mail": "Email settings",
+    "trackRecord": "Past picks"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
@@ -710,7 +711,8 @@
     "donationGoalTitle": "🎯 At $200/mo we upgrade to real-time (zero-delay) data",
     "donationGoalDesc": "Buy/sell picks, options flow, block trades and institutional flows are all already free. Donations upgrade Yahoo's 15-min delay to real-time data and cover server costs 🙏",
     "donationBankLabel": "🇰🇷 Kakao Bank",
-    "donationAccountHolder": "Account holder: Kim Taeshin"
+    "donationAccountHolder": "Account holder: Kim Taeshin",
+    "trackRecord": "Past picks"
   },
   "emailCta": {
     "title": "Get Weekly Supply Chain Insights",
@@ -1387,7 +1389,9 @@
     "assetFlowTitle": "Asset Flows",
     "assetFlowMeasured": "Measured",
     "assetFlowProxy": "Price proxy",
-    "gateMailOptIn": "Email me the morning report (optional)"
+    "gateMailOptIn": "Email me the morning report (optional)",
+    "trackRecordLink": "See how past picks did",
+    "marketReducedKr": "Korean picks fell short of our standard over the last 90 days, so we now give half as many Korean buy picks. We will go back once results recover."
   },
   "insider": {
     "title": "Real-time Flow · Insider Activity",
@@ -2068,5 +2072,50 @@
   "privacy": {
     "mailTitle": "1.4 Membership Email and Morning Report Emails",
     "mailBody": "If you register as a member, we store your email address to give you access to members-only reports. We send you the daily morning report by email only if you separately agree to receive it, either by ticking the optional box when you register or by pressing the confirmation button in a one-time invitation email. Every morning report email contains an unsubscribe link, and you can stop receiving it at any time. Emails are delivered through our email service provider, Resend, which processes your email address only to deliver our messages. We keep your email address until you unsubscribe or ask us to delete it. These emails are for information only and are not investment advice."
+  },
+  "trackRecord": {
+    "metaTitle": "Past Picks — Flowvium",
+    "metaDescription": "Every buy pick Flowvium has made, scored the same way, with nothing left out. US and Korea shown separately and updated daily.",
+    "title": "How our past picks did",
+    "lead": "Every buy pick we have published since May 2026, scored the same way, with nothing left out.",
+    "updated": "Recalculated daily · as of {time}",
+    "marketUs": "US stocks",
+    "marketKr": "Korean stocks",
+    "funnel": "{recommended} in total · {finished} finished · {notEntered} never bought · {tracking} still running",
+    "reduced": "Korean picks fell short of our standard over the last 90 days, so since {date} reports give half as many Korean buy picks. We will go back once results recover.",
+    "profitShare": "Made money",
+    "median": "Median return",
+    "mean": "Average",
+    "vsIndexUs": "vs S&P 500",
+    "vsIndexKr": "vs KOSPI",
+    "stopShare": "Stop-loss rate",
+    "worst": "Worst pick",
+    "monthlyTitle": "By month",
+    "colMonth": "Month picked",
+    "colCount": "Picks",
+    "recentTitle": "Last {n} finished picks",
+    "colDate": "Picked",
+    "colStock": "Stock",
+    "colResult": "Result",
+    "colReturn": "Return",
+    "resultTarget": "Hit target",
+    "resultStop": "Stop-loss",
+    "resultTime": "14 days up",
+    "howTitle": "How we score",
+    "how1": "We follow each pick for up to {days} calendar days, starting with the first trading session after it was made.",
+    "how2": "A pick counts as bought only if the price actually entered the suggested buy range. If it never did, we count it separately as “never bought”.",
+    "how3": "A stop-loss or target counts only if the price actually reached it. If the session opened below the stop-loss or above the target, we use the opening price.",
+    "how4": "If neither was reached within {days} days, we use the closing price on the last day.",
+    "how5": "If the same stock was picked again within {days} days, it counts once.",
+    "how6": "Fees and taxes are not deducted.",
+    "note": "Past results do not guarantee future returns.",
+    "noneYet": "No finished picks yet.",
+    "empty": "No results have been calculated yet. Please check back tomorrow.",
+    "fixed": "On October 25, 2026 we fixed an error in how picks were scored and recalculated all past results.",
+    "howEntry": "The buy price is that day’s opening price, or the top of the buy range if the stock opened above it.",
+    "targetShare": "Hit target",
+    "pointUnit": "pp",
+    "resultTargetShort": "Target",
+    "resultTimeShort": "Expired"
   }
 }

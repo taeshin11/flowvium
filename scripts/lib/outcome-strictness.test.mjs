@@ -22,6 +22,7 @@
  * 관용 폭 자체를 바꾸는 건 성과 측정 정책이라 여기서 정하지 않는다.
  *   대신 **주입되는 문장이 두 수치를 다 말하게** 한다 — 사실을 가리지 않는 것과
  *   측정 기준을 바꾸는 것은 다르다.
+ * 2026-10-25 정책 결정: 관용을 없앴다(맨 아래 검사 주석). 지난 기록의 관용 판정 행은 남아 있으므로 위 두 검사는 그대로 둔다.
  */
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -56,11 +57,13 @@ gap === 0 || /실제 도달|strictHit|목표도달/.test(feedbackBlock)
   ? ok('피드백 문장이 실제 도달 수치를 함께 말한다')
   : bad(`hit_target 중 ${gap}건이 목표 미도달인데 프롬프트는 그 사실을 말하지 않는다 — 모델이 부풀린 성과를 학습한다`);
 
-// 판정 관용이 코드에 명시적으로 문서화돼 있는가 (숨은 상수 금지)
+// 2026-10-25: 관용을 없앴다 — 사장님 "이런 전향적 연구 안 하냐" 뒤 ChatGPT·agy·Claude 셋 다 '실제로 닿았을 때만'.
+//   다시 재 보니 한국 손절 313건 중 140건·미국 목표 81건 중 62건이 관용 때문에 생긴 판정이었다(lib/judge-outcome.test 머리말).
+//   그래서 이 검사도 뒤집는다 — 관용 상수가 **없어야** 하고, 판정은 lib/judge-outcome 한 곳에서 한다.
 const ev = readFileSync(resolve(ROOT, 'scripts/evaluate-recommendations.mjs'), 'utf8');
-/stop_loss \* 1\.02|target \* 0\.98/.test(ev) && /관용|tolerance|slippage/i.test(ev)
-  ? ok('판정 관용(2%)이 코드에 설명과 함께 있다')
-  : bad('판정 관용이 설명 없는 매직넘버다');
+!/stop_loss \* 1\.02|target \* 0\.98/.test(ev) && /from '\.\/lib\/judge-outcome\.mjs'/.test(ev)
+  ? ok('판정에 관용이 없다 — 손절가·목표가에 실제로 닿았을 때만(lib/judge-outcome)')
+  : bad('evaluate-recommendations 에 2% 관용 판정이 남아 있거나 lib/judge-outcome 을 안 쓴다');
 
 console.log(fail === 0 ? '\n✅ outcome-strictness 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

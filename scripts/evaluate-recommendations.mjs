@@ -14,6 +14,7 @@
  *   node scripts/evaluate-recommendations.mjs --limit=10   # 상위 10건만
  */
 import { realizedPnlPct, markToMarketPnlPct } from './lib/realized-pnl.mjs';
+import { judgeOutcome, barsFromChart } from './lib/judge-outcome.mjs';
 import { toYahooTicker } from './lib/ticker-normalize.mjs';
 import { fetchSpySeries, spyReturnBetween, spanOf } from './lib/spy-benchmark.mjs';
 import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary,
@@ -46,85 +47,16 @@ async function fetchYahooOHLC(rawTicker, fromIso, toIso) {
     const d = await res.json();
     const result = d?.chart?.result?.[0];
     if (!result) return null;
-    const ts = result.timestamp ?? [];
-    const q = result.indicators?.quote?.[0] ?? {};
-    // 0 도 typeof 'number' 라 통과해버려 Yahoo 결측일 (low=0) 이 판정 오염시킴 — 양수만.
-    return {
-      closes: (q.close ?? []).filter(v => typeof v === 'number' && v > 0),
-      highs: (q.high ?? []).filter(v => typeof v === 'number' && v > 0),
-      lows: (q.low ?? []).filter(v => typeof v === 'number' && v > 0),
-      days: ts.length,
-    };
+    // 2026-10-25: 날짜별 봉(시가 포함)으로 — 판정이 추천 시각 뒤의 장만, 체결 가능한 가격만 쓰게(lib/judge-outcome).
+    //   종전엔 고가·저가·종가를 따로 걸러 결측일에 날짜가 어긋날 수 있었다.
+    const bars = barsFromChart(result);
+    return { bars, days: bars.length };
   } catch {
     return null;
   }
 }
 
-function judgeOutcome(rec, ohlc) {
-  if (!ohlc || ohlc.closes.length === 0) {
-    return { outcome: 'unknown', detail: 'no OHLC data' };
-  }
-  if (ohlc.lows.length === 0 || ohlc.highs.length === 0) {
-    return { outcome: 'unknown', detail: 'OHLC contains only zero/missing days (filtered out)' };
-  }
-  const lastClose = ohlc.closes.at(-1);
-  const entryHigh = rec.entry_high ?? rec.entry_low;
-
-  // 2026-05-27: Codex 진단 — 기존 aggregate high/low 는 hit/stop 동시 발생 시 hardcoded
-  // priority (target > stop) 로 분류해 stop 을 hit 으로 잘못 판정. day-by-day 순회 로
-  // 시간 순서 반영. 같은 날 양쪽 발생 시 보수적으로 stop 우선 (worst-case 가정).
-  const n = Math.min(ohlc.lows.length, ohlc.highs.length);
-  let entered = false;
-  let highSeen = -Infinity, lowSeen = Infinity;
-  for (let i = 0; i < n; i++) {
-    const high = ohlc.highs[i];
-    const low = ohlc.lows[i];
-    if (!isFinite(high) || high <= 0 || !isFinite(low) || low <= 0) continue;
-    if (high > highSeen) highSeen = high;
-    if (low < lowSeen) lowSeen = low;
-    if (!entered && entryHigh != null && low <= entryHigh) entered = true;
-    if (entered) {
-      // 같은 날 stop+target 모두 hit 시 stop 우선 (보수적, slippage 보호)
-      if (rec.stop_loss != null && low <= rec.stop_loss * 1.02) {
-        return {
-          outcome: 'stop_loss',
-          detail: `day${i+1}: low=${low} <= stop*1.02=${rec.stop_loss * 1.02}`,
-          highSeen, lowSeen, lastClose,
-        };
-      }
-      if (rec.target != null && high >= rec.target * 0.98) {
-        return {
-          outcome: 'hit_target',
-          detail: `day${i+1}: high=${high} >= target*0.98=${rec.target * 0.98}`,
-          highSeen, lowSeen, lastClose,
-        };
-      }
-    }
-  }
-
-  if (!isFinite(lowSeen) || lowSeen <= 0 || !isFinite(highSeen) || highSeen <= 0) {
-    return { outcome: 'unknown', detail: `invalid OHLC: high=${highSeen} low=${lowSeen}`, highSeen, lowSeen, lastClose };
-  }
-  if (!entered) {
-    // 2026-06-14 (ChatGPT D30 차용): NE 를 단일 실패로 보지 말고 세분 — buy 룰 정확성 vs entry calibration
-    //   오염 방지. 이 로직의 NE = 진입가를 시장가 아래로 잡아 pullback 안 온 경우(low 가 entry_high 까지 안 내려옴).
-    //   ① 진입만 됐으면 target 도달(highSeen≥target) = 룰은 맞았는데 entry 너무 보수적 → NE_WINNER_MISSED
-    //   ② entry 위로 드리프트했으나 target 미달 = 부분 미스 → NE_UP_DRIFT  ③ entry 부근 횡보 → NE_NO_FILL
-    const ranToTarget = rec.target != null && highSeen >= rec.target * 0.98;
-    const roseAboveEntry = entryHigh != null && highSeen > entryHigh * 1.02;
-    const neClass = ranToTarget ? 'NE_WINNER_MISSED' : roseAboveEntry ? 'NE_UP_DRIFT' : 'NE_NO_FILL';
-    return {
-      outcome: 'not_entered', neClass,
-      detail: `${neClass}: low_seen=${lowSeen} > entry_high=${entryHigh}, high_seen=${highSeen}${rec.target ? ` (target ${rec.target})` : ''}`,
-      highSeen, lowSeen, lastClose,
-    };
-  }
-  return {
-    outcome: 'still_holding',
-    detail: `last=${lastClose}`,
-    highSeen, lowSeen, lastClose,
-  };
-}
+// judgeOutcome 은 lib/judge-outcome.mjs 로 옮겼다(2026-10-25 — 손절 ×1.02·목표 ×0.98 여유 판정, 추천 전 가격, 진입 하단 손익을 바로잡음).
 
 /**
  * 체결 미검증 outcome 재평가.
@@ -145,8 +77,9 @@ async function verifyUnverified(limit) {
     if (rec.action === 'watch') { stat.skipped++; continue; }
     const ohlc = await fetchYahooOHLC(rec.ticker, rec.generated_at, rec.o_evaluated_at);
     if (!ohlc || !ohlc.days) { stat.no_ohlc++; continue; }
-    const judge = judgeOutcome(rec, ohlc);
-    const entry = rec.entry_low ?? rec.price_at_gen;
+    const judge = judgeOutcome(rec, ohlc?.bars ?? []);
+    // 2026-10-25: 진입가·청산가는 판정이 본 체결 가능 가격(judge.entryPrice·judge.exitPrice) — 진입 하단·손절가로 꾸미지 않는다.
+    const entry = judge.entryPrice ?? rec.entry_low ?? rec.price_at_gen;
     let det = {}; try { det = JSON.parse(rec.o_details_json ?? '{}'); } catch { /* 손상된 details 는 무시 */ }
     // 체결됐다면 매도추천이 마감한 그대로 'sold' 로 두되, 손익은 이 건의 진입가 × 실제 청산가로.
     // 체결이 없었으면 judge 의 판정(not_entered 등)을 따른다.
@@ -161,7 +94,7 @@ async function verifyUnverified(limit) {
       ? (judge.outcome === 'stop_loss' ? 'stop_loss' : (rec.o_outcome === 'sold' ? 'sold' : judge.outcome))
       : 'not_entered';
     const exit = det.exitPrice ?? rec.o_price_at_eval ?? judge.lastClose;
-    const pnl = realizedPnlPct({ outcome, entry, stop: rec.stop_loss, target: rec.target, lastClose: judge.lastClose, exit });
+    const pnl = realizedPnlPct({ outcome, entry, stop: judge.exitPrice ?? rec.stop_loss, target: judge.exitPrice ?? rec.target, lastClose: judge.lastClose, exit });
     updateVerifiedOutcome({
       recommendationId: rec.id, evaluatedAt: rec.o_evaluated_at,
       outcome, pnlPct: pnl,
@@ -230,15 +163,15 @@ async function main() {
     // watch 추천은 "대기" 의미 — outcome 평가에서 제외 (not_entered 통계 오염 방지)
     if (rec.action === 'watch') { counts.skipped_watch++; continue; }
     const ohlc = await fetchYahooOHLC(rec.ticker, rec.generated_at, nowIso);
-    const judge = judgeOutcome(rec, ohlc);
+    const judge = judgeOutcome(rec, ohlc?.bars ?? []);
     counts[judge.outcome]++;
     if (judge.neClass && neClasses[judge.neClass] != null) neClasses[judge.neClass]++;
 
-    const entry = rec.entry_low ?? rec.price_at_gen;
+    const entry = judge.entryPrice ?? rec.entry_low ?? rec.price_at_gen;   // 2026-10-25: 체결 가능 가격(lib/judge-outcome)
     // 2026-08-20: 라벨과 일치하는 실현손익으로 바꾼다. 종전에는 라벨과 무관하게 마지막 종가로만 재서
     //   손절 발동 후 회복한 건이 수익으로 기록됐다(38일 표본 stop_loss 41건 중 17건).
     //   mtm(현재가 기준)은 details 에 함께 남겨 과거 데이터와 대조할 수 있게 한다.
-    const pnl = realizedPnlPct({ outcome: judge.outcome, entry, stop: rec.stop_loss, target: rec.target, lastClose: judge.lastClose });
+    const pnl = realizedPnlPct({ outcome: judge.outcome, entry, stop: judge.exitPrice ?? rec.stop_loss, target: judge.exitPrice ?? rec.target, lastClose: judge.lastClose });
     const mtm = markToMarketPnlPct({ entry, lastClose: judge.lastClose });
 
     console.log(`${rec.ticker.padEnd(12)} ${rec.generated_at.slice(0,10)}  ${judge.outcome.padEnd(15)} ${pnl !== null ? `${pnl>0?'+':''}${pnl}%` : '  -  '} (mtm ${mtm !== null ? `${mtm>0?'+':''}${mtm}%` : '-'})  ${judge.detail}`);

@@ -22,6 +22,7 @@
 11. [시장 히트맵 (/heatmap)](#11-시장-히트맵-heatmap)
 12. [리더→미드캡 캐스케이드 (/cascade)](#12-리더미드캡-캐스케이드-cascade)
 13. [AI 리포트 (/report)](#13-ai-리포트-report)
+13b. [지난 추천 성적 (/track-record)](#13b-지난-추천-성적-track-record)
 14. [비교 분석 (/compare/slug)](#14-비교-분석-compareslug)
 15. [OSINT 인텔리전스 (/osint)](#15-osint-인텔리전스-osint)
 16. [어드민 로그 (/admin/logs)](#16-어드민-로그-adminlogs)
@@ -924,6 +925,16 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 90일 VIX 이력 Area 차트 (20/30 기준선)
 - VVIX (VIX의 변동성) 표시
 
+## 13b. 지난 추천 성적 (`/track-record`) — 신규 (2026-10-25)
+
+사장님 "이런 전향적 연구 안 하냐". 매수 추천 전부를 같은 규칙으로 다시 채점해 숨김없이 보인다(ChatGPT·agy·Claude 셋 다 '시장 분리·중앙값·미진입/추적 중 따로·고르지 않은 전체 목록'). 보고서 맨 위 성적 카드는 5/30 사장님 요청으로 뺐으므로 **따로 둔 페이지**이고, 보고서 추천 칸 머리의 '지난 추천 성적 보기 →' 링크와 하단 메뉴 '추천 성적' 링크로 들어온다.
+- 데이터: `data/scorecard.json`(gitignore) ← `scripts/scorecard.mjs`(cron `scorecard` 19:25 매일). 서버 컴포넌트가 파일을 읽는다(revalidate 1h). 없으면 "아직 계산된 성적이 없습니다".
+- 채점(`lib/judge-outcome` · `lib/scorecard`): 추천 뒤 처음 열린 장부터 14일 · 매수 가격대에 닿아야 산 것(진입가 = min(시가, 가격대 상단)) · 손절가·목표가는 실제로 닿았을 때(갭이면 시가) · 안 닿으면 14일째 종가 · 같은 종목 14일 안 재추천은 한 번 · 지수는 같은 날 시가→종가(SPY/코스피).
+- 시장별 카드(미국/한국 — 합친 숫자 없음): 끝난 건수 · 전체 중 사지 못함/따라가는 중 · 돈을 번 비율 · 가운데 수익(평균) · 지수와 비교(가운데) · 손절로 끝남 · 목표가 도달 · 가장 나빴던 추천.
+- 달별 표(추천한 달) · 최근 끝난 추천 30건 표(손익 상관없이 최신순; 폰에서 미국은 티커, 넓은 화면은 이름).
+- 시장 매수 축소 안내: 성적표 판정이 '줄임'이면 그 시장 칸 위에 한 줄(보고서 KR 칸에도 `report.marketReducedKr`).
+- i18n: `trackRecord.*`(ko/en/ja), `footer.trackRecord`, `report.trackRecordLink`, `report.marketReducedKr`.
+
 ---
 
 ## 14. 비교 분석 (`/compare/[slug]`)
@@ -1215,6 +1226,7 @@ Copernicus 자격증명(.env.local)은 보존(추후 재활용 대비).
 | `cron/signal-retrospective` | 일요일 03:30 UTC | evaluate-signals 결과 + 정확도 레코드 → AI(callAI cascade) 요약 → Redis 14일 캐시 (`/api/signal-retrospective`) |
 | `cron/iv-prewarm` | 평일 22:30 KST (13:30 UTC) · 03:00 KST (18:00 UTC) | iv-screener watchlist 31종목 IV pre-warm (concurrency 4) → 4h Redis + 24h stale + 1h neg-cache (영구실패 티커 격리). 미수행 시 `/volatility` 페이지 2/31 만 표시되는 사건(2026-05-24) 이후 신설 |
 | `cron/refresh-ownership-alerts` | 매일 17:00 KST (08:00 UTC) | EDGAR Schedule 13D/13G EFTS pull → Redis 24h 캐시. live request 가 SEC rate-limit/throttle 받으면 prior 캐시로 fallback. 0건 응답 시 prior 유지 (stale 우선) — 2026-05-25 ownership-alerts Vercel empty 사건 이후 신설 |
+| `scorecard` (cron-runner 로컬, 2026-10-25) | 매일 19:25 KST | `scripts/scorecard.mjs` — 매수 추천 전부를 같은 규칙(`lib/judge-outcome`)으로 14일 다시 채점 → `data/scorecard.json`(/track-record 화면) + 시장별 매수 축소 판정(`lib/scorecard gateFor`: 최근 90일 끝난 30건+ · 지수 대비 중앙 < 0 · 손절 > 35% → 줄임, 풀림은 최근 30건(그림자 포함) 회복). 보고서 생성기가 판정을 읽어 그 시장 매수를 절반(올림)으로, 뺀 추천은 `data/scorecard-shadow.jsonl` 로 계속 채점. 48h 넘은 성적표는 안 쓴다 |
 | `scan-accumulation` (cron-runner 로컬) | 16:00 · 07:00 KST | KOSDAQ 작전주 매집 워치 → `data/accumulation-watchlist.json` (자동 커밋+푸시) |
 | `scan-accumulation --us` (cron-runner 로컬, 2026-06-17) | 06:30 · 22:00 KST | US 소형주 작전주 매집(거래량) → `data/accumulation-watchlist-us.json` (자동 커밋+푸시) |
 | `build-us-smallcap` (cron-runner 로컬, 2026-06-17) | 월 04:00 KST | Yahoo screener `aggressive_small_caps` → US 소형주 유니버스 `data/us-smallcap-universe.json` (주 1회) |

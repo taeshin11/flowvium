@@ -66,6 +66,14 @@ export default function Footer() {
                   {t('newsGap')}
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/track-record"
+                  className="text-sm text-cf-text-secondary hover:text-cf-primary transition-colors duration-200"
+                >
+                  {t('trackRecord')}
+                </Link>
+              </li>
             </ul>
           </div>
 

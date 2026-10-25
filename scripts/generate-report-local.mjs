@@ -10,7 +10,7 @@
  *   node scripts/generate-report-local.mjs --upload=reports/report-YYYY-MM-DD-session-locale.json
  */
 
-import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, appendFileSync } from 'fs';
 import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import vm from 'vm';
@@ -9224,6 +9224,23 @@ async function generateViaOllama() {
       }
     }
   }
+  // 2026-10-25 시장 성적 축소(lib/scorecard applyMarketGate · 근거 lib/scorecard.test.mjs 머리말).
+  //   사장님 "이런 전향적 연구 안 하냐" — 다시 잰 성적에서 한국은 6개월 중 5개월 지수 아래·손절 60%. ChatGPT·agy·Claude 셋 다 '한국 손실부터'.
+  //   scripts/scorecard.mjs 가 매일 만든 판정(최근 90일 30건+ · 지수 대비 중앙 < 0 · 손절 > 35%)이 '줄임'이면 그 시장 매수를 절반(올림)으로.
+  //   빠진 추천은 그림자로 남겨 계속 채점한다(발간 확정 뒤 data/scorecard-shadow.jsonl) — 회복 판정에 쓴다. 성적표가 없거나 48h 넘으면 그대로.
+  let _marketGateDropped = [];
+  try {
+    const scPath = resolve(ROOT, 'data/scorecard.json');
+    const sc = existsSync(scPath) ? JSON.parse(readFileSync(scPath, 'utf8')) : null;
+    const { applyMarketGate } = await import('./lib/scorecard.mjs');
+    const g = applyMarketGate(finalReport.portfolio, sc, { generatedAt: finalReport.generatedAt ?? new Date().toISOString() });
+    finalReport.marketGate = g.marketGate;
+    if (g.dropped.length) {
+      finalReport.portfolio = g.portfolio;
+      _marketGateDropped = g.dropped;
+      console.log(`  [시장 성적 축소] ${g.dropped.map((d) => d.ticker).join(', ')} 제외(그림자 채점) — ${['us', 'kr'].filter((m) => g.marketGate[m].reduce).map((m) => `${m}: ${g.marketGate[m].reason}`).join(' · ')}`);
+    }
+  } catch (e) { console.warn(`  [시장 성적 축소] skip: ${e?.message}`); }
   // 2026-05-30 + 2026-06-23: 후처리(harness/validateEntryZones/enforceRotation/buildLadders) 가 portfolio
   //   늘리는 케이스 차단(DB-JSON mismatch fix). 지역무관 총 12 재캡 — saveRecommendations 직전.
   {
@@ -9743,6 +9760,11 @@ async function generateViaOllama() {
     }
     const reportId = saveReport(finalReport);
     const recCount = saveRecommendations(finalReport, reportId);
+    // 2026-10-25 시장 성적 축소로 뺀 추천 — 발간이 확정된 뒤에만 그림자로 남긴다(lib/scorecard applyMarketGate).
+    if (_marketGateDropped.length) {
+      try { appendFileSync(resolve(ROOT, 'data/scorecard-shadow.jsonl'), _marketGateDropped.map((d) => JSON.stringify({ ...d, generated_at: finalReport.generatedAt })).join('\n') + '\n'); }
+      catch (e) { console.warn('  [시장 성적 축소] 그림자 기록 실패:', e?.message); }
+    }
     // 전향연구 shadow 발화 적재 (live 미참여 — eval-shadow-rules 전향평가용)
     try { const nSh = saveShadowHits(reportId, _shadowHitsPending); if (nSh) console.log(`  [shadow] ${nSh}건 적재 (shadow_hits)`); } catch (e) { console.warn('  [shadow] 적재 skip:', e?.message); }
     // 2026-05-29: 매도 추천 적재 — Karpathy pathway 의 source. tune-sell-rules 가 outcome 평가.

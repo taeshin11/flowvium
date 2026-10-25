@@ -142,3 +142,7 @@ assets/outro/flowvium-card*.mp4
 # 2026-10-23 Gemini TTS 분당 한도 같이 세기(scripts/lib/gemini-tts takeSlot)
 logs/gemini-tts-calls.json
 logs/gemini-tts-calls.json.lock/
+
+# 2026-10-25 공개 성적표(scripts/scorecard.mjs) — 매일 다시 만든다
+data/scorecard.json
+data/scorecard-shadow.jsonl

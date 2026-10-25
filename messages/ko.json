@@ -47,7 +47,8 @@
     "privacy": "개인정보 처리방침",
     "share": "공유",
     "terms": "이용약관",
-    "mail": "메일 설정"
+    "mail": "메일 설정",
+    "trackRecord": "추천 성적"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
@@ -626,7 +627,8 @@
     "donationGoalTitle": "🎯 월 $200 모이면 실시간(무지연) 데이터로 업그레이드됩니다",
     "donationGoalDesc": "매수·매도 추천, 옵션 flow, 블록 트레이드, 기관 수급까지 전부 이미 무료로 제공 중입니다. 후원금은 Yahoo 15분 지연을 실시간(무지연) 데이터로 올리고 서버 비용에 쓰입니다 · 도와주십쇼 🙏",
     "donationBankLabel": "🇰🇷 카카오뱅크",
-    "donationAccountHolder": "예금주: 김태신"
+    "donationAccountHolder": "예금주: 김태신",
+    "trackRecord": "추천 성적"
   },
   "seo": {
     "homeTitle": "Flowvium — AI 투자 리서치 플랫폼",
@@ -1387,7 +1389,9 @@
     "assetFlowTitle": "자산 이동",
     "assetFlowMeasured": "실측",
     "assetFlowProxy": "가격 proxy",
-    "gateMailOptIn": "아침보고서를 메일로 받기 (선택)"
+    "gateMailOptIn": "아침보고서를 메일로 받기 (선택)",
+    "trackRecordLink": "지난 추천 성적 보기",
+    "marketReducedKr": "최근 90일 한국 추천 성적이 기준에 못 미쳐 한국 매수 추천을 절반으로 줄였습니다. 성적이 회복되면 되돌립니다."
   },
   "insider": {
     "title": "실시간 수급 · 내부자 매매",
@@ -2067,5 +2071,50 @@
   "privacy": {
     "mailTitle": "1.4 회원 이메일과 아침보고서 메일",
     "mailBody": "회원으로 가입하시면 회원 전용 보고서를 보실 수 있도록 이메일 주소를 보관합니다. 아침보고서 메일은 가입할 때 선택 항목에 체크하시거나, 한 번 보내 드리는 동의 요청 메일의 확인 버튼을 누르신 경우에만 보냅니다. 모든 아침보고서 메일에는 수신거부 링크가 있어 언제든 그만 받으실 수 있습니다. 메일은 발송 대행 서비스 Resend 를 통해 보내며, Resend 는 메일 전달 목적으로만 이메일 주소를 처리합니다. 이메일 주소는 수신거부하시거나 삭제를 요청하실 때까지 보관합니다. 이 메일은 정보 제공용이며 투자 권유가 아닙니다."
+  },
+  "trackRecord": {
+    "metaTitle": "지난 추천 성적 — Flowvium",
+    "metaDescription": "Flowvium이 낸 매수 추천을 하나도 빼지 않고 같은 방법으로 채점한 성적입니다. 미국·한국을 나눠 매일 새로 계산합니다.",
+    "title": "지난 추천 성적",
+    "lead": "2026년 5월부터 공개한 매수 추천을 빠짐없이 같은 기준으로 채점했습니다.",
+    "updated": "매일 새로 계산 · {time} 기준",
+    "marketUs": "미국 주식",
+    "marketKr": "한국 주식",
+    "funnel": "전체 {recommended}건 · 끝남 {finished}건 · 사지 못함 {notEntered}건 · 진행 중 {tracking}건",
+    "reduced": "최근 90일 한국 추천 성적이 기준에 못 미쳐, {date}부터 보고서의 한국 매수 추천을 절반으로 줄였습니다. 성적이 회복되면 되돌립니다.",
+    "profitShare": "돈을 번 비율",
+    "median": "중간 수익",
+    "mean": "평균",
+    "vsIndexUs": "S&P 500 대비",
+    "vsIndexKr": "코스피 대비",
+    "stopShare": "손절 비율",
+    "worst": "가장 나빴던 추천",
+    "monthlyTitle": "달별 성적",
+    "colMonth": "추천한 달",
+    "colCount": "건수",
+    "recentTitle": "최근 끝난 추천 {n}건",
+    "colDate": "추천일",
+    "colStock": "종목",
+    "colResult": "결과",
+    "colReturn": "수익",
+    "resultTarget": "목표가 도달",
+    "resultStop": "손절",
+    "resultTime": "14일 만료",
+    "howTitle": "채점 방법",
+    "how1": "추천이 나온 뒤 처음 열린 장부터 최대 {days}일(주말 포함) 따라갑니다.",
+    "how2": "추천한 매수 가격대에 실제로 들어왔을 때만 산 것으로 봅니다. 들어오지 않으면 ‘사지 못함’으로 따로 셉니다.",
+    "how3": "손절가·목표가는 실제로 닿았을 때만 그 가격에 판 것으로 봅니다. 장 시작 가격이 손절가보다 낮거나 목표가보다 높으면 그날 시작 가격으로 계산합니다.",
+    "how4": "{days}일 안에 손절가나 목표가에 닿지 않으면 마지막 날 종가로 계산합니다.",
+    "how5": "같은 종목을 {days}일 안에 다시 추천하면 한 번으로 셉니다.",
+    "how6": "수수료와 세금은 빼지 않았습니다.",
+    "note": "지난 성적이 앞으로의 수익을 보장하지 않습니다.",
+    "noneYet": "아직 끝난 추천이 없습니다.",
+    "empty": "아직 계산된 성적이 없습니다. 내일 다시 확인해 주세요.",
+    "fixed": "2026년 10월 25일 채점 기준의 오류를 바로잡아 지난 성적을 모두 다시 계산했습니다.",
+    "howEntry": "산 가격은 그날 시작 가격입니다. 시작 가격이 매수 가격대보다 높았으면 가격대의 윗값으로 봅니다.",
+    "targetShare": "목표가 도달",
+    "pointUnit": "%p",
+    "resultTargetShort": "목표",
+    "resultTimeShort": "만료"
   }
 }
