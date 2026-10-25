@@ -719,7 +719,7 @@ const MAINT_JOBS = [
   // 2026-10-25 공개 성적표 + 시장 성적 축소 판정(scripts/scorecard.mjs · 근거 lib/scorecard.test.mjs 머리말).
   //   모든 매수 추천을 같은 규칙으로 14일 다시 채점 → data/scorecard.json(gitignore). /track-record 화면과 보고서 생성기(시장 축소)가 읽는다.
   //   보고서 생성기는 48시간 넘은 성적표는 안 쓴다 — 멈추면 축소가 저절로 풀린다(막히지 않는다). 시세 300여 종목 · 1~2분.
-  { label: 'scorecard',            script: 'scripts/scorecard.mjs',                  timeoutMs: 900000,  commitPaths: [],                                     schedules: ['25 19 * * *'],                maxAgeH: 30 },
+  { label: 'scorecard',            script: 'scripts/scorecard.mjs',                  timeoutMs: 900000,  commitPaths: [],                                     schedules: ['25 10 * * *'],                maxAgeH: 30 },
   // 2026-09-07: buy-outcomes 는 매일 도는데 **--verify 는 아무 데서도 안 돌았다.**
   //   그래서 매도추천이 닫은 건들이 손익 없이 쌓였다(실측 41건, 최근 7일 sold 의 30%).
   //   더 나쁜 건 손절이 'sold' 로 묻히는 것이다 — 앞선 실측에서 109건이 그렇게 묻혀

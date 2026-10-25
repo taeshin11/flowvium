@@ -107,5 +107,17 @@ const mk = (n, f) => Array.from({ length: n }, (_, i) => row({ ticker: `K${i}`, 
     && gateSince({ reduce: false }, { reduce: true, since: '2026-10-20' }, '2026-10-25') === null)
     ? ok('[22] 줄인 날: 이어서 줄이면 처음 날, 새로 줄이면 오늘, 풀리면 없음') : bad('[22] gateSince');
 }
+{ // 10/25 20:42 점검: cron-runner 일정은 UTC 다(파일 머리 ⚠). '25 19' 로 적어 04:25 KST(드라이브 백업 창·미국 장 마감 전)에 걸렸다.
+  //   성적표는 한국 장 마감(15:30 KST) 뒤, 저녁 보고서(20:00 KST) 전에 돌아야 그날 저녁 보고서가 새 판정을 쓴다. 문서의 'KST' 시각과도 같아야 한다.
+  const { readFileSync } = await import('node:fs');
+  const cr = readFileSync(new URL('../cron-runner.mjs', import.meta.url), 'utf8');
+  const m = cr.match(/label:\s*'scorecard'[^\n]*schedules:\s*\['(\d+) (\d+) \* \* \*'\]/);
+  const kst = m ? ((+m[2] + 9) % 24) * 60 + +m[1] : null;
+  const doc = readFileSync(new URL('../../FEATURES.md', import.meta.url), 'utf8').match(/`scorecard`[^|]*\|\s*매일 (\d+):(\d+) KST/);
+  const docMin = doc ? +doc[1] * 60 + +doc[2] : null;
+  (kst != null && kst > 15 * 60 + 30 && kst < 20 * 60 && kst === docMin)
+    ? ok(`[23] 성적표 일정 ${String(kst / 60 | 0).padStart(2, '0')}:${String(kst % 60).padStart(2, '0')} KST — 한국 장 마감 뒤·저녁 보고서 전·문서와 같다`)
+    : bad(`[23] 성적표 일정이 KST ${kst == null ? '?' : `${kst / 60 | 0}:${kst % 60}`} (문서 ${docMin == null ? '?' : `${docMin / 60 | 0}:${docMin % 60}`}) — UTC 로 적었나`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
