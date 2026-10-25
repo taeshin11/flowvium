@@ -13,7 +13,7 @@
  * 사용: node scripts/youtube-retitle.mjs --id VIDEO_ID --title "새 제목"
  */
 import { google } from 'googleapis';
-import { authorizedClient } from './lib/youtube.mjs';
+import { authorizedClient, ytSafeText } from './lib/youtube.mjs';
 import { envValue } from './lib/footage.mjs';
 
 const arg = (k, d = null) => {
@@ -39,7 +39,7 @@ console.log(`이전: ${v.snippet.title}`);
 // snippet 을 통째로 보내야 한다 — 일부만 보내면 나머지 필드가 지워진다.
 await yt.videos.update({
   part: ['snippet'],
-  requestBody: { id, snippet: { ...v.snippet, title } },
+  requestBody: { id, snippet: { ...v.snippet, title: ytSafeText(title) } },   // '<' '>' 는 거절된다(lib/youtube ytSafeText)
 });
 console.log(`이후: ${title}`);
 console.log(`✅ https://youtu.be/${id}`);

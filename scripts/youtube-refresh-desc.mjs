@@ -15,7 +15,7 @@
  *   node scripts/youtube-refresh-desc.mjs --id VIDEO_ID --confirm
  */
 import { google } from 'googleapis';
-import { authorizedClient } from './lib/youtube.mjs';
+import { authorizedClient, ytSafeText } from './lib/youtube.mjs';
 
 const a = process.argv.slice(2);
 const arg = (n, d) => { const i = a.indexOf(n); return i >= 0 ? a[i + 1] : d; };
@@ -72,7 +72,7 @@ for (let i = 0; i < targets.length; i += 50) {
     // categoryId 와 title 은 update 시 필수다. 빼면 API 가 지운다.
     await yt.videos.update({
       part: ['snippet'],
-      requestBody: { id: v.id, snippet: { title: s.title, categoryId: s.categoryId, description: next, tags: s.tags, defaultLanguage: s.defaultLanguage } },
+      requestBody: { id: v.id, snippet: { title: s.title, categoryId: s.categoryId, description: ytSafeText(next), tags: s.tags, defaultLanguage: s.defaultLanguage } },
     });
   }
 }

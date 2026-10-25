@@ -171,12 +171,21 @@ export function channelMismatch(actual, expected) {
  * 업로드 요청 본문. (2026-09-26 분리 — 합성 콘텐츠 신고를 시험하려고)
  * o.synthetic: 생성 영상(Omni Flash 등)이 들어간 편 — 유튜브 정책상 사실적인 합성 영상은 알려야 한다.
  */
+/**
+ * 유튜브 제목·설명에 못 쓰는 '<' '>' 를 비슷한 꺾쇠(〈 〉)로 바꾼다 — 지우면 '<신화통신>' 같은 출처 표기의 뜻이 사라진다.
+ *   2026-10-24 밤 실측: 헤드라인의 '<신화통신>' 이 제목(21:54 "invalid or empty video title")·브리핑 설명란(22:52
+ *   "invalid video description")에 들어가 두 편이 렌더·눈검증을 다 지나고 업로드에서 버려졌다(근거 youtube-text.test).
+ */
+export function ytSafeText(s) {
+  return String(s ?? '').replace(/</g, '〈').replace(/>/g, '〉');
+}
+
 export function uploadRequestBody(o) {
   return {
     snippet: {
-      title: String(o.title).slice(0, 100),
+      title: ytSafeText(o.title).slice(0, 100),
       // 2026-10-13 사장님: 설명란 맨 아래 AISVI 광고 한 줄 — 모든 업로드가 여기를 지난다(lib/ad-line).
-      description: withAdLine(o.description),
+      description: ytSafeText(withAdLine(o.description)),
       tags: (o.tags ?? []).slice(0, 30),
       categoryId: o.categoryId ?? '25',           // 25 = News & Politics
       defaultLanguage: o.locale ?? 'ko',
