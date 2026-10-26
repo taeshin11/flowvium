@@ -11,7 +11,7 @@
  *     · 문장을 web 레인(:8001 소형)으로 **존댓말 블로그 말투로 고쳐 쓰고**
  *     · 고쳐 쓴 문장에 원문에 없는 숫자가 있으면 **버리고 원문으로 되돌린다**(blog-voice.mjs)
  *     · 종목을 불릿이 아니라 한 종목당 한 문단으로 풀고, 진입·손절·목표를 문장 안에 넣는다
- *     · 과거 추천 성적표를 넣는다 — 숫자를 공개하는 글이 읽을 값어치가 있다
+ *     · 지난 추천 성적은 하루 글에 적지 않는다(2026-10-26 사장님). 성적은 분석 글과 사이트 성적표에서만
  *   27B(:8000)는 쓰지 않는다. 보고서 직후에 도는 일이라 28GB 를 다시 올릴 수 없다.
  *
  * ⚠ 올리는 것은 이 스크립트가 하지 않는다. 네이버는 자동 게재를 약관으로 금지하고
@@ -22,7 +22,6 @@
  */
 import { openDb } from './lib/db.mjs';
 import { writeFileSync, mkdirSync, readFileSync } from 'fs';
-import { trackRecordParagraph } from './lib/blog-track.mjs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
@@ -197,15 +196,6 @@ if (picks.length) {
   });
 }
 
-// 2026-10-26: 지난 성적은 고친 채점(data/scorecard.json)에서 시장별로 — 보고서의 옛 판정 요약은 수익을 부풀렸다(blog-track.test).
-const trackPara = (() => { try { return trackRecordParagraph(JSON.parse(readFileSync(resolve(ROOT, 'data/scorecard.json'), 'utf8'))); } catch { return null; } })();
-if (trackPara) {
-  L.push('## 지난 추천은 어땠나');
-  L.push('');
-  L.push(trackPara);
-  L.push('');
-}
-
 if (risks.length) {
   L.push('## 앞으로 확인할 일정');
   L.push('');
@@ -217,7 +207,7 @@ L.push('---');
 L.push('');
 L.push('### 이 정리는 어디서 나오나');
 L.push('');
-L.push(`**${SITE}** 에서 하루 다섯 번 시장을 정리하고 있습니다. 종목별 상세, 진입·손절 근거, 지난 추천의 성적표까지 사이트에서 그대로 볼 수 있습니다.`);
+L.push(`**${SITE}** 에서 하루 다섯 번 시장을 정리하고 있습니다. 종목별 상세와 진입·손절 근거까지 사이트에서 그대로 볼 수 있습니다.`);
 L.push('');
 L.push(`👉 **${(await import('./lib/site-link.mjs')).trackedUrl({ source: 'blog', medium: 'daily-blog' })}**`);   // 2026-10-02 출처 꼬리표
 L.push('');
