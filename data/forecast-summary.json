@@ -1,7 +1,7 @@
 {
- "at": "2026-10-26T07:20:00.112Z",
- "recorded": 28,
- "scored": 28,
+ "at": "2026-10-26T22:20:00.208Z",
+ "recorded": 30,
+ "scored": 30,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 7,
-   "recorded": 7,
+   "sessions": 6,
+   "recorded": 6,
    "missing": []
   },
   "us": {
-   "sessions": 7,
-   "recorded": 7,
+   "sessions": 8,
+   "recorded": 8,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 12,
+   "n": 14,
    "report": {
     "calls": 4,
     "hits": 0,
-    "abstain": 8,
+    "abstain": 10,
     "hitRate": 0
    },
    "base": {
-    "brier": 0.2448820664267173,
+    "brier": 0.23895372979733304,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 12,
-      "meanP": 0.45086652766565377,
-      "observed": 0.4166666666666667
+      "n": 14,
+      "meanP": 0.45088075164425445,
+      "observed": 0.35714285714285715
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.2448820664267173,
+    "brier": 0.23895372979733304,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 12,
-      "meanP": 0.45086652766565377,
-      "observed": 0.4166666666666667
+      "n": 14,
+      "meanP": 0.45088075164425445,
+      "observed": 0.35714285714285715
      }
     ],
     "skill": 0
@@ -314,6 +314,39 @@
        "n": 2,
        "meanP": 0.4529554469626198,
        "observed": 1
+      }
+     ],
+     "skill": 0
+    }
+   },
+   "us": {
+    "n": 2,
+    "report": {
+     "calls": 0,
+     "hits": 0,
+     "abstain": 2,
+     "hitRate": null
+    },
+    "base": {
+     "brier": 0.20338371002102723,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.45096609551585853,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    },
+    "clim": {
+     "brier": 0.20338371002102723,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.45096609551585853,
+       "observed": 0
       }
      ],
      "skill": 0
