@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-25T22:23:13.371Z",
+  "generatedAt": "2026-10-26T13:01:11.700Z",
   "universe": "US",
   "scanned": 329,
-  "count": 6,
+  "count": 5,
   "strongCount": 2,
-  "watchCount": 4,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -72,22 +72,6 @@
       "runup20dPct": 6.4,
       "runup5dPct": 12.7,
       "medDollarVolUsd": 18137052,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RGR",
-      "name": "Sturm, Ruger & Company, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.3× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 6.2,
-      "runup5dPct": 4.8,
-      "medDollarVolUsd": 5889065,
       "smartAccum": false,
       "official": null
     },
