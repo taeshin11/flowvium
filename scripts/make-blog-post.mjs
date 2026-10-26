@@ -21,7 +21,8 @@
  * 사용: node scripts/make-blog-post.mjs [--session morning] [--date 2026-09-18] [--no-llm]
  */
 import { openDb } from './lib/db.mjs';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'fs';
+import { trackRecordParagraph } from './lib/blog-track.mjs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
@@ -196,14 +197,12 @@ if (picks.length) {
   });
 }
 
-const po = r.portfolioOutcomes;
-if (po?.closed > 0) {
+// 2026-10-26: 지난 성적은 고친 채점(data/scorecard.json)에서 시장별로 — 보고서의 옛 판정 요약은 수익을 부풀렸다(blog-track.test).
+const trackPara = (() => { try { return trackRecordParagraph(JSON.parse(readFileSync(resolve(ROOT, 'data/scorecard.json'), 'utf8'))); } catch { return null; } })();
+if (trackPara) {
   L.push('## 지난 추천은 어땠나');
   L.push('');
-  L.push(`좋은 얘기만 적으면 읽을 값어치가 없으니 성적표도 같이 둡니다. 지금까지 정리를 끝낸 ${po.closed}건 중 ` +
-    `수익으로 닫은 비중이 ${po.winRate}%, 평균 손익은 ${po.avgPnl > 0 ? '+' : ''}${po.avgPnl}% 입니다. ` +
-    (po.spyAlpha != null ? `같은 기간 지수를 따라갔을 때와 비교하면 ${po.spyAlpha > 0 ? '+' : ''}${po.spyAlpha}%p 차이입니다. ` : '') +
-    `종목별 기록은 사이트에서 전부 볼 수 있습니다.`);
+  L.push(trackPara);
   L.push('');
 }
 
