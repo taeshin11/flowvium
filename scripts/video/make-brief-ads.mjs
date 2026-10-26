@@ -82,7 +82,10 @@ const BASE = `*{margin:0;box-sizing:border-box}body{width:1920px;height:1080px;f
 .hs{font-size:32px;color:#cbd5e1;margin-top:30px;padding:0 60px;line-height:1.45;font-weight:600}.n{font-size:36px;font-weight:700;color:#e2e8f0;margin-top:30px}`;
 const html = video
   ? `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:transparent}.bg{position:absolute;inset:0;background:#0b0a1a;clip-path:polygon(1220px 0,1920px 0,1920px 1080px,1220px 1080px)}</style><div class="bg"></div><div class="r">${panel}</div>`
-  : `<!doctype html><meta charset="utf-8"><style>${BASE}</style><div class="l">${panel.left}</div><div class="r">${panel.right}</div>`;
+  // 2026-10-26: 20% 이상 적중이 없으면(고친 채점 — best-hit.test [7]) 왼쪽이 빈 판으로 남았다(눈검증) → 브랜드 판을 가운데 전체 폭으로.
+  : panel.left
+    ? `<!doctype html><meta charset="utf-8"><style>${BASE}</style><div class="l">${panel.left}</div><div class="r">${panel.right}</div>`
+    : `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:radial-gradient(120% 90% at 50% 30%,#1d1b3a 0%,#0b0a1a 70%)}.r{width:1920px}.w{font-size:150px}.u{font-size:80px}</style><div class="r">${panel.right}</div>`;
 const PNG = join(WORK, 'card.png');
 {
   const br = await chromium.launch({ headless: true }); const pg = await br.newPage({ viewport: { width: 1920, height: 1080 } });
