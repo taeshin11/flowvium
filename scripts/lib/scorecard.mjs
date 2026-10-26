@@ -121,6 +121,18 @@ export function applyMarketGate(portfolio, sc, { generatedAt = new Date().toISOS
   return { portfolio: portfolio.filter((p) => !drop.has(p)), dropped, marketGate };
 }
 
+export const kstDate = (ms) => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
+
+/** 광고용 적중 목록(lib/best-hit 가 읽는다): 끝난 이익 추천을 종목당 최고 1건, 높은 순. 공개 성적과 같은 행(그림자 제외·같은 종목 14일 한 번). */
+export function bestHits(rows) {
+  const by = new Map();
+  for (const r of episodes(rows.filter((x) => !x.shadow)).filter((x) => finished(x) && x.pnl > 0 && (x.res === 'hit_target' || x.res === 'time_exit'))) {
+    const k = `${r.market}:${r.ticker}`; if (!by.has(k) || r.pnl > by.get(k).pnl) by.set(k, r);
+  }
+  return [...by.values()].sort((a, b) => b.pnl - a.pnl)
+    .map((r) => ({ ticker: r.ticker, name: r.name ?? null, market: r.market, pnl: r1(r.pnl), from: kstDate(Date.parse(r.gen)), to: r.exitDate ?? null, outcome: r.res }));
+}
+
 /** 줄인 날(안내 문구 '○일부터'): 이어서 줄이면 처음 줄인 날, 새로 줄이면 오늘, 안 줄이면 null. */
 export function gateSince(now, prev, today) {
   if (!now?.reduce) return null;

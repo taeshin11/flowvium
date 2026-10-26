@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 /**
  * best-hit.mjs — 추천 기록에서 광고에 써도 되는 "실제 최고 적중" 하나. 근거는 best-hit.test.mjs 머리말.
  * @param rows recommendation_outcomes ⋈ recommendations (ticker, name, generated_at, evaluated_at, outcome, pnl_pct,
@@ -43,10 +44,20 @@ export function hitOfDay(hits, evaluated, nowMs = Date.now()) {
   return { evaluated, best: hits[day % hits.length], rank: (day % hits.length) + 1, of: hits.length };
 }
 
-/** DB 에서 실제 수익 min% 이상 적중을 읽어 오늘 것을 고른다(refresh-flowvium-card 와 같은 질의). */
-export function todaysHit(db, { min = Number(process.env.FLOWVIUM_HIT_MIN || 20), nowMs = Date.now() } = {}) {
-  const { hits, evaluated } = pickHits(db.prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
-    r.entry_low, r.entry_high, r.price_at_gen, o.high_seen, o.low_seen
-    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all(), { min });
+/**
+ * 성적표(data/scorecard.json · scripts/scorecard.mjs)의 적중 목록에서 min% 이상. 2026-10-26 — recommendation_outcomes 는 판정이 느슨하고
+ *   매도 추천 청산이 섞여 수익을 부풀렸다(HPSP 6/13 'sold +26.8%' → 추천대로면 +15.0%, best-hit.test [7]). 성적표가 없거나 48시간 넘으면 빈 목록(브랜드 광고만).
+ */
+export function hitsFromScorecard(sc, { min = 20, now = Date.now(), maxAgeH = 48 } = {}) {
+  const evaluated = ['us', 'kr'].reduce((a, m) => a + (sc?.markets?.[m]?.finished ?? 0), 0);
+  if (!sc || !(Date.parse(sc.generatedAt) > now - maxAgeH * 3600e3) || !Array.isArray(sc.hits)) return { evaluated, hits: [] };
+  return { evaluated, hits: sc.hits.filter((h) => Number(h.pnl) >= min).sort((a, b) => b.pnl - a.pnl) };
+}
+
+/** 오늘의 적중(쇼츠 카드·롱폼 광고 공용). 첫 인자는 예전 호출 모양(db)을 지키려고 남겨 둔다 — 쓰지 않는다. */
+export function todaysHit(_db, { min = Number(process.env.FLOWVIUM_HIT_MIN || 20), nowMs = Date.now(), scorecardPath } = {}) {
+  let sc = null;
+  try { sc = JSON.parse(readFileSync(scorecardPath ?? new URL('../../data/scorecard.json', import.meta.url), 'utf8')); } catch { /* 없음 → 적중 없음 */ }
+  const { hits, evaluated } = hitsFromScorecard(sc, { min, now: nowMs });
   return hitOfDay(hits, evaluated, nowMs);
 }

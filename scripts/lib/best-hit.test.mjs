@@ -49,5 +49,39 @@ const r = pickBestHit(rows);
   (a.best.ticker === b.best.ticker && a.best.ticker !== c.best.ticker && a.of === 3 && a.evaluated === 7) ? ok('[6] 한국 날짜 하루 동안 같은 건, 다음 날 다음 건') : bad(`[6] ${JSON.stringify([a, b, c])}`);
   (hitOfDay([], 7, d0) === null) ? ok('[6b] 없으면 null') : bad('[6b]');
 }
+// [7] 2026-10-26: 광고 숫자는 고친 채점(data/scorecard.json)에서. recommendation_outcomes 는 ±2% 관용·매도 추천 청산이 섞여
+//   HPSP 6/13 을 'sold +26.8%' 로 적었지만 추천대로(목표가 81,403) 따랐다면 +15.0% 였다(lib/judge-outcome 재채점). 광고가 부풀린 수익을 말하면 안 된다.
+{
+  const M = await import('./best-hit.mjs');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('./best-hit.mjs', import.meta.url), 'utf8');
+  (typeof M.hitsFromScorecard === 'function' && !/recommendation_outcomes/.test(src.split('export function todaysHit')[1] ?? 'recommendation_outcomes'))
+    ? ok('[7] todaysHit 은 recommendation_outcomes 를 읽지 않는다') : bad('[7] todaysHit 이 아직 옛 채점(recommendation_outcomes)을 읽는다');
+  const now = Date.parse('2026-10-26T00:00:00Z');
+  const sc = { generatedAt: '2026-10-25T10:25:00Z', markets: { us: { finished: 300 }, kr: { finished: 88 } },
+    hits: [{ ticker: 'MU', name: 'Micron', pnl: 25, from: '2026-06-20', to: '2026-06-25', outcome: 'hit_target' },
+      { ticker: '035420.KS', name: 'NAVER', pnl: 21.5, from: '2026-06-05', to: '2026-06-12', outcome: 'hit_target' },
+      { ticker: '403870.KQ', name: 'HPSP', pnl: 15, from: '2026-06-13', to: '2026-06-15', outcome: 'hit_target' }] };
+  const h = M.hitsFromScorecard?.(sc, { min: 20, now });
+  (h && h.hits.map((x) => x.ticker).join() === 'MU,035420.KS' && h.evaluated === 388) ? ok('[7b] 성적표의 20% 이상만, 분모 = 끝난 추천 수') : bad(`[7b] ${JSON.stringify(h)}`);
+  const old = M.hitsFromScorecard?.({ ...sc, generatedAt: '2026-10-20T00:00:00Z' }, { min: 20, now });
+  (old && old.hits.length === 0) ? ok('[7c] 48시간 넘은 성적표면 적중 없음(브랜드 광고만) — 옛 채점으로 돌아가지 않는다') : bad(`[7c] ${JSON.stringify(old)}`);
+}
+{ // [8] 성적표가 광고용 적중 목록(hits)을 싣는다 — 종목당 최고 1건, 끝난 것만, 그림자 제외, 끝난 날짜(to)
+  const { readFileSync } = await import('node:fs');
+  const cli = readFileSync(new URL('../scorecard.mjs', import.meta.url), 'utf8');
+  const { scoreOne } = await import('../scorecard.mjs');
+  const d = (s) => Date.parse(s) / 1000;
+  const bars = [{ t: d('2026-06-15T00:30:00Z'), o: 100, h: 101, l: 99, c: 100 }, { t: d('2026-06-16T00:30:00Z'), o: 101, h: 116, l: 100, c: 115 }];
+  const r = scoreOne({ market: 'kr', ticker: 'X.KS', name: 'x', generated_at: '2026-06-14T10:00:00Z', entry_low: 99, entry_high: 100, stop_loss: 90, target: 115 }, bars, bars, d('2026-07-30T00:00:00Z'));
+  (r.res === 'hit_target' && r.exitDate === '2026-06-16' && /hits:\s*bestHits\(/.test(cli)) ? ok('[8] scoreOne 이 끝난 날짜를 주고 성적표가 hits 를 싣는다') : bad(`[8] ${r.res} ${r.exitDate} ${/hits:/.test(cli)}`);
+}
+{ // [9] 광고 숫자를 쓰는 곳 전부가 같은 출처(성적표)를 쓴다 — 한 곳만 고치고 다른 곳이 옛 채점을 읽지 않게
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const dir = new URL('../video/', import.meta.url);
+  const files = [...readdirSync(dir).filter((f) => f.endsWith('.mjs')).map((f) => new URL(f, dir)), new URL('../refresh-flowvium-card.mjs', import.meta.url)];
+  const offenders = files.filter((u) => { const t = readFileSync(u, 'utf8'); return /pickHits|pickBestHit|todaysHit|best-hit/.test(t) && /recommendation_outcomes/.test(t); }).map((u) => u.pathname.split('/').pop());
+  (!offenders.length) ? ok('[9] 광고 적중을 쓰는 스크립트가 옛 채점(recommendation_outcomes)을 읽지 않는다') : bad(`[9] 아직 옛 채점: ${offenders.join(', ')}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

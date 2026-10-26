@@ -19,11 +19,11 @@ const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
 const OUT = resolve(arg('out', resolve(ROOT, 'logs/tour-thumb.jpg')));
 
-const { pickHits } = await import('../lib/best-hit.mjs');
-const { openDb } = await import('../lib/db.mjs');
-const { hits } = pickHits(openDb().prepare(`SELECT r.ticker, r.name, r.generated_at, o.evaluated_at, o.outcome, o.pnl_pct,
-    r.entry_low, r.entry_high, r.price_at_gen, o.high_seen, o.low_seen
-    FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id`).all(), { min: 20 });
+// 2026-10-26: 적중은 고친 채점(data/scorecard.json · lib/best-hit hitsFromScorecard)에서 — 옛 판정표는 수익을 부풀렸다(best-hit.test [7]).
+const { hitsFromScorecard } = await import('../lib/best-hit.mjs');
+const { readFileSync } = await import('fs');
+const sc = (() => { try { return JSON.parse(readFileSync(resolve(ROOT, 'data/scorecard.json'), 'utf8')); } catch { return null; } })();
+const { hits } = hitsFromScorecard(sc, { min: 20 });
 const best = hits.sort((a, b) => b.pnl - a.pnl)[0];
 if (!best) { console.error('20% 이상 실제 적중이 없다 — 숫자 없는 썸네일은 만들지 않는다'); process.exit(1); }
 

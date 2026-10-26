@@ -16,7 +16,7 @@ import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { judgeOutcome, barsFromChart } from './lib/judge-outcome.mjs';
-import { summarize, gateFor, gateSince, HORIZON_DAYS } from './lib/scorecard.mjs';
+import { summarize, gateFor, gateSince, bestHits, kstDate, HORIZON_DAYS } from './lib/scorecard.mjs';
 import { toYahooTicker } from './lib/ticker-normalize.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -46,7 +46,7 @@ export function scoreOne(rec, bars, idxBars, nowSec) {
   const j = judgeOutcome(rec, win);
   let res = j.outcome, exit = j.exitPrice;
   if (res === 'still_holding' && done) { res = 'time_exit'; exit = j.lastClose; }
-  let pnl = null, bench = null;
+  let pnl = null, bench = null, exitDate = null;
   if (j.entryPrice && exit && (res === 'stop_loss' || res === 'hit_target' || res === 'time_exit')) {
     pnl = (exit / j.entryPrice - 1) * 100;
     const eh = rec.entry_high ?? rec.entry_low;
@@ -55,8 +55,9 @@ export function scoreOne(rec, bars, idxBars, nowSec) {
       : win.find((b) => b.t >= entryBar.t && (res === 'stop_loss' ? b.l <= rec.stop_loss : b.h >= rec.target));
     const bi = idxBars.find((b) => b.t >= entryBar.t), bo = [...idxBars].reverse().find((b) => b.t <= exitBar.t);
     if (bi && bo && bo.t >= bi.t) bench = (bo.c / bi.o - 1) * 100;
+    exitDate = kstDate(exitBar.t * 1000);
   }
-  return { market: rec.market, ticker: rec.ticker, name: rec.name, gen: rec.generated_at, done: done && res !== 'unknown', res, pnl, bench, shadow: !!rec.shadow };
+  return { market: rec.market, ticker: rec.ticker, name: rec.name, gen: rec.generated_at, done: done && res !== 'unknown', res, pnl, bench, exitDate, shadow: !!rec.shadow };
 }
 
 async function main() {
@@ -84,7 +85,7 @@ async function main() {
   const gate = Object.fromEntries(['us', 'kr'].map((m) => [m, gateFor(m, rows, { now, wasReduced: !!prev?.gate?.[m]?.reduce })]));
   const today = new Date(now + 9 * 3600e3).toISOString().slice(0, 10);   // KST 날짜
   for (const m of ['us', 'kr']) gate[m].since = gateSince(gate[m], prev?.gate?.[m], today);
-  const out = { generatedAt: new Date(now).toISOString(), horizonDays: HORIZON_DAYS, markets: summarize(rows, { now }), gate, missingTickers: miss.length, shadowRows: shadow.length };
+  const out = { generatedAt: new Date(now).toISOString(), horizonDays: HORIZON_DAYS, markets: summarize(rows, { now }), gate, hits: bestHits(rows), missingTickers: miss.length, shadowRows: shadow.length };
   for (const m of ['us', 'kr']) {
     const s = out.markets[m];
     console.log(`${m}: 추천 ${s.recommended} · 미진입 ${s.notEntered} · 추적 중 ${s.tracking} · 끝남 ${s.finished} | 이익 ${s.profitShare}% · 중앙 ${s.medianPct}% · 평균 ${s.meanPct}% · 지수 대비 중앙 ${s.vsIndexMedian}%p · 손절 ${s.stopShare}% · 최악 ${s.worstPct}%`);
