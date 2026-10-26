@@ -63,3 +63,14 @@ export function judgeOutcome(rec, bars) {
   }
   return { outcome: 'still_holding', entryPrice, highSeen, lowSeen, lastClose, detail: `last=${lastClose}` };
 }
+
+/**
+ * 매도 추천이 이미 닫은 행을 다시 판정할 때의 결과(evaluate-recommendations --verify). 2026-10-26.
+ *   추천 뒤 봉이 하나도 없으면(judge 'unknown' — 장이 열리기 전에 매도 추천이 닫았다) 살 수 없었다 → not_entered.
+ *   보유 중 손절선을 깼으면 손절, 그 밖엔 매도 마감('sold')을 그대로 둔다(2026-09-03 규칙).
+ */
+export function verifiedOutcome(judge, prevOutcome) {
+  if (judge.outcome === 'not_entered' || judge.outcome === 'unknown') return 'not_entered';
+  if (judge.outcome === 'stop_loss') return 'stop_loss';
+  return prevOutcome === 'sold' ? 'sold' : judge.outcome;
+}

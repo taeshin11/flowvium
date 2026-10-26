@@ -14,7 +14,7 @@
  *   node scripts/evaluate-recommendations.mjs --limit=10   # 상위 10건만
  */
 import { realizedPnlPct, markToMarketPnlPct } from './lib/realized-pnl.mjs';
-import { judgeOutcome, barsFromChart } from './lib/judge-outcome.mjs';
+import { judgeOutcome, barsFromChart, verifiedOutcome } from './lib/judge-outcome.mjs';
 import { toYahooTicker } from './lib/ticker-normalize.mjs';
 import { fetchSpySeries, spyReturnBetween, spanOf } from './lib/spy-benchmark.mjs';
 import { openDb, getOverdueRecommendations, getAllRecommendationsForEval, saveOutcome, getSummary,
@@ -83,16 +83,14 @@ async function verifyUnverified(limit) {
     let det = {}; try { det = JSON.parse(rec.o_details_json ?? '{}'); } catch { /* 손상된 details 는 무시 */ }
     // 체결됐다면 매도추천이 마감한 그대로 'sold' 로 두되, 손익은 이 건의 진입가 × 실제 청산가로.
     // 체결이 없었으면 judge 의 판정(not_entered 등)을 따른다.
-    const filled = judge.outcome !== 'not_entered';
     // 2026-09-03: 종전엔 매도엔진이 'sold' 로 찍어 두면 **손절 판정이 나와도 'sold' 를 유지**했다.
     //   실측 109건이 그렇게 묻혔고, 그 결과 손절률이 9.8% 로 보였다 — 실제로는 23.4% 다.
     //   손익 자체는 맞게 기록돼 있었으므로(평균 -1.51%) 수익률이 부풀려진 건 아니지만,
     //   **위험도가 실제의 절반 이하로 보였다.** 열 번에 한 번 손절하는 시스템과
     //   네 번에 한 번 손절하는 시스템은 독자에게 전혀 다른 물건이다.
     //   보유 중에 손절선을 깼으면 그건 손절이다. 그 뒤에 매도추천이 나왔다는 사실이 그걸 지우지 못한다.
-    const outcome = filled
-      ? (judge.outcome === 'stop_loss' ? 'stop_loss' : (rec.o_outcome === 'sold' ? 'sold' : judge.outcome))
-      : 'not_entered';
+    // 2026-10-26: 추천 뒤 장이 없었으면(judge 'unknown') 체결로 보지 않는다 — lib/judge-outcome verifiedOutcome · judge-outcome.test [12].
+    const outcome = verifiedOutcome(judge, rec.o_outcome);
     const exit = det.exitPrice ?? rec.o_price_at_eval ?? judge.lastClose;
     const pnl = realizedPnlPct({ outcome, entry, stop: judge.exitPrice ?? rec.stop_loss, target: judge.exitPrice ?? rec.target, lastClose: judge.lastClose, exit });
     updateVerifiedOutcome({

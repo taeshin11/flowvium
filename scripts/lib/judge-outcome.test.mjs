@@ -75,5 +75,22 @@ const rec = { generated_at: GEN, entry_low: 63000, entry_high: 65600, stop_loss:
   (/from '\.\/lib\/judge-outcome\.mjs'/.test(src) && !/stop_loss \* 1\.02|target \* 0\.98/.test(src) && /judge\.entryPrice/.test(src) && /judge\.exitPrice/.test(src))
     ? ok('[11] evaluate-recommendations 가 같은 판정·체결가를 쓴다') : bad('[11] evaluate-recommendations 에 옛 판정(×1.02/×0.98)이 남았거나 체결가를 안 쓴다');
 }
+{ // [12] 2026-10-26: 매도 추천이 장이 한 번도 열리기 전에 매수 추천을 닫았다(HOOD 10/23 자정 → 10/24 매도 등 5건).
+  //   추천 뒤 봉이 0개 → judge 'unknown' 인데, 재검증 경로가 이를 '체결됨' 으로 보고 'sold' 손익을 low_seen 없이 적었다(outcome-integrity 실패).
+  //   추천과 매도 사이에 장이 없었으면 살 수 없었다 → 'not_entered'. 봉을 아예 못 받은 경우(ohlc 없음)는 부르는 쪽이 건너뛴다.
+  const { verifiedOutcome } = await import('./judge-outcome.mjs');
+  (typeof verifiedOutcome === 'function'
+    && verifiedOutcome({ outcome: 'unknown' }, 'sold') === 'not_entered'
+    && verifiedOutcome({ outcome: 'not_entered' }, 'sold') === 'not_entered'
+    && verifiedOutcome({ outcome: 'stop_loss' }, 'sold') === 'stop_loss'
+    && verifiedOutcome({ outcome: 'still_holding' }, 'sold') === 'sold'
+    && verifiedOutcome({ outcome: 'hit_target' }, 'hit_target') === 'hit_target'
+    && verifiedOutcome({ outcome: 'still_holding' }, 'still_holding') === 'still_holding')
+    ? ok('[12] 재검증: 추천 뒤 장이 없으면 not_entered · 손절은 손절 · 나머지는 매도 마감 유지')
+    : bad('[12] verifiedOutcome 이 없거나 unknown 을 체결로 본다');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../evaluate-recommendations.mjs', import.meta.url), 'utf8');
+  /verifiedOutcome\(judge, rec\.o_outcome\)/.test(src) ? ok('[12b] evaluate-recommendations --verify 가 verifiedOutcome 을 쓴다') : bad('[12b] 재검증 경로가 verifiedOutcome 을 안 쓴다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
