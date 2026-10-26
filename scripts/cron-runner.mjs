@@ -626,6 +626,10 @@ const MAINT_JOBS = [
   //   네이버가 아니라 Blogger 인 이유: 네이버는 자동 게재가 약관 위반이고 글쓰기 API 도 없다.
   //   중복 게시는 reports/blog/.published.json 이 막는다(이미 올린 글이면 수정만 한다).
   { label: 'blog-publish',         script: 'scripts/blog-publish.mjs',               timeoutMs: 300000,  commitPaths: ['reports/blog'],                       schedules: ['15 22 * * *', '45 3 * * *', '45 12 * * *'], maxAgeH: 30 },
+  // 2026-10-26 네이버 블로그 'AI주식분석' 카테고리(사장님 "하루 한번 올려라" · 분석 글은 제목 따로). 글쓰기 API 가 없어
+  //   전용 프로필(secrets/naver-profile) 헤드리스로 편집기를 쓴다 — 사장님이 '완전 자동(제재 위험 감수)' 을 골랐다.
+  //   07:30 KST 는 아침 글(07:10) 뒤. 12:45 는 아침 글이 늦게 나온 날의 그물 — 같은 글은 .naver-published.json 이 막는다.
+  { label: 'naver-blog-post',      script: 'scripts/naver-blog-post.mjs --daily --analysis', timeoutMs: 300000, commitPaths: ['reports/blog'],              schedules: ['30 22 * * *', '45 3 * * *'], maxAgeH: 30 },
   // 2026-10-15 플랫폼별 일일 기록(사장님 10/14 "구독 전환율·시청률·노출수·조회수 다 챙겨라") — YouTube 분석(찬 날)·Blogger 페이지뷰 → logs/platform-daily.json
   // 2026-10-15 전향적 예측 장부(사장님 "전향적연구하라 … 왜 오늘같은 일을 예측못했는지") — 장 전에 고정 기록, 장 뒤 채점.
   //   기록: KR 08:30·08:50 KST(월~금) · US 21:50·22:20 KST. 두 번 거는 건 한 번 놓쳐도 장 전에 남기려고 — 같은 날 줄은 다시 안 쓴다.

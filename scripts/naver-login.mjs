@@ -43,3 +43,5 @@ const blogId = m && !/MyBlog/i.test(m[1]) ? m[1] : null;
 writeFileSync(OUT, JSON.stringify({ blogId, at: new Date().toISOString() }, null, 2));
 log(blogId ? `블로그 아이디 ${blogId} → ${OUT}` : `⚠ 블로그 주소를 못 읽었다(${page.url().replace(/[?#].*/, '')})`);
 await ctx.close();
+// 10/26 실측: 창이 닫힌 뒤에도 node 가 2분 넘게 안 끝났다(원인 미확인). 할 일은 끝났으니 명시적으로 끝낸다.
+process.exit(0);
