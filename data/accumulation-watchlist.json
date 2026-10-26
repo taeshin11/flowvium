@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T22:20:22.646Z",
+  "generatedAt": "2026-10-26T07:20:27.066Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 1,
@@ -15,11 +15,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.7× 급증(가격 평탄)",
+        "거래량 2.6× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 6.3,
-      "runup5dPct": 0.1,
+      "runup20dPct": 3.9,
+      "runup5dPct": -1.8,
       "medDollarVolUsd": 135556,
       "smartAccum": true,
       "official": null
