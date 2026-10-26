@@ -1,6 +1,6 @@
 // naver-blog.test.mjs — 네이버 블로그 게시 전 변환(여백·태그·올릴 글 고르기). node scripts/lib/naver-blog.test.mjs
 import assert from 'node:assert/strict';
-import { naverHtml, tagsFor, pickFiles, NAVER_CATEGORY } from './naver-blog.mjs';
+import { naverHtml, tagsFor, pickFiles, NAVER_CATEGORY, postedLogNo } from './naver-blog.mjs';
 
 // [1] 덩어리 뒤에 빈 줄 하나 — 편집기는 붙여 넣은 문단 사이 여백을 없앤다(10/26 화면에서 확인).
 assert.equal(naverHtml('<p>a</p>\n<h2>b</h2><ul><li>c</li></ul><table><tr><td>1</td></tr></table>'),
@@ -24,5 +24,11 @@ assert.deepEqual(pick({ daily: true, today: '2026-10-27' }), []);
 assert.deepEqual(pick({ wantAnalysis: true }), ['analysis/b.md']);
 // [5] 이미 올린 하루 글은 다시 고르지 않는다(크론이 하루 두 번 돈다)
 assert.deepEqual(pick({ daily: true, ledger: { '2026-10-26-morning.md': { url: 'u' } } }), []);
+
+// [6] 발행이 끝났다고 보는 주소 — 편집기 주소(고치기는 logNo 를 품는다)는 아니다(10/26 고치기에서 되읽기가 발행 중 이동과 부딪쳤다)
+assert.equal(postedLogNo('https://blog.naver.com/taeshin11/postupdate?logNo=224453992049'), null);
+assert.equal(postedLogNo('https://blog.naver.com/taeshin11/postwrite'), null);
+assert.equal(postedLogNo('https://blog.naver.com/taeshin11/224453992049'), '224453992049');
+assert.equal(postedLogNo('https://blog.naver.com/PostView.naver?blogId=taeshin11&logNo=224453992049'), '224453992049');
 
 console.log('naver-blog ok');

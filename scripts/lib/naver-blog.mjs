@@ -34,3 +34,13 @@ export function pickFiles({ dir, today, exists, daily = false, wantAnalysis = fa
   if (wantAnalysis) for (const n of [...analysis].sort()) out.push({ file: join(dir, 'analysis', n), key: `analysis/${n}` });
   return out.filter((x) => force || !ledger[x.key]?.url);
 }
+
+/**
+ * 발행이 끝난 글 주소에서 글 번호를 꺼낸다. 아니면 null.
+ * 편집기 주소는 빼야 한다 — 고치기 화면(postupdate?logNo=…)도 글 번호를 품고 있어서, 안 빼면 발행 버튼을 누르자마자
+ *   '끝났다' 로 보고 되읽기가 발행 중 이동과 부딪친다(10/26 실제로 났다).
+ */
+export function postedLogNo(href) {
+  if (/\/(?:postwrite|postupdate)\b|PostWriteForm|PostUpdateForm/i.test(href)) return null;
+  return (/(?:\/|logNo=)(\d{9,})/.exec(href) ?? [])[1] ?? null;
+}
