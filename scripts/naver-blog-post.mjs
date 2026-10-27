@@ -18,7 +18,8 @@
  * 사용: node scripts/naver-blog-post.mjs (--daily | --analysis | --file <md> [--update]) [--dry-run]
  */
 import { chromium } from 'playwright';
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, appendFileSync } from 'fs';
+import { execFileSync } from 'child_process';
 import { join, basename, resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { mdToHtml, extractTitle, stripFrontComment } from './lib/blog-html.mjs';
@@ -35,7 +36,12 @@ const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? pr
 const has = (n) => process.argv.includes(`--${n}`);
 const DRY = has('dry-run');
 const UPDATE = has('update');
-const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[naver-blog]', ...a);
+// 크론은 시간 초과로 죽인 잡의 출력을 남기지 않는다 — 어디서 멈췄는지 알 수 있게 파일에도 적는다(10/27 07:30 글은 올라갔는데 닫다가 5분 멈춰 실패로 남았다).
+const log = (...a) => {
+  const line = [new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[naver-blog]', ...a].join(' ');
+  console.log(line);
+  try { mkdirSync(SHOTS, { recursive: true }); appendFileSync(join(SHOTS, 'run.log'), line + '\n'); } catch {}
+};
 
 const blogId = existsSync(BLOG_JSON) ? JSON.parse(readFileSync(BLOG_JSON, 'utf8')).blogId : null;
 if (!blogId) { console.error('❌ 블로그 아이디 없음 — node scripts/naver-login.mjs 로 먼저 로그인'); process.exit(2); }
@@ -84,7 +90,17 @@ try {
     }
   }
 } finally {
-  await ctx.close();
+  // 브라우저 닫기는 30초까지만 기다린다. 넘으면 이 프로필로 뜬 크롬만 끄고 그 사실을 적는다 —
+  //   기다리다 크론 시간 초과로 죽으면 올라간 글도 실패로 남고, 남은 크롬은 나중에 정리 잡이 거둬야 했다.
+  const t0 = Date.now();
+  const closed = await Promise.race([ctx.close().then(() => true), new Promise((r) => setTimeout(() => r(false), 30000))]);
+  if (closed) log(`브라우저 닫음 (${((Date.now() - t0) / 1000).toFixed(1)}초)`);
+  else {
+    let pids = '';
+    try { pids = execFileSync('pgrep', ['-f', `--user-data-dir=${PROFILE}`], { encoding: 'utf8' }).trim().split('\n').join(' '); } catch {}
+    log(`⚠ 브라우저가 30초 안에 안 닫혔다 — 이 프로필 크롬을 끈다(pid ${pids || '없음'})`);
+    for (const pid of pids.split(' ').filter(Boolean)) { try { process.kill(Number(pid), 'SIGKILL'); } catch {} }
+  }
 }
 process.exit(failed ? 1 : 0);
 
