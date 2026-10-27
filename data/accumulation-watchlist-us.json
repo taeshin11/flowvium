@@ -1,44 +1,61 @@
 {
-  "generatedAt": "2026-10-27T13:00:54.583Z",
+  "generatedAt": "2026-10-27T22:23:36.629Z",
   "universe": "US",
   "scanned": 314,
-  "count": 7,
+  "count": 6,
   "strongCount": 2,
-  "watchCount": 5,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "VSECU",
       "name": "VSE Corporation - Tangible Equi",
       "tier": "strong",
-      "score": 45,
+      "score": 40,
       "coFire": 3,
       "lead": [
-        "거래량 추세 4.2× 상승(지속 매집)",
-        "거래량 4.4× 급증(가격 평탄)",
+        "거래량 추세 4.5× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -12,
-      "runup5dPct": -5.2,
-      "medDollarVolUsd": 772116,
+      "runup20dPct": -11.3,
+      "runup5dPct": -3.8,
+      "medDollarVolUsd": 630210,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "VLRS",
+      "name": "Controladora Vuela Compania de ",
+      "tier": "strong",
+      "score": 37,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -9.1,
+      "runup5dPct": 7.8,
+      "medDollarVolUsd": 2586435,
       "smartAccum": false,
       "official": null
     },
     {
       "ticker": "CLDT",
       "name": "Chatham Lodging Trust (REIT)",
-      "tier": "strong",
-      "score": 37,
-      "coFire": 3,
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.4× 급증(가격 평탄)",
+        "거래량 추세 2.6× 상승(지속 매집)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 6.4,
-      "runup5dPct": 1.3,
+      "runup20dPct": 8,
+      "runup5dPct": 2.7,
       "medDollarVolUsd": 3493056,
       "smartAccum": false,
       "official": null
@@ -50,12 +67,12 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 5.1× 급증(가격 평탄)"
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 5.4× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.4,
-      "runup5dPct": 5.8,
-      "medDollarVolUsd": 13728,
+      "runup20dPct": -6.1,
+      "runup5dPct": 9.2,
+      "medDollarVolUsd": 14352,
       "smartAccum": false,
       "official": null
     },
@@ -70,25 +87,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 7.9,
-      "runup5dPct": 2.6,
+      "runup20dPct": 6.9,
+      "runup5dPct": 0.9,
       "medDollarVolUsd": 6336798,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RGR",
-      "name": "Sturm, Ruger & Company, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.3× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 8.1,
-      "runup5dPct": -1,
-      "medDollarVolUsd": 5974940,
       "smartAccum": false,
       "official": null
     },
@@ -99,28 +100,12 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)"
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
       ],
-      "runup20dPct": -1.4,
-      "runup5dPct": -16.5,
-      "medDollarVolUsd": 422220,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "EROK",
-      "name": "EagleRock Land, LLC",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8,
-      "runup5dPct": 12.7,
-      "medDollarVolUsd": 3644160,
+      "runup20dPct": -3.3,
+      "runup5dPct": -19.9,
+      "medDollarVolUsd": 438564,
       "smartAccum": false,
       "official": null
     }
