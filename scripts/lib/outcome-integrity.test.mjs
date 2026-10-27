@@ -58,10 +58,12 @@ const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
 const dup = db.prepare(`
   SELECT COUNT(*) c FROM (
     SELECT r.ticker, o.evaluated_at, o.pnl_pct, COUNT(*) n,
-           MIN(COALESCE(r.entry_low, r.price_at_gen)) lo,
-           MAX(COALESCE(r.entry_low, r.price_at_gen)) hi
+           MIN(COALESCE(json_extract(o.details_json, '$.entryUsed'), r.entry_low, r.price_at_gen)) lo,
+           MAX(COALESCE(json_extract(o.details_json, '$.entryUsed'), r.entry_low, r.price_at_gen)) hi
     FROM recommendation_outcomes o JOIN recommendations r ON r.id = o.recommendation_id
     WHERE o.pnl_pct IS NOT NULL
+      -- 2026-10-27: 진입가는 실제로 산 값(entryUsed)이 있으면 그것으로 본다. 추천 구간 아래끝만 보면
+      --   두 번 추천한 105560.KS(구간 152000·153000)가 같은 날 156600 에 똑같이 사서 같은 손익인 정상을 복사로 셌다.
       -- 2026-09-03: stop_loss / hit_target 은 제외한다. 이 둘의 손익은 손절가·목표가에서 나오는데
       --   LLM 이 손절을 **진입가의 고정 비율**로 잡는다(실측: 005490.KS 진입 406560 · 손절 378101
       --   = 정확히 -7.00%). 그러면 진입가가 달라도 손익이 같은 게 정상이다.
