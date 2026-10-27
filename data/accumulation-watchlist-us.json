@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T22:23:27.281Z",
+  "generatedAt": "2026-10-27T13:00:54.583Z",
   "universe": "US",
   "scanned": 314,
   "count": 7,
@@ -29,12 +29,12 @@
       "ticker": "CLDT",
       "name": "Chatham Lodging Trust (REIT)",
       "tier": "strong",
-      "score": 41,
+      "score": 37,
       "coFire": 3,
       "lead": [
         "거래량 추세 2.4× 상승(지속 매집)",
         "거래량 3.4× 급증(가격 평탄)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
       "runup20dPct": 6.4,
