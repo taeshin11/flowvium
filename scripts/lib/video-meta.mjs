@@ -254,7 +254,7 @@ function clip(text, max) {
  *
  * 위치는 헤드라인 목록 뒤다. 설명란 첫머리는 유입 링크 자리이고, 그걸 밀어내면 안 된다.
  */
-function donationLines(isKo) {
+export function donationLines(isKo) {
   const acct = String(process.env.DONATION_ACCOUNT ?? '').trim();
   if (!acct) return [];
   // 2026-09-03 사용자: "채널 유지를 위해서 부탁한다고 좀 애절하게".

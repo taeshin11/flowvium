@@ -8,7 +8,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { listSpares, pickSpare, promoteSpare, SPARE_FILES } from './shorts-spare.mjs';
+import { listSpares, pickSpare, promoteSpare, SPARE_FILES, evergreenDir, pickEvergreen } from './shorts-spare.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -46,6 +46,21 @@ mkdirSync(join(spares, 'broken'), { recursive: true });   // 영상 없는 반�
   (r && existsSync(join(media, 'shorts-ko.mp4')) && existsSync(join(media, 'shorts-ko-meta.json')) && !existsSync(p.dir)
     && JSON.parse(readFileSync(join(media, 'shorts-ko-meta.json'), 'utf8')).keyword === p.meta.keyword)
     ? ok(`[3] 예비(${p.meta.keyword}) → shorts-ko.* 로 옮기고 예비 폴더 삭제`) : bad(`[3] ${JSON.stringify(r)}`);
+}
+// [4] 상시 쇼츠 풀(2026-10-28 Mac mini2) — 기한 없음 · 이미 나간 주제 빼고 · 먼저 만든 것부터 · 만드는 중(.part)은 못 집는다
+{
+  const pool = join(root, 'pool');
+  const mkE = (name, daysAgo) => {
+    const d = join(pool, name); mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, SPARE_FILES.video), 'mp4');
+    writeFileSync(join(d, SPARE_FILES.meta), JSON.stringify({ evergreen: true, id: name.replace(/\.part$/, ''), keyword: `주식 상식:${name}`, createdAt: new Date(Date.now() - daysAgo * 86400e3).toISOString() }));
+  };
+  mkE('per', 30); mkE('volume', 2); mkE('etf', 40); mkE('pbr.part', 50);
+  const p = pickEvergreen({ dir: pool, isPublished: (k) => k === '주식 상식:etf' });
+  (p?.meta.id === 'per') ? ok('[4] 30일 된 것도 쓴다 · 나간 etf 빼고 · 만드는 중(.part) 빼고 → 가장 먼저 만든 per') : bad(`[4] ${p?.meta.id}`);
+  pickEvergreen({ dir: join(root, 'none') }) === null ? ok('[4b] 풀이 없으면 null') : bad('[4b]');
+  (evergreenDir({}).endsWith('reports/video/evergreen-pool') && evergreenDir({ SHORTS_EVERGREEN_DIR: '/x' }) === '/x')
+    ? ok('[4c] 풀 자리 — 저장소 reports/video(로컬·깃 밖) · 환경변수로 바꿀 수 있다') : bad(`[4c] ${evergreenDir({})}`);
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

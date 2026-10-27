@@ -1,0 +1,228 @@
+#!/usr/bin/env node
+/**
+ * make-evergreen-short.mjs — 상시 쇼츠(날짜·가격 없는 주식 상식) 한 편을 만들어 예비 풀에 넣는다. (2026-10-28 신설)
+ *
+ * Mac mini2(사장님 위임) 10/28: "쇼츠는 테크이슈와 같은 규칙 — 36시간치 상시 쇼츠를 예비로.
+ *   PER·금리 인하·거래량 같은 날짜·가격 없는 설명. 정규 렌더가 실패하거나 뉴스 파이프라인이 멎었을 때만."
+ *   뉴스 예비(lib/shorts-spare)는 6시간이면 버린다 — 늦은 뉴스는 가치가 없어서. 이건 언제 나가도 맞는 말이라 기한이 없다.
+ * 대본: data/evergreen-shorts.json(사람이 쓰고 agy 가 감수) → lib/evergreen-check 를 못 넘으면 안 만든다.
+ * 그림: agy generate_image(사장님 지정 — 그림은 agy). 뉴스가 아니라 개념 그림이라 쓸 수 있다(lib/agy-image 머리말:
+ *   뉴스 장면엔 숫자를 지어 그려 못 쓴다). 그래도 글자·숫자 없는 그림만 달라고 하고, 만든 뒤 눈으로 본다.
+ *   그림은 풀과 따로 캐시한다 — 풀의 편은 나가면 지워지지만 다시 만들 때 그림을 또 그리지 않게.
+ * 합성: make-shorts 와 같은 라이브러리·같은 순서(음성 → 잡음 관문 → 캡션 오버레이 → 장면 → 끝 카드 → 배경음 → 최종 음량).
+ *   뉴스 고르기·기사 사진·브리핑은 없다.
+ * 풀: reports/video/evergreen-pool/<id>/ (shorts-ko.mp4·-thumb.jpg·-meta.json) — video-publish 의 useSpare 가 뉴스 예비가 없을 때 꺼낸다.
+ *
+ * 사용: node scripts/video/make-evergreen-short.mjs --id per        # 한 편
+ *       node scripts/video/make-evergreen-short.mjs --fill 15       # 풀이 15편이 될 때까지(이미 나간 주제·풀에 있는 주제는 건너뜀)
+ */
+import { chromium } from 'playwright';
+import ffmpegPath from 'ffmpeg-static';
+import { spawnSync } from 'child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync, renameSync } from 'fs';
+import { tmpdir } from 'os';
+import { join, resolve } from 'path';
+import { ROOT } from '../lib/project-root.mjs';
+import { ffmpegOpts } from '../lib/ffmpeg-timeout.mjs';
+import { loadEnvLocal } from '../lib/llm-config.mjs';
+import { measure as measureLoudness, normalize as normalizeLoudness } from '../lib/loudness.mjs';
+import { mixBgm } from '../lib/bgm-mix.mjs';
+import { licensedBeds } from '../lib/bgm-beds.mjs';
+import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
+import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
+import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
+import { checkEvergreen } from '../lib/evergreen-check.mjs';
+import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
+import { generateImage } from '../lib/agy-image.mjs';
+import { isReportPipelineRunning } from '../lib/report-running.mjs';
+
+loadEnvLocal();
+const argv = process.argv.slice(2);
+const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
+const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[evergreen]', ...a);
+const DATA = JSON.parse(readFileSync(resolve(ROOT, 'data/evergreen-shorts.json'), 'utf8'));
+const POOL = evergreenDir();
+const IMG_CACHE = resolve(ROOT, 'reports/video/evergreen-img');
+const KEY_PREFIX = '주식 상식:';
+
+/** 이미 나간 상시 쇼츠 id — 같은 설명을 두 번 올리지 않는다. 대장은 키를 정규화해 적는다(db normalizeIssueKey: '주식상식per'). */
+function publishedIds({ recentShortsIssues, normalizeIssueKey }) {
+  const pub = recentShortsIssues(24 * 3650);
+  return new Set(DATA.items.map((x) => x.id).filter((id) => pub.has(normalizeIssueKey(`${KEY_PREFIX}${id}`))));
+}
+
+async function render(item) {
+  const chk = checkEvergreen(item);
+  if (!chk.ok) { log(`❌ ${item.id} 대본 규칙: ${chk.why.join(' · ')}`); return false; }
+  const WORK = join(tmpdir(), 'flowvium-evergreen', item.id);
+  rmSync(WORK, { recursive: true, force: true });
+  mkdirSync(WORK, { recursive: true });
+  const scenes = item.scenes.map((s) => ({ ...s }));
+
+  // ── 그림 ── 캐시가 있으면 그대로(같은 대본이면 같은 그림)
+  const imgDir = join(IMG_CACHE, item.id);
+  mkdirSync(imgDir, { recursive: true });
+  for (let i = 0; i < scenes.length; i++) {
+    const f = join(imgDir, `s${i}.jpg`);
+    if (!existsSync(f)) {
+      let r = null;
+      for (let a = 1; a <= 2 && !r?.ok; a++) {
+        r = await generateImage({ prompt: `${DATA.style}. Scene: ${scenes[i].image}.`, out: f, aspect: '16:9' });
+        if (!r.ok) log(`  그림 ${i + 1} 실패(${a}/2): ${r.reason}`);
+      }
+      if (!r?.ok) { log(`❌ ${item.id} 그림 ${i + 1} 을 못 만들었다 — 이 편은 거른다(빈 화면으로 내지 않는다)`); return false; }
+      log(`  그림 ${i + 1} ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초`);
+    }
+    scenes[i].media = f;
+  }
+
+  // ── 음성 ── make-shorts 3절과 같다(멜로 + 숫자·약어 한글화 + 귀검증)
+  const out = synthesizeKoreanAuto(scenes.map((s) => s.say), { outPrefix: `${WORK}/q`, log });
+  scenes.forEach((s, i) => { s.audio = out[i].path; s.alignment = out[i].alignment; s.dur = out[i].durationSec; });
+  const { assertNoVoBurst } = await import('../lib/vo-burst.mjs');
+  const bad = assertNoVoBurst(scenes.map((s) => ({ path: s.audio, alignment: s.alignment })));
+  if (bad.length) { log(`❌ ${item.id} 대사 잡음 관문: ${bad.map((b) => b.path.split('/').pop()).join(', ')}`); return false; }
+  const totalSec = scenes.reduce((n, s) => n + s.dur, 0);
+  log(`  음성 ${totalSec.toFixed(1)}초 (${scenes.map((s) => s.dur.toFixed(1)).join('·')})`);
+
+  // ── 캡션 오버레이 ── make-shorts 5절과 같은 값(12자·2줄·4초)
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: G.W, height: G.H } });
+    for (let i = 0; i < scenes.length; i++) {
+      const cues = fillGaps(cuesFromAlignment(scenes[i].alignment, { maxChars: 12, maxLines: 2, maxDur: 4.0 }), 1.2);
+      scenes[i].cues = cues.length ? cues : [{ start: 0, end: scenes[i].dur, text: scenes[i].say.slice(0, 24) }];
+      scenes[i].ov = [];
+      for (let k = 0; k < scenes[i].cues.length; k++) {
+        await page.setContent(shortsOverlayHtml({ hook: scenes[i].hook, caption: scenes[i].cues[k].text }));
+        const f = `${WORK}/ov${i}_${k}.png`;
+        await page.screenshot({ path: f, omitBackground: true });
+        scenes[i].ov.push(f);
+      }
+    }
+    // 세로 썸네일 — 첫 그림 + 제목(make-shorts 와 같은 꼴). 제목은 lib/evergreen-check 가 38자 안으로 묶었다.
+    const head = item.title.length > 24 ? `${item.title.slice(0, item.title.lastIndexOf(' ', 24) > 10 ? item.title.lastIndexOf(' ', 24) : 24)}…` : item.title;
+    const dataUrl = `data:image/jpeg;base64,${readFileSync(scenes[0].media).toString('base64')}`;
+    await page.setViewportSize({ width: 1080, height: 1920 });
+    await page.setContent(`<!doctype html><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
+.bg{position:absolute;inset:0;background:url('${dataUrl}') center/cover no-repeat}
+.sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 34%,rgba(0,0,0,.20) 62%,rgba(0,0,0,.88) 100%)}
+.h{position:absolute;left:54px;right:54px;top:130px;font-size:118px;font-weight:900;line-height:1.16;color:#ffd400;
+  -webkit-text-stroke:14px #0a0a0a;paint-order:stroke fill;letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere}
+.m{position:absolute;left:0;right:0;bottom:120px;text-align:center;font-size:44px;font-weight:900;color:#fff;letter-spacing:.3em;
+  text-indent:.3em;opacity:.92;-webkit-text-stroke:6px #0a0a0a;paint-order:stroke fill}
+</style><div class="bg"></div><div class="sh"></div>
+<div class="h">${head.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div><div class="m">FLOWVIUM</div>`);
+    await page.screenshot({ path: `${WORK}/thumb.png` });
+  } finally { await browser.close(); }
+
+  // ── 장면 합성 ── make-shorts 6절과 같다(정지 그림 + 큐 오버레이 + 소리)
+  const parts = [];
+  for (let i = 0; i < scenes.length; i++) {
+    const { dur, cues } = scenes[i];
+    let chain = mediaFilter('0:v', 'v0', { motion: false });
+    cues.forEach((c, k) => {
+      const from = Math.max(0, c.start).toFixed(2);
+      const to = Math.min(dur, k === cues.length - 1 ? dur : c.end).toFixed(2);
+      chain += `;[v${k}][${k + 1}:v]overlay=0:0:enable='between(t,${from},${to})'[v${k + 1}]`;
+    });
+    const part = `${WORK}/p${i}.mp4`;
+    const r = spawnSync(ffmpegPath, ['-v', 'error', '-loop', '1', '-t', String(dur), '-i', scenes[i].media,
+      ...scenes[i].ov.flatMap((f) => ['-i', f]), '-i', scenes[i].audio,
+      '-filter_complex', chain, '-map', `[v${cues.length}]`, '-map', `${1 + scenes[i].ov.length}:a`,
+      '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', ...audioArgs(), '-r', String(G.FPS), '-t', String(dur), '-y', part],
+      ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
+    if (r.status !== 0) { log(`❌ ${item.id} 장면 ${i + 1} 합성 실패: ${String(r.stderr).slice(0, 200)}`); return false; }
+    parts.push(part);
+  }
+  // 끝 카드 — 이 풀은 사이트(flowvium.net) 카드로 고정. 설명 영상 다음에 '전체 분석' 으로 이어진다.
+  const pick = (await import('../lib/promo-card.mjs')).promoPath('flowvium', ROOT);
+  if (pick.path && existsSync(pick.path)) parts.push(pick.path);
+  const OUT = `${WORK}/shorts-ko.mp4`;
+  writeFileSync(`${WORK}/list.txt`, parts.map((p) => `file '${p}'`).join('\n'));
+  // 소리 규격이 어긋나도 copy 이어붙이기는 exit 0 이다(make-shorts 2026-09-14) — 처음부터 소리만 다시 인코딩한다.
+  const cat = spawnSync(ffmpegPath, ['-v', 'error', '-f', 'concat', '-safe', '0', '-i', `${WORK}/list.txt`, '-c:v', 'copy', ...audioArgs(), '-y', OUT],
+    ffmpegOpts({ stdio: ['ignore', 'ignore', 'pipe'] }));
+  if (cat.status !== 0) { log(`❌ ${item.id} 이어붙이기 실패: ${String(cat.stderr).slice(0, 200)}`); return false; }
+
+  // 배경음 — make-shorts 와 같은 규칙(출처 있는 곡만, 내레이션보다 20dB 아래). 곡은 id 로 고른다(편마다 고정).
+  const bgmDir = resolve(ROOT, 'assets/bgm');
+  const { beds } = licensedBeds(bgmDir);
+  if (beds.length) {
+    const bed = beds[[...item.id].reduce((n, c) => n + c.charCodeAt(0), 0) % beds.length];
+    const r = mixBgm({ input: OUT, bed: join(bgmDir, bed), output: `${WORK}/with-bgm.mp4`, workDir: WORK });
+    if (r.ok) copyFileSync(`${WORK}/with-bgm.mp4`, OUT);
+    log(r.ok ? `  음악 ${bed} (${r.gap.toFixed(1)}dB 아래)` : `  ⚠ 배경음 없이: ${r.reason}`);
+  }
+  {
+    const target = Number(process.env.SHORTS_LUFS ?? -14);
+    const r = normalizeLoudness(OUT, `${WORK}/final-loud.mp4`, target, { extraOut: ['-map', '0:v:0', '-map', '0:a:0', '-c:v', 'copy', ...audioArgs()] });
+    const after = r.ok ? measureLoudness(['-i', `${WORK}/final-loud.mp4`]) : null;
+    if (r.ok && after && Math.abs(after.I - target) <= 1.5) { copyFileSync(`${WORK}/final-loud.mp4`, OUT); log(`  음량 ${after.I.toFixed(1)} LUFS`); }
+    else log(`  ⚠ 음량 맞추기 실패 — 원래 크기: ${r.reason ?? after?.I}`);
+  }
+  spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', `${WORK}/thumb.png`, '-q:v', '3', `${WORK}/shorts-ko-thumb.jpg`], ffmpegOpts({ timeoutMs: 30000 }));
+
+  // ── 메타 ── video-publish 가 읽는다. 뉴스 설명·태그(#속보·출처 표기)를 붙이지 않게 제목·설명·태그를 여기서 정한다.
+  const desc = [
+    item.title, '',
+    ...item.scenes.map((s) => s.say), '',
+    '그림은 AI로 만든 일러스트입니다. 특정 종목의 매수·매도를 권하는 내용이 아닙니다.', '',
+    '#주식공부 #주식상식 #경제상식 #재테크 #Flowvium',
+  ].join('\n');
+  const meta = {
+    evergreen: true, id: item.id, title: item.title, description: desc,
+    tags: ['주식공부', '주식상식', '경제상식', '재테크', '주식 기초', 'Flowvium', ...item.title.split(/[\s,?]+/).filter((w) => w.length >= 2).slice(0, 4)],
+    headlines: [item.title], hooks: scenes.map((s) => s.hook), bodies: [scenes.map((s) => s.say).join(' ')],
+    keyword: `${KEY_PREFIX}${item.id}`, topic: '주식 상식', brief: false, synthetic: false, subCta: false,
+    promo: pick.path ? 'flowvium' : null, explore: false, layout: LAYOUT, opener: null, motion: 'still', trend: false,
+    seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
+  };
+  writeFileSync(`${WORK}/shorts-ko-meta.json`, JSON.stringify(meta, null, 2));
+
+  // 풀에 넣는다 — 다 만든 뒤 한 번에 옮긴다(반쯤 쓴 폴더를 발행이 집지 않게).
+  const dest = join(POOL, item.id);
+  const stage = `${dest}.part`;
+  rmSync(stage, { recursive: true, force: true });
+  mkdirSync(stage, { recursive: true });
+  for (const f of ['shorts-ko.mp4', 'shorts-ko-thumb.jpg', 'shorts-ko-meta.json']) if (existsSync(join(WORK, f))) copyFileSync(join(WORK, f), join(stage, f));
+  rmSync(dest, { recursive: true, force: true });
+  renameSync(stage, dest);
+  rmSync(WORK, { recursive: true, force: true });
+  log(`✅ ${item.id} → ${dest} · ${totalSec.toFixed(1)}초 + 끝 카드`);
+  return true;
+}
+
+mkdirSync(POOL, { recursive: true });
+// 대장을 못 읽으면 멈춘다 — '나간 것 없음'으로 넘기면 이미 올린 설명을 또 만든다.
+const done = publishedIds(await import('../lib/db.mjs'));
+const inPool = new Set(listSpares(POOL).filter((s) => !s.dir.endsWith('.part')).map((s) => s.meta.id));
+const ID = arg('--id', null);
+const FILL = Number(arg('--fill', 0));
+if (ID) {
+  const item = DATA.items.find((x) => x.id === ID);
+  if (!item) { console.error(`없는 id: ${ID}`); process.exit(2); }
+  if (done.has(ID) && !argv.includes('--force')) { log(`${ID} 는 이미 나갔다 — 다시 만들지 않는다(--force)`); process.exit(0); }
+  process.exit((await render(item)) ? 0 : 1);
+}
+if (FILL > 0) {
+  let have = inPool.size;
+  log(`풀 ${have}편 · 목표 ${FILL}편 · 이미 나간 주제 ${done.size}개`);
+  for (const item of DATA.items) {
+    if (have >= FILL) break;
+    if (inPool.has(item.id) || done.has(item.id)) continue;
+    // 보고서 중엔 무거운 일을 하지 않는다(그림·음성·합성) — 끝날 때까지 기다리고, 2시간 넘으면 다음 실행에 맡긴다.
+    for (let w = 0; await isReportPipelineRunning().catch(() => false); w++) {
+      if (w >= 24) { log('보고서가 2시간 넘게 돈다 — 여기서 멈추고 다음 실행에 맡긴다'); process.exit(0); }
+      if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');
+      await new Promise((r) => setTimeout(r, 300_000));
+    }
+    if (await render(item)) have++;
+  }
+  log(`풀 ${have}편${have < FILL ? ` — 목표보다 ${FILL - have}편 모자란다(대본을 더 써야 한다: data/evergreen-shorts.json)` : ''}`);
+  process.exit(0);
+}
+console.error('사용: --id <id> | --fill <편수>');
+process.exit(2);

@@ -13,7 +13,8 @@ export const MAX_AGE_H = 24;
 
 const LINK = /https?:\/\/|www\.|\b[\w-]+\.(?:com|net|kr|io|co|me|ly)\b/i;
 const PROMO = /쿠팡|coupang|구독|좋아요\s*(?:눌러|부탁)|알림\s*설정|subscribe/i;
-const CALL = /(?:사세요|파세요|사라|팔아라|매수\s*(?:하세요|추천|타이밍)|매도\s*(?:하세요|추천|타이밍)|추천합니다|지금이\s*기회|buy\s+now|sell\s+now|you should (?:buy|sell))/i;
+// '사라' 는 앞뒤가 한글이 아닐 때만(낱말) — '회사라면'·'사라졌다' 를 권유로 잡았다(10/28 실측).
+export const CALL = /(?:사세요|파세요|(?<![가-힣])사라(?![가-힣])|팔아라|매수\s*(?:하세요|추천|타이밍)|매도\s*(?:하세요|추천|타이밍)|추천합니다|지금이\s*기회|buy\s+now|sell\s+now|you should (?:buy|sell))/i;
 const MEDICAL = /복용하세요|드세요|처방|진단(?:하면|하세요)|치료하세요/;
 const NOT_ADVICE = { ko: /투자\s*권유가\s*아닙니다/, en: /not (?:investment|financial) advice/i };
 

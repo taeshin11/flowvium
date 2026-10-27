@@ -7,7 +7,8 @@
 import { google } from 'googleapis';
 import { authorizedClient } from './youtube.mjs';
 
-const MAIN = { '국내정치': '국내정치 이슈', '국제·외교·전쟁': '국제·외교 이슈', '증시·금리·환율': '증시·금리·환율', '기업·산업': '기업·산업' };
+const MAIN = { '국내정치': '국내정치 이슈', '국제·외교·전쟁': '국제·외교 이슈', '증시·금리·환율': '증시·금리·환율', '기업·산업': '기업·산업',
+  '주식 상식': '주식 상식' };   // 2026-10-28 상시 쇼츠(예비 풀, data/evergreen-shorts.json) — 뉴스 목록에 섞지 않는다
 const SUFFIX = ' · 40초 쇼츠';
 
 /** 주제 → 재생목록 제목. 주제가 없으면 null(넣지 않는다). */
@@ -36,7 +37,7 @@ export function youtubePlaylistApi() {
     },
     async create(title) {
       const r = await yt.playlists.insert({ part: ['snippet', 'status'], requestBody: {
-        snippet: { title, description: `${title.replace(SUFFIX, '')} 뉴스를 40초 쇼츠로 매일 정리합니다. 구독해 두시면 놓치지 않습니다.`, defaultLanguage: 'ko' },
+        snippet: { title, description: `${title.replace(SUFFIX, '')}${title.startsWith('주식 상식') ? '을 40초 쇼츠로 정리합니다.' : ' 뉴스를 40초 쇼츠로 매일 정리합니다.'} 구독해 두시면 놓치지 않습니다.`, defaultLanguage: 'ko' },
         status: { privacyStatus: 'public' } } });
       cache = null;
       return r.data.id;

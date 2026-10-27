@@ -616,6 +616,19 @@ async function checkOnce() {
     issues.push(`DB 무결성 검사 실패: ${String(e?.message).slice(0, 60)} — 감시 사각지대`);
   }
 
+  // [13] 상시 쇼츠 풀 (2026-10-28 신설, Mac mini2·사장님 위임 "36시간치").
+  //     뉴스 렌더가 막혔을 때 나가는 날짜·가격 없는 설명 쇼츠(scripts/video/make-evergreen-short.mjs).
+  //     하루 10편 기준 36시간 = 15편. 모자라면 밤 채우기(evergreen-fill)가 못 채운 것 — 대본이 바닥났거나 그림이 막혔다.
+  try {
+    const { evergreenDir, listSpares } = await import('./lib/shorts-spare.mjs');
+    const n = listSpares(evergreenDir()).filter((x) => !x.dir.endsWith('.part')).length;
+    const need = Number(process.env.EVERGREEN_POOL_MIN || 15);
+    if (n < need) issues.push(`상시 쇼츠 풀 ${n}/${need}편 — 뉴스 렌더가 막히면 ${n}회차만 메운다 (logs/evergreen-fill.log · 대본 data/evergreen-shorts.json)`);
+    else info.push(`상시 쇼츠 풀 ✓ ${n}편`);
+  } catch (e) {
+    issues.push(`상시 쇼츠 풀 판독 실패: ${String(e?.message).slice(0, 60)}`);
+  }
+
   // [12] 교정기 드리프트 (2026-08-22 신설).
   //      이 세션에서 근본원인 7건 중 5건이 같은 형태였다 —
   //      **증상을 고치는 코드가 이미 있었고 그게 원인을 몇 달간 가렸다.**

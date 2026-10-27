@@ -8,7 +8,7 @@
  * 예비 폴더: <MEDIA_ROOT>/spares/<시각>/ — 안의 파일 이름은 정규 산출물과 같다(SPARE_FILES).
  */
 import { existsSync, readdirSync, readFileSync, copyFileSync, rmSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 
 /**
@@ -41,6 +41,21 @@ export function listSpares(dir) {
 /** 쓸 수 있는 예비 하나(가장 새것) 또는 null. */
 export function pickSpare({ dir, maxAgeH = 6, isPublished = () => false, now = Date.now() }) {
   return listSpares(dir).find((s) => now - s.createdAt <= maxAgeH * 3600e3 && !isPublished(s.meta.keyword)) ?? null;
+}
+
+/**
+ * 상시 쇼츠 풀(2026-10-28 Mac mini2, 사장님 위임 — "테크이슈와 같은 규칙, 36시간치").
+ *   날짜·가격 없는 주식 상식(scripts/video/make-evergreen-short.mjs)이라 기한이 없다. 뉴스 예비가 없을 때만 쓴다.
+ *   자리는 저장소 reports/video(로컬·깃 밖) — 임시폴더는 며칠 안 쓰면 macOS 가 비우고, 드라이브는 멈춘다(위 spareDir).
+ */
+export function evergreenDir(env = process.env) {
+  return env.SHORTS_EVERGREEN_DIR || resolve(new URL('../..', import.meta.url).pathname, 'reports/video/evergreen-pool');
+}
+
+/** 풀에서 하나 — 이미 나간 주제 빼고, 먼저 만든 것부터. 만드는 중(<id>.part)은 집지 않는다. */
+export function pickEvergreen({ dir, isPublished = () => false }) {
+  return listSpares(dir).filter((s) => !s.dir.endsWith('.part') && !isPublished(s.meta.keyword))
+    .sort((a, b) => a.createdAt - b.createdAt)[0] ?? null;
 }
 
 /** 오래됐거나 이미 나간 예비를 지운다. 지운 개수. */

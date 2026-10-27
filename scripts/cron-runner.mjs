@@ -714,6 +714,8 @@ const MAINT_JOBS = [
   //   창(오전판 11:20~13:30, 마감판 16:20~19:30)·장 상태(오전판 = 장중, 마감판 = 마감)·휴장은 스크립트가 거른다.
   { label: 'market-brief-krmid',   script: 'scripts/video/make-market-brief.mjs --edition krmid --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['3,18,33 3 * * *'],              maxAgeH: 30 },
   { label: 'market-brief-krclose', script: 'scripts/video/make-market-brief.mjs --edition krclose --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['40 7 * * *', '0,20 8 * * *'], maxAgeH: 30 },
+  // 2026-10-28 상시 쇼츠 풀(Mac mini2·사장님 위임 "36시간치") — 나간 만큼 밤에 채운다. 18:20 UTC = 03:20 KST(보고서·발행 밖). 보고서가 돌면 스스로 기다린다.
+  { label: 'evergreen-fill',       script: 'scripts/video/make-evergreen-short.mjs --fill 15', timeoutMs: 10800000, commitPaths: [], schedules: ['20 18 * * *'], maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },
   { label: 'sell-outcomes',        script: 'scripts/evaluate-sell-outcomes.mjs',     timeoutMs: 600000,  commitPaths: [],                                     schedules: ['35 18 * * *'],                maxAgeH: 30 },

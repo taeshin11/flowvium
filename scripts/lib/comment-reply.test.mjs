@@ -16,6 +16,10 @@ assert.equal(checkReply('3분기 실적 발표는 11월 5일입니다.', { stock
 assert.equal(checkReply('3분기 실적 발표는 11월 5일입니다.\n투자 권유가 아닙니다.', { stock: true }).ok, true);
 assert.equal(checkReply('Earnings are due Nov 5.\nNot investment advice.', { stock: true, lang: 'en' }).ok, true);
 assert.equal(checkReply('매수 추천합니다.\n투자 권유가 아닙니다.', { stock: true }).ok, false);
+// '사라' 는 낱말일 때만 — '회사라면'·'사라졌다' 는 권유가 아니다(10/28 상시 쇼츠 대본에서 오탐)
+assert.equal(checkReply('이익이 줄 회사라면 PER 이 낮아도 비쌉니다.').ok, true);
+assert.equal(checkReply('그 이슈는 금방 사라졌습니다.').ok, true);
+assert.equal(checkReply('지금 사라, 늦으면 없다').ok, false);
 // [3] 상품 링크 질문은 고정 댓글로 안내 — 이건 된다
 assert.equal(checkReply('링크는 고정 댓글에 있습니다.').ok, true);
 

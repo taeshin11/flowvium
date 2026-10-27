@@ -260,14 +260,27 @@ if (USE_EXISTING) {
       SUB_CTA_ENV = subCtaFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0';
     } catch { /* 모르면 안 붙인다 */ }
   }
-  const useSpare = async (why) => {
+  // 2026-10-28 상시 쇼츠 풀(Mac mini2, 사장님 위임 "테크이슈와 같은 규칙, 36시간치") — 뉴스 예비도 없을 때 날짜·가격 없는
+  //   주식 상식 한 편(scripts/video/make-evergreen-short.mjs). **렌더가 실패·지연·부하로 못 돌 때만** 쓴다 —
+  //   '새 뉴스가 없어 거른' 회차(exit 3 만 세 번)는 정상 건너뜀이라 { evergreen: false } 로 부른다.
+  const useSpare = async (why, { evergreen = true } = {}) => {
     if (!isShorts || process.env.SHORTS_SPARE === '0') return false;
     try {
-      const { pickSpare, promoteSpare, spareDir } = await import('./lib/shorts-spare.mjs');
+      const { pickSpare, promoteSpare, spareDir, pickEvergreen, evergreenDir } = await import('./lib/shorts-spare.mjs');
       const { recentShortsIssues, normalizeIssueKey } = await import('./lib/db.mjs');
       const pub = recentShortsIssues(24);
       const sp = pickSpare({ dir: spareDir(), maxAgeH: Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6),
         isPublished: (k) => pub.has(normalizeIssueKey(k)) });
+      if (!sp && evergreen) {
+        const ever = recentShortsIssues(24 * 3650);   // 상식 편은 한 번만 — 기한 없이 본다
+        const ev = pickEvergreen({ dir: evergreenDir(), isPublished: (k) => ever.has(normalizeIssueKey(k)) });
+        if (ev) {
+          promoteSpare(ev, STAGE, LOCALE);
+          log(`예비로 올린다 — ${why} · 뉴스 예비가 없어 상시 쇼츠 "${ev.meta.title}"`);
+          return true;
+        }
+        log(`상시 쇼츠 풀도 비었다 — ${why}`);
+      }
       if (!sp) { log(`예비 없음 — ${why}`); return false; }
       const r = promoteSpare(sp, STAGE, LOCALE);
       log(`예비로 올린다 — ${why} · 예비 "${r.keyword}" (${Math.round((Date.now() - sp.createdAt) / 60000)}분 전에 만든 것)`);
@@ -315,7 +328,7 @@ if (USE_EXISTING) {
       log(`렌더 ${a}회차가 "${last || '?'}" 로 낼 것을 못 만들었다 — 다른 이슈로 다시 시도한다 (${a + 1}/${TRIES})`);
     }
   }
-  if (!rendered && await useSpare(`${TRIES}번 시도했지만 낼 것이 없다(시도: ${tried.join(', ') || '없음'})`)) rendered = true;
+  if (!rendered && await useSpare(`${TRIES}번 시도했지만 낼 것이 없다(시도: ${tried.join(', ') || '없음'})`, { evergreen: false })) rendered = true;
   if (!rendered) {
     log(`건너뜀 — ${TRIES}번 시도했지만 낼 것이 없다(고장 아님). 시도한 이슈: ${tried.join(', ') || '없음'}`);
     process.exit(NOTHING_TO_PUBLISH);
@@ -394,7 +407,7 @@ let title = isShorts
 //   원문에 없는 숫자·동떨어진 문장·작업 보고는 lib/curiosity-title 이 막고, 막히면 헤드라인 제목 그대로다.
 //   끄려면 SHORTS_CURIOSITY_TITLE=0.
 let titleStyle = null;
-if (isShorts) {
+if (isShorts && !last.evergreen) {
   const { chooseShortsTitle } = await import('./lib/curiosity-title.mjs');
   // 2026-10-13: 궁금증형은 성적상 '강' 주제에서만(lib/curiosity-title [10g]). 주제를 모르거나 판정을 못 하면 헤드라인.
   let topicStrong = false;
@@ -416,14 +429,20 @@ if (isShorts) {
   if (picked.style === 'curiosity') log(`제목: 궁금증형 — ${title}`);
   else if (picked.fellBack) log(`제목: 궁금증형 차례였지만 선을 못 지켜 헤드라인으로 (${picked.reason})`);
 }
+// 2026-10-28 상시 쇼츠(예비 풀)는 뉴스가 아니다 — 헤드라인 제목·궁금증형·뉴스 설명(#속보·사진 출처)을 쓰지 않고
+//   만들 때 정한 제목을 그대로 쓴다(lib/evergreen-check 가 날짜·가격·권유·길이를 이미 봤다).
+if (isShorts && last.evergreen) { title = String(last.title); titleStyle = 'evergreen'; log(`제목: 상시 쇼츠 — ${title}`); }
 // 쇼츠는 제목·설명에 #Shorts 가 있어야 유튜브가 쇼츠 선반에 올린다(세로+3분이하 만으로는 놓칠 때가 있다).
 if (isShorts && !/#Shorts/i.test(title)) title = `${title} #Shorts`;
 if (proud) log('제목: 한국 성과 헤드라인을 앞세웠다');
 
 const SITE = envValue('SITE_URL') || 'flowvium.net';   // 링크는 youtube-upload 가 /go/en 으로 붙인다
-const tagWords = buildTags(top, last.keywords, isKoUpload);
+const tagWords = last.evergreen && last.tags?.length ? last.tags : buildTags(top, last.keywords, isKoUpload);
 
-let desc = buildDescription(top, isKoUpload, TITLE_OPTS);
+// 상시 쇼츠 설명은 만들 때 정한 것 + 후원 줄(계좌는 .env.local 에서 발행 때 읽는다 — 풀 파일에 굽지 않는다).
+let desc = last.evergreen && last.description
+  ? [String(last.description), ...(await import('./lib/video-meta.mjs')).donationLines(isKoUpload)].join('\n')
+  : buildDescription(top, isKoUpload, TITLE_OPTS);
 
 // ── 표기 의무를 설명란까지 보낸다 ──────────────────────────────────────────
 // 2026-09-15: make-shorts 가 CC BY 소재의 크레딧을 `<영상>-credits.txt` 에 모아 두는데
