@@ -676,6 +676,9 @@ const MAINT_JOBS = [
   //   예약 공개 롱폼(한국 마감판)은 공개 전엔 댓글 칸이 없어 업로드 직후 달기가 실패했고 다시 고르는 길이 없었다.
   //   할 일 없으면 API 3단위만 쓰고 끝(창 없음). 실패하면 logs/pin-alert.jsonl 에 남기고 멈춘다 → 정시 점검(shorts-today-check)이 알린다.
   //   보고서 중에도 돈다 — 창 없는 브라우저 하나·몇 편이라 가볍고, 늦으면 '15분 안' 을 못 지킨다.
+  // 2026-10-27 사장님(Mac mini2 경유): 시청자 댓글엔 늦어도 24시간·매시 보면 1시간 안에 1~2줄 답글. 규칙은 lib/comment-reply.
+  //   정치·욕설·스팸은 건너뛴다(지우지 않는다). 영상당 하루 5·계정 하루 20. 할 일 없으면 조용히 끝난다.
+  { label: 'yt-reply',             script: 'scripts/yt-reply-comments.mjs',          timeoutMs: 900000,  commitPaths: [], duringReport: true,                  schedules: ['23 * * * *'],                 maxAgeH: 3 },
   { label: 'pin-watch',            script: 'scripts/yt-pin-comment.mjs --due',      timeoutMs: 1500000, commitPaths: [], duringReport: true,                  schedules: ['*/10 * * * *'],               maxAgeH: 2 },
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
   //   2026-09-28: :30 → :50. 보고서 트리거(05:30·10:30·14:30·22:30)와 같은 분이라 '보고서 중이면 쉰다' 검사를 먼저 통과해
