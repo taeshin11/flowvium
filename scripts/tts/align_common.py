@@ -78,11 +78,52 @@ def word_times(wav, model_size, lang):
         return None
 
 
+def _num_syllables(tok):
+    """숫자 덩어리를 한국어로 읽을 때의 음절 수(대략). 5,652.23 → 오천육백오십이 점 이삼 = 10."""
+    whole, _, frac = tok.replace(",", "").partition(".")
+    n = 0
+    digits = whole.lstrip("0") or ("0" if whole else "")
+    for i, d in enumerate(digits):
+        place = len(digits) - 1 - i
+        if d == "0":
+            continue
+        n += (0 if (d == "1" and place % 4) else 1) + (1 if place % 4 else 0)  # 일 생략(십·백·천) + 자리 이름
+        if place % 4 == 0 and place:  # 만·억
+            n += 1
+    if frac:
+        n += 1 + len(frac)  # 점 + 숫자마다 한 음절
+    return max(n, 1)
+
+
+def _weights(text):
+    """글자마다 읽는 길이(음절 수 짐작). 한글 1, 숫자 덩어리는 읽은 음절 수를 글자에 나눠, % 3(퍼센트), 영문 1, 나머지 0."""
+    import re
+    w = [0.0] * len(text)
+    for m in re.finditer(r"\d[\d,]*(?:\.\d+)?", text):
+        a, b = m.span()
+        each = _num_syllables(m.group()) / (b - a)
+        for i in range(a, b):
+            w[i] = each
+    for i, c in enumerate(text):
+        if w[i]:
+            continue
+        if "\uac00" <= c <= "\ud7a3" or c.isalpha():
+            w[i] = 1.0
+        elif c == "%":
+            w[i] = 3.0
+    return w
+
+
 def char_times(text, words, total):
     """낱말 시각을 원문 글자에 편다.
 
     whisper 는 숫자·약어를 원문과 다르게 적는다("고대역폭"→"고대혁폭"). 그래서 인식 결과를
     자막으로 쓰지 않는다 — 자막은 언제나 원문이고 whisper 에서는 **시각만** 가져온다.
+
+    2026-10-27: 전에는 낱말 k 개를 글자 수로 k 등분해 얹었다 — 숫자(화면엔 짧고 읽으면 긴)가 있으면
+    뒤 낱말이 1초씩 앞당겨졌다(lib/align-chars.test). 이제 '읽는 길이'로 잰다:
+      · 원문 낱말 수와 whisper 낱말 수가 같으면 낱말끼리 짝짓는다.
+      · 다르면 양쪽을 읽는 길이 누적 비율로 맞춘다(앞으로만 가는 대응).
     """
     n = len(text)
     st = [0.0] * n
@@ -92,18 +133,58 @@ def char_times(text, words, total):
             st[i] = total * i / max(1, n)
             en[i] = total * (i + 1) / max(1, n)
         return st, en, "정렬 실패 — 균등분배"
-    k = len(words)
-    bounds = [round(n * i / k) for i in range(k + 1)]
-    for wi in range(k):
-        a, b = bounds[wi], bounds[wi + 1]
-        ws, we = words[wi][1], words[wi][2]
-        span = max(1, b - a)
-        for i in range(a, b):
-            st[i] = ws + (we - ws) * (i - a) / span
-            en[i] = ws + (we - ws) * (i - a + 1) / span
-    for i in range(n):
-        st[i] = min(st[i], total)
-        en[i] = min(en[i], total)
+    wt = _weights(text)
+    # 원문 낱말(띄어쓰기) 칸
+    spans, i = [], 0
+    while i < n:
+        if text[i].isspace():
+            i += 1
+            continue
+        j = i
+        while j < n and not text[j].isspace():
+            j += 1
+        spans.append((i, j))
+        i = j
+    if len(spans) == len(words):
+        for (a, b), (_, ws, we) in zip(spans, words):
+            tot = sum(wt[a:b]) or float(b - a)
+            acc = 0.0
+            for k in range(a, b):
+                x = wt[k] if sum(wt[a:b]) else 1.0
+                st[k] = ws + (we - ws) * acc / tot
+                acc += x
+                en[k] = ws + (we - ws) * acc / tot
+    else:
+        # whisper 쪽 누적 읽는 길이 → 시각 꺾은선. 낱말 사이 쉼은 경계에 둔다.
+        pts = [(0.0, words[0][1])]
+        acc = 0.0
+        for w, ws, we in words:
+            ww = sum(_weights(w)) or float(len(w) or 1)
+            pts.append((acc, ws))
+            acc += ww
+            pts.append((acc, we))
+        wtot = acc
+        ttot = sum(wt) or float(n)
+
+        def at(f):  # f: 0~1 누적 비율 → 시각
+            x = f * wtot
+            for (x0, t0), (x1, t1) in zip(pts, pts[1:]):
+                if x <= x1:
+                    return t0 if x1 == x0 else t0 + (t1 - t0) * (x - x0) / (x1 - x0)
+            return pts[-1][1]
+        acc = 0.0
+        for k in range(n):
+            x = wt[k] if sum(wt) else 1.0
+            st[k] = at(acc / ttot)
+            acc += x
+            en[k] = at(acc / ttot)
+    # 띄어쓰기·문장부호(무게 0)는 앞 글자 끝에 붙는다. 시각은 앞으로만, 전체 길이 안에서.
+    for k in range(n):
+        if k:
+            st[k] = max(st[k], st[k - 1])
+        en[k] = max(en[k], st[k])
+        st[k] = min(st[k], total)
+        en[k] = min(en[k], total)
     return st, en, None
 
 
