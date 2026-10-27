@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-10-27T07:20:26.425Z",
+  "generatedAt": "2026-10-27T22:20:23.918Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "024120.KQ",
+      "name": "KB오토시스",
+      "tier": "watch",
+      "score": 37,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 80%(강한 매수 흡수)",
+        "아래꼬리 매집 8개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 1,
+      "runup5dPct": -0.6,
+      "medDollarVolUsd": 23318,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "043370.KQ",
       "name": "피에이치에이",
