@@ -31,8 +31,11 @@ import { overlap } from './blog-quality.mjs';
 const MIN_OVERLAP = 0.35;
 
 /** 편마다 번갈아. 씨앗은 발행 누적 편수(결정론 — 같은 편은 같은 방식). */
+// 2026-10-27: 반반 → 궁금증 70%·헤드라인 30%(대조군). 같은 주제 안 비교에서 궁금증형이 이겼다(curiosity-title.test [7]).
+//   열 편마다 1·4·8 번째만 헤드라인 — 흩어 놓아 같은 날 두 방식이 나란히 남는다.
+const HEADLINE_SLOTS = new Set([1, 4, 8]);
 export function titleStyleFor(seed) {
-  return Math.abs(Math.trunc(Number(seed) || 0)) % 2 === 0 ? 'curiosity' : 'headline';
+  return HEADLINE_SLOTS.has(Math.abs(Math.trunc(Number(seed) || 0)) % 10) ? 'headline' : 'curiosity';
 }
 
 /**

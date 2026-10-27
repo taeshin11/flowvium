@@ -53,8 +53,13 @@ const mk = (t) => async () => JSON.stringify({ title: t });
 }
 // [7] 번갈아 쓴다 — 같은 날 두 방식이 나란히 있어야 날짜 효과에 속지 않고 비교된다
 {
-  titleStyleFor(10) !== titleStyleFor(11) && titleStyleFor(10) === titleStyleFor(12)
-    ? ok(`[7] 편마다 번갈아: ${titleStyleFor(10)} / ${titleStyleFor(11)}`) : bad('[7]');
+  // 2026-10-27: 같은 주제 안에서 궁금증형이 3일 조회 1,068 vs 1,022(p=0.03)·좋아요/1천 17.7 vs 10.8(p=0.06) — ChatGPT·agy·Claude 셋 다 70:30.
+  //   헤드라인 30% 는 대조군. 열 편 중 세 편, 몰리지 않게 흩어서(같은 날 두 방식이 나란히 있어야 날짜 효과에 안 속는다).
+  const ten = Array.from({ length: 10 }, (_, i) => titleStyleFor(100 + i));
+  const cur = ten.filter((x) => x === 'curiosity').length;
+  const runs = Math.max(...ten.join(',').split('headline').map((x) => x.split('curiosity').length - 1));
+  cur === 7 && runs <= 3 && titleStyleFor(7) === titleStyleFor(17)
+    ? ok(`[7] 열 편 중 궁금증 7·헤드라인 3, 궁금증 연속 최대 ${runs}`) : bad(`[7] 궁금증 ${cur}/10 · 연속 ${runs}`);
 }
 // [8] ★ 따옴표 없는 느슨한 JSON 이 와도 **중괄호가 제목에 실리지 않는다** (2026-09-25 실측)
 //   `{title: 이란 대통령이 … 연설한 이유}` 가 JSON.parse 에 실패해 원문 통째로 제목이 됐고,
@@ -123,11 +128,11 @@ const mk = (t) => async () => JSON.stringify({ title: t });
   const a = await chooseShortsTitle({ ...base, seed: 2, make: make('북한군 포로가 한국에 온 이유') });
   (a.title === '북한군 포로가 한국에 온 이유' && a.style === 'curiosity')
     ? ok('[10a] 궁금증 차례 + 통과 → 궁금증 제목') : bad(`[10a] ${JSON.stringify(a)}`);
-  const b = await chooseShortsTitle({ ...base, seed: 4, make: make(null) });
+  const b = await chooseShortsTitle({ ...base, seed: [...Array(10).keys()].find((i) => titleStyleFor(i) === 'curiosity' && i !== 2), make: make(null) });
   (b.title === '헤드라인 제목' && b.style === 'headline' && b.fellBack === true)
     ? ok('[10b] 궁금증 차례인데 선을 못 지킴 → 헤드라인 · fellBack 표시') : bad(`[10b] ${JSON.stringify(b)}`);
   calls = 0;
-  const c = await chooseShortsTitle({ ...base, seed: 3, make: make('X의 이유') });
+  const c = await chooseShortsTitle({ ...base, seed: [...Array(10).keys()].find((i) => titleStyleFor(i) === 'headline'), make: make('X의 이유') });
   (c.title === '헤드라인 제목' && c.style === 'headline' && !c.fellBack && calls === 0)
     ? ok('[10c] 헤드라인 차례 → 부르지도 않는다') : bad(`[10c] ${JSON.stringify(c)} calls=${calls}`);
   calls = 0;
