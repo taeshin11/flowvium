@@ -8,7 +8,7 @@ import { mdToHtml } from './blog-html.mjs';
 // [1] 판은 세 개, 각각 한 줄 · 과장어 없음 · 사이트가 실제로 하는 일(질문·요약·엑셀 다루기)
 assert.deepEqual(Object.keys(AD_VERSIONS), ['a', 'b', 'c']);
 for (const [v, t] of Object.entries(AD_VERSIONS)) {
-  assert.ok(!/\n/.test(t) && t.length <= 26, `${v} 한 줄·짧게: ${t}`);
+  assert.ok(!/\n/.test(t) && t.length <= 28, `${v} 한 줄·짧게: ${t}`);
   assert.ok(!/최고|최초|1위|유일|완벽/.test(t), `${v} 과장어: ${t}`);
 }
 assert.equal(AD_CTA, '바로 써 보기');
@@ -58,4 +58,8 @@ for (const [v, t] of Object.entries(AD_SPOKEN_BY)) {
 }
 assert.equal(AD_WHERE.shorts, '채널 링크에서');
 assert.equal(AD_WHERE.long, '설명란 링크');
+// [9] 10/28 저녁 사이트 문구 변경("원하는 걸 적으면…" — 사장님, gm0·Mac mini2 경유): 광고 글도 '적는' 말로. 말로·말 한마디로 금지.
+for (const [v, t] of Object.entries(AD_VERSIONS)) assert.ok(!/말로|말 한마디/.test(t), `${v} 옛 '말로' 문구: ${t}`);
+assert.equal(AD_VERSIONS.a, '이번 주 경제 뉴스, 적기만 하면 3줄 요약');
+assert.equal(AD_VERSIONS.c, '엑셀 매매 기록 정리, 적어서 시키면 AI가 대신');
 console.log('ad-line.test: ✅ 전부 통과');
