@@ -32,7 +32,8 @@ export function judgePrompt({ title, kind, file, textRule }) {
     '6. 채널의 다른 썸네일 사이에서 눈에 띈다',
     `고칠 수 있는 것은 썸네일 글뿐이다(사진은 그 뉴스의 실제 사진이라 못 바꾼다). 글 규칙: ${textRule}.`,
     '사실은 제목·그림에 있는 것만 써라 — 없는 숫자·과장·매수/매도 권유 금지.',
-    '답은 JSON 하나: {"score":정수0~10,"weak":"가장 약한 점 한 줄","text":"더 나은 썸네일 글(점수가 8 이상이면 빈 글)"}',
+    'image_ok: 그림(사진)이 주제와 바로 이어지고 주인공이 크면 true, 주제와 동떨어져 보이면 false.',
+    '답은 JSON 하나: {"score":정수0~10,"weak":"가장 약한 점 한 줄","text":"더 나은 썸네일 글(점수가 8 이상이면 빈 글)","image_ok":true|false}',
   ].join('\n');
 }
 
@@ -40,7 +41,9 @@ export function parseJudge(o) {
   if (!o || typeof o !== 'object') return null;
   const s = Number(o.score);
   if (!Number.isInteger(s) || s < 0 || s > 10) return null;
-  return { score: s, weak: String(o.weak ?? '').trim(), text: String(o.text ?? '').trim() };
+  const r = { score: s, weak: String(o.weak ?? '').trim(), text: String(o.text ?? '').trim() };
+  if (typeof o.image_ok === 'boolean') r.imageOk = o.image_ok;   // 그림이 주제와 맞는가 — 상시 쇼츠는 false 면 표지를 다시 그린다
+  return r;
 }
 
 /** 심판이 낸 글을 쓸 수 있는가. 쓸 수 있으면 정리한 글, 아니면 null. */
@@ -133,7 +136,7 @@ export function gateSummary(g) {
   const s = g.rounds[g.best].scores;
   const pick = (k) => (scored(s[k]) ? s[k].score : s[k]?.skipped ? '미채점' : s[k] ? '못 매김' : '없음');
   return { passed: g.passed, flagged: g.flagged, chatgpt: pick('chatgpt'), agy: pick('agy'), claude: pick('claude'),
-    text: g.text, rounds: g.rounds.length, weak: Object.values(s).filter((r) => scored(r) && r.score < PASS).map((r) => r.weak).filter(Boolean) };
+    text: g.text, rounds: g.rounds.length, imageBad: Object.values(s).filter((r) => r?.imageOk === false).length, weak: Object.values(s).filter((r) => scored(r) && r.score < PASS).map((r) => r.weak).filter(Boolean) };
 }
 
 export function appendGateLog(entry, file) {
@@ -199,7 +202,7 @@ export async function agyJudge({ image, prompt, timeoutMs = 240_000 }) {
   const { dir, file } = stage(image);
   try {
     writeFileSync(join(dir, 'schema.json'), JSON.stringify({ type: 'object',
-      properties: { score: { type: 'integer' }, weak: { type: 'string' }, text: { type: 'string' } }, required: ['score', 'weak', 'text'] }));
+      properties: { score: { type: 'integer' }, weak: { type: 'string' }, text: { type: 'string' }, image_ok: { type: 'boolean' } }, required: ['score', 'weak', 'text', 'image_ok'] }));
     const model = process.env.THUMB_GATE_AGY_MODEL || PREFERRED_VISION[0];
     let r;
     try {

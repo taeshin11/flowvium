@@ -34,7 +34,7 @@ import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT } from '
 import { checkEvergreen } from '../lib/evergreen-check.mjs';
 import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
 import { generateImage } from '../lib/agy-image.mjs';
-import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
+import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG, renderShortsThumb, gateShortsThumb } from '../lib/shorts-thumb.mjs';
 import { isReportPipelineRunning } from '../lib/report-running.mjs';
 
 loadEnvLocal();
@@ -199,6 +199,44 @@ async function render(item) {
   return true;
 }
 
+/**
+ * 표지 점검(2026-10-28 Mac mini2 — 썸네일 관문의 상시 쇼츠 예외): 풀에 든 편의 썸네일을 관문(lib/thumb-gate)으로 한 번 매기고,
+ *   심판이 그림이 주제와 안 맞는다(image_ok=false)고 하면 표지 배경을 agy 로 다시 그린다 — 뉴스 사진이 아니라 우리가 만든 그림이라
+ *   바꿔도 낚시가 아니다. 주식 시장이 바로 읽히는 그림(차트 화면·시세판), 글자·숫자 없이. 첫 실측: PER 편 집 그림을 두 심판 모두 지적.
+ *   뉴스 쇼츠는 실제 사진 그대로(video-publish 관문은 글만 고친다). 점검 결과는 메타 cover 에 남겨 한 번만 한다.
+ */
+const coverScene = (item) => `a large glowing stock market chart on a trading screen with candlesticks, a stock ticker board glowing behind it, mood: ${item.scenes[0].image}. The screens show only abstract shapes and lines — absolutely no text, letters, numbers or symbols anywhere`;
+async function coverCheck(dir) {
+  const mp = join(dir, 'shorts-ko-meta.json');
+  const meta = JSON.parse(readFileSync(mp, 'utf8'));
+  if (meta.cover?.checkedAt) return false;
+  const item = DATA.items.find((x) => x.id === meta.id);
+  const thumb = join(dir, 'shorts-ko-thumb.jpg');
+  if (!item || !existsSync(thumb) || !existsSync(join(dir, THUMB_BG))) return false;
+  log(`표지 점검 ${meta.id}`);
+  let g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
+  let redrawn = false;
+  if (g && !g.passed && g.imageBad > 0) {
+    const f = join(IMG_CACHE, meta.id, 'cover.jpg');
+    if (!existsSync(f)) {
+      const r = await generateImage({ prompt: `${DATA.style}. Scene: ${coverScene(item)}.`, out: f, aspect: '9:16' });
+      if (r.quotaExhausted) throw Object.assign(new Error(r.reason), { quota: true, resetAfterMs: r.resetAfterMs });
+      if (!r.ok) { log(`  표지 그림 실패(${r.reason}) — 다음 실행에 다시`); return false; }
+      log(`  표지 다시 그림 ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초 (심판 ${g.imageBad}명이 그림 지적)`);
+    }
+    copyFileSync(f, join(dir, THUMB_BG));
+    await renderShortsThumb({ bg: join(dir, THUMB_BG), head: g.text, out: thumb });
+    meta.thumb = { ...meta.thumb, head: g.text };
+    g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
+    redrawn = true;
+  }
+  if (g) meta.thumb = { ...meta.thumb, head: g.text };
+  meta.cover = { checkedAt: new Date().toISOString(), redrawn, passed: g?.passed ?? null, chatgpt: g?.chatgpt, agy: g?.agy, claude: g?.claude, flagged: g?.flagged ?? null };
+  writeFileSync(`${mp}.tmp`, JSON.stringify(meta, null, 2)); renameSync(`${mp}.tmp`, mp);
+  log(`  표지 ${g?.passed ? '✅ 통과' : `⚠ ${g?.flagged}`} · agy ${g?.agy} · Claude ${g?.claude}${redrawn ? ' · 배경 다시 그림' : ''} · "${g?.text}"`);
+  return true;
+}
+
 mkdirSync(POOL, { recursive: true });
 // 대장을 못 읽으면 멈춘다 — '나간 것 없음'으로 넘기면 이미 올린 설명을 또 만든다.
 const done = publishedIds(await import('../lib/db.mjs'));
@@ -222,8 +260,29 @@ if (FILL > 0) {
   } catch { /* 기록 없음 = 막힌 적 없음 */ }
   let have = inPool.size;
   log(`풀 ${have}편 · 목표 ${FILL}편 · 이미 나간 주제 ${done.size}개`);
+  // 표지 점검 먼저 — 한 편에 그림 0~1장이라 새 편(4장)보다 싸고, 이미 풀에 있는 편이 곧 나간다.
+  const onQuota = (e) => {
+    const yieldMs = Number(process.env.EVERGREEN_YIELD_H ?? 3) * 3600e3;
+    const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + yieldMs + 60e3).toISOString();
+    writeFileSync(RESET_FILE, JSON.stringify({ resetAt: at, reason: e.message }));
+    log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). ${at.slice(11, 16)}Z 뒤 첫 실행이 이어서 채운다`);
+  };
+  let quotaHit = false;
+  for (const sp of listSpares(POOL).filter((x) => !x.dir.endsWith('.part'))) {
+    if (process.env.THUMB_GATE === '0') break;
+    for (let w = 0; await isReportPipelineRunning().catch(() => false); w++) {
+      if (w >= 24) { log('보고서가 2시간 넘게 돈다 — 여기서 멈추고 다음 실행에 맡긴다'); process.exit(0); }
+      if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');
+      await new Promise((r) => setTimeout(r, 300_000));
+    }
+    try { await coverCheck(sp.dir); }
+    catch (e) {
+      if (e.quota) { onQuota(e); quotaHit = true; break; }
+      log(`  표지 점검 실패(${sp.meta.id}) — 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`);   // 발행이 그 편을 막 가져갔을 수 있다
+    }
+  }
   for (const item of DATA.items) {
-    if (have >= FILL) break;
+    if (have >= FILL || quotaHit) break;
     if (inPool.has(item.id) || done.has(item.id)) continue;
     // 보고서 중엔 무거운 일을 하지 않는다(그림·음성·합성) — 끝날 때까지 기다리고, 2시간 넘으면 다음 실행에 맡긴다.
     for (let w = 0; await isReportPipelineRunning().catch(() => false); w++) {
@@ -237,10 +296,7 @@ if (FILL > 0) {
       // 다음에 그림을 부를 시각을 남긴다 — 매시 도는 채우기가 그 전엔 그림을 부르지 않는다.
       //   10/28 Mac mini2 합의: 창(약 12장)을 번갈아 쓴다 — 이쪽 다음 리셋 창은 まちのナゼ(실제 예비 부족) 몫이라
       //   **리셋 + 한 창(EVERGREEN_YIELD_H, 기본 3시간)** 뒤에 다시 잡는다. 리셋 시각을 모르면 1시간 + 한 창.
-      const yieldMs = Number(process.env.EVERGREEN_YIELD_H ?? 3) * 3600e3;
-      const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + yieldMs + 60e3).toISOString();
-      writeFileSync(RESET_FILE, JSON.stringify({ resetAt: at, reason: e.message }));
-      log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). ${at.slice(11, 16)}Z 뒤 첫 실행이 이어서 채운다`);
+      onQuota(e);
       break;
     }
   }

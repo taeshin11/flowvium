@@ -121,5 +121,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.match(t, /⚠ 23:59 롱폼 .* — 3번 고쳐도 8점 미만/);
   assert.ok(!/ C$/.test(t), '다음 날(KST) 편은 빠진다');
 }
+// [13] 그림 판정 — 심판이 그림이 주제와 안 맞는다(image_ok=false)고 하면 요약에 imageBad 로 남는다(상시 쇼츠는 표지 그림을 다시 그린다 — 10/28 Mac mini2)
+{
+  assert.equal(parseJudge({ score: 6, weak: 'w', text: 't', image_ok: false }).imageOk, false);
+  assert.equal(parseJudge({ score: 6, weak: 'w', text: 't' }).imageOk, undefined);
+  assert.ok(judgePrompt({ title: 'T', kind: 'shorts', file: 'f.jpg', textRule: 'r' }).includes('image_ok'));
+  const judges = { agy: async () => ({ score: 6, weak: '집 그림은 주식과 무관', text: '', image_ok: false }), claude: async () => ({ score: 9, weak: '', text: '', image_ok: true }) };
+  const r = await runThumbGate({ image: 'v0.jpg', text: '처음', title: 'T', source: '', kind: 'shorts', judges, need, rerender: async () => null, log: () => {} });
+  const { gateSummary } = await import('./thumb-gate.mjs');
+  assert.equal(gateSummary(r).imageBad, 1);
+}
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');
