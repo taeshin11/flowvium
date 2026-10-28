@@ -23,6 +23,7 @@ import { execFileSync } from 'child_process';
 import { join, basename, resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { mdToHtml, extractTitle, stripFrontComment } from './lib/blog-html.mjs';
+import { withBlogAd, adVersionFor } from './lib/ad-line.mjs';  // 2026-10-28 AISVI 광고 새 판 — 본문 끝 면책 위 한 단락(utm_source=naver)
 import { checkQuality } from './lib/blog-quality.mjs';
 import { kstDate } from './lib/scorecard.mjs';
 import { NAVER_CATEGORY as CATEGORY, naverHtml, tagsFor, pickFiles, postedLogNo } from './lib/naver-blog.mjs';
@@ -79,7 +80,7 @@ try {
       const logNo = UPDATE ? (/\/(\d{9,})$/.exec(ledger[key]?.url ?? '') ?? [])[1] : null;
       if (UPDATE && !logNo) throw new Error('고칠 글의 주소가 기록에 없다');
       if (!UPDATE && ledger[key]?.url && !DRY) { log(`이미 올린 글이다(${ledger[key].url}) — 고치려면 --update`); continue; }
-      const r = await postOne(ctx, { key, title, html: naverHtml(mdToHtml(stripFrontComment(md))), md, tags: tagsFor(key, md), logNo });
+      const r = await postOne(ctx, { key, title, html: naverHtml(mdToHtml(withBlogAd(stripFrontComment(md), { source: 'naver', medium: 'post_body', version: adVersionFor(key) }))), md, tags: tagsFor(key, md), logNo });
       if (r.url) {
         ledger[key] = { ...ledger[key], url: r.url, title, ...(logNo ? { updatedAt: new Date().toISOString() } : { at: new Date().toISOString() }) };
         writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));

@@ -30,6 +30,12 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   writeFileSync(join(root, PROMO_FILES.flowvium), 'x');
   const c = promoPath('flowvium', root);
   (c.name === 'flowvium' && c.path.endsWith('flowvium-card.mp4')) ? ok('[2b] 있으면 그대로') : bad(`[2b] ${JSON.stringify(c)}`);
+  // [2d] 2026-10-28 광고 새 판 — aisvi 는 판 파일(aisvi-card-<판>.mp4)이 있으면 그것, 없으면 옛 카드
+  const v0 = promoPath('aisvi', root, { version: 'b' });
+  writeFileSync(join(root, 'assets/outro/aisvi-card-b.mp4'), 'x');
+  const v1 = promoPath('aisvi', root, { version: 'b' }), v2 = promoPath('flowvium', root, { version: 'b' });
+  (v0.path.endsWith('aisvi-card.mp4') && v1.path.endsWith('aisvi-card-b.mp4') && v1.version === 'b' && v2.path.endsWith('flowvium-card.mp4'))
+    ? ok('[2d] aisvi 판 파일 → 있으면 그 판, 없으면 옛 카드 · flowvium 은 판 없음') : bad(`[2d] ${JSON.stringify([v0, v1, v2])}`);
   const d = promoPath('nope', mkdtempSync(join(tmpdir(), 'promo-empty-')));
   (d.path === null) ? ok('[2c] 둘 다 없으면 광고 없이') : bad(`[2c] ${JSON.stringify(d)}`);
 }

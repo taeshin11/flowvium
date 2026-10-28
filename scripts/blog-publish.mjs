@@ -17,6 +17,7 @@ import { resolve, join, basename } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { loadEnvLocal } from './lib/llm-config.mjs';
 import { mdToHtml, extractTitle, stripFrontComment } from './lib/blog-html.mjs';
+import { withBlogAd, adVersionFor } from './lib/ad-line.mjs';
 import { insertPost, updatePost, listBlogs, tokenPresent } from './lib/blogger.mjs';
 import { checkQuality } from './lib/blog-quality.mjs';
 
@@ -62,7 +63,8 @@ for (const file of files) {
     writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
     continue;
   }
-  const html = mdToHtml(stripFrontComment(md));
+  // 2026-10-28 AISVI 광고 새 판(lib/ad-line) — 본문 끝 면책 위 한 단락, utm_source=blogger. 판은 파일 이름에서(글마다 돌아간다).
+  const html = mdToHtml(withBlogAd(stripFrontComment(md), { source: 'blogger', medium: 'post_body', version: adVersionFor(key) }));
 
   // 저품질 관문 (사용자 "블로그도 저품질 블로그로 걸리면 안 된다").
   //   얇음·중복·광고과다를 발행 **전에** 잡는다. 이미 올린 글과 비교해야 하므로 원문을 읽어 준다.

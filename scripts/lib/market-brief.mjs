@@ -5,6 +5,7 @@
  *               'krmid' = 점심(12:00 공개) 한국 증시 오전 요약 — 장중 숫자 + 오전장 기사 (사장님 10/23 "점심시간·퇴근시간")
  *               'krclose' = 퇴근길(18:00 공개) 한국 증시 마감 요약 — 마감 숫자 + 마감 기사
  */
+import { adVersionFor } from './ad-line.mjs';
 import { ungroundedNumbers } from './weekly-explainer.mjs';
 
 const KST = 9 * 3600e3;
@@ -227,6 +228,13 @@ export const BRIEF_ADS = { aisvi: 'assets/outro/brief-ad-aisvi.mp4', flowvium: '
 export function briefPromo(history, { exists }) {
   const n = (history ?? []).filter((h) => h?.id).length;
   const want = n % 2 === 0 ? 'aisvi' : 'flowvium';
+  // 2026-10-28 AISVI 광고 새 판(lib/ad-line, IR 세션·Mac mini2 경유): 끝 카드는 2.5초 한 줄 — aisvi 차례마다 판 a→b→c.
+  //   (10/23 '긴 버전'은 이 지시로 바뀌었다. 판 카드가 없으면 옛 긴 광고.) 설명란 링크도 같은 판(make-market-brief 가 넘긴다).
+  if (want === 'aisvi') {
+    const version = adVersionFor(Math.floor(n / 2));
+    const card = `assets/outro/brief-card-aisvi-${version}.mp4`;
+    if (exists(card)) return { name: 'aisvi', path: card, fallback: false, version };
+  }
   for (const name of [want, want === 'aisvi' ? 'flowvium' : 'aisvi']) if (exists(BRIEF_ADS[name])) return { name, path: BRIEF_ADS[name], fallback: name !== want };
   return { name: null, path: null, fallback: false };
 }

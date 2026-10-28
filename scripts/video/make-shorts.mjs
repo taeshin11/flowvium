@@ -2245,6 +2245,7 @@ for (let i = 0; i < scenes.length; i++) {
 }
 
 let PROMO_USED = null;   // 실제로 붙인 광고 카드(aisvi|flowvium) — 메타에 남긴다
+let AD_VERSION_USED = null;   // 2026-10-28 aisvi 끝 카드 판(a|b|c) — 메타에 남긴다
 // ── 고정 홍보 클립 붙이기 (2026-09-09 사용자 요청) ─────────────────────────────
 //   "영상마다 맨 마지막에 aisvi 홍보 멘트랑 장면 넣어줘" · "고정 영상 하나 만들어놓고 계속 붙이면될듯"
 //   회차마다 합성하면 같은 문장인데도 소리가 미묘하게 달라지고 매번 TTS 시간을 쓴다.
@@ -2257,7 +2258,10 @@ let PROMO_USED = null;   // 실제로 붙인 광고 카드(aisvi|flowvium) — �
   //   긴 광고 파일은 지우지 않고 남겨 둔다 — 되돌릴 땐 이 경로만 바꾸면 된다.
   // 2026-09-30 사장님 "flowvium.net 도 2초카드 만들어서 aisviagent.com 광고와 번갈아가면서" —
   //   video-publish/shorts-spare 가 SHORTS_PROMO 로 고른다(네 편씩, lib/promo-card). 없으면 다른 카드로 대신.
-  const pick = (await import('../lib/promo-card.mjs')).promoPath(process.env.SHORTS_PROMO || 'aisvi', ROOT);
+  // 2026-10-28 AISVI 광고 새 판 — 세 판(lib/ad-line)을 발행 편수로 차례로 돌린다(판 파일이 없으면 옛 카드).
+  const AD_VERSION = process.env.SHORTS_AD_VERSION || (await import('../lib/ad-line.mjs')).adVersionFor(shortsPublishedCount());
+  const pick = (await import('../lib/promo-card.mjs')).promoPath(process.env.SHORTS_PROMO || 'aisvi', ROOT, { version: AD_VERSION });
+  AD_VERSION_USED = pick.version ?? null;
   PROMO_USED = pick.name;
   const promo = pick.path ?? (process.env.SHORTS_PROMO === 'none' ? null : resolve(ROOT, 'assets/outro/aisvi-card.mp4'));
   // 2026-09-17: 광고만 따로 재면 -17.3 LUFS 라 본편(-22)보다 크게 튈 줄 알았다. 실제 쇼츠를 재 보니
@@ -2401,6 +2405,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   synthetic: scenes.some((x) => x.generated),   // 2026-09-26: Omni 생성 영상 포함 → 업로드 때 합성 콘텐츠 신고
   subCta: SUB_CTA,   // 2026-09-27: 구독 권유 A/B — 실제로 붙었는가
   promo: PROMO_USED,   // 2026-09-30: 끝 광고 카드 aisvi|flowvium — 실제로 붙은 것
+  adVersion: AD_VERSION_USED,   // 2026-10-28: aisvi 카드 판(lib/ad-line) — 실제로 붙은 것
   explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
   layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
   opener: OPENER,      // 2026-10-11: 첫 문장 A/B(anchor|question) — lib/explore-slot openerFor

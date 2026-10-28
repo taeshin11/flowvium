@@ -26,7 +26,7 @@ import { resolve, join } from 'path';
 import { tmpdir } from 'os';
 import { createRequire } from 'module';
 import { ROOT } from '../lib/project-root.mjs';
-import { AD_LINE } from '../lib/ad-line.mjs';
+import { AD_LINE, AD_VERSIONS, AD_CTA, AD_SPOKEN } from '../lib/ad-line.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
 import { audioArgs, AUDIO_SPEC } from '../lib/shorts-layout.mjs';
 
@@ -160,11 +160,20 @@ if (CARD && !(CARD_SEC >= 1 && CARD_SEC <= 4)) { console.error(`❌ --sec 는 1~
 if (CARD && (process.argv.includes('--demo') || process.env.AISVI_DEMO)) {
   console.error('❌ --card 는 시연 없이 브랜드 카드만 만든다 — --demo 와 같이 쓸 수 없다'); process.exit(2);
 }
+// 2026-10-28 광고 새 판(lib/ad-line): --version a|b|c — 카드 글자 = 그 판 한 줄 · 주소 · 바로 써 보기, 소리는 판과 상관없이 AD_SPOKEN.
+//   파일은 aisvi-card-<판>.mp4 로 나눈다(lib/promo-card 가 편마다 돌린다). 옛 aisvi-card.mp4 는 남겨 둔다 — 판 파일이 없을 때 쓴다.
+const VERSION = argOf('version', '');
+if (VERSION) {
+  if (!CARD || BRAND !== 'aisvi' || LOCALE !== 'ko' || !AD_VERSIONS[VERSION]) { console.error('❌ --version 은 aisvi 한국어 --card 에만, a|b|c'); process.exit(2); }
+  // 쉼표에서 두 줄로 — 그냥 두면 브라우저가 '3 / 줄 요약'·'AI / 에게' 처럼 낱말 가운데서 끊었다(10/28 눈검증).
+  T.cardLines = [AD_VERSIONS[VERSION].split(', ').join('<br>'), 'aisviagent.com', AD_CTA];
+  T.cardSay = AD_SPOKEN;
+}
 // 한국어판은 종전 경로 그대로다 — make-shorts 가 assets/outro/aisvi.mp4 를 본다.
 //   다른 로케일은 파일을 나눈다(aisvi-ja.mp4). --out 으로 덮어쓸 수 있다.
 //   카드는 이름을 따로 둔다(aisvi-card.mp4) — 쇼츠에 붙는 광고를 실수로 덮지 않게.
 const OUT = resolve(ROOT, argOf('out', CARD
-  ? `assets/outro/${B.out}-card${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`
+  ? `assets/outro/${B.out}-card${LOCALE === 'ko' ? '' : `-${LOCALE}`}${VERSION ? `-${VERSION}` : ''}.mp4`
   : `assets/outro/aisvi${LOCALE === 'ko' ? '' : `-${LOCALE}`}.mp4`));
 // 2026-09-17: 바깥에 넘기는 파일만 샘플레이트를 바꾼다(일본 채널 본편이 48kHz).
 //   쇼츠에 붙는 assets/outro/aisvi.mp4 는 AUDIO_SPEC(44.1kHz)을 따라야 concat 이 안전하다 —
@@ -448,7 +457,7 @@ body{background:${bgVideo ? 'transparent' : '#05070f'};color:#eef3ff;
   padding:10px 34px;margin-top:14px;letter-spacing:.01em}
 .c2{font-size:30px;color:#93a7cc;letter-spacing:.06em;margin-top:6px}
 /* 2026-10-13 광고 한 줄 카드(cardLines): 위 "무료 AI 비서 AISVI" · 가운데 주소(.u) · 아래 "가입 없이 바로 무료 체험". */
-.k1{font-size:72px;font-weight:900;color:#fff;letter-spacing:.01em}
+.k1{font-size:72px;font-weight:900;color:#fff;letter-spacing:.01em;word-break:keep-all;line-height:1.25}
 .k3{font-size:60px;font-weight:900;color:#fff;letter-spacing:.01em}
 /* 구독 안내. 첫 판에서 이 규칙을 넣는 치환이 두 번 조용히 실패해 브라우저 기본 크기(16px)로
    나갔다 — 프레임을 눈으로 봤기에 잡았다. 문자열 치환은 실패해도 아무 말이 없다. */

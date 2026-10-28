@@ -13,7 +13,7 @@
  *   매일 자동 업로드를 계속하려면 앱을 게시해야 하고, youtube.upload 는 민감 스코프라 심사 대상이다.
  */
 import { google } from 'googleapis';
-import { withAdLine } from './ad-line.mjs';
+import { withAdLine, adVersionFor } from './ad-line.mjs';
 import { readFileSync, writeFileSync, existsSync, createReadStream, statSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './project-root.mjs';
@@ -184,8 +184,12 @@ export function uploadRequestBody(o) {
   return {
     snippet: {
       title: ytSafeText(o.title).slice(0, 100),
-      // 2026-10-13 사장님: 설명란 맨 아래 AISVI 광고 한 줄 — 모든 업로드가 여기를 지난다(lib/ad-line).
-      description: ytSafeText(withAdLine(o.description)),
+      // 2026-10-13 사장님: 설명란 맨 아래 AISVI 광고 — 모든 업로드가 여기를 지난다(lib/ad-line).
+      // 2026-10-28 새 판: 한 줄 + utm 주소. 롱폼 설명란은 눌리는 자리(medium=description), 쇼츠는 따로 센다. 판은 넘겨받거나 제목에서.
+      description: ytSafeText(withAdLine(o.description, {
+        source: 'youtube', medium: /#shorts/i.test(o.title ?? '') ? 'shorts_description' : 'description',
+        version: o.adVersion ?? adVersionFor(String(o.title ?? '')),
+      })),
       tags: (o.tags ?? []).slice(0, 30),
       categoryId: o.categoryId ?? '25',           // 25 = News & Politics
       defaultLanguage: o.locale ?? 'ko',

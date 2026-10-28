@@ -28,8 +28,15 @@ import { ROOT } from '../lib/project-root.mjs';
 const argv = process.argv.slice(2);
 const BRAND = argv[argv.indexOf('--brand') + 1];
 if (!['aisvi', 'flowvium'].includes(BRAND)) { console.error('--brand aisvi|flowvium'); process.exit(2); }
-const OUT = resolve(ROOT, `assets/outro/brief-ad-${BRAND}.mp4`);
-const TMP = resolve(ROOT, `assets/outro/.brief-ad-${BRAND}.tmp.mp4`);
+// 2026-10-28 AISVI 광고 새 판(lib/ad-line, IR 세션·Mac mini2 경유): --card a|b|c → 2.5초 한 줄 카드(brief-card-aisvi-<판>.mp4).
+//   "영상 안에서는 한 줄, 끝 카드는 2.5초 이하". --audio 로 이미 만든 같은 말(AD_SPOKEN)을 받으면 판마다 소리가 같다.
+const CARD = argv.includes('--card') ? argv[argv.indexOf('--card') + 1] : null;
+const { AD_VERSIONS, AD_CTA, AD_SPOKEN } = await import('../lib/ad-line.mjs');
+if (CARD && (BRAND !== 'aisvi' || !AD_VERSIONS[CARD])) { console.error('--card 는 --brand aisvi 와 a|b|c'); process.exit(2); }
+const AUDIO_IN = argv.includes('--audio') ? argv[argv.indexOf('--audio') + 1] : null;
+const CARD_SEC = 2.5;
+const OUT = resolve(ROOT, CARD ? `assets/outro/brief-card-aisvi-${CARD}.mp4` : `assets/outro/brief-ad-${BRAND}.mp4`);
+const TMP = resolve(ROOT, CARD ? `assets/outro/.brief-card-aisvi-${CARD}.tmp.mp4` : `assets/outro/.brief-ad-${BRAND}.tmp.mp4`);
 const WORK = join(tmpdir(), `flowvium-brief-ad-${BRAND}`);
 rmSync(WORK, { recursive: true, force: true }); mkdirSync(WORK, { recursive: true });
 const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), `[brief-ad:${BRAND}]`, ...a);
@@ -39,7 +46,11 @@ const FONT = "'Apple SD Gothic Neo',sans-serif";
 
 // ── 문구 ─────────────────────────────────────────────────────────────────────
 let say; let panel; let video = null;
-if (BRAND === 'aisvi') {
+if (CARD) {
+  say = [AD_SPOKEN];
+  const [l1, l2] = AD_VERSIONS[CARD].split(', ');
+  panel = { left: null, right: `<div class="k" style="color:#93c5fd">AISVI</div><div class="cv">${esc(l1)}<br>${esc(l2)}</div><div class="bar" style="background:#3b82f6"></div><div class="u">aisviagent.com</div><div class="pill">${esc(AD_CTA)}</div>` };
+} else if (BRAND === 'aisvi') {
   say = ['말하는 대로 내 컴퓨터를 조종하는 나만의 AI 비서, 에이스비입니다.', '에이스비 에이전트 닷컴에서 가입 없이 바로 무료로 체험해 보세요.'];
   video = resolve(ROOT, 'assets/outro/aisvi-demo.mp4');
   if (!existsSync(video)) { log(`❌ 시연 영상 없음: ${video}`); process.exit(1); }
@@ -63,11 +74,14 @@ if (BRAND === 'aisvi') {
 
 // ── 소리(고정 클립 — 한 번 굽는다) ───────────────────────────────────────────
 const { synthesizeKoreanAuto } = await import('../lib/tts-korean.mjs');
-const voice = synthesizeKoreanAuto(say, { outPrefix: join(WORK, 'v'), log: (m) => log(`[음성] ${m}`) });
+const voice = AUDIO_IN
+  ? [{ path: AUDIO_IN, durationSec: Number(/Duration:\s*\d+:\d+:([\d.]+)/.exec(String(spawnSync(ffmpegPath, ['-hide_banner', '-i', AUDIO_IN], { encoding: 'utf8' }).stderr))?.[1] ?? 0) }]
+  : synthesizeKoreanAuto(say, { outPrefix: join(WORK, 'v'), log: (m) => log(`[음성] ${m}`) });
 const VO = join(WORK, 'vo.wav');
 ff([...voice.flatMap((v) => ['-i', v.path]), '-filter_complex', `${voice.map((_, i) => `[${i}:a]aresample=44100,aformat=channel_layouts=mono,apad=pad_dur=0.25[s${i}]`).join(';')};${voice.map((_, i) => `[s${i}]`).join('')}concat=n=${voice.length}:v=0:a=1[a]`, '-map', '[a]', VO], '낭독 잇기');
 const voSec = voice.reduce((a, v) => a + v.durationSec + 0.25, 0);
-const SEC = Math.max(5, voSec + 0.5);
+if (CARD && voice[0].durationSec > CARD_SEC - 0.1) { log(`❌ 대사(${voice[0].durationSec.toFixed(2)}초)가 ${CARD_SEC}초 카드에 안 들어간다 — 자르지 않는다(--audio 로 짧은 것을)`); process.exit(1); }
+const SEC = CARD ? CARD_SEC : Math.max(5, voSec + 0.5);
 log(`[음성] ${voice.length}문장 ${voSec.toFixed(1)}초 → 광고 ${SEC.toFixed(1)}초`);
 
 // ── 화면 ─────────────────────────────────────────────────────────────────────
@@ -79,7 +93,7 @@ const BASE = `*{margin:0;box-sizing:border-box}body{width:1920px;height:1080px;f
 .l{position:absolute;left:0;top:0;width:1020px;height:1080px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:radial-gradient(120% 90% at 50% 30%,#1d1b3a 0%,#0b0a1a 70%)}
 .hk{font-size:50px;font-weight:800;color:#c4b5fd}.hp{font-size:210px;font-weight:900;color:#22c55e;line-height:1.05;letter-spacing:-4px}
 .hn{font-size:56px;font-weight:800;margin-top:10px}.hn span{color:#94a3b8;font-weight:700}.hd{font-size:40px;color:#cbd5e1;margin-top:14px;font-weight:700}
-.hs{font-size:32px;color:#cbd5e1;margin-top:30px;padding:0 60px;line-height:1.45;font-weight:600}.n{font-size:36px;font-weight:700;color:#e2e8f0;margin-top:30px}`;
+.cv{font-size:84px;font-weight:900;line-height:1.3;word-break:keep-all;margin-top:18px}.hs{font-size:32px;color:#cbd5e1;margin-top:30px;padding:0 60px;line-height:1.45;font-weight:600}.n{font-size:36px;font-weight:700;color:#e2e8f0;margin-top:30px}`;
 const html = video
   ? `<!doctype html><meta charset="utf-8"><style>${BASE}body{background:transparent}.bg{position:absolute;inset:0;background:#0b0a1a;clip-path:polygon(1220px 0,1920px 0,1920px 1080px,1220px 1080px)}</style><div class="bg"></div><div class="r">${panel}</div>`
   // 2026-10-26: 20% 이상 적중이 없으면(고친 채점 — best-hit.test [7]) 왼쪽이 빈 판으로 남았다(눈검증) → 브랜드 판을 가운데 전체 폭으로.
@@ -104,7 +118,7 @@ if (video) {
 // ── 재고 바꿔 끼우기(렌더 중인 롱폼이 반쯤 쓴 파일을 붙이지 않게) ─────────────────
 const info = String(spawnSync(ffmpegPath, ['-hide_banner', '-i', TMP], { encoding: 'utf8' }).stderr);
 const sec = (() => { const m = /Duration:\s*(\d+):(\d+):([\d.]+)/.exec(info); return m ? +m[1] * 3600 + +m[2] * 60 + +m[3] : 0; })();
-const bad = [!(sec >= 4 && sec <= 15) && `길이 ${sec.toFixed(2)}초`, !/1920x1080/.test(info) && '규격', !/44100 Hz, mono/.test(info) && '음성 규격'].filter(Boolean);
+const bad = [!(CARD ? sec >= 2 && sec <= 2.6 : sec >= 4 && sec <= 15) && `길이 ${sec.toFixed(2)}초`, !/1920x1080/.test(info) && '규격', !/44100 Hz, mono/.test(info) && '음성 규격'].filter(Boolean);
 if (bad.length) { rmSync(TMP, { force: true }); log(`❌ 재 보니 안 맞다(${bad.join(' · ')}) — 예전 광고를 그대로 쓴다`); process.exit(1); }
 renameSync(TMP, OUT);
 log(`✅ ${OUT} · ${sec.toFixed(1)}초`);

@@ -488,7 +488,8 @@ if (UPLOAD) {
   if (bad) die(bad);
   const target = publishTargetMs(ED, DATE);
   const publishAt = UPLOAD === 'public' && target && target - Date.now() > 10 * 60_000 ? new Date(target).toISOString() : null;
-  const u = await upload({ file: FINAL, title, description, privacy: UPLOAD, publishAt,
+  // adVersion: 끝 카드가 aisvi 판이면 설명란 링크(utm_content)도 그 판 — 카드에서 본 말과 누를 링크가 같게(lib/ad-line).
+  const u = await upload({ file: FINAL, title, description, privacy: UPLOAD, publishAt, adVersion: PROMO.version ?? undefined,
     tags: [E.label.replace(/\s/g, ''), '증시요약', ED === 'us' ? '미국증시' : '한국증시', ED === 'us' ? '나스닥' : '코스피', ED === 'us' ? '뉴욕증시' : ED === 'kreu' ? '유럽증시' : '코스닥', '주식', '경제', 'Flowvium'] });
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);

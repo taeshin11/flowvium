@@ -215,10 +215,16 @@ const M = await import('./market-brief.mjs');
   const has = () => true;
   (M.briefPromo(h(0), { exists: has }).name === 'aisvi' && M.briefPromo(h(1), { exists: has }).name === 'flowvium' && M.briefPromo(h(2), { exists: has }).name === 'aisvi')
     ? ok('[19] 올린 수로 번갈아(id 없는 기록은 안 센다)') : bad('[19]');
-  const onlyAisvi = (p) => /aisvi/.test(p);
+  const onlyAisvi = (p) => /brief-ad-aisvi/.test(p);
   const f = M.briefPromo(h(1), { exists: onlyAisvi });
   (f.name === 'aisvi' && f.fallback && /brief-ad-aisvi\.mp4$/.test(f.path)) ? ok('[19b] 원하는 광고 없으면 다른 쪽') : bad(`[19b] ${JSON.stringify(f)}`);
   (M.briefPromo(h(0), { exists: () => false }).path === null) ? ok('[19c] 둘 다 없으면 광고 없이') : bad('[19c]');
+  // [19d] 2026-10-28 AISVI 광고 새 판 — 끝 광고는 2.5초 카드(make-brief-ads --card <판>), aisvi 차례마다 a→b→c. 판 카드가 없으면 옛 긴 광고.
+  const v = [0, 2, 4, 6].map((n) => M.briefPromo(h(n), { exists: has }));
+  (v.map((x) => x.version).join('') === 'abca' && v.every((x) => /brief-card-aisvi-[abc]\.mp4$/.test(x.path)))
+    ? ok('[19d] aisvi 차례마다 판 카드 a→b→c') : bad(`[19d] ${JSON.stringify(v)}`);
+  const old = M.briefPromo(h(0), { exists: (p) => !/brief-card/.test(p) });
+  (/brief-ad-aisvi\.mp4$/.test(old.path) && !old.version) ? ok('[19e] 판 카드가 없으면 옛 긴 광고') : bad(`[19e] ${JSON.stringify(old)}`);
 }
 // [20] 마감판 등락률·주가는 장 끝난 뒤 근거에서만 — 10/23 첫 마감판 "삼성E&A는 … 6.5% 급등했습니다": 10시 [특징주] 기사의 장중 숫자
 //   (실제 마감 +7.22%, 네이버). 관련 기사는 아침부터 모으므로 장중 숫자가 마감 결과처럼 읽혔다. 금액(억·조)·실적은 장중 기사도 근거가 된다.
