@@ -2349,12 +2349,13 @@ if (existsSync(`${WORK}/thumb.png`)) {
   } else {
     const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', `${WORK}/thumb.png`, '-q:v', '3', tj],
       ffmpegOpts({ timeoutMs: 30000 }));
-    if (r.status === 0 && existsSync(tj)) console.log(`   썸네일 ${(readFileSync(tj).length / 1024).toFixed(0)}KB · 밝기 ${avg}/255 → ${tj}`);
-    // 배경도 남긴다 — 썸네일 관문(video-publish)이 같은 사진에 고친 글로 다시 굽는다(lib/shorts-thumb).
-    const bgj = join(OUT_DIR, THUMB_BG);
-    const rb = THUMB_BG_SRC ? spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', THUMB_BG_SRC, '-q:v', '3', bgj], ffmpegOpts({ timeoutMs: 30000 })) : null;
-    if (!(rb?.status === 0 && existsSync(bgj)) && existsSync(bgj)) unlinkSync(bgj);   // 지난 회차 배경이 남아 섞이지 않게
-    else console.log(`   ⚠ 썸네일 굽기 실패 — 유튜브가 자동으로 고른다`);
+    if (r.status === 0 && existsSync(tj)) {
+      console.log(`   썸네일 ${(readFileSync(tj).length / 1024).toFixed(0)}KB · 밝기 ${avg}/255 → ${tj}`);
+      // 배경도 남긴다 — 썸네일 관문(video-publish)이 같은 사진에 고친 글로 다시 굽는다(lib/shorts-thumb).
+      const bgj = join(OUT_DIR, THUMB_BG);
+      const rb = THUMB_BG_SRC ? spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', THUMB_BG_SRC, '-q:v', '3', bgj], ffmpegOpts({ timeoutMs: 30000 })) : null;
+      if (!(rb?.status === 0 && existsSync(bgj)) && existsSync(bgj)) unlinkSync(bgj);   // 지난 회차 배경이 남아 섞이지 않게
+    } else console.log(`   ⚠ 썸네일 굽기 실패 — 유튜브가 자동으로 고른다`);   // 10/28: 위 배경 줄이 if 와 else 사이에 끼어 성공에도 이 줄이 찍혔다
   }
 }
 
