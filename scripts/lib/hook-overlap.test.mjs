@@ -22,5 +22,14 @@ import('./hook-overlap.mjs').then(({ restatesTitle }) => {
   assert.ok(restatesTitle('중앙은행이 금리를 내리면 왜 주가가 오를까요?', '금리를 내리면 주가가 오르는 이유'));
   assert.ok(!restatesTitle('이익에 비해 주가가 싸 보이는 회사, 다 같은 할인은 아닙니다.', 'PER 낮으면 싼 주식? 꼭 그렇지 않은 이유'));
   assert.ok(!restatesTitle('예금 이자가 줄어들면, 그 돈은 어디로 갈까요?', '금리를 내리면 주가가 오르는 이유'));
+});
+// [6] 심판이 낸 훅은 화면 뉴스에서 나와야 한다(10/28 20:57 "타지 철길 위 참변" — 성평등장관 편에 다른 뉴스 훅이 올랐다)
+import('./hook-overlap.mjs').then(({ sharesStory }) => {
+  const minister = '성평등장관 "폭력 피해자 끝까지 보호…경찰과 공동대응" 원민경 성평등가족부 장관은 28일 "폭력 피해자를 끝까지 보호하겠다"라고 말했다.';
+  assert.ok(!sharesStory('타지 철길 위 참변', minister), '다른 뉴스 훅');
+  assert.ok(!sharesStory('비극 부른 사고의 전말', minister), '다른 뉴스 훅');
+  assert.ok(sharesStory('피해자 끝까지 보호', minister));
+  assert.ok(sharesStory('골프 의혹 제기 후폭풍', '김여사 골프 의혹 제기한 주진우가 결국 고발당한 이유'), '뉴스 낱말 하나에 새 말을 붙이는 건 된다');
+  assert.ok(!sharesStory('', minister));
   console.log('hook-overlap.test: ✅ 전부 통과');
 });

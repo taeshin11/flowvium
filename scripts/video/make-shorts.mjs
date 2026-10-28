@@ -20,7 +20,7 @@
  */
 import { chromium } from 'playwright';
 import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
-import { repeatsTitle, restatesTitle } from '../lib/hook-overlap.mjs';
+import { repeatsTitle, restatesTitle, sharesStory } from '../lib/hook-overlap.mjs';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
@@ -2122,10 +2122,15 @@ if (process.env.THUMB_GATE !== '0' && process.env.SHORTS_PRESCORE !== '0' && sce
     };
     const tried = new Map();
     const first = src0 && still(scenes[0].ov[0], 0);
+    // 10/28 20:57: 브리핑은 사진 없는 장면을 뺀 뒤라 headlines[0] 이 화면 첫 뉴스가 아닐 수 있다 — 빠진 1번 뉴스(열차 사고) 제목을
+    //   성평등장관 사진과 함께 매겨 2.5점, 심판이 그 뉴스 훅 "타지 철길 위 참변" 을 냈고 그대로 구웠다. 화면에 남은 뉴스로 본다(업로드 메타와 같은 briefMeta).
+    const shown = BRIEF ? briefMeta(scenes, headlines, bodies) : { headlines, bodies };
+    const lead = shown.headlines[0] ?? '';
+    const story = [lead, ...scenes.filter((x) => x.story === scenes[0].story && !x.isOutro).map((x) => x.say ?? '')].join(' ');
     if (first) {
       const g = await runThumbGate({
-        image: first, text: scenes[0].hook, title: headlines[0] ?? '', kind: 'shorts-open', maxChars: 14, maxWords: 5,
-        source: headlines.join(' '), accept: (t) => !repeatsTitle(t, headlines[0] ?? ''),
+        image: first, text: scenes[0].hook, title: lead, kind: 'shorts-open', maxChars: 14, maxWords: 5,
+        source: shown.headlines.join(' '), accept: (t) => !repeatsTitle(t, lead) && sharesStory(t, story),
         textRule: '첫 화면 위쪽 큰 글(훅) 12자 안·명사로 끝·제목에 없는 것(결과·이유의 실마리·영향)',
         judges: { agy: agyJudge, claude: claudeJudge }, need: ['agy', 'claude'], maxFixes: 2, deadlineMs: 5 * 60_000,
         anchors: existsSync(SHORTS_ANCHORS.high) && existsSync(SHORTS_ANCHORS.low) ? SHORTS_ANCHORS : null,

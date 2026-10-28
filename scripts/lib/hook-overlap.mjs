@@ -34,3 +34,12 @@ export function restatesTitle(text, title) {
   const same = t.filter((w) => have.has(w)).length;
   return same >= 3 && same / t.length >= 0.5;
 }
+
+/** 훅이 그 뉴스에서 나왔나 — 낱말 하나라도 화면 뉴스(헤드라인·대사)와 겹쳐야 한다.
+ *  10/28 20:57: 심판이 낸 훅 "타지 철길 위 참변" 이 성평등장관 편에 올랐다(빠진 1번 뉴스 제목을 보고 썼다). 새 말을 붙이는 건 되지만 남의 뉴스는 안 된다. */
+export function sharesStory(hook, story) {
+  const h = stems(hook);
+  if (!h.length) return false;
+  const s = new Set(stems(story));
+  return h.some((w) => s.has(w));
+}
