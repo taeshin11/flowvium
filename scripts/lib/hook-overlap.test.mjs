@@ -16,4 +16,11 @@ assert.ok(!repeatsTitle('공포 뒤에 숨은 함정', '공포탐욕지수, 공�
 // [4] 비율은 0~1, 빈 글은 0
 assert.equal(hookOverlap('', '제목'), 0);
 assert.ok(hookOverlap('PER 낮으면 싼 주식일까', 'PER 낮으면 싼 주식?') > 0.6);
-console.log('hook-overlap.test: ✅ 전부 통과');
+// [5] 첫 대사(10/28 Mac mini2: 첫 자막=첫 대사도 제목을 되풀이하면 안 된다) — 제목 낱말의 절반 이상을 다시 말하면 되풀이
+import('./hook-overlap.mjs').then(({ restatesTitle }) => {
+  assert.ok(restatesTitle('PER이 낮으면 무조건 싼 주식일까요?', 'PER 낮으면 싼 주식? 꼭 그렇지 않은 이유'), '영문+조사 한 덩어리(PER이)도 PER 로 센다');
+  assert.ok(restatesTitle('중앙은행이 금리를 내리면 왜 주가가 오를까요?', '금리를 내리면 주가가 오르는 이유'));
+  assert.ok(!restatesTitle('이익에 비해 주가가 싸 보이는 회사, 다 같은 할인은 아닙니다.', 'PER 낮으면 싼 주식? 꼭 그렇지 않은 이유'));
+  assert.ok(!restatesTitle('예금 이자가 줄어들면, 그 돈은 어디로 갈까요?', '금리를 내리면 주가가 오르는 이유'));
+  console.log('hook-overlap.test: ✅ 전부 통과');
+});

@@ -8,7 +8,7 @@
  * 되는 것: 개념 숫자 — 배수(10분의 1)·기간(1년·52주)·눈금(0부터 100).
  */
 import { CALL } from './comment-reply.mjs';
-import { repeatsTitle } from './hook-overlap.mjs';
+import { repeatsTitle, restatesTitle } from './hook-overlap.mjs';
 
 const DATE = /\d{4}\s*년|\d{1,2}\s*월(?![가-힣])|\d{1,2}\s*월\s*\d|\d{1,2}\s*일(?=[\s,.]|$)|오늘|어제|내일|올해|작년|내년|요즘|최근|이번\s?주|지난\s?주(?=[\s에의는,.]|$)/;
 const PRICE = /\d[\d,.]*\s*(?:만|천|백)?\s*(?:원|달러|엔|위안|포인트|%)|\d[\d,.]*\s*(?:억|조)(?![가-힣])|\d[\d,.]*\s*(?:억|조)\s*(?:원|달러)?\s*(?:규모|짜리|회사)/;
@@ -39,5 +39,7 @@ export function checkEvergreen(item) {
   });
   // 10/28 첫 화면 관문: 첫 훅이 제목을 되풀이하면 첫 화면이 아무것도 더하지 않는다(세 심판 모두 지적 — lib/hook-overlap).
   if (scenes[0] && repeatsTitle(scenes[0].hook, title)) why.push(`1훅이 제목을 되풀이: "${scenes[0].hook}"`);
+  // 첫 대사 = 첫 화면 아래 자막. 이것도 제목을 다시 말하면 첫 화면이 더하는 게 없다(10/28 Mac mini2).
+  if (scenes[0] && restatesTitle(scenes[0].say, title)) why.push(`1대사가 제목을 다시 말함: "${scenes[0].say}"`);
   return { ok: why.length === 0, why };
 }

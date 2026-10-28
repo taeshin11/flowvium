@@ -195,5 +195,12 @@ const g = M.SHORTS;
   const call = /shortsOverlayHtml\(\{[\s\S]*?\}\)\)/.exec(ms)?.[0] ?? '';
   call && !/brand:/.test(call) ? ok('쇼츠 장면 오버레이에 브랜드 글자를 안 찍는다') : bad('쇼츠 장면 오버레이에 FLOWVIUM 글자가 남았다');
 }
+// 10/28 첫 화면 미리 매기기: 사진이 작다고 짚이면 같은 사진을 가운데로 당겨(줌) 다시 본다 — zoom 을 장면별로 켤 수 있다
+{
+  const z = M.mediaFilter('0:v', 'v0', { zoom: true });
+  const c = M.mediaFilter('0:v', 'v0', { zoom: false });
+  if (!/crop='max\(iw\*0\.7/.test(z)) { console.log('  FAIL  [zoom] zoom:true 인데 가운데 자르기가 없다'); process.exitCode = 1; } else console.log('  PASS  [zoom] 장면별 zoom:true → 가운데 자르기');
+  if (M.LAYOUT !== 'zoom' && /crop='max/.test(c)) { console.log('  FAIL  [zoom] zoom:false 인데 자른다'); process.exitCode = 1; } else console.log('  PASS  [zoom] zoom:false → 종전대로');
+}
 console.log(fail === 0 ? '\n✅ shorts-layout 통과' : `\n❌ ${fail}건 실패`);
 process.exit(fail === 0 ? 0 : 1);

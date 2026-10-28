@@ -222,7 +222,7 @@ export const TRIM = {
 /**
  * @param {{motion?:boolean}} o  motion: 4초 동안 12% 천천히 키운다(첫 장면 A/B, lib/shorts-motion-ab.test). 프레임마다 다시 계산한다.
  */
-export function mediaFilter(inLabel, outLabel, { motion = false } = {}) {
+export function mediaFilter(inLabel, outLabel, { motion = false, zoom: zoomOn = LAYOUT === 'zoom' } = {}) {
   const g = SHORTS;
   const { W } = g;
   const MH = g.media.height;
@@ -235,7 +235,8 @@ export function mediaFilter(inLabel, outLabel, { motion = false } = {}) {
     ? `crop=iw*${keepW.toFixed(4)}:ih*${keepH.toFixed(4)}:iw*${t.side.toFixed(4)}:ih*${t.top.toFixed(4)},`
     : '';
   // zoom: 영역 비율(약 4:3)까지만 가운데를 잘라 사진을 키운다. 폭은 70% 아래로 안 자른다(가장자리 인물 보호).
-  const zoom = LAYOUT === 'zoom' ? `crop='max(iw*0.7\\,min(iw\\,ih*${(W / MH).toFixed(4)}))':ih,` : '';
+  // 10/28: 장면별로도 켠다(zoomOn) — 첫 화면 미리 매기기에서 '주인공이 작다'면 같은 사진을 가운데로 당긴다(make-shorts 5b).
+  const zoom = zoomOn ? `crop='max(iw*0.7\\,min(iw\\,ih*${(W / MH).toFixed(4)}))':ih,` : '';
   return [
     // 소재가 잘리지 않게 영역 안에 넣고, 남는 자리는 검정으로 채워 가운데 정렬한다.
     `[${inLabel}]${trim}${zoom}scale=${W}:${MH}:force_original_aspect_ratio=decrease,pad=${W}:${MH}:(ow-iw)/2:(oh-ih)/2:black[mrg]`,

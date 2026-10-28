@@ -20,7 +20,7 @@
  */
 import { chromium } from 'playwright';
 import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
-import { repeatsTitle } from '../lib/hook-overlap.mjs';
+import { repeatsTitle, restatesTitle } from '../lib/hook-overlap.mjs';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
@@ -44,6 +44,7 @@ import { personPortraits, searchTerms, searchCommons, searchOpenverse, searchArc
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKorean, synthesizeKoreanAuto, koTtsReady, meloTtsReady, qwenTtsReady } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, tightenNumbers, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
+const LAYOUT_IS_ZOOM = LAYOUT === 'zoom';   // 이미 줌 배치면 첫 화면 미리 매기기의 줌 판은 같은 그림이라 건너뛴다
 import { isProudHeadline } from '../lib/video-meta.mjs';
 import { fillMediaGaps, leadName } from '../lib/face-check.mjs';
 import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic, isPromotional } from '../lib/issue-coherence.mjs';
@@ -884,7 +885,7 @@ ${(BRIEF ?? []).map((p2, i) => {
 - **남의 주장은 누가 했는지 밝혀라.** 사람을 규정하는 말(카르텔·농단·3인방 …)은 발화자와 함께.
 - 정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.
 - 숫자와 단위는 붙여 쓴다("6800억원", "18문"). 자릿수 사이를 띄우지 마라.
-- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라. 첫 훅은 헤드라인을 되풀이하지 말고 제목에 없는 것(결과·이유의 실마리·영향 — 기사에 있는 것만)을 더하라.
+- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라. 첫 훅과 첫 문장은 헤드라인을 되풀이하지 말고 제목에 없는 것(결과·이유의 실마리·영향 — 기사에 있는 것만)을 더하라.
   · **첫 훅은 무슨 일이 벌어졌는지로** — 누가 무엇을 했나(갈등·사건·행동). 쇼츠는 첫 1~2초에 63% 가 넘긴다.
     실측(2026-09-26, 훅 41편): 안 넘기고 본 비율 상위 = "지지율 급락"·"최전방 부대 폭발"·"재제청 거부 이유"·"유출 고발"
     (47~63%), 하위 = "영국 기준금리 동결"·"올해 경제 성장률"·"서울 ODA 국제회의"(12~24%). 지표 이름만으로 시작하지 마라.
@@ -937,6 +938,7 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
   · **1번 장면의 hook 은 썸네일이 된다**(쇼츠는 첫 화면이 썸네일이다).
     **헤드라인(=제목)을 되풀이하지 마라** — 제목은 화면 바로 아래에 이미 보인다. 제목에 없는 것을 더하라:
     결과·이유의 실마리·나에게 미치는 영향(기사에 있는 것만). 나쁨: 제목 "추미애, 지방세제 개편 제안" → 훅 "추미애 지방세제 개편"(2026-10-28 첫 화면 5.5~7점).
+    **1번 장면의 첫 문장(say)도 헤드라인을 다시 읽지 마라** — 첫 자막이 된다. 장면·결과·숫자의 의미처럼 헤드라인 다음 이야기로 시작하라.
     답을 다 말하지 말고 **궁금하게** 만들어라 — 벌어진 일을 보여주고 이유는 감춘다(숫자로 시작한 훅은 오히려 조금 더 넘겼다: 34% vs 39%).
     좋음(실측 상위): "지지율 급락" / "재제청 거부 이유" / "최전방 부대 폭발" / "대법원장 거부 파장"
     나쁨(다 말해버림): "한화오션이 컨테이너선 6척을 수주했습니다"
@@ -1086,10 +1088,11 @@ for (let a = 1; a <= 3; a++) {
     ]);
     // 2026-10-28 첫 화면 관문(Mac mini2·사장님 썸네일 기준): 세 심판 모두 "첫 화면 훅이 제목(=헤드라인)을 되풀이해 더하는 게 없다"를
     //   가장 큰 약점으로 짚었다(첫 화면 5.5~7). 첫 훅이 첫 헤드라인을 되풀이하면 다시 쓴다(lib/hook-overlap). 끝내 못 고치면 막지는 않는다.
-    const echoTitle = scenes[0] && headlines[0] && repeatsTitle(scenes[0].hook, headlines[0]);
+    // 첫 대사(=첫 화면 아래 자막)도 같다(10/28 Mac mini2) — 제목 낱말 절반 이상을 다시 말하면 다시 쓴다.
+    const echoTitle = scenes[0] && headlines[0] && (repeatsTitle(scenes[0].hook, headlines[0]) || restatesTitle(scenes[0].say, headlines[0]));
     if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅이 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) {
     log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
     // 모델이 없으면 다시 써 봐야 같은 결과다 — 이 회차를 접는다(발행 쪽이 예비·다음 슬롯으로 메운다).
@@ -2110,10 +2113,10 @@ if (process.env.THUMB_GATE !== '0' && process.env.SHORTS_PRESCORE !== '0' && sce
       const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-ss', '0.5', '-i', src0, '-frames:v', '1', f], ffmpegOpts({ timeoutMs: 30000 }));
       src0 = r.status === 0 && existsSync(f) ? f : null;
     }
-    const still = (ov, n) => {
-      const out = `${WORK}/open-${n}.jpg`;
+    const still = (ov, n, zoom = false) => {
+      const out = `${WORK}/open-${n}${zoom ? 'z' : ''}.jpg`;
       const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', src0, '-i', ov,
-        '-filter_complex', `${mediaFilter('0:v', 'v0', { motion: false })};[v0][1:v]overlay=0:0[o]`, '-map', '[o]', '-frames:v', '1', '-q:v', '3', out],
+        '-filter_complex', `${mediaFilter('0:v', 'v0', { motion: false, ...(zoom ? { zoom: true } : {}) })};[v0][1:v]overlay=0:0[o]`, '-map', '[o]', '-frames:v', '1', '-q:v', '3', out],
         ffmpegOpts({ timeoutMs: 30000 }));
       return r.status === 0 && existsSync(out) ? out : null;
     };
@@ -2143,8 +2146,21 @@ if (process.env.THUMB_GATE !== '0' && process.env.SHORTS_PRESCORE !== '0' && sce
         log(`[첫 화면 미리] 훅을 바꾼다 "${scenes[0].hook}" → "${g.text}"`);
         scenes[0].hook = g.text; scenes[0].ov = tried.get(g.text);
       }
-      const sc = g.rounds[g.best].scores;
-      log(`[첫 화면 미리] ${g.passed ? '기준 넘음' : '기준 미달(렌더는 계속 — 발행 직전 관문이 다시 본다)'} · agy ${sc.agy?.score ?? '✗'} · Claude ${sc.claude?.score ?? '✗'} · ${g.rounds.length}판`);
+      let sc = g.rounds[g.best].scores;
+      // 사진 쪽 수단(10/28 Mac mini2 "주인공이 크고 또렷하게"): 심판이 그림을 짚었으면 **같은 사진**을 가운데로 당겨(줌) 한 판 더 본다.
+      //   다른 장면 사진으로 바꾸지는 않는다 — 장면마다 대사와 맞춘 사진이다(사진·뉴스 대조). 나으면 첫 장면만 줌으로 굽는다.
+      const { rankKey } = await import('../lib/thumb-gate.mjs');
+      if (!g.passed && Object.values(sc).some((r) => r?.imageOk === false) && !LAYOUT_IS_ZOOM) {
+        const zImg = still(scenes[0].ov[0], 'best', true);
+        if (zImg) {
+          const z = await runThumbGate({ image: zImg, text: scenes[0].hook, title: headlines[0] ?? '', kind: 'shorts-open', maxFixes: 0,
+            judges: { agy: agyJudge, claude: claudeJudge }, need: ['agy', 'claude'], rerender: async () => null,
+            anchors: existsSync(SHORTS_ANCHORS.high) && existsSync(SHORTS_ANCHORS.low) ? SHORTS_ANCHORS : null,
+            log: (m) => log(m.replace('[썸네일 관문]', '[첫 화면 미리·줌]')) });
+          if (rankKey(z.rounds[0].scores) > rankKey(sc)) { scenes[0].zoom = true; sc = z.rounds[0].scores; log('[첫 화면 미리] 첫 장면 사진을 가운데로 당긴다(줌 판이 더 높다)'); }
+        }
+      }
+      log(`[첫 화면 미리] ${g.passed ? '기준 넘음' : '기준 미달(렌더는 계속 — 발행 직전 관문이 다시 본다)'} · agy ${sc.agy?.score ?? '✗'} · Claude ${sc.claude?.score ?? '✗'} · ${g.rounds.length}판${scenes[0].zoom ? ' · 줌' : ''}`);
     }
   } catch (e) { log(`[첫 화면 미리] 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`); }
 }
@@ -2256,7 +2272,7 @@ for (let i = 0; i < scenes.length; i++) {
   const ovInputs = scenes[i].ov.flatMap((f) => ['-i', f]);
   // 첫 장면(정지 사진일 때만 — 영상 클립은 이미 움직인다)에 push 칸이면 천천히 다가간다.
   const firstScene = scenes.findIndex((x) => !x.isOutro);
-  let chain = mediaFilter('0:v', 'v0', { motion: MOTION === 'push' && i === firstScene && !isVid });
+  let chain = mediaFilter('0:v', 'v0', { motion: MOTION === 'push' && i === firstScene && !isVid, ...(scenes[i].zoom ? { zoom: true } : {}) });   // zoom: 5b 첫 화면 미리 매기기
   cues.forEach((c, k) => {
     const from = Math.max(0, c.start).toFixed(2);
     const to = Math.min(dur, k === cues.length - 1 ? dur : c.end).toFixed(2);
