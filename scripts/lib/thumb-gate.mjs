@@ -155,9 +155,10 @@ export function firstJson(s) {
   try { return JSON.parse(body.slice(a, b + 1)); } catch { return null; }
 }
 
-function run(bin, args, { cwd, timeoutMs }) {
+/** claude CLI 실행(agy 아님 — agy 는 lib/agy-run 으로만, agy-run.test [11]). */
+function runCli(exe, args, { cwd, timeoutMs }) {
   return new Promise((res) => {
-    const c = spawn(bin, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const c = spawn(exe, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
     const timer = setTimeout(() => { c.kill('SIGTERM'); setTimeout(() => c.kill('SIGKILL'), 5000).unref(); }, timeoutMs);
     c.stdout.on('data', (d) => { out += d; }); c.stderr.on('data', (d) => { err += d; });
@@ -179,7 +180,7 @@ export async function claudeJudge({ image, prompt, timeoutMs = 180_000 }) {
   if (!bin) throw new Error('claude 실행파일 없음');
   const { dir, file } = stage(image);
   try {
-    const r = await run(bin, ['-p', prompt(file), '--allowedTools', 'Read', '--max-turns', '4', '--output-format', 'json'], { cwd: dir, timeoutMs });
+    const r = await runCli(bin, ['-p', prompt(file), '--allowedTools', 'Read', '--max-turns', '4', '--output-format', 'json'], { cwd: dir, timeoutMs });
     if (r.code !== 0) throw new Error(`종료 ${r.code}: ${r.err.slice(0, 120)}`);
     const j = firstJson(r.out);
     if (!j) throw new Error('출력을 못 읽음');
