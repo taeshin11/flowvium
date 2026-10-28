@@ -116,7 +116,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     { at: '2026-10-28T15:01:00Z', event: 'uploaded', kind: 'shorts', title: 'C', passed: true, chatgpt: 8, agy: 8, claude: 8, rounds: 1, text: 'w' },
   ];
   const t = summarize(L, '2026-10-28');
-  assert.match(t, /올린 2편 · 통과 1 · 표시 1/);
+  assert.match(t, /올린 2편\(통과 1\) · 안 올림 0편 · 건너뛴 슬롯 0/);
   assert.match(t, /✅ 14:01 쇼츠 ChatGPT 미채점 · agy 8 · Claude 9/);
   assert.match(t, /⚠ 23:59 롱폼 .* — 3번 고쳐도 8점 미만/);
   assert.ok(!/ C$/.test(t), '다음 날(KST) 편은 빠진다');
@@ -176,6 +176,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const judges = { chatgpt: async () => ({ skipped: '야간' }), agy: async () => ({ score: 8, weak: '', text: '' }), claude: async () => ({ score: 9, weak: '', text: '' }) };
   const r = await runThumbGate({ image: 'v0.jpg', text: '처음', title: 'T', source: '', kind: 'shorts', judges, need: N3, rerender: async () => { calls++; return 'v1.jpg'; }, log: () => {} });
   assert.equal(calls, 0); assert.equal(r.passed, false); assert.match(r.flagged, /ChatGPT/);
+}
+// [16] 10/28 저녁 정정 — 미달은 안 올린다: 보고에 '안 올림(held)'·'슬롯 건너뜀(skipped)' 도 센다
+{
+  const { summarize } = await import('../thumb-gate-report.mjs');
+  const L = [
+    { at: '2026-10-28T09:00:00Z', event: 'held', kind: 'shorts', title: 'N1 #Shorts', passed: false, flagged: '3번 고쳐도 기준 미달', chatgpt: 7, agy: 6, claude: 6, text: 'a' },
+    { at: '2026-10-28T09:12:00Z', event: 'skipped', kind: 'shorts', why: '썸네일 미달' },
+    { at: '2026-10-28T10:00:00Z', event: 'held', kind: 'long', edition: 'krclose', title: 'L1', passed: false, flagged: '시간 상한 8분', chatgpt: 7, agy: 7, claude: 8, text: 'b / c' },
+  ];
+  const t = summarize(L, '2026-10-28');
+  assert.match(t, /올린 0편\(통과 0\) · 안 올림 2편 · 건너뛴 슬롯 1/);
+  assert.match(t, /✋ 18:00 쇼츠 ChatGPT 7 · agy 6 · Claude 6 .* — 3번 고쳐도 기준 미달/);
+  assert.match(t, /✋ 19:00 롱폼\(krclose\)/);
 }
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');

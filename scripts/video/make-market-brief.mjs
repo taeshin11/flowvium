@@ -493,8 +493,8 @@ if (UPLOAD) {
   const bad = channelMismatch(await currentChannel(), process.env.YOUTUBE_CHANNEL_ID);
   if (bad) die(bad);
   // 썸네일 관문(2026-10-28 사장님, Mac mini2 경유 — lib/thumb-gate): ChatGPT·agy·Claude 셋 다 8 이상이면 통과,
-  //   7 이하면 지적한 두 줄로 다시 굽고 다시 매긴다(3번). 롱폼은 작업 상한(40분)·렌더 락 대기(20분)가 있어 8분으로 묶는다.
-  //   안 되면 가장 나은 판을 올리고 22:00 보고에 표시. 두 줄 규칙(줄마다 2~8자·숫자 없음)은 대본 쪽 thumbLines 와 같다.
+  //   미달이면 지적한 두 줄로 다시 굽고 다시 매긴다(3번). 롱폼은 작업 상한(40분)·렌더 락 대기(20분)가 있어 8분으로 묶는다.
+  //   두 줄 규칙(줄마다 2~8자·숫자 없음)은 대본 쪽 thumbLines 와 같다.
   let gate = null;
   if (process.env.THUMB_GATE !== '0') {
     try {
@@ -511,7 +511,15 @@ if (UPLOAD) {
       gate = gateSummary(g);
       log(`[썸네일 관문] ${gate.passed ? '✅ 통과' : `⚠ ${gate.flagged} — 가장 나은 판으로 올린다`} · ChatGPT ${gate.chatgpt} · agy ${gate.agy} · Claude ${gate.claude} · "${gate.text}"`);
       appendGateLog({ event: 'gate', kind: 'long', edition: ED, title, ...gate, log: g.rounds.map((r) => ({ text: r.text, scores: r.scores, ms: r.ms })) }, resolve(ROOT, 'logs/thumb-gate.jsonl'));
-    } catch (e) { log(`[썸네일 관문] 건너뜀(오류 — 원래 썸네일로): ${String(e?.message ?? e).slice(0, 100)}`); }
+    } catch (e) { gate = { passed: false, flagged: `관문 오류: ${String(e?.message ?? e).slice(0, 100)}` }; log(`[썸네일 관문] ${gate.flagged}`); }
+    // 10/28 저녁 사장님(Mac mini2 경유): 점수를 받아야 올린다. 이번 회차는 올리지 않고 끝낸다 — 같은 판의 다음 슬롯(크론 하루 2~3번)이
+    //   대본부터 다시 만들어 새 썸네일로 다시 매긴다. 마지막 슬롯까지 못 넘으면 그날 그 판은 빠지고 22:02 보고에 'held' 로 남는다.
+    if (!gate.passed) {
+      const { appendGateLog } = await import('../lib/thumb-gate.mjs');
+      appendGateLog({ event: 'held', kind: 'long', edition: ED, title, ...gate }, resolve(ROOT, 'logs/thumb-gate.jsonl'));
+      log(`[썸네일 관문] 올리지 않는다 — ${gate.flagged}. 다음 슬롯이 다시 만들어 다시 매긴다(영상은 ${FINAL} 에 남긴다)`);
+      process.exit(0);
+    }
   }
   const target = publishTargetMs(ED, DATE);
   const publishAt = UPLOAD === 'public' && target && target - Date.now() > 10 * 60_000 ? new Date(target).toISOString() : null;
