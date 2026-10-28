@@ -346,6 +346,10 @@ if (DEMO || CARD) {
   const still = join(WORK, 'end-photo.mp4');
   const endPng = join(WORK, 'end-photo.png');
   let given = process.env.AISVI_END_PHOTO ? resolve(ROOT, process.env.AISVI_END_PHOTO) : null;
+  // 10/28 저녁 사이트 문구 '원하는 걸 적으면…' — 카드 배경도 폰에 말하는 사람이 아니라 노트북에 적는 사람(agy, Mac mini2 요청).
+  //   그 그림(assets/outro/aisvi-card-bg.jpg)이 있으면 카드는 그것을 쓴다. 없으면 종전대로 띠 영상의 1.5초.
+  const CARD_BG = resolve(ROOT, 'assets/outro/aisvi-card-bg.jpg');
+  if (!given && CARD && BRAND === 'aisvi' && LOCALE === 'ko' && existsSync(CARD_BG)) given = CARD_BG;
   // flowvium: 사이트 보고서 화면을 찍어 띠 사진으로(540×403 @2x = 띠 1080×806 비율).
   // 2026-09-30 사장님 "포토를 수익률 … AI투자계좌 이런거여야" → 되물음 결과 **실제 최고 적중**(지어낸 수익률은 쓰지 않는다).
   //   refresh-flowvium-card 가 추천 기록에서 앞뒤가 맞는 최고 적중(lib/best-hit)을 FLOWVIUM_HIT 로 준다.
