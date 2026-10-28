@@ -513,6 +513,24 @@ try {
   }
 } catch (e) { log(`[눈검증] 건너뜀(오류): ${String(e?.message).slice(0, 80)}`); }
 
+// ── 썸네일 관문 (2026-10-28 사장님, Mac mini2 경유) ─────────────────────────────
+//   ChatGPT·agy(argon-medium)·Claude 가 따로 10점 만점, 셋 다 8 이상이면 통과. 7 이하면 지적한 글로 다시 굽고 다시 매긴다(3번·10분).
+//   그래도 안 되면 가장 나은 판을 올리고 22:00 보고에 표시(logs/thumb-gate.jsonl). 막지 않는다 — 당일 뉴스는 못 기다린다.
+//   제목이 여기서 정해지므로 여기서 한다(lib/shorts-thumb gateShortsThumb). 끄려면 THUMB_GATE=0.
+let THUMB_GATE = null;
+const GATE_LOG = resolve(ROOT, 'logs/thumb-gate.jsonl');
+if (isShorts && THUMB && existsSync(THUMB) && process.env.THUMB_GATE !== '0') {
+  try {
+    const { gateShortsThumb } = await import('./lib/shorts-thumb.mjs');
+    const { appendGateLog } = await import('./lib/thumb-gate.mjs');
+    THUMB_GATE = await gateShortsThumb({ thumb: THUMB, srcDir: SRC_DIR, locale: LOCALE, meta: last, title, log });
+    if (THUMB_GATE) {
+      log(`[썸네일 관문] ${THUMB_GATE.passed ? '✅ 통과' : `⚠ ${THUMB_GATE.flagged} — 가장 나은 판으로 올린다`} · ChatGPT ${THUMB_GATE.chatgpt} · agy ${THUMB_GATE.agy} · Claude ${THUMB_GATE.claude} · "${THUMB_GATE.text}"`);
+      appendGateLog({ event: 'gate', kind: 'shorts', title, ...THUMB_GATE }, GATE_LOG);
+    }
+  } catch (e) { log(`[썸네일 관문] 건너뜀(오류 — 원래 썸네일로): ${String(e?.message ?? e).slice(0, 100)}`); }
+}
+
 // ── 3. 업로드 ──────────────────────────────────────────────────────────────
 const upArgs = [resolve(ROOT, 'scripts/youtube-upload.mjs'),
   '--file', VIDEO, '--title', title, '--desc', desc,
@@ -522,6 +540,11 @@ if (THUMB && existsSync(THUMB)) upArgs.push('--thumb', THUMB);
 // 2026-09-26: 생성 영상(Omni Flash)이 든 편은 유튜브에 '합성 콘텐츠' 로 신고한다 — 사실적인 생성 영상은 알려야 한다.
 if (isShorts && last.synthetic) { upArgs.push('--synthetic'); log('합성 콘텐츠 신고(생성 영상 포함)'); }
 run(upArgs, '업로드', UPLOAD_TIMEOUT_MS);
+if (THUMB_GATE) {
+  const { appendGateLog } = await import('./lib/thumb-gate.mjs');
+  const { log: _rounds, ...sum } = THUMB_GATE;
+  appendGateLog({ event: 'uploaded', kind: 'shorts', title, ...sum }, GATE_LOG);   // 업로드마다 점수 셋(22:00 보고 — scripts/thumb-gate-report)
+}
 
 // 편성 대장에 남긴다 — 다음 편이 같은 뉴스를 다시 고르지 않게 한다(2026-09-03 중복 3편 사건).
 //   업로드가 성공한 뒤에만 남긴다. 실패한 편을 "다뤘다"고 적으면 그 뉴스를 영영 놓친다.

@@ -34,6 +34,7 @@ import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT } from '
 import { checkEvergreen } from '../lib/evergreen-check.mjs';
 import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
 import { generateImage } from '../lib/agy-image.mjs';
+import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
 import { isReportPipelineRunning } from '../lib/report-running.mjs';
 
 loadEnvLocal();
@@ -95,6 +96,7 @@ async function render(item) {
   log(`  음성 ${totalSec.toFixed(1)}초 (${scenes.map((s) => s.dur.toFixed(1)).join('·')})`);
 
   // ── 캡션 오버레이 ── make-shorts 5절과 같은 값(12자·2줄·4초)
+  let thumbMeta = null;
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: G.W, height: G.H } });
@@ -109,21 +111,13 @@ async function render(item) {
         scenes[i].ov.push(f);
       }
     }
-    // 세로 썸네일 — 첫 그림 + 제목(make-shorts 와 같은 꼴). 제목은 lib/evergreen-check 가 38자 안으로 묶었다.
-    const head = item.title.length > 24 ? `${item.title.slice(0, item.title.lastIndexOf(' ', 24) > 10 ? item.title.lastIndexOf(' ', 24) : 24)}…` : item.title;
-    const dataUrl = `data:image/jpeg;base64,${readFileSync(scenes[0].media).toString('base64')}`;
+    // 세로 썸네일 — 첫 그림 + 제목(make-shorts 와 같은 꼴, lib/shorts-thumb). 제목은 lib/evergreen-check 가 38자 안으로 묶었다.
+    //   배경을 남긴다 — 썸네일 관문(video-publish)이 같은 그림에 고친 글로 다시 굽는다.
+    const head = cutHead(item.title);
+    thumbMeta = { head, source: item.title };
+    copyFileSync(scenes[0].media, `${WORK}/${THUMB_BG}`);
     await page.setViewportSize({ width: 1080, height: 1920 });
-    await page.setContent(`<!doctype html><meta charset="utf-8"><style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
-.bg{position:absolute;inset:0;background:url('${dataUrl}') center/cover no-repeat}
-.sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 34%,rgba(0,0,0,.20) 62%,rgba(0,0,0,.88) 100%)}
-.h{position:absolute;left:54px;right:54px;top:130px;font-size:118px;font-weight:900;line-height:1.16;color:#ffd400;
-  -webkit-text-stroke:14px #0a0a0a;paint-order:stroke fill;letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere}
-.m{position:absolute;left:0;right:0;bottom:120px;text-align:center;font-size:44px;font-weight:900;color:#fff;letter-spacing:.3em;
-  text-indent:.3em;opacity:.92;-webkit-text-stroke:6px #0a0a0a;paint-order:stroke fill}
-</style><div class="bg"></div><div class="sh"></div>
-<div class="h">${head.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div><div class="m">FLOWVIUM</div>`);
+    await page.setContent(shortsThumbHtml({ dataUrl: dataUrlOf(scenes[0].media), head }));
     await page.screenshot({ path: `${WORK}/thumb.png` });
   } finally { await browser.close(); }
 
@@ -186,6 +180,7 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;font-fam
     tags: ['주식공부', '주식상식', '경제상식', '재테크', '주식 기초', 'Flowvium', ...item.title.split(/[\s,?]+/).filter((w) => w.length >= 2).slice(0, 4)],
     headlines: [item.title], hooks: scenes.map((s) => s.hook), bodies: [scenes.map((s) => s.say).join(' ')],
     keyword: `${KEY_PREFIX}${item.id}`, topic: '주식 상식', brief: false, synthetic: false, subCta: false,
+    thumb: thumbMeta,   // 썸네일 글·원문 — 썸네일 관문(video-publish)
     promo: pick.path ? 'flowvium' : null, explore: false, layout: LAYOUT, opener: null, motion: 'still', trend: false,
     seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
   };
@@ -196,7 +191,7 @@ html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;font-fam
   const stage = `${dest}.part`;
   rmSync(stage, { recursive: true, force: true });
   mkdirSync(stage, { recursive: true });
-  for (const f of ['shorts-ko.mp4', 'shorts-ko-thumb.jpg', 'shorts-ko-meta.json']) if (existsSync(join(WORK, f))) copyFileSync(join(WORK, f), join(stage, f));
+  for (const f of ['shorts-ko.mp4', 'shorts-ko-thumb.jpg', 'shorts-ko-meta.json', THUMB_BG]) if (existsSync(join(WORK, f))) copyFileSync(join(WORK, f), join(stage, f));
   rmSync(dest, { recursive: true, force: true });
   renameSync(stage, dest);
   rmSync(WORK, { recursive: true, force: true });

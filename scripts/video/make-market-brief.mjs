@@ -439,6 +439,7 @@ if (!(LEN >= 80 && LEN <= 300)) die(`길이 ${LEN?.toFixed(0)}초 — 80~300초 
 
 // ── 10. 썸네일(레퍼런스 꼴) · 설명 ───────────────────────────────────────────────
 const THUMB = join(OUT, 'thumb.jpg');
+let drawThumb = null;
 {
   const story = chapters.find((c) => c.kind === 'story');
   // 대조를 통과한 사진만, 첫 이야기 장 것 먼저. 마감판은 장 끝난 뒤 기사 사진만(lib thumbPhoto — 10/23 오전 시세판 사진이 마감판 썸네일에).
@@ -447,6 +448,8 @@ const THUMB = join(OUT, 'thumb.jpg');
   // 10/23 사장님 "너무 오선을 따라한 형태다" → 데이터 우선 꼴(agy·Claude 검토 종합): 왼쪽 짙은 판에 그날 가장 크게 움직인 지수
   //   숫자(색 칩 위 흰 글씨 — 남색 위 파랑 글씨는 폰에서 묻힌다) + 2줄 핵심(노랑·흰, 줄당 7자 안). 오른쪽에 사진(채도 낮춤).
   //   빨간 날짜 띠·흰 띠·우상단 배지는 없앤다. 오른쪽 아래는 비운다(영상 길이 표시 자리).
+  // 10/28 썸네일 관문(lib/thumb-gate): 같은 꼴에 고친 두 줄로 다시 굽게 함수로 둔다.
+  drawThumb = async (lines, out) => {
   const tb = await chromium.launch({ headless: true }); const tp = await tb.newPage({ viewport: { width: 1280, height: 720 } });
   await tp.setContent(`<!doctype html><meta charset="utf-8"><style>*{margin:0;box-sizing:border-box}body{width:1280px;height:720px;background:#0E1A2B;font-family:${FONT};position:relative;overflow:hidden}
 .ph{position:absolute;right:0;top:0;width:640px;height:720px;object-fit:cover;filter:saturate(.8) brightness(.92)}.nb{position:absolute;right:0;top:0;width:640px;height:720px;background:linear-gradient(135deg,#1e293b,#0b1220)}
@@ -458,9 +461,12 @@ const THUMB = join(OUT, 'thumb.jpg');
 ${pic ? `<img class="ph" src="data:image/jpeg;base64,${readFileSync(pic.file).toString('base64')}">` : '<div class="nb"></div>'}
 <div class="pan"></div><div class="bar"></div><div class="brand">FLOWVIUM <span style="color:#cbd5e1">· ${esc(ED === 'us' ? '미국' : '한국')} ${esc(DAY.slice(5).replace('-', '/').replace(/^0/, '').replace('/0', '/'))}${ED === 'krmid' ? ' 오전' : ''}</span></div>
 ${MOVE ? `<div class="chip" style="background:${MOVE.up ? '#E5262B' : MOVE.pct < 0 ? '#1F5BFF' : '#475569'}">${esc(MOVE.chip)}</div>` : ''}
-<div class="l" style="top:${MOVE ? 300 : 200}px;color:#FFD400">${esc(thumbLines[0] ?? '')}</div><div class="l" style="top:${MOVE ? 450 : 350}px;color:#fff">${esc(thumbLines[1] ?? '')}</div>`);
+<div class="l" style="top:${MOVE ? 300 : 200}px;color:#FFD400">${esc(lines[0] ?? '')}</div><div class="l" style="top:${MOVE ? 450 : 350}px;color:#fff">${esc(lines[1] ?? '')}</div>`);
   await tp.evaluate(() => { for (const el of document.querySelectorAll('.chip,.l')) { let f = parseFloat(getComputedStyle(el).fontSize); while (el.getBoundingClientRect().right > 680 && f > 56) { f -= 4; el.style.fontSize = `${f}px`; } } });
-  await tp.screenshot({ path: THUMB, type: 'jpeg', quality: 88 }); await tb.close();
+  await tp.screenshot({ path: out, type: 'jpeg', quality: 88 }); await tb.close();
+  return out;
+  };
+  await drawThumb(thumbLines, THUMB);
 }
 const timeline = []; { let acc = 0; for (const [k, s] of segs.entries()) { if (!segs.slice(0, k).some((x) => x.ci === s.ci)) timeline.push({ title: chapters[s.ci].heading, start: Math.round(acc) }); acc += probe(parts[k]).dur; } }
 const { chapterLines } = await import('../lib/roundup.mjs');
@@ -486,6 +492,27 @@ if (UPLOAD) {
   const { loadEnvLocal } = await import('../lib/llm-config.mjs'); loadEnvLocal();
   const bad = channelMismatch(await currentChannel(), process.env.YOUTUBE_CHANNEL_ID);
   if (bad) die(bad);
+  // 썸네일 관문(2026-10-28 사장님, Mac mini2 경유 — lib/thumb-gate): ChatGPT·agy·Claude 셋 다 8 이상이면 통과,
+  //   7 이하면 지적한 두 줄로 다시 굽고 다시 매긴다(3번). 롱폼은 작업 상한(40분)·렌더 락 대기(20분)가 있어 8분으로 묶는다.
+  //   안 되면 가장 나은 판을 올리고 22:00 보고에 표시. 두 줄 규칙(줄마다 2~8자·숫자 없음)은 대본 쪽 thumbLines 와 같다.
+  let gate = null;
+  if (process.env.THUMB_GATE !== '0') {
+    try {
+      const { runThumbGate, gateSummary, appendGateLog } = await import('../lib/thumb-gate.mjs');
+      const made = [];
+      const g = await runThumbGate({ image: THUMB, text: thumbLines.join(' / '), title, kind: 'long', maxChars: 19, maxWords: 6, digits: false,
+        source: [title, ...thumbLines].join(' '), deadlineMs: 8 * 60_000,
+        textRule: '두 줄, 줄마다 2~8자, 숫자 없이, 두 줄은 " / " 로 나눈다(예: 반도체 / 급반등). 왼쪽 지수 칩(숫자)은 그대로 남는다',
+        accept: (t) => { const l = t.split(' / '); return l.length === 2 && l.every((x) => x.length >= 2 && x.length <= 8); },
+        rerender: async (t) => { const out = join(OUT, `thumb-g${made.length + 1}.jpg`); made.push(out); return drawThumb(t.split(' / '), out); },
+        log: (m) => log(m) });
+      if (g.image !== THUMB) copyFileSync(g.image, THUMB);
+      for (const f of made) rmSync(f, { force: true });
+      gate = gateSummary(g);
+      log(`[썸네일 관문] ${gate.passed ? '✅ 통과' : `⚠ ${gate.flagged} — 가장 나은 판으로 올린다`} · ChatGPT ${gate.chatgpt} · agy ${gate.agy} · Claude ${gate.claude} · "${gate.text}"`);
+      appendGateLog({ event: 'gate', kind: 'long', edition: ED, title, ...gate, log: g.rounds.map((r) => ({ text: r.text, scores: r.scores, ms: r.ms })) }, resolve(ROOT, 'logs/thumb-gate.jsonl'));
+    } catch (e) { log(`[썸네일 관문] 건너뜀(오류 — 원래 썸네일로): ${String(e?.message ?? e).slice(0, 100)}`); }
+  }
   const target = publishTargetMs(ED, DATE);
   const publishAt = UPLOAD === 'public' && target && target - Date.now() > 10 * 60_000 ? new Date(target).toISOString() : null;
   // adVersion: 끝 카드가 aisvi 판이면 설명란 링크(utm_content)도 그 판 — 카드에서 본 말과 누를 링크가 같게(lib/ad-line).
@@ -493,6 +520,7 @@ if (UPLOAD) {
     tags: [E.label.replace(/\s/g, ''), '증시요약', ED === 'us' ? '미국증시' : '한국증시', ED === 'us' ? '나스닥' : '코스피', ED === 'us' ? '뉴욕증시' : ED === 'kreu' ? '유럽증시' : '코스닥', '주식', '경제', 'Flowvium'] });
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
+  if (gate) { const { appendGateLog } = await import('../lib/thumb-gate.mjs'); appendGateLog({ event: 'uploaded', kind: 'long', edition: ED, id: u.id, title, ...gate }, resolve(ROOT, 'logs/thumb-gate.jsonl')); }
   history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), at: new Date().toISOString() });
   writeFileSync(HIST, JSON.stringify(history, null, 2));
   // 예약 공개 편은 여기서 달지 않는다 — 공개 전(비공개)엔 댓글 칸이 없어 실패만 센다(10/23 h_nRYqiJDEg 실패 2회 → 고정 댓글 없이 공개).

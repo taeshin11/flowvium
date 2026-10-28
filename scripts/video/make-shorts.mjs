@@ -19,6 +19,7 @@
  *   node scripts/video/make-shorts.mjs --dry           # 대본·소재만 확인, 렌더 안 함
  */
 import { chromium } from 'playwright';
+import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
@@ -2142,6 +2143,7 @@ await page.screenshot({ path: `${WORK}/card.png` });
 //
 // 배경은 **이 회차가 실제로 쓴 첫 사진**이다. 없는 그림을 새로 만들지 않는다 —
 //   뉴스 썸네일이 그 사건의 사진이 아니게 되는 순간 낚시가 된다.
+let THUMB_META = null, THUMB_BG_SRC = null;   // 썸네일 글·원문·배경 — 메타와 관문(video-publish)이 쓴다
 try {
   const first = scenes.find((x) => !x.isOutro && x.media);
   let bg = first?.media ?? `${WORK}/card.png`;
@@ -2152,39 +2154,15 @@ try {
     bg = r.status === 0 && existsSync(f) ? f : `${WORK}/card.png`;
   }
   // 제목은 짧아야 읽힌다. **헤드라인**을 쓴다 — 훅은 말하려고 쓴 문장이라 잘리면 토막이 된다.
-  //   자를 때는 낱말 경계에서 자른다. 글자 수로 뚝 자르면 "한화시스템 UA" 같은 게 나온다.
+  //   자르기·꼴은 lib/shorts-thumb(10/28 — video-publish 의 썸네일 관문이 같은 꼴로 고쳐 굽는다).
   const raw = String(thumbHeadline(scenes, headlines, !!BRIEF))   // 2026-10-20: 배경 사진 장면의 뉴스(lib/brief-scenes)
     .replace(/^\[[^\]]*\]\s*/, '')            // [속보] [특징주] 같은 말머리는 뺀다 — 자리만 먹는다
     .replace(/\s+/g, ' ').trim();
-  let head = raw;
-  if (head.length > 24) {
-    const cut = head.slice(0, 25);
-    const sp = cut.lastIndexOf(' ');
-    head = `${(sp > 10 ? cut.slice(0, sp) : cut.slice(0, 24)).replace(/[,·…]$/, '')}…`;
-  }
-  // 그림은 **데이터로 박아 넣는다**. setContent 로 만든 문서는 about:blank 라서
-  //   크롬이 file:// 하위 자원을 막는다 — 2026-09-18 첫 회차가 새까만 썸네일로 올라갔다.
-  const ext = (bg.match(/\.(\w+)$/) || [])[1]?.toLowerCase() ?? 'png';
-  const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'image/png';
-  const dataUrl = `data:${mime};base64,${readFileSync(bg).toString('base64')}`;
+  const head = cutHead(raw);
+  THUMB_META = { head, source: raw };
+  THUMB_BG_SRC = bg;
   const thumbPage = await (await chromium.launch()).newPage({ viewport: { width: 1080, height: 1920 } });
-  await thumbPage.setContent(`<!doctype html><meta charset="utf-8"><style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{width:1080px;height:1920px;overflow:hidden;background:#05070f;
-  font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif}
-.bg{position:absolute;inset:0;background:url('${dataUrl}') center/cover no-repeat}
-/* 위아래를 어둡게 깔아 글자가 뜨게 한다. 가운데(얼굴·현장)는 남긴다. */
-.sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.25) 34%,
-  rgba(0,0,0,.20) 62%,rgba(0,0,0,.88) 100%)}
-.h{position:absolute;left:54px;right:54px;top:130px;font-size:118px;font-weight:900;line-height:1.16;
-  color:#ffd400;-webkit-text-stroke:14px #0a0a0a;paint-order:stroke fill;letter-spacing:-.01em;
-  /* 한글을 음절마다 끊지 않는다 — 10/20 '논란 / 에…' '전공자 / 라…'(shorts-thumb-wrap.test). 한 낱말이 폭을 넘을 때만 자른다. */
-  word-break:keep-all;overflow-wrap:anywhere}
-.m{position:absolute;left:0;right:0;bottom:120px;text-align:center;font-size:44px;font-weight:900;
-  color:#fff;letter-spacing:.3em;text-indent:.3em;opacity:.92;-webkit-text-stroke:6px #0a0a0a;paint-order:stroke fill}
-</style><div class="bg"></div><div class="sh"></div>
-<div class="h">${head.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>
-<div class="m">FLOWVIUM</div>`);
+  await thumbPage.setContent(shortsThumbHtml({ dataUrl: dataUrlOf(bg), head }));
   await thumbPage.screenshot({ path: `${WORK}/thumb.png` });
   await thumbPage.context().browser()?.close();
   log(`[썸네일] 만들었다 — "${head}"`);
@@ -2372,6 +2350,10 @@ if (existsSync(`${WORK}/thumb.png`)) {
     const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', `${WORK}/thumb.png`, '-q:v', '3', tj],
       ffmpegOpts({ timeoutMs: 30000 }));
     if (r.status === 0 && existsSync(tj)) console.log(`   썸네일 ${(readFileSync(tj).length / 1024).toFixed(0)}KB · 밝기 ${avg}/255 → ${tj}`);
+    // 배경도 남긴다 — 썸네일 관문(video-publish)이 같은 사진에 고친 글로 다시 굽는다(lib/shorts-thumb).
+    const bgj = join(OUT_DIR, THUMB_BG);
+    const rb = THUMB_BG_SRC ? spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', THUMB_BG_SRC, '-q:v', '3', bgj], ffmpegOpts({ timeoutMs: 30000 })) : null;
+    if (!(rb?.status === 0 && existsSync(bgj)) && existsSync(bgj)) unlinkSync(bgj);   // 지난 회차 배경이 남아 섞이지 않게
     else console.log(`   ⚠ 썸네일 굽기 실패 — 유튜브가 자동으로 고른다`);
   }
 }
@@ -2410,6 +2392,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
   opener: OPENER,      // 2026-10-11: 첫 문장 A/B(anchor|question) — lib/explore-slot openerFor
   motion: MOTION,      // 2026-10-17: 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor
+  thumb: THUMB_META,   // 2026-10-28: 썸네일 글·원문 — 썸네일 관문(video-publish)이 고칠 글의 숫자를 원문과 대조
   trend: TREND_USED,   // 2026-10-02: 트렌드 칸에서 트렌드 주제어가 겹친 후보로 갔는가 — 48h 성적 따로
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
 }, null, 2));

@@ -12,9 +12,10 @@ let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
 const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 
-const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+// 10/28: 꼴이 lib/shorts-thumb 으로 옮겨졌다(make-shorts·상시 쇼츠·썸네일 관문이 같이 쓴다).
+const src = readFileSync(new URL('./shorts-thumb.mjs', import.meta.url), 'utf8');
 const rule = /\n\.h\{[^}]*\}/.exec(src)?.[0];
-if (!rule) { bad('[0] make-shorts 에서 썸네일 .h 규칙을 못 찾았다'); process.exit(1); }
+if (!rule) { bad('[0] lib/shorts-thumb 에서 썸네일 .h 규칙을 못 찾았다'); process.exit(1); }
 
 const { chromium } = await import('playwright');
 // 크롬이 없는 곳(CI 깨끗한 clone — 브라우저를 안 깐다)에서는 잴 수 없다 → 전제조건 스킵(test-env). 10/20 CI 가 여기서 죽었다.

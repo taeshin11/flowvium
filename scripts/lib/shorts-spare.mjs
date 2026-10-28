@@ -20,7 +20,8 @@ export function spareDir(env = process.env) {
   return env.SHORTS_SPARE_DIR || join(tmpdir(), 'flowvium-spares');
 }
 
-export const SPARE_FILES = { video: 'shorts-ko.mp4', thumb: 'shorts-ko-thumb.jpg', meta: 'shorts-ko-meta.json', credits: 'shorts-ko-credits.txt' };
+// thumbBg(10/28): 썸네일 관문이 같은 사진에 고친 글로 다시 굽는 배경(lib/shorts-thumb).
+export const SPARE_FILES = { video: 'shorts-ko.mp4', thumb: 'shorts-ko-thumb.jpg', meta: 'shorts-ko-meta.json', credits: 'shorts-ko-credits.txt', thumbBg: 'shorts-ko-thumb-bg.jpg' };
 
 /** 영상·메타가 다 있는 예비들(새것 먼저). */
 export function listSpares(dir) {
@@ -74,7 +75,7 @@ export function promoteSpare(spare, mediaRoot, locale = 'ko') {
   for (const f of Object.values(SPARE_FILES)) {
     const src = join(spare.dir, f);
     if (existsSync(src)) copyFileSync(src, to(f));
-    else if (f === SPARE_FILES.credits && existsSync(to(f))) rmSync(to(f));   // 지난 회차 크레딧이 섞이지 않게
+    else if ((f === SPARE_FILES.credits || f === SPARE_FILES.thumbBg) && existsSync(to(f))) rmSync(to(f));   // 지난 회차 크레딧·배경이 섞이지 않게
   }
   rmSync(spare.dir, { recursive: true, force: true });
   return { keyword: spare.meta.keyword, from: spare.dir };
