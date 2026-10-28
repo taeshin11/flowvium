@@ -26,7 +26,7 @@ assert.equal(safeText('3줄 요약', { source: '3줄', maxChars: 24, digits: fal
 
 // [3] 판정 — 나온 점수가 모두 8 이상이고 정해진 심판(agy·claude)이 다 매겼을 때만 통과. 못 매긴 심판은 통과가 아니다
 const J = ['agy', 'claude', 'chatgpt'];
-const need = ['agy', 'claude'];
+const need = ['agy', 'claude'];   // 시험용 — 실제 NEED 는 chatgpt 까지 셋
 assert.equal(decide({ agy: { score: 8 }, claude: { score: 9 }, chatgpt: { skipped: 'ChatGPT 미채점' } }, need).pass, true);
 assert.equal(decide({ agy: { score: 7 }, claude: { score: 9 } }, need).pass, false);
 assert.equal(decide({ agy: { error: '시간초과' }, claude: { score: 9 } }, need).pass, false, '못 매긴 심판');
@@ -130,6 +130,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const r = await runThumbGate({ image: 'v0.jpg', text: '처음', title: 'T', source: '', kind: 'shorts', judges, need, rerender: async () => null, log: () => {} });
   const { gateSummary } = await import('./thumb-gate.mjs');
   assert.equal(gateSummary(r).imageBad, 1);
+}
+// [14] ChatGPT 대기열(Mac mini3, ~/history/_thumbq) — in/<id>.json 을 쓰고 out/<id>.json 을 기다린다. score null 은 못 매김. 23:35~02:40 은 처리 안 함 → 바로 미채점
+{
+  const { chatgptJudge, inNightBan } = await import('./thumb-gate.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const q = mkdtempSync(join(tmpdir(), 'thumbq-test-')); mkdirSync(join(q, 'in')); mkdirSync(join(q, 'out'));
+  const img = join(q, 'a.jpg'); writeFileSync(img, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  const answer = (score, extra = {}) => { const t = setInterval(() => {
+    for (const f of readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json'))) {
+      const req = JSON.parse(readFileSync(join(q, 'in', f), 'utf8'));
+      assert.ok(req.image.startsWith('/') && req.title === 'T' && req.lang === 'ko');
+      writeFileSync(join(q, 'out', f), JSON.stringify({ id: f.slice(0, -5), score, fix: '글을 줄여라', better_text: '더 나은 글', judge: 'chatgpt', ...extra })); clearInterval(t);
+    } }, 20); };
+  const day = () => new Date('2026-10-28T06:00:00Z');   // 15:00 KST
+  answer(7);
+  assert.deepEqual(await chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), { score: 7, weak: '글을 줄여라', text: '더 나은 글' });
+  answer(null, { error: 'login' });
+  await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /login/);
+  await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 200, now: day }), /시간초과/);
+  assert.equal(readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json')).length, 1, '답 받은 요청은 지우고(저쪽은 in 을 남긴다), 시간초과 요청만 남긴다');
+  assert.ok((await chatgptJudge({ image: img, title: 'T', qdir: q, now: () => new Date('2026-10-28T15:00:00Z') })).skipped, '00:00 KST 는 처리 안 하는 시간');
+  assert.equal(inNightBan(new Date('2026-10-28T14:34:00Z')), false); assert.equal(inNightBan(new Date('2026-10-28T14:35:00Z')), true);
+  assert.equal(inNightBan(new Date('2026-10-28T17:39:00Z')), true); assert.equal(inNightBan(new Date('2026-10-28T17:40:00Z')), false);
 }
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');

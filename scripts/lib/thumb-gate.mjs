@@ -7,17 +7,16 @@
  *   그래도 안 되면 가장 나은 판(최저점 → 합)을 쓰고 flagged 에 이유를 남긴다(22:00 보고).
  * 고칠 수 있는 건 **썸네일 글뿐**이다. 사진은 그 뉴스의 실제 사진이라 바꾸지 않는다(바꾸면 낚시 — make-shorts 머리말).
  *   심판이 낸 글은 safeText 로 거른다: 원문에 없는 숫자(지어낸 수치)·매수/매도 권유·길이 밖은 버린다.
- * ChatGPT: 이 기계에선 9334 크롬을 못 쓰고 API 키도 없다 — Mac mini2 가 채점 대기열을 만들 때까지 'ChatGPT 미채점'.
+ * ChatGPT: 이 기계는 9334 크롬을 안 건드린다 — Mac mini3 의 공용 채점 대기열(~/history/_thumbq)에 넣고 답을 받는다(chatgptJudge).
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, copyFileSync, writeFileSync, rmSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, copyFileSync, writeFileSync, rmSync, existsSync, appendFileSync, mkdirSync, renameSync, readFileSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join, dirname, extname } from 'node:path';
 import { CALL } from './comment-reply.mjs';
 
 export const PASS = 8;
-export const NEED = ['agy', 'claude'];
-const CHATGPT_SKIP = 'ChatGPT 미채점';
+export const NEED = ['chatgpt', 'agy', 'claude'];   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
 export function judgePrompt({ title, kind, file, textRule }) {
   return [
@@ -218,7 +217,41 @@ export async function agyJudge({ image, prompt, timeoutMs = 240_000 }) {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-/** ChatGPT — 길이 생길 때까지(Mac mini2 채점 대기열) 미채점. 통과 판정에서 빼되 기록엔 남긴다. */
-export async function chatgptJudge() { return { skipped: CHATGPT_SKIP }; }
+/** Mac mini3 대기열이 처리하지 않는 시간(23:35~02:40 KST, 공용 맥 창 금지). */
+export function inNightBan(d = new Date()) {
+  const k = new Date(d.getTime() + 9 * 3600e3);
+  const m = k.getUTCHours() * 60 + k.getUTCMinutes();
+  return m >= 23 * 60 + 35 || m < 2 * 60 + 40;
+}
+
+/**
+ * ChatGPT — Mac mini3 의 공용 채점 대기열(10/28, 9334 크롬은 그쪽 한 프로세스만 쓴다 — 이 기계는 그 크롬을 안 건드린다).
+ *   in/<id>.json {image,title,channel,lang} → out/<id>.json {score|null, fix, fixes, better_text, error?}. 60초마다·한 건 30초 안팎·저쪽 일이 먼저.
+ *   score null = 못 매김(던진다 — 통과로 세지 않는다). 23:35~02:40 은 처리하지 않으니 기다리지 않고 미채점으로 둔다.
+ *   그림은 대기열이 읽을 때까지 남아 있어야 해서 대기열 폴더(img/)에 복사해 두고, 답을 받으면 지운다.
+ */
+export async function chatgptJudge({ image, title, timeoutMs = 300_000, qdir = process.env.THUMBQ_DIR || join(homedir(), 'history/_thumbq'),
+  pollMs = 5000, now = () => new Date(), channel = 'FlowVium', lang = 'ko' }) {
+  if (inNightBan(now())) return { skipped: 'ChatGPT 야간 미채점(23:35~02:40 대기열 쉼)' };
+  if (!existsSync(join(qdir, 'in'))) throw new Error(`대기열 없음: ${qdir}`);
+  const id = `flowvium-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  mkdirSync(join(qdir, 'img'), { recursive: true });
+  const img = join(qdir, 'img', `${id}${extname(image) || '.jpg'}`);
+  copyFileSync(image, img);
+  const req = join(qdir, 'in', `${id}.json`);
+  writeFileSync(`${req}.tmp`, JSON.stringify({ image: img, title, channel, lang }));
+  renameSync(`${req}.tmp`, req);
+  const out = join(qdir, 'out', `${id}.json`);
+  for (const t0 = Date.now(); Date.now() - t0 < timeoutMs; await new Promise((r) => setTimeout(r, pollMs))) {
+    if (!existsSync(out)) continue;
+    let a; try { a = JSON.parse(readFileSync(out, 'utf8')); } catch { continue; }   // 원자적으로 쓴다지만 한 번 더 기다려도 손해 없다
+    // 받은 요청도 지운다 — 저쪽은 처리한 in 을 남겨 두고(10/28 실측), 답(out)을 지운 뒤 in 이 남으면 다시 매길 수 있다.
+    rmSync(out, { force: true }); rmSync(req, { force: true }); rmSync(img, { force: true });
+    if (a.score == null) throw new Error(`ChatGPT 못 매김: ${String(a.error ?? '이유 없음').slice(0, 100)}`);
+    return { score: a.score, weak: String(a.fix ?? '').slice(0, 300), text: String(a.better_text ?? '') };
+  }
+  // 요청은 남긴다 — 저쪽이 지금 처리 중일 수 있다. 늦게 온 답(out)과 그림은 다음 정리 때 지운다(thumb-gate-report).
+  throw new Error(`ChatGPT 시간초과 ${Math.round(timeoutMs / 1000)}초(대기열 밀림)`);
+}
 
 export function defaultJudges() { return { chatgpt: chatgptJudge, agy: agyJudge, claude: claudeJudge }; }
