@@ -2,7 +2,7 @@
  * thumb-gate.mjs — 올리기 전 썸네일 3자 채점 관문. (2026-10-28 사장님, Mac mini2 경유) 머리말 규칙은 thumb-gate.test.mjs.
  *
  * 심판 셋이 따로 10점 만점: ChatGPT · agy(gemini-4-argon-medium, 그림 첨부) · Claude(claude -p, 그림을 Read).
- *   통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수가 모두 8 이상. 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
+ *   통과 = 정해진 심판(need)이 모두 매겼고, 둘이 8 이상 + 나머지 하나 7.5 이상(10/28 저녁 완화). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
  *   7 이하가 있으면 가장 낮은 심판이 낸 글로 부르는 쪽이 다시 굽고(rerender) 다시 매긴다 — 최대 3번, 전체 10분.
  *   그래도 안 되면 가장 나은 판(최저점 → 합)을 쓰고 flagged 에 이유를 남긴다(22:00 보고).
  * 고칠 수 있는 건 **썸네일 글뿐**이다. 사진은 그 뉴스의 실제 사진이라 바꾸지 않는다(바꾸면 낚시 — make-shorts 머리말).
@@ -16,11 +16,12 @@ import { join, dirname, extname } from 'node:path';
 import { CALL } from './comment-reply.mjs';
 
 export const PASS = 8;
+export const PASS_ONE = 7.5;   // 10/28 저녁 완화(사장님): 둘이 8 이상 + 나머지 하나 7.5 이상
 export const NEED = ['chatgpt', 'agy', 'claude'];   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
 export function judgePrompt({ title, kind, file, textRule }) {
   return [
-    `유튜브 ${kind === 'shorts' ? '쇼츠 첫 화면(표지)' : '영상 썸네일'} 그림 ${file} 을 직접 열어 보고, 클릭률(CTR) 기준으로 10점 만점 정수로 매겨라.`,
+    `유튜브 ${kind === 'shorts' ? '쇼츠 첫 화면(표지)' : '영상 썸네일'} 그림 ${file} 을 직접 열어 보고, 클릭률(CTR) 기준으로 10점 만점(0.5 점 단위)으로 매겨라.`,
     `영상 제목: "${title}"`,
     '기준(모두 본다):',
     '1. 폰 피드 크기에서 1초 안에 읽힌다',
@@ -32,14 +33,15 @@ export function judgePrompt({ title, kind, file, textRule }) {
     `고칠 수 있는 것은 썸네일 글뿐이다(사진은 그 뉴스의 실제 사진이라 못 바꾼다). 글 규칙: ${textRule}.`,
     '사실은 제목·그림에 있는 것만 써라 — 없는 숫자·과장·매수/매도 권유 금지.',
     'image_ok: 그림(사진)이 주제와 바로 이어지고 주인공이 크면 true, 주제와 동떨어져 보이면 false.',
-    '답은 JSON 하나: {"score":정수0~10,"weak":"가장 약한 점 한 줄","text":"더 나은 썸네일 글(점수가 8 이상이면 빈 글)","image_ok":true|false}',
+    '답은 JSON 하나: {"score":0~10(0.5 단위),"weak":"가장 약한 점 한 줄","text":"더 나은 썸네일 글(점수가 8 이상이면 빈 글)","image_ok":true|false}',
   ].join('\n');
 }
 
 export function parseJudge(o) {
   if (!o || typeof o !== 'object') return null;
-  const s = Number(o.score);
-  if (!Number.isInteger(s) || s < 0 || s > 10) return null;
+  const n = Number(o.score);
+  if (o.score == null || o.score === '' || !Number.isFinite(n) || n < 0 || n > 10) return null;
+  const s = Math.round(n * 10) / 10;   // 소수 한 자리(ChatGPT 대기열 7.5 등 — 7.5 기준이 있어서 정수로 자르지 않는다)
   const r = { score: s, weak: String(o.weak ?? '').trim(), text: String(o.text ?? '').trim() };
   if (typeof o.image_ok === 'boolean') r.imageOk = o.image_ok;   // 그림이 주제와 맞는가 — 상시 쇼츠는 false 면 표지를 다시 그린다
   return r;
@@ -56,12 +58,21 @@ export function safeText(t, { source = '', maxChars = 24, maxWords = 6, digits =
   return s;
 }
 
-const scored = (r) => r && Number.isInteger(r.score);
+const scored = (r) => r && Number.isFinite(r.score);
 
+/**
+ * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수 중 8 미만이 많아야 하나이며 그것도 7.5 이상(10/28 저녁 완화 — 원래는 셋 다 8).
+ * settled = 통과는 아니지만 더 고쳐도 소용없는 경우 — ChatGPT 만 못 매겼고(야간 미채점 등) 나머지가 모두 8 이상.
+ *   그 편은 통과가 아니다(사장님: 미채점은 통과로 세지 않는다). 다시 굽지 않고 멈추고 표시만 한다.
+ */
 export function decide(scores, need = NEED) {
   const missing = need.filter((k) => !scored(scores[k]));
-  const low = Object.entries(scores).filter(([, r]) => scored(r) && r.score < PASS).map(([k]) => k);
-  return { pass: !missing.length && !low.length, missing, low };
+  const vals = Object.entries(scores).filter(([, r]) => scored(r));
+  const under8 = vals.filter(([, r]) => r.score < PASS);
+  const low = under8.length > 1 || under8.some(([, r]) => r.score < PASS_ONE) ? under8.map(([k]) => k) : [];
+  const pass = !missing.length && !low.length;
+  const settled = !pass && missing.length === 1 && missing[0] === 'chatgpt' && !under8.length;
+  return { pass, settled, missing, low };
 }
 
 /** 판 고르기 — 못 매긴 심판(error)이 있는 판은 아래, 그다음 최저점, 같으면 합. 미채점(skipped)은 세지 않는다. */
@@ -107,6 +118,7 @@ export async function runThumbGate(o) {
     log(`[썸네일 관문] ${rounds.length}판 "${text}" — ${fmtScores(scores)}`);
     const d = decide(scores, need);
     if (d.pass) break;
+    if (d.settled) { flagged = `ChatGPT 미채점(${scores.chatgpt?.skipped ?? scores.chatgpt?.error ?? '없음'}) — 나머지 둘은 8 이상`; break; }
     if (rounds.length > maxFixes) { flagged = `${maxFixes}번 고쳐도 8점 미만`; break; }
     const roundMs = rounds.at(-1).ms;
     if (deadlineMs - (now() - t0) < roundMs) { flagged = `시간 상한 ${Math.round(deadlineMs / 60000)}분`; break; }
@@ -202,7 +214,7 @@ export async function agyJudge({ image, prompt, timeoutMs = 240_000 }) {
   const { dir, file } = stage(image);
   try {
     writeFileSync(join(dir, 'schema.json'), JSON.stringify({ type: 'object',
-      properties: { score: { type: 'integer' }, weak: { type: 'string' }, text: { type: 'string' }, image_ok: { type: 'boolean' } }, required: ['score', 'weak', 'text', 'image_ok'] }));
+      properties: { score: { type: 'number' }, weak: { type: 'string' }, text: { type: 'string' }, image_ok: { type: 'boolean' } }, required: ['score', 'weak', 'text', 'image_ok'] }));
     const model = process.env.THUMB_GATE_AGY_MODEL || PREFERRED_VISION[0];
     let r;
     try {

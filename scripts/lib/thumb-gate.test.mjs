@@ -155,5 +155,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(inNightBan(new Date('2026-10-28T14:34:00Z')), false); assert.equal(inNightBan(new Date('2026-10-28T14:35:00Z')), true);
   assert.equal(inNightBan(new Date('2026-10-28T17:39:00Z')), true); assert.equal(inNightBan(new Date('2026-10-28T17:40:00Z')), false);
 }
+// [15] 10/28 저녁 완화(사장님, Mac mini2 경유): 둘이 8 이상 + 나머지 하나 7.5 이상이면 통과. 0.5 점 단위를 받는다.
+//   ChatGPT 가 못 매기면 나머지 둘이 8 이상이어도 통과가 아니다(야간 미채점 포함) — 다만 더 고칠 것이 없으니 거기서 멈춘다(settled).
+{
+  const N3 = ['chatgpt', 'agy', 'claude'];
+  assert.equal(parseJudge({ score: 7.5, weak: '', text: '' }).score, 7.5);
+  assert.equal(parseJudge({ score: 7.3, weak: '', text: '' }).score, 7.3, 'ChatGPT 대기열은 소수 한 자리(Mac mini3 10/28)');
+  assert.equal(parseJudge({ score: 7.46, weak: '', text: '' }).score, 7.5, '한 자리로 반올림');
+  assert.equal(decide({ chatgpt: { score: 7.4 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, false, '7.4 는 7.5 미만');
+  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, true);
+  assert.equal(decide({ chatgpt: { score: 8 }, agy: { score: 7.5 }, claude: { score: 8 } }, N3).pass, true);
+  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 7.5 }, claude: { score: 9 } }, N3).pass, false, '7.5 가 둘');
+  assert.equal(decide({ chatgpt: { score: 7 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7 은 안 된다');
+  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 8 }, claude: { score: 8.5 } }, N3);
+  assert.equal(night.pass, false); assert.equal(night.settled, true);
+  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7.5 }, claude: { score: 9 } }, N3);
+  assert.equal(night2.pass, false); assert.equal(night2.settled, false, 'ChatGPT 없으면 둘 다 8 이상이어야');
+  // 흐름 — ChatGPT 가 빠진 채 둘이 8 이상이면 더 굽지 않고 멈춘다
+  let calls = 0;
+  const judges = { chatgpt: async () => ({ skipped: '야간' }), agy: async () => ({ score: 8, weak: '', text: '' }), claude: async () => ({ score: 9, weak: '', text: '' }) };
+  const r = await runThumbGate({ image: 'v0.jpg', text: '처음', title: 'T', source: '', kind: 'shorts', judges, need: N3, rerender: async () => { calls++; return 'v1.jpg'; }, log: () => {} });
+  assert.equal(calls, 0); assert.equal(r.passed, false); assert.match(r.flagged, /ChatGPT/);
+}
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');
