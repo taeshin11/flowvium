@@ -1339,6 +1339,7 @@
     "verdict_defensive": "Defensive (raise cash)",
     "verdictNote": "A deterministic read combining downside/upside precursors, fear-buy signals, and the historical-analog method: today's multi-factor \"fingerprint\" (volatility/VIX, drawdown from high, short-term momentum, rates, yield curve) is matched by weighted distance against all history since 1990, and the realized forward returns of the closest analog regimes are aggregated. Not investment advice.",
     "etfCat_crypto": "Crypto",
+    "etfCat_leveraged": "Leveraged/Inverse",
     "gateTitle": "Intraday reports are members-only",
     "gateBody": "Register your email to unlock all intraday AI reports for free. The morning report is free for everyone.",
     "gateEmailPlaceholder": "Email address",

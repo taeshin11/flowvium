@@ -209,8 +209,9 @@ export interface InvestmentStrategy {
   // 2026-06-04: ETF 전략 섹션 (sector/region/stance grounded, 가격 라이브)
   etfStrategy?: Array<{
     ticker: string; name: string;
-    category: 'broad' | 'sector' | 'region' | 'commodity' | 'bond';
-    tag: 'core' | 'sector' | 'region' | 'defensive';
+    // 2026-10-28: 실제로 나가는 분류 전부(테마·스타일·배당·크립토는 06-05~06-13 에 생겼는데 타입이 안 따라왔다) + 레버리지·인버스
+    category: 'broad' | 'sector' | 'region' | 'commodity' | 'bond' | 'thematic' | 'style' | 'dividend' | 'crypto' | 'leveraged';
+    tag: 'core' | 'sector' | 'region' | 'defensive' | 'thematic' | 'style' | 'dividend' | 'diversifier' | 'bond' | 'crypto' | 'leveraged';
     action?: 'buy' | 'watch' | 'avoid' | 'hedge';
     rationale: string; price: number | null; changePct: number | null;
     // 2026-06-14: exposure map 격상 — 사이징/무효화조건 (결정론)

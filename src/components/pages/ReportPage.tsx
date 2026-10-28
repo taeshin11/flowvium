@@ -1468,6 +1468,7 @@ export default function ReportPage() {
                     : e.category === 'sector' ? 'bg-violet-100 text-violet-700'
                     : e.category === 'region' ? 'bg-emerald-100 text-emerald-700'
                     : e.category === 'bond' ? 'bg-gray-200 text-gray-700'
+                    : e.category === 'leveraged' ? 'bg-red-100 text-red-700'   // 2026-10-28 레버리지·인버스 — 위험 표시
                     : 'bg-amber-100 text-amber-700';
                   const act = e.action ?? 'buy';
                   const actCls = act === 'buy' ? 'bg-emerald-500 text-white'

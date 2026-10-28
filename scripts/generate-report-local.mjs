@@ -46,6 +46,7 @@ import { sameCompany } from './lib/sec-name-clean.mjs';
 import { agyReport, agyReportModel, agyModelUsage } from './lib/agy-report.mjs';
 import { verifyChain } from './lib/agy-models.mjs';
 import { isEtf, isCashLikeEtf } from './lib/etf-filter.mjs';
+import { leveragedPicks } from './lib/etf-leveraged.mjs';
 import { lastBarInProgress, computeVolRatio } from './lib/vol-ratio.mjs';
 import { reportProvenance } from './lib/model-provenance.mjs';
 import { isGeneratedSource } from './lib/report-source.mjs';
@@ -4681,7 +4682,10 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
     add('IBIT', `비트코인 ${momTxt} — ⚠️ 고변동 자산, 소액 분산 전용`, 'crypto', action);
     if (r4 != null && r4 >= 5) add('ETHA', `이더리움 — 크립토 모멘텀 동반(${momTxt}) ⚠️ 고변동`, 'crypto', 'watch');
   }
-  const list = [...picks.values()].slice(0, 26);  // broad+sector+thematic+style+dividend+region(≤5)+commodity+bond+crypto 전 카테고리
+  // 6) 미국 레버리지·인버스(2026-10-28 사장님 "QLD·TQQQ·속셀·속스·프로 뭐 다 넣어야지") — lib/etf-leveraged.
+  //    시장 스탠스·반도체 비중대로, 3배는 매수로 내지 않고, 줄마다 단기 경고·작은 비중·손절을 단다.
+  for (const x of leveragedPicks({ stance, sectorAllocation })) if (!picks.has(x.ticker)) picks.set(x.ticker, x);
+  const list = [...picks.values()].slice(0, 32);  // broad+sector+thematic+style+dividend+region(≤5)+commodity+bond+crypto+leveraged(≤5)
   // 가격: livePrices 우선, 없으면 batch-prices 라이브
   const need = list.map(e => e.ticker).filter(t => !(livePrices?.get(t)?.price));
   let fetched = {};
@@ -4692,7 +4696,8 @@ async function buildEtfStrategy({ sectorAllocation = [], regionStances = {}, sta
     const lp = livePrices?.get(e.ticker);
     const px = lp?.price ?? fetched[e.ticker]?.price ?? null;
     const chg = lp?.changePct ?? fetched[e.ticker]?.changePct ?? null;
-    return { ticker: e.ticker, name: e.name, category: e.cat, tag: e.tag, action: e.action, rationale: e.rationale, price: px, changePct: chg };
+    return { ticker: e.ticker, name: e.name, category: e.cat, tag: e.tag, action: e.action, rationale: e.rationale, price: px, changePct: chg,
+      ...(e.sizingHint ? { sizingHint: e.sizingHint } : {}), ...(e.invalidation ? { invalidation: e.invalidation } : {}) };   // 레버리지 줄은 자기 비중·손절
   });
 }
 
@@ -5396,7 +5401,7 @@ async function fetchBuyFundSignals(tickers) {
 
 // 2026-06-12: 레버리지/인버스 ETF 식별 — 추천은 허용(사용자 "레버리지도 추천해도 되"), 단
 //   선물 롤오버/일일 리밸런싱 가치소멸 특성을 발간물 riskNote 에 결정론 경고로 자동 부착.
-const LEVERAGED_ETF_SET = new Set(['UVXY', 'UVIX', 'SVXY', 'VIXY', 'TQQQ', 'SQQQ', 'SPXU', 'UPRO', 'SOXL', 'SOXS', 'SDOW', 'UDOW', 'TZA', 'TNA', 'LABU', 'LABD', 'FAS', 'FAZ']);
+const LEVERAGED_ETF_SET = new Set(['UVXY', 'UVIX', 'SVXY', 'VIXY', 'TQQQ', 'SQQQ', 'SPXU', 'UPRO', 'SOXL', 'SOXS', 'SDOW', 'UDOW', 'TZA', 'TNA', 'LABU', 'LABD', 'FAS', 'FAZ', 'QLD', 'PSQ', 'SSO', 'SH', 'USD']);
 let NAMES_FOR_ETF = {};
 try { NAMES_FOR_ETF = JSON.parse(readFileSync(resolve(ROOT, 'data/company-names.json'), 'utf8')); } catch { /* */ }
 function isLeveragedEtf(t) {

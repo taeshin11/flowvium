@@ -851,7 +851,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 보고서 stance/sectorAllocation/regionStances 에 grounded 한 ETF 추천 (환각 없음)
 - 카테고리(8): broad(코어) / sector(11 GICS+반도체) / **thematic(반도체·AI·청정에너지·바이오·우라늄·방위 등)** / **style(가치·성장·모멘텀·퀄리티·최소변동)** / **dividend(배당성장·귀족)** / region(강세지역 ≤5) / commodity(금·은·원유·종합) / bond(장단기·종합·회사채·물가연동)
 - 티커 클릭 → `/company/[ticker]`, 라이브 가격·등락% (livePrices/batch-prices)
-- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 67종**(2026-06-05 30→62 테마/스타일/배당, 06-12 국가 ETF 4종, 06-13 크립토 IBIT/ETHA 신설). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리)
+- `etfStrategy` 필드 (generate-report-local `buildEtfStrategy`). **ETF 풀 67종**(2026-06-05 30→62 테마/스타일/배당, 06-12 국가 ETF 4종, 06-13 크립토 IBIT/ETHA 신설). stance/sectorAllocation/regionStances grounded 선택, 보고서당 ~18개 노출(8 카테고리). **2026-10-28 미국 레버리지·인버스 11종 추가**(사장님 "QLD·TQQQ·속셀·속스·프로 뭐 다 넣어야지", `lib/etf-leveraged`): QLD·TQQQ·PSQ·SQQQ·SSO·UPRO·SH·SPXU·USD·SOXL·SOXS — 강세면 나스닥 2x 매수·3x 관망, 약세면 인버스 1x 헤지·3x 관망, 중립이면 2x·3x 관망, 반도체 비중확대/축소면 SOXL/SOXS. 3배는 매수로 내지 않고 줄마다 단기 경고·작은 비중·-10% 손절. 분류 '레버리지·인버스'(빨간 칩, 화면 반영엔 사이트 빌드 필요). 종목 포트폴리오는 종전대로 ETF 제외
 
 ### 13-4a-2. ⚡ 기회 신호 (S4: Opportunity Signals)
 - 숏스퀴즈 후보 + 내부자 매수 클러스터 + topOpportunity 한 줄 요약. 없으면 "현재 포착 없음" 빈 상태 유지(섹션 숨김 안 함).
