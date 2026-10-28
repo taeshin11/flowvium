@@ -44,4 +44,14 @@ for (const st of ['bullish', 'neutral', 'bearish']) {
     assert.equal(x.tag, 'leveraged');
   }
 }
+// [6] 보고서의 섹터 이름은 프롬프트 스키마대로 'Technology' 다(10/28 최근 60편에 'Semiconductors' 0번) — 반도체는 기술 섹터 신호로 읽는다
+{
+  const techOw = [{ sector: 'Technology', stance: 'overweight' }];
+  const techUw = [{ sector: 'Information Technology', stance: 'underweight' }];
+  assert.deepEqual(tick(leveragedPicks({ stance: 'neutral', sectorAllocation: techOw })), ['QLD', 'TQQQ', 'SOXL']);
+  assert.deepEqual(tick(leveragedPicks({ stance: 'bullish', sectorAllocation: techOw })), ['QLD', 'TQQQ', 'UPRO', 'SOXL', 'USD']);
+  assert.deepEqual(tick(leveragedPicks({ stance: 'bearish', sectorAllocation: techUw })), ['PSQ', 'SH', 'SQQQ', 'SPXU', 'SOXS']);
+  // 반도체 줄이 따로 있으면 그게 우선
+  assert.deepEqual(tick(leveragedPicks({ stance: 'neutral', sectorAllocation: [...techOw, { sector: 'Semiconductors', stance: 'underweight' }] })), ['QLD', 'TQQQ', 'SOXS']);
+}
 console.log('etf-leveraged.test: ✅ 전부 통과');

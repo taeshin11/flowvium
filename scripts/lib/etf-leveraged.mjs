@@ -6,7 +6,7 @@
  *   ETF 섹션(generate-report-local ETF_META)엔 지역 레버리지(KORU 등)만 있었다.
  * 고르는 기준은 다른 ETF 와 같다 — 보고서의 시장 스탠스·섹터 비중(근거 없는 선택 없음).
  *   강세: 나스닥 2x 매수, 3x·S&P 3x 관망 / 약세: 인버스 1x 헤지, 3x 인버스 관망 / 중립: 나스닥 2x·3x 관망.
- *   반도체 비중확대면 반도체 3x(강세면 2x 도), 비중축소면 반도체 3x 인버스.
+ *   반도체(없으면 기술 섹터) 비중확대면 반도체 3x(강세면 2x 도), 비중축소면 반도체 3x 인버스.
  * 3배 상품은 매수(buy)로 내지 않는다 — 일일 리밸런싱으로 횡보장에서도 가치가 녹는다. 모든 줄에 단기 경고·작은 비중·손절.
  */
 export const LEVERAGED_META = {
@@ -29,7 +29,10 @@ const INVAL = {
 };
 
 export function leveragedPicks({ stance = 'neutral', sectorAllocation = [] } = {}) {
-  const semi = sectorAllocation.find((s) => String(s.sector ?? '').toLowerCase() === 'semiconductors')?.stance ?? null;
+  // 보고서 섹터 이름은 프롬프트 스키마(GICS 식)라 반도체가 'Technology' 안에 든다 — 반도체 줄이 없으면 기술 섹터 신호로 읽는다
+  //   (generate-report-local SECTOR_ETF 도 semiconductors·technology 를 같은 XLK 로 묶는다).
+  const stanceOf = (names) => sectorAllocation.find((s) => names.includes(String(s.sector ?? '').toLowerCase()))?.stance ?? null;
+  const semi = stanceOf(['semiconductors']) ?? stanceOf(['technology', 'information technology']);
   const out = [];
   const add = (ticker, why, action, dir) => out.push({ ticker, ...LEVERAGED_META[ticker], tag: 'leveraged', action,
     rationale: `${why} — ${warnOf(ticker)}`, sizingHint: sizeOf(ticker), invalidation: INVAL[dir] });
