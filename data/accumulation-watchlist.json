@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-28T07:20:25.729Z",
+  "generatedAt": "2026-10-28T22:20:24.474Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -26,6 +26,23 @@
       "official": null
     },
     {
+      "ticker": "048530.KQ",
+      "name": "인트론바이오",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 12.4× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 5.2,
+      "runup5dPct": 4.3,
+      "medDollarVolUsd": 148138,
+      "smartAccum": true,
+      "official": null
+    },
+    {
       "ticker": "043370.KQ",
       "name": "피에이치에이",
       "tier": "watch",
@@ -39,6 +56,23 @@
       "runup20dPct": 3.9,
       "runup5dPct": -0.3,
       "medDollarVolUsd": 140662,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "035900.KQ",
+      "name": "JYP Ent.",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 5.1,
+      "runup5dPct": 0.9,
+      "medDollarVolUsd": 5998537,
       "smartAccum": true,
       "official": null
     }
