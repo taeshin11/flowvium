@@ -79,7 +79,7 @@ export async function renderShortsThumb({ bg, head, out, page = null }) {
 export async function gateShortsThumb({ thumb, srcDir, locale = 'ko', meta = {}, title, log = () => {}, gateOpts = {} }) {
   const { existsSync: ex, copyFileSync: cp, rmSync: rm } = await import('node:fs');
   const { join } = await import('node:path');
-  const { runThumbGate, gateSummary } = await import('./thumb-gate.mjs');
+  const { runThumbGate, gateSummary, agyJudge, claudeJudge } = await import('./thumb-gate.mjs');
   if (!thumb || !ex(thumb)) return null;
   const bg = join(srcDir, THUMB_BG.replace('shorts-ko', `shorts-${locale}`));
   const head = meta.thumb?.head ?? null;
@@ -91,6 +91,8 @@ export async function gateShortsThumb({ thumb, srcDir, locale = 'ko', meta = {},
     source: [meta.thumb?.source, ...(meta.headlines ?? []), title].filter(Boolean).join(' '),
     textRule: '3~6낱말·24자 안, 큰 노란 글씨 한두 줄',
     rerender: canFix ? async (t) => { const out = join(srcDir, `shorts-${locale}-thumb-g${made.length + 1}.jpg`); made.push(out); return renderShortsThumb({ bg, head: t, out }); } : async () => null,
+    // 맞춤 썸네일은 막지 않는 두 번째 확인이라 ChatGPT 를 쓰지 않는다(10/28 Mac mini3 — 대기열 첨부 한도를 FlowVium 이 다 썼다).
+    judges: { agy: agyJudge, claude: claudeJudge }, need: ['agy', 'claude'],
     log, ...gateOpts,
   });
   if (g.image !== thumb) cp(g.image, thumb);
@@ -120,7 +122,7 @@ export async function gateShortsOpening({ video, title, meta = {}, log = () => {
   try {
     const anchors = existsSync(SHORTS_ANCHORS.high) && existsSync(SHORTS_ANCHORS.low) ? SHORTS_ANCHORS : null;
     const g = await runThumbGate({ image: out, text: String(meta.hooks?.[0] ?? ''), title: String(title).replace(/\s*#Shorts\b/i, '').trim(),
-      kind: 'shorts-open', source: '', maxFixes: 0, anchors, rerender: async () => null,
+      kind: 'shorts-open', source: '', maxFixes: 0, anchors, rerender: async () => null, lazy: ['chatgpt'],   // ChatGPT 는 agy·Claude 가 7 이상일 때만(대기열 첨부 한도)
       textRule: '첫 화면 위쪽 큰 글(훅) 3~6낱말', log: (m) => log(m.replace('[썸네일 관문]', '[첫 화면 관문]')), ...gateOpts });
     return { ...gateSummary(g), log: g.rounds.map((r) => ({ text: r.text, scores: r.scores, ms: r.ms })) };
   } finally { rmSync(out, { force: true }); }

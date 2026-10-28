@@ -94,14 +94,23 @@ export function rankKey(scores) {
   return Math.min(...nums) * 100 + sum;
 }
 
-async function scoreAll(judges, a) {
+async function scoreAll(judges, a, lazy = []) {
   const out = {};
-  await Promise.all(Object.entries(judges).map(async ([k, fn]) => {
+  const ask = async ([k, fn]) => {
     try {
       const r = await fn(a);
       out[k] = r?.skipped ? { skipped: r.skipped } : (parseJudge(r) ?? { error: `답 모양이 틀림: ${JSON.stringify(r).slice(0, 80)}` });
     } catch (e) { out[k] = { error: String(e?.message ?? e).slice(0, 160) }; }
-  }));
+  };
+  const all = Object.entries(judges);
+  await Promise.all(all.filter(([k]) => !lazy.includes(k)).map(ask));
+  // 아껴 쓰는 심판(ChatGPT — 대기열의 파일 첨부 한도, 10/28 Mac mini3): 나머지가 모두 매겼고 모두 7 이상일 때만 묻는다.
+  //   하나라도 7 미만·못 매김이면 그 판은 어차피 떨어지니 묻지 않는다(7.5 는 ChatGPT 가 채울 수 있어 7 로 본다).
+  const rest = all.filter(([k]) => !lazy.includes(k)).map(([k]) => out[k]);
+  const worth = rest.every((r) => scored(r) && r.score >= FLOOR);
+  for (const j of all.filter(([k]) => lazy.includes(k))) {
+    if (worth) await ask(j); else out[j[0]] = { skipped: '안 물음(다른 심판이 이미 기준 미달)' };
+  }
   return out;
 }
 
@@ -112,7 +121,7 @@ async function scoreAll(judges, a) {
  */
 export async function runThumbGate(o) {
   const { title, kind, source = o.text, maxChars = 24, maxWords = 6, digits = true, rerender, log = () => {}, now = Date.now,
-    deadlineMs = 600_000, maxFixes = 3, need = NEED, accept = () => true } = o;
+    deadlineMs = 600_000, maxFixes = 3, need = NEED, accept = () => true, lazy = [] } = o;
   const judges = o.judges ?? defaultJudges();
   const textRule = o.textRule ?? `${maxWords}낱말·${maxChars}자 안`;
   const t0 = now();
@@ -124,7 +133,7 @@ export async function runThumbGate(o) {
     const left = deadlineMs - (r0 - t0);
     const scores = await scoreAll(judges, { image, title, kind, text, timeoutMs: Math.max(30_000, Math.min(240_000, left)),
       anchors: o.anchors ?? null,
-      prompt: (file, anchorFiles = null) => judgePrompt({ title, kind, file, textRule, anchors: anchorFiles }) });
+      prompt: (file, anchorFiles = null) => judgePrompt({ title, kind, file, textRule, anchors: anchorFiles }) }, lazy);
     rounds.push({ image, text, scores, ms: now() - r0 });
     log(`[썸네일 관문] ${rounds.length}판 "${text}" — ${fmtScores(scores)}`);
     const d = decide(scores, need);

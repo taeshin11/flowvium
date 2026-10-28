@@ -214,5 +214,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     judges: { agy: async (a) => { got = a.anchors; return { score: 9, weak: '', text: '' }; } }, rerender: async () => null, log: () => {} });
   assert.deepEqual(got, { high: '/a/h.jpg', low: '/a/l.jpg' });
 }
+// [19] ChatGPT 아껴 쓰기(10/28 Mac mini3: 파일 첨부 한도 — FlowVium 혼자 Plus 한도를 다 쓴다): lazy 심판은 다른 심판이 모두 7 이상일 때만 묻는다
+{
+  let asked = 0;
+  const mk = (a, c) => ({ agy: async () => ({ score: a, weak: 'w', text: '새 글' }), claude: async () => ({ score: c, weak: 'w', text: '새 글2' }),
+    chatgpt: async () => { asked++; return { score: 8, weak: '', text: '' }; } });
+  const N3 = ['chatgpt', 'agy', 'claude'];
+  const r1 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(6.5, 9), rerender: async () => null, log: () => {} });
+  assert.equal(asked, 0, '이미 7 미만이 있으면 ChatGPT 를 묻지 않는다'); assert.equal(r1.passed, false); assert.ok(r1.rounds[0].scores.chatgpt.skipped);
+  const r2 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7, 7), rerender: async () => null, log: () => {} });
+  assert.equal(asked, 1, '나머지가 7 이상이면 묻는다(7.5 는 ChatGPT 가 채울 수 있다)'); assert.equal(r2.passed, true);
+}
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');

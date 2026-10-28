@@ -501,7 +501,7 @@ if (UPLOAD) {
       const { runThumbGate, gateSummary, appendGateLog } = await import('../lib/thumb-gate.mjs');
       const made = [];
       const g = await runThumbGate({ image: THUMB, text: thumbLines.join(' / '), title, kind: 'long', maxChars: 19, maxWords: 6, digits: false,
-        source: [title, ...thumbLines].join(' '), deadlineMs: 8 * 60_000,
+        source: [title, ...thumbLines].join(' '), deadlineMs: 8 * 60_000, lazy: ['chatgpt'],   // ChatGPT 는 agy·Claude 가 7 이상인 판만(대기열 첨부 한도)
         textRule: '두 줄, 줄마다 2~8자, 숫자 없이, 두 줄은 " / " 로 나눈다(예: 반도체 / 급반등). 왼쪽 지수 칩(숫자)은 그대로 남는다',
         accept: (t) => { const l = t.split(' / '); return l.length === 2 && l.every((x) => x.length >= 2 && x.length <= 8); },
         rerender: async (t) => { const out = join(OUT, `thumb-g${made.length + 1}.jpg`); made.push(out); return drawThumb(t.split(' / '), out); },
