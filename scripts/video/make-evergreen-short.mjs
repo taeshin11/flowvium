@@ -69,6 +69,9 @@ async function render(item) {
       for (let a = 1; a <= 2 && !r?.ok; a++) {
         r = await generateImage({ prompt: `${DATA.style}. Scene: ${scenes[i].image}.`, out: f, aspect: '16:9' });
         if (!r.ok) log(`  그림 ${i + 1} 실패(${a}/2): ${r.reason}`);
+        // 10/28 실측: 할당량이 차면(429, 몇 시간 뒤 리셋) 남은 편이 전부 그림 단계에서 실패한다 — 16편 × 2번을 헛돌았다.
+        //   리셋 전엔 될 수 없으니 채우기를 멈추고 다음 실행(evergreen-fill)에 맡긴다.
+        if (/할당량/.test(r.reason ?? '')) throw Object.assign(new Error(r.reason), { quota: true });
       }
       if (!r?.ok) { log(`❌ ${item.id} 그림 ${i + 1} 을 못 만들었다 — 이 편은 거른다(빈 화면으로 내지 않는다)`); return false; }
       log(`  그림 ${i + 1} ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초`);
@@ -219,7 +222,8 @@ if (FILL > 0) {
       if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');
       await new Promise((r) => setTimeout(r, 300_000));
     }
-    if (await render(item)) have++;
+    try { if (await render(item)) have++; }
+    catch (e) { if (!e.quota) throw e; log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). 다음 실행이 이어서 채운다`); break; }
   }
   log(`풀 ${have}편${have < FILL ? ` — 목표보다 ${FILL - have}편 모자란다(대본을 더 써야 한다: data/evergreen-shorts.json)` : ''}`);
   process.exit(0);
