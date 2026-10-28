@@ -16,7 +16,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { spawnSync } from 'child_process';
 import ffmpegPath from 'ffmpeg-static';
-import { generateImage } from './agy-image.mjs';
+import { generateImage, resetMs } from './agy-image.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -124,6 +124,13 @@ function fakeAgy({ w = 768, h = 1376, color = '0x3366aa', makeImage = true, id =
   let called = false;
   const r = await generateImage({ prompt: 'x', out: join(work, 'o6.jpg'), aspect: '7:5', agyImpl: async () => { called = true; return { stdout: '{}' }; }, brainRoot });
   (!r.ok && !called) ? ok('[6] 모르는 비율 → 부르지 않고 실패') : bad(`[6] ${JSON.stringify(r)} called=${called}`);
+}
+
+// [7] 할당량 리셋 시각(10/28 상시 쇼츠 채우기가 리셋 뒤 첫 창을 잡는다) — agy 의 'reset after 2h52m13s'
+{
+  const v = [resetMs('2h52m13s'), resetMs('45m'), resetMs('30s'), resetMs(null), resetMs('soon')];
+  (v[0] === (2 * 3600 + 52 * 60 + 13) * 1000 && v[1] === 45 * 60000 && v[2] === 30000 && v[3] === null && v[4] === null)
+    ? ok('[7] 리셋 문구 → 밀리초, 모르면 null') : bad(`[7] ${v.join(',')}`);
 }
 
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');

@@ -44,6 +44,7 @@ const DATA = JSON.parse(readFileSync(resolve(ROOT, 'data/evergreen-shorts.json')
 const POOL = evergreenDir();
 const IMG_CACHE = resolve(ROOT, 'reports/video/evergreen-img');
 const KEY_PREFIX = '주식 상식:';
+const RESET_FILE = resolve(ROOT, 'logs/agy-image-reset.json');
 
 /** 이미 나간 상시 쇼츠 id — 같은 설명을 두 번 올리지 않는다. 대장은 키를 정규화해 적는다(db normalizeIssueKey: '주식상식per'). */
 function publishedIds({ recentShortsIssues, normalizeIssueKey }) {
@@ -71,7 +72,7 @@ async function render(item) {
         if (!r.ok) log(`  그림 ${i + 1} 실패(${a}/2): ${r.reason}`);
         // 10/28 실측: 할당량이 차면(429, 몇 시간 뒤 리셋) 남은 편이 전부 그림 단계에서 실패한다 — 16편 × 2번을 헛돌았다.
         //   리셋 전엔 될 수 없으니 채우기를 멈추고 다음 실행(evergreen-fill)에 맡긴다.
-        if (/할당량/.test(r.reason ?? '')) throw Object.assign(new Error(r.reason), { quota: true });
+        if (r.quotaExhausted) throw Object.assign(new Error(r.reason), { quota: true, resetAfterMs: r.resetAfterMs });
       }
       if (!r?.ok) { log(`❌ ${item.id} 그림 ${i + 1} 을 못 만들었다 — 이 편은 거른다(빈 화면으로 내지 않는다)`); return false; }
       log(`  그림 ${i + 1} ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초`);
@@ -211,6 +212,10 @@ if (ID) {
   process.exit((await render(item)) ? 0 : 1);
 }
 if (FILL > 0) {
+  try {
+    const { resetAt } = JSON.parse(readFileSync(RESET_FILE, 'utf8'));
+    if (Date.now() < Date.parse(resetAt) && inPool.size < FILL) process.exit(0);   // 리셋 전 — 조용히(매시 돈다)
+  } catch { /* 기록 없음 = 막힌 적 없음 */ }
   let have = inPool.size;
   log(`풀 ${have}편 · 목표 ${FILL}편 · 이미 나간 주제 ${done.size}개`);
   for (const item of DATA.items) {
@@ -223,9 +228,18 @@ if (FILL > 0) {
       await new Promise((r) => setTimeout(r, 300_000));
     }
     try { if (await render(item)) have++; }
-    catch (e) { if (!e.quota) throw e; log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). 다음 실행이 이어서 채운다`); break; }
+    catch (e) {
+      if (!e.quota) throw e;
+      // 리셋 시각을 남긴다 — 매시 도는 채우기가 그 전엔 그림을 부르지 않고, 리셋 뒤 첫 실행이 창을 잡는다(10/28 Mac mini2 합의:
+      //   리셋 뒤 첫 창은 이쪽, 나머지는 まちのナゼ). 시각을 모르면 1시간 뒤로.
+      const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + 60e3).toISOString();
+      writeFileSync(RESET_FILE, JSON.stringify({ resetAt: at, reason: e.message }));
+      log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). ${at.slice(11, 16)}Z 뒤 첫 실행이 이어서 채운다`);
+      break;
+    }
   }
-  log(`풀 ${have}편${have < FILL ? ` — 목표보다 ${FILL - have}편 모자란다(대본을 더 써야 한다: data/evergreen-shorts.json)` : ''}`);
+  const left = DATA.items.filter((x) => !done.has(x.id) && !existsSync(join(POOL, x.id))).length;   // 아직 안 만든 대본
+  log(`풀 ${have}편${have >= FILL ? '' : left ? ` — 목표보다 ${FILL - have}편 모자란다(안 만든 대본 ${left}편 — 다음 실행이 이어서)` : ` — 목표보다 ${FILL - have}편 모자란다(대본이 바닥났다: data/evergreen-shorts.json 에 더 써야 한다)`}`);
   process.exit(0);
 }
 console.error('사용: --id <id> | --fill <편수>');

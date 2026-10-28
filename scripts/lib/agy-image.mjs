@@ -63,6 +63,13 @@ function toolError(convDir) {
   return null;
 }
 
+/** agy 의 'reset after 2h52m13s' → 밀리초. 모르면 null. (2026-10-28 상시 쇼츠 채우기가 리셋 뒤 첫 창을 잡는다) */
+export function resetMs(t) {
+  const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(String(t ?? '').trim());
+  if (!m || !(m[1] || m[2] || m[3])) return null;
+  return ((Number(m[1] ?? 0) * 60 + Number(m[2] ?? 0)) * 60 + Number(m[3] ?? 0)) * 1000;
+}
+
 /** agy 가 남긴 도구 출력에서 그림 경로를 찾는다. 없으면 대화 폴더의 그림 파일. */
 function findImage(convDir) {
   const steps = join(convDir, '.system_generated/steps');
@@ -138,7 +145,7 @@ export async function generateImage(o) {
     //   "그림을 만들지 않았다" 만으로는 다른 세션이 원인을 못 찾았다(/usage 의 Gemini 여유는 글 모델 몫). 사유를 꺼낸다.
     const why = toolError(convDir);
     cleanup();
-    if (why?.quota) return { ok: false, quotaExhausted: true, reason: `이미지 모델 할당량 소진 — ${why.reset ? `${why.reset} 뒤 리셋` : '리셋 시각 모름'} (agy 도구 출력 429)` };
+    if (why?.quota) return { ok: false, quotaExhausted: true, resetAfterMs: resetMs(why.reset), reason: `이미지 모델 할당량 소진 — ${why.reset ? `${why.reset} 뒤 리셋` : '리셋 시각 모름'} (agy 도구 출력 429)` };
     return { ok: false, reason: `그림을 만들지 않았다(도구 출력에 그림 없음)${why?.text ? ` — ${why.text}` : ''}` };
   }
   const m = probe(img);

@@ -130,6 +130,7 @@ assets/broll/*.m4v
 logs/verify-all/
 # agy 할당량 소진 기록(런타임, 기계마다 다름)
 logs/agy-quota.json
+logs/agy-image-reset.json
 logs/ear-check.jsonl
 # 방문자 측정(2026-09-25) — 런타임 산출물
 data/visits.db
