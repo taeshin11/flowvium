@@ -714,7 +714,7 @@ const MAINT_JOBS = [
   //   창(오전판 11:20~13:30, 마감판 16:20~19:30)·장 상태(오전판 = 장중, 마감판 = 마감)·휴장은 스크립트가 거른다.
   { label: 'market-brief-krmid',   script: 'scripts/video/make-market-brief.mjs --edition krmid --upload public',   timeoutMs: 2400000, commitPaths: [], schedules: ['3,18,33 3 * * *'],              maxAgeH: 30 },
   { label: 'market-brief-krclose', script: 'scripts/video/make-market-brief.mjs --edition krclose --upload public', timeoutMs: 2400000, commitPaths: [], schedules: ['40 7 * * *', '0,20 8 * * *'], maxAgeH: 30 },
-  // 2026-10-28 상시 쇼츠 풀(Mac mini2·사장님 위임 "36시간치") — 나간 만큼 밤에 채운다. 매시 :05 — agy 그림 할당량이 몇 시간 창이라(10/28 실측 창당 약 12장, 리셋 약 3시간) 소진되면 리셋 시각을 logs/agy-image-reset.json 에 남기고, 그 전 실행은 바로 끝난다. 리셋 뒤 첫 창은 이쪽(Mac mini2 まちのナゼ 와 합의). 풀이 차 있어도 바로 끝난다. 보고서가 돌면 스스로 기다린다.
+  // 2026-10-28 상시 쇼츠 풀(Mac mini2·사장님 위임 "36시간치") — 나간 만큼 밤에 채운다. 매시 :05 — agy 그림 할당량이 몇 시간 창이라(10/28 실측 창당 약 12장, 리셋 약 3시간) 소진되면 리셋 시각을 logs/agy-image-reset.json 에 남기고, 그 전 실행은 바로 끝난다. 창은 번갈아 — 이쪽 창이 소진되면 그다음 창은 まちのナゼ 몫이라 리셋 + 3시간 뒤에 잡는다(Mac mini2 합의). 풀이 차 있어도 바로 끝난다. 보고서가 돌면 스스로 기다린다.
   { label: 'evergreen-fill',       script: 'scripts/video/make-evergreen-short.mjs --fill 15', timeoutMs: 10800000, commitPaths: [], schedules: ['5 * * * *'], maxAgeH: 30 },
   { label: 'shorts-spare',         script: 'scripts/shorts-spare.mjs',                timeoutMs: 1800000, commitPaths: [], reportSkipIsRun: true,                                     schedules: ['50 * * * *'],                 maxAgeH: 24 },
   { label: 'exit-quality',         script: 'scripts/analyze-exit-quality.mjs',       timeoutMs: 900000,  commitPaths: [],                                     schedules: ['40 19 * * 6'],                maxAgeH: 9 * 24 },

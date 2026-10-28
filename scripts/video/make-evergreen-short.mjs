@@ -230,9 +230,11 @@ if (FILL > 0) {
     try { if (await render(item)) have++; }
     catch (e) {
       if (!e.quota) throw e;
-      // 리셋 시각을 남긴다 — 매시 도는 채우기가 그 전엔 그림을 부르지 않고, 리셋 뒤 첫 실행이 창을 잡는다(10/28 Mac mini2 합의:
-      //   리셋 뒤 첫 창은 이쪽, 나머지는 まちのナゼ). 시각을 모르면 1시간 뒤로.
-      const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + 60e3).toISOString();
+      // 다음에 그림을 부를 시각을 남긴다 — 매시 도는 채우기가 그 전엔 그림을 부르지 않는다.
+      //   10/28 Mac mini2 합의: 창(약 12장)을 번갈아 쓴다 — 이쪽 다음 리셋 창은 まちのナゼ(실제 예비 부족) 몫이라
+      //   **리셋 + 한 창(EVERGREEN_YIELD_H, 기본 3시간)** 뒤에 다시 잡는다. 리셋 시각을 모르면 1시간 + 한 창.
+      const yieldMs = Number(process.env.EVERGREEN_YIELD_H ?? 3) * 3600e3;
+      const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + yieldMs + 60e3).toISOString();
       writeFileSync(RESET_FILE, JSON.stringify({ resetAt: at, reason: e.message }));
       log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). ${at.slice(11, 16)}Z 뒤 첫 실행이 이어서 채운다`);
       break;
