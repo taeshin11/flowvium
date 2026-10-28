@@ -19,7 +19,7 @@
 import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
 import { spawnSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync, renameSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync, renameSync, appendFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { ROOT } from '../lib/project-root.mjs';
@@ -39,7 +39,12 @@ import { isReportPipelineRunning } from '../lib/report-running.mjs';
 loadEnvLocal();
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
-const log = (...a) => console.log(new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[evergreen]', ...a);
+// 로그는 화면과 logs/evergreen-fill.log 둘 다 — 크론(cron-runner)은 잡 출력을 버린다(10/28: 정기 실행이 무엇을 했는지 아무 데도 없었다).
+const log = (...a) => {
+  const line = [new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[evergreen]', ...a].join(' ');
+  console.log(line);
+  try { appendFileSync(resolve(ROOT, 'logs/evergreen-fill.log'), `${line}\n`); } catch { /* 기록 실패는 렌더를 막지 않는다 */ }
+};
 const DATA = JSON.parse(readFileSync(resolve(ROOT, 'data/evergreen-shorts.json'), 'utf8'));
 const POOL = evergreenDir();
 const IMG_CACHE = resolve(ROOT, 'reports/video/evergreen-img');
@@ -212,6 +217,10 @@ if (ID) {
   process.exit((await render(item)) ? 0 : 1);
 }
 if (FILL > 0) {
+  // 한 번에 하나만 — 10/28 오전 크론 따라잡기(재기동마다)·매시 실행·손 실행이 겹쳐 네다섯 개가 같은 그림 할당량을 나눠 쓰고
+  //   같은 작업 폴더(tmp/flowvium-evergreen/<id>)를 함께 썼다. 앞 실행이 돌고 있으면 이번 것은 그냥 끝난다.
+  const lk = await (await import('../lib/run-lock.mjs')).acquireRunLock(resolve(ROOT, 'logs/evergreen-fill.lock'), { label: 'evergreen-fill' });
+  if (!lk.ok) process.exit(0);
   try {
     const { resetAt } = JSON.parse(readFileSync(RESET_FILE, 'utf8'));
     if (Date.now() < Date.parse(resetAt) && inPool.size < FILL) process.exit(0);   // 리셋 전 — 조용히(매시 돈다)
