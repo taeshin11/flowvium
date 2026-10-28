@@ -31,7 +31,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
 import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
-import { checkEvergreen } from '../lib/evergreen-check.mjs';
+import { checkEvergreen, isStale } from '../lib/evergreen-check.mjs';
 import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
 import { generateImage } from '../lib/agy-image.mjs';
 import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG, gateShortsThumb, gateShortsOpening } from '../lib/shorts-thumb.mjs';
@@ -296,7 +296,15 @@ if (FILL > 0) {
       if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');
       await new Promise((r) => setTimeout(r, 300_000));
     }
-    try { await coverCheck(sp.dir, { canDraw }); }
+    try {
+      // 대본이 바뀐 편(첫 훅·대사를 고쳐 씀 — 10/28)은 먼저 다시 굽는다. 그림이 캐시에 있으면 그림 창이 아니어도 된다(음성만 다시).
+      const item = DATA.items.find((x) => x.id === sp.meta.id);
+      if (item && isStale(sp.meta, item)) {
+        const cached = item.scenes.every((_, i) => existsSync(join(IMG_CACHE, item.id, `s${i}.jpg`)));
+        if (cached || canDraw) { log(`대본이 바뀌어 다시 굽는다 — ${item.id}`); await render(item); }
+      }
+      await coverCheck(sp.dir, { canDraw });
+    }
     catch (e) {
       if (e.quota) { onQuota(e); quotaHit = true; break; }
       log(`  표지 점검 실패(${sp.meta.id}) — 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`);   // 발행이 그 편을 막 가져갔을 수 있다

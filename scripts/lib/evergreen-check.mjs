@@ -43,3 +43,11 @@ export function checkEvergreen(item) {
   if (scenes[0] && restatesTitle(scenes[0].say, title)) why.push(`1대사가 제목을 다시 말함: "${scenes[0].say}"`);
   return { ok: why.length === 0, why };
 }
+
+/** 풀에 구운 편이 지금 대본과 다른가 — 훅 전부와 대사 전부(메타 hooks·bodies[0] = 대사를 이은 것)를 본다.
+ *  10/28: 첫 훅·첫 대사를 고쳐 썼는데 이미 구운 편은 옛 말 그대로였다. 채우기(make-evergreen-short)가 이걸로 골라 다시 굽는다. */
+export function isStale(meta, item) {
+  const hooks = item.scenes.map((s) => s.hook);
+  const body = item.scenes.map((s) => s.say).join(' ');
+  return JSON.stringify(meta?.hooks ?? null) !== JSON.stringify(hooks) || String(meta?.bodies?.[0] ?? '') !== body;
+}

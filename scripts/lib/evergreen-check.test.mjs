@@ -61,4 +61,13 @@ for (const it of data.items) {
 }
 assert.ok(data.items.length >= 15, `36시간치(15편) 이상: ${data.items.length}`);
 
+// 10/28: 대본(첫 훅·대사)을 고치면 풀에 이미 구운 편은 옛 말 그대로 남는다 — 채우기가 알아보고 다시 굽게 한다
+{
+  const { isStale } = await import('./evergreen-check.mjs');
+  const item = { id: 'x', title: 'T', scenes: [{ hook: '새 훅', say: '새 첫 대사입니다.' }, { hook: 'h2', say: '둘째 대사입니다.' }] };
+  assert.equal(isStale({ hooks: ['새 훅', 'h2'], bodies: ['새 첫 대사입니다. 둘째 대사입니다.'] }, item), false);
+  assert.equal(isStale({ hooks: ['옛 훅', 'h2'], bodies: ['새 첫 대사입니다. 둘째 대사입니다.'] }, item), true, '훅이 다르다');
+  assert.equal(isStale({ hooks: ['새 훅', 'h2'], bodies: ['옛 첫 대사입니다. 둘째 대사입니다.'] }, item), true, '대사가 다르다');
+  assert.equal(isStale({}, item), true, '메타에 없으면 다시');
+}
 console.log(`evergreen-check.test: ✅ ${data.items.length}편 포함 전부 통과`);
