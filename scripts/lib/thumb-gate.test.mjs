@@ -24,11 +24,11 @@ assert.equal(safeText('  "삼성 깜짝 실적"  ', { source: src, maxChars: 24 
 assert.equal(safeText('PER 함정', { source: '', maxChars: 24, digits: false }), 'PER 함정');
 assert.equal(safeText('3줄 요약', { source: '3줄', maxChars: 24, digits: false }), null, '숫자 금지 자리');
 
-// [3] 판정 — 나온 점수가 모두 8 이상이고 정해진 심판(agy·claude)이 다 매겼을 때만 통과. 못 매긴 심판은 통과가 아니다
+// [3] 판정 — 정해진 심판이 다 매겼고 모두 7 이상 + 하나라도 7.5 이상일 때만 통과(10/28 최종). 못 매긴 심판은 통과가 아니다
 const J = ['agy', 'claude', 'chatgpt'];
 const need = ['agy', 'claude'];   // 시험용 — 실제 NEED 는 chatgpt 까지 셋
 assert.equal(decide({ agy: { score: 8 }, claude: { score: 9 }, chatgpt: { skipped: 'ChatGPT 미채점' } }, need).pass, true);
-assert.equal(decide({ agy: { score: 7 }, claude: { score: 9 } }, need).pass, false);
+assert.equal(decide({ agy: { score: 6.5 }, claude: { score: 9 } }, need).pass, false);
 assert.equal(decide({ agy: { error: '시간초과' }, claude: { score: 9 } }, need).pass, false, '못 매긴 심판');
 assert.equal(decide({ agy: { score: 8 }, claude: { score: 8 }, chatgpt: { score: 6 } }, need).pass, false, '추가 심판이 매겼으면 그 점수도 센다');
 // [3b] 가장 나은 판 — 최저점 먼저, 같으면 합
@@ -47,8 +47,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 {
   const seen = [];
   const judges = {
-    agy: async ({ image }) => (image === 'v0.jpg' ? { score: 7, weak: '글이 길다', text: '삼성 깜짝 실적' } : { score: 8, weak: '', text: '' }),
-    claude: async ({ image }) => (image === 'v0.jpg' ? { score: 8, weak: '', text: '삼성 9조 실적' } : { score: 9, weak: '', text: '' }),
+    agy: async ({ image }) => (image === 'v0.jpg' ? { score: 6, weak: '글이 길다', text: '삼성 깜짝 실적' } : { score: 8, weak: '', text: '' }),
+    claude: async ({ image }) => (image === 'v0.jpg' ? { score: 6.5, weak: '', text: '삼성 9조 실적' } : { score: 9, weak: '', text: '' }),
     chatgpt: async () => ({ skipped: 'ChatGPT 미채점' }),
   };
   const r = await runThumbGate({ image: 'v0.jpg', text: '삼성전자 3분기 영업이익 9조 발표', title: 'T', source: src, kind: 'shorts', maxChars: 24,
@@ -61,7 +61,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // [6] 3번 고쳐도 안 되면 가장 나은 판 + 표시
 {
   let n = 0;
-  const judges = { agy: async ({ image }) => ({ score: image === 'v2.jpg' ? 7 : 5, weak: '약하다', text: `새 글 ${'가나다'[n % 3]}` }), claude: async () => ({ score: 9, weak: '', text: '' }) };
+  const judges = { agy: async ({ image }) => ({ score: image === 'v2.jpg' ? 6.5 : 5, weak: '약하다', text: `새 글 ${'가나다'[n % 3]}` }), claude: async () => ({ score: 9, weak: '', text: '' }) };
   const r = await runThumbGate({ image: 'v0.jpg', text: '처음', title: 'T', source: '', kind: 'shorts', maxChars: 24, judges, need,
     rerender: async () => `v${++n}.jpg`, log: () => {} });
   assert.equal(r.rounds.length, 4, '첫 판 + 고친 판 3');
@@ -168,16 +168,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(parseJudge({ score: 7.5, weak: '', text: '' }).score, 7.5);
   assert.equal(parseJudge({ score: 7.3, weak: '', text: '' }).score, 7.3, 'ChatGPT 대기열은 소수 한 자리(Mac mini3 10/28)');
   assert.equal(parseJudge({ score: 7.46, weak: '', text: '' }).score, 7.5, '한 자리로 반올림');
-  assert.equal(decide({ chatgpt: { score: 7.4 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, false, '7.4 는 7.5 미만');
-  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, true);
-  assert.equal(decide({ chatgpt: { score: 8 }, agy: { score: 7.5 }, claude: { score: 8 } }, N3).pass, true);
-  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 7.5 }, claude: { score: 9 } }, N3).pass, false, '7.5 가 둘');
-  assert.equal(decide({ chatgpt: { score: 7 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7 은 안 된다');
-  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 8 }, claude: { score: 8.5 } }, N3);
-  assert.equal(night.pass, false); assert.equal(night.settled, true);
-  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7.5 }, claude: { score: 9 } }, N3);
-  assert.equal(night2.pass, false); assert.equal(night2.settled, false, 'ChatGPT 없으면 둘 다 8 이상이어야');
-  // 흐름 — ChatGPT 가 빠진 채 둘이 8 이상이면 더 굽지 않고 멈춘다
+  assert.equal(decide({ chatgpt: { score: 6.9 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, false, '6.9 는 7 미만');
+  // 10/28 저녁 최종(사장님, 보정 결과를 보고): 셋 다 7 이상 + 하나라도 7.5 이상
+  assert.equal(decide({ chatgpt: { score: 7.2 }, agy: { score: 7.5 }, claude: { score: 7 } }, N3).pass, true, 'pZd7tHnjg2o 7.2/7.5/7');
+  assert.equal(decide({ chatgpt: { score: 7 }, agy: { score: 7 }, claude: { score: 7.4 } }, N3).pass, false, '7.5 이상이 하나도 없다');
+  assert.equal(decide({ chatgpt: { score: 6.9 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7 미만이 있다');
+  assert.equal(decide({ chatgpt: { score: 7.8 }, agy: { score: 5.5 }, claude: { score: 6.5 } }, N3).pass, false, '16:43 편');
+  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7 }, claude: { score: 7.5 } }, N3);
+  assert.equal(night.pass, false); assert.equal(night.settled, true, '못 매긴 ChatGPT 말고는 기준을 넘었다 — 더 굽지 않는다');
+  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 6.5 }, claude: { score: 9 } }, N3);
+  assert.equal(night2.pass, false); assert.equal(night2.settled, false);
+  // 흐름 — ChatGPT 가 빠진 채 나머지가 기준을 넘으면 더 굽지 않고 멈춘다
   let calls = 0;
   const judges = { chatgpt: async () => ({ skipped: '야간' }), agy: async () => ({ score: 8, weak: '', text: '' }), claude: async () => ({ score: 9, weak: '', text: '' }) };
   const r = await runThumbGate({ image: 'v0.jpg', text: '처음', title: 'T', source: '', kind: 'shorts', judges, need: N3, rerender: async () => { calls++; return 'v1.jpg'; }, log: () => {} });

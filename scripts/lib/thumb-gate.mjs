@@ -2,7 +2,7 @@
  * thumb-gate.mjs — 올리기 전 썸네일 3자 채점 관문. (2026-10-28 사장님, Mac mini2 경유) 머리말 규칙은 thumb-gate.test.mjs.
  *
  * 심판 셋이 따로 10점 만점: ChatGPT · agy(gemini-4-argon-medium, 그림 첨부) · Claude(claude -p, 그림을 Read).
- *   통과 = 정해진 심판(need)이 모두 매겼고, 둘이 8 이상 + 나머지 하나 7.5 이상(10/28 저녁 완화). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
+ *   통과 = 정해진 심판(need)이 모두 매겼고, 셋 다 7 이상 + 하나라도 7.5 이상(10/28 저녁 최종). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
  *   7 이하가 있으면 가장 낮은 심판이 낸 글로 부르는 쪽이 다시 굽고(rerender) 다시 매긴다 — 최대 3번, 전체 10분.
  *   그래도 안 되면 가장 나은 판(최저점 → 합)을 쓰고 flagged 에 이유를 남긴다(22:00 보고).
  * 고칠 수 있는 건 **썸네일 글뿐**이다. 사진은 그 뉴스의 실제 사진이라 바꾸지 않는다(바꾸면 낚시 — make-shorts 머리말).
@@ -15,8 +15,9 @@ import { tmpdir, homedir } from 'node:os';
 import { join, dirname, extname } from 'node:path';
 import { CALL } from './comment-reply.mjs';
 
-export const PASS = 8;
-export const PASS_ONE = 7.5;   // 10/28 저녁 완화(사장님): 둘이 8 이상 + 나머지 하나 7.5 이상
+export const FLOOR = 7;      // 10/28 저녁 최종(사장님): 셋 다 7 이상
+export const PASS_ONE = 7.5; //   + 하나라도 7.5 이상
+export const PASS = PASS_ONE; // 고칠 글을 낼 만큼 낮은 점수의 선(심판에게 '이 아래면 고칠 글')
 export const NEED = ['chatgpt', 'agy', 'claude'];   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
 export function judgePrompt({ title, kind, file, textRule }) {
@@ -61,17 +62,20 @@ export function safeText(t, { source = '', maxChars = 24, maxWords = 6, digits =
 const scored = (r) => r && Number.isFinite(r.score);
 
 /**
- * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수 중 8 미만이 많아야 하나이며 그것도 7.5 이상(10/28 저녁 완화 — 원래는 셋 다 8).
- * settled = 통과는 아니지만 더 고쳐도 소용없는 경우 — ChatGPT 만 못 매겼고(야간 미채점 등) 나머지가 모두 8 이상.
- *   그 편은 통과가 아니다(사장님: 미채점은 통과로 세지 않는다). 다시 굽지 않고 멈추고 표시만 한다.
+ * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수가 모두 7 이상이며 하나라도 7.5 이상.
+ *   (10/28 저녁 최종 — 사장님이 보정 결과(심판 점수가 실제 성적과 거의 안 맞음)를 보고 정했다. 그 전엔 8·8·7.5, 처음엔 셋 다 8.)
+ * low = 기준을 깨는 심판(7 미만, 또는 7.5 이상이 하나도 없으면 전부) — 고칠 글은 이들의 것에서 고른다.
+ * settled = 통과는 아니지만 더 고쳐도 소용없는 경우 — ChatGPT 만 못 매겼고 나머지는 기준을 넘었다.
+ *   그 편은 통과가 아니다(사장님: 미채점·오류는 통과로 세지 않는다). 다시 굽지 않고 멈춘다.
  */
 export function decide(scores, need = NEED) {
   const missing = need.filter((k) => !scored(scores[k]));
   const vals = Object.entries(scores).filter(([, r]) => scored(r));
-  const under8 = vals.filter(([, r]) => r.score < PASS);
-  const low = under8.length > 1 || under8.some(([, r]) => r.score < PASS_ONE) ? under8.map(([k]) => k) : [];
+  const under = vals.filter(([, r]) => r.score < FLOOR);
+  const top = vals.some(([, r]) => r.score >= PASS_ONE);
+  const low = under.length ? under.map(([k]) => k) : top ? [] : vals.map(([k]) => k);
   const pass = !missing.length && !low.length;
-  const settled = !pass && missing.length === 1 && missing[0] === 'chatgpt' && !under8.length;
+  const settled = !pass && missing.length === 1 && missing[0] === 'chatgpt' && !low.length && vals.length > 0;
   return { pass, settled, missing, low };
 }
 
@@ -118,8 +122,8 @@ export async function runThumbGate(o) {
     log(`[썸네일 관문] ${rounds.length}판 "${text}" — ${fmtScores(scores)}`);
     const d = decide(scores, need);
     if (d.pass) break;
-    if (d.settled) { flagged = `ChatGPT 미채점(${scores.chatgpt?.skipped ?? scores.chatgpt?.error ?? '없음'}) — 나머지 둘은 8 이상`; break; }
-    if (rounds.length > maxFixes) { flagged = `${maxFixes}번 고쳐도 8점 미만`; break; }
+    if (d.settled) { flagged = `ChatGPT 미채점(${scores.chatgpt?.skipped ?? scores.chatgpt?.error ?? '없음'}) — 나머지는 기준을 넘었다`; break; }
+    if (rounds.length > maxFixes) { flagged = `${maxFixes}번 고쳐도 기준 미달`; break; }
     const roundMs = rounds.at(-1).ms;
     if (deadlineMs - (now() - t0) < roundMs) { flagged = `시간 상한 ${Math.round(deadlineMs / 60000)}분`; break; }
     const fix = Object.values(scores).filter((r) => scored(r) && r.score < PASS).sort((a, b) => a.score - b.score)
@@ -133,7 +137,7 @@ export async function runThumbGate(o) {
   const best = rounds.reduce((b, r, i) => (rankKey(r.scores) > rankKey(rounds[b].scores) ? i : b), 0);
   const passed = decide(rounds[best].scores, need).pass;
   if (passed) flagged = null;
-  else if (!flagged) flagged = '8점 미만';
+  else if (!flagged) flagged = '기준 미달';
   return { passed, flagged, image: rounds[best].image, text: rounds[best].text, best, rounds };
 }
 
