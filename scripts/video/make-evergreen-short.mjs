@@ -222,8 +222,11 @@ async function coverCheck(dir, { canDraw = true } = {}) {
   const item = DATA.items.find((x) => x.id === meta.id);
   const video = join(dir, 'shorts-ko.mp4');
   if (!item || !existsSync(video)) return false;
-  // 같은 영상을 다시 매기지 않는다(10/28 Mac mini3 — ChatGPT 첨부 한도). 떨어졌고 그 뒤 안 바뀌었으며 다시 그릴 일도 없으면 끝.
-  if (c.checkedAt && !c.needsDraw && c.sha === fileSha(video)) return false;
+  // 같은 영상을 다시 매기지 않는다(10/28 Mac mini3 — ChatGPT 첨부 한도). 단 **점수로 떨어진 경우만** — 심판이 못 매겨서(대기열 쉼·시간초과)
+  //   떨어진 편은 다음 실행에 다시 매긴다. 10/28 18:05 실행: 대기열 첨부 한도로 rate-cut·per 가 'ChatGPT 못 매김' 이었다.
+  const realFail = ['chatgpt', 'agy', 'claude'].some((k) => typeof c[k] === 'number' && c[k] < 7)
+    || ['chatgpt', 'agy', 'claude'].every((k) => typeof c[k] === 'number');
+  if (c.checkedAt && !c.needsDraw && realFail && c.sha === fileSha(video)) return false;
   log(`표지 점검 ${meta.id} (${tries + 1}번째)`);
   let g = await gateShortsOpening({ video, title: meta.title, meta, log });
   let redrawn = false, needsDraw = false;
