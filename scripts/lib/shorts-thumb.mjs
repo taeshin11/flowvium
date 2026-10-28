@@ -107,10 +107,10 @@ export async function gateShortsThumb({ thumb, srcDir, locale = 'ko', meta = {},
  */
 export const SHORTS_ANCHORS = { high: resolve(ROOT, 'assets/thumb-anchors/shorts-high.jpg'), low: resolve(ROOT, 'assets/thumb-anchors/shorts-low.jpg') };
 
-export async function openingFrame(video, out, at = 0.5) {
+export async function openingFrame(video, dest, at = 0.5) {
   const ffmpeg = (await import('ffmpeg-static')).default;
-  const r = spawnSync(ffmpeg, ['-v', 'error', '-y', '-ss', String(at), '-i', video, '-frames:v', '1', '-q:v', '3', out], { timeout: 30000 });
-  return r.status === 0 && existsSync(out) ? out : null;
+  const ran = spawnSync(ffmpeg, ['-v', 'error', '-y', '-ss', String(at), '-i', video, '-frames:v', '1', '-q:v', '3', dest], { timeout: 30000 });
+  return ran.status === 0 && existsSync(dest) ? dest : null;
 }
 
 export async function gateShortsOpening({ video, title, meta = {}, log = () => {}, gateOpts = {} }) {
