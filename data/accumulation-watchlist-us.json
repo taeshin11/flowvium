@@ -1,26 +1,27 @@
 {
-  "generatedAt": "2026-10-28T13:01:00.348Z",
+  "generatedAt": "2026-10-28T22:43:12.539Z",
   "universe": "US",
   "scanned": 314,
-  "count": 6,
+  "count": 7,
   "strongCount": 2,
-  "watchCount": 4,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "VSECU",
       "name": "VSE Corporation - Tangible Equi",
       "tier": "strong",
-      "score": 40,
-      "coFire": 3,
+      "score": 46,
+      "coFire": 4,
       "lead": [
-        "거래량 추세 4.5× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)",
+        "거래량 추세 3.9× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -11.3,
-      "runup5dPct": -3.8,
+      "runup20dPct": -7.8,
+      "runup5dPct": -3.9,
       "medDollarVolUsd": 630210,
       "smartAccum": false,
       "official": null
@@ -29,15 +30,15 @@
       "ticker": "VLRS",
       "name": "Controladora Vuela Compania de ",
       "tier": "strong",
-      "score": 37,
+      "score": 42,
       "coFire": 3,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 4.0× 급증(가격 평탄)",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -9.1,
+      "runup20dPct": -6.9,
       "runup5dPct": 7.8,
       "medDollarVolUsd": 2586435,
       "smartAccum": false,
@@ -50,46 +51,30 @@
       "score": 30,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 추세 2.7× 상승(지속 매집)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 8,
-      "runup5dPct": 2.7,
+      "runup20dPct": 11.3,
+      "runup5dPct": 3.9,
       "medDollarVolUsd": 3493056,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CMCM",
-      "name": "Cheetah Mobile Inc.",
+      "ticker": "WGO",
+      "name": "Winnebago Industries, Inc.",
       "tier": "watch",
-      "score": 28,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 5.4× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.1,
-      "runup5dPct": 9.2,
-      "medDollarVolUsd": 14352,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "UFCS",
-      "name": "United Fire Group, Inc",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
+        "거래량 추세 1.9× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": 6.9,
-      "runup5dPct": 0.9,
-      "medDollarVolUsd": 6336798,
+      "runup20dPct": 8.6,
+      "runup5dPct": 11.7,
+      "medDollarVolUsd": 15875928,
       "smartAccum": false,
       "official": null
     },
@@ -100,12 +85,44 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)"
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -3.3,
-      "runup5dPct": -19.9,
-      "medDollarVolUsd": 438564,
+      "runup20dPct": -5.9,
+      "runup5dPct": -22.1,
+      "medDollarVolUsd": 440848,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "JOF",
+      "name": "Japan Smaller Capitalization Fu",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -9.6,
+      "runup5dPct": -3.3,
+      "medDollarVolUsd": 750708,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "SCD",
+      "name": "LMP Capital and Income Fund Inc",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%"
+      ],
+      "runup20dPct": 2.8,
+      "runup5dPct": 0.5,
+      "medDollarVolUsd": 1040160,
       "smartAccum": false,
       "official": null
     }
