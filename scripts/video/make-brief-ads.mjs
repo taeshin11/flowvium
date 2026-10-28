@@ -29,9 +29,9 @@ const argv = process.argv.slice(2);
 const BRAND = argv[argv.indexOf('--brand') + 1];
 if (!['aisvi', 'flowvium'].includes(BRAND)) { console.error('--brand aisvi|flowvium'); process.exit(2); }
 // 2026-10-28 AISVI 광고 새 판(lib/ad-line, IR 세션·Mac mini2 경유): --card a|b|c → 2.5초 한 줄 카드(brief-card-aisvi-<판>.mp4).
-//   "영상 안에서는 한 줄, 끝 카드는 2.5초 이하". --audio 로 이미 만든 같은 말(AD_SPOKEN)을 받으면 판마다 소리가 같다.
+//   "영상 안에서는 한 줄, 끝 카드는 2.5초 이하". 소리는 그 판의 말(AD_SPOKEN_BY) — 2.4초에 맞춘 소리를 --audio 로. 작은 글씨 '설명란 링크'(10/28).
 const CARD = argv.includes('--card') ? argv[argv.indexOf('--card') + 1] : null;
-const { AD_VERSIONS, AD_CTA, AD_SPOKEN } = await import('../lib/ad-line.mjs');
+const { AD_VERSIONS, AD_CTA, AD_SPOKEN_BY, AD_WHERE } = await import('../lib/ad-line.mjs');
 if (CARD && (BRAND !== 'aisvi' || !AD_VERSIONS[CARD])) { console.error('--card 는 --brand aisvi 와 a|b|c'); process.exit(2); }
 const AUDIO_IN = argv.includes('--audio') ? argv[argv.indexOf('--audio') + 1] : null;
 const CARD_SEC = 2.5;
@@ -47,9 +47,9 @@ const FONT = "'Apple SD Gothic Neo',sans-serif";
 // ── 문구 ─────────────────────────────────────────────────────────────────────
 let say; let panel; let video = null;
 if (CARD) {
-  say = [AD_SPOKEN];
+  say = [AD_SPOKEN_BY[CARD]];
   const [l1, l2] = AD_VERSIONS[CARD].split(', ');
-  panel = { left: null, right: `<div class="k" style="color:#93c5fd">AISVI</div><div class="cv">${esc(l1)}<br>${esc(l2)}</div><div class="bar" style="background:#3b82f6"></div><div class="u">aisviagent.com</div><div class="pill">${esc(AD_CTA)}</div>` };
+  panel = { left: null, right: `<div class="k" style="color:#93c5fd">AISVI</div><div class="cv">${esc(l1)}<br>${esc(l2)}</div><div class="bar" style="background:#3b82f6"></div><div class="u">aisviagent.com</div><div class="pill">${esc(AD_CTA)}</div><div class="n">${esc(AD_WHERE.long)}</div>` };
 } else if (BRAND === 'aisvi') {
   say = ['말하는 대로 내 컴퓨터를 조종하는 나만의 AI 비서, 에이스비입니다.', '에이스비 에이전트 닷컴에서 가입 없이 바로 무료로 체험해 보세요.'];
   video = resolve(ROOT, 'assets/outro/aisvi-demo.mp4');

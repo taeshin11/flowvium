@@ -2,7 +2,7 @@
 //   10/24·10/27 aisviagent.com 실제 사람 방문 0. 눌리는 자리(롱폼 설명란·채널 링크·블로그 본문)에 utm 링크,
 //   주식 시청자용 한 줄 2~3판을 돌린다. 최고/최초 금지, 긴 설명 금지.
 import assert from 'node:assert/strict';
-import { AD_VERSIONS, AD_CTA, adVersionFor, adUrl, adText, withAdLine, withBlogAd, AD_LINE } from './ad-line.mjs';
+import { AD_VERSIONS, AD_CTA, AD_SPOKEN_BY, AD_WHERE, adVersionFor, adUrl, adText, withAdLine, withBlogAd, AD_LINE } from './ad-line.mjs';
 import { mdToHtml } from './blog-html.mjs';
 
 // [1] 판은 세 개, 각각 한 줄 · 과장어 없음 · 사이트가 실제로 하는 일(질문·요약·엑셀 다루기)
@@ -47,4 +47,15 @@ assert.ok(/aisviagent\.com/.test(AD_LINE) && !/utm_/.test(AD_LINE));
   assert.ok(html.includes(`<a href="${adUrl(b).replace(/&/g, '&amp;')}"`), html);
   assert.ok(withBlogAd('본문만', b).endsWith(adText(b)), '면책이 없으면 맨 끝');
 }
+// [8] 끝 카드 소리(10/28 사장님 — "에이스비, 지금 바로 써 보세요" 는 모르는 이름에 이득이 없다).
+//   판마다 그 판이 하는 일을 말한다 · 발음은 에이스비 · 어디로 가는지는 화면 작은 글씨(쇼츠 채널 링크 / 롱폼 설명란).
+assert.deepEqual(Object.keys(AD_SPOKEN_BY), Object.keys(AD_VERSIONS));
+const KEY = { a: /뉴스/, b: /종목/, c: /매매 기록/ };
+for (const [v, t] of Object.entries(AD_SPOKEN_BY)) {
+  assert.ok(t.includes('에이스비') && !/AISVI|에이전트/.test(t), `${v} 발음: ${t}`);
+  assert.ok(KEY[v].test(t) && KEY[v].test(AD_VERSIONS[v]), `${v} 소리와 글자가 같은 일: ${t} / ${AD_VERSIONS[v]}`);
+  assert.ok(!/지금 바로 써 보세요/.test(t), `${v} 옛 말`);
+}
+assert.equal(AD_WHERE.shorts, '채널 링크에서');
+assert.equal(AD_WHERE.long, '설명란 링크');
 console.log('ad-line.test: ✅ 전부 통과');
