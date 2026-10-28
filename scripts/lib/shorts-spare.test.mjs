@@ -65,13 +65,13 @@ mkdirSync(join(spares, 'broken'), { recursive: true });   // 영상 없는 반�
   const pool2 = join(root, 'pool2');
   const mkC = (name, daysAgo, cover) => {
     const d = join(pool2, name); mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, SPARE_FILES.video), 'mp4'); writeFileSync(join(d, SPARE_FILES.thumb), `thumb-${name}`);
+    writeFileSync(join(d, SPARE_FILES.video), `mp4-${name}`); writeFileSync(join(d, SPARE_FILES.thumb), `thumb-${name}`);
     writeFileSync(join(d, SPARE_FILES.meta), JSON.stringify({ evergreen: true, id: name, keyword: `주식 상식:${name}`, createdAt: new Date(Date.now() - daysAgo * 86400e3).toISOString(),
-      ...(cover ? { cover: { passed: cover.passed, sha: cover.sha ?? fileSha(join(d, SPARE_FILES.thumb)) } } : {}) }));
+      ...(cover ? { cover: { passed: cover.passed, sha: cover.sha ?? fileSha(join(d, SPARE_FILES.video)) } } : {}) }));
     return d;
   };
   mkC('old-unscored', 9); mkC('old-failed', 8, { passed: false });
-  const changed = mkC('changed', 7, { passed: true }); writeFileSync(join(changed, SPARE_FILES.thumb), '다시 구움');
+  const changed = mkC('changed', 7, { passed: true }); writeFileSync(join(changed, SPARE_FILES.video), '다시 구움');   // 10/28 저녁: 막는 관문은 영상 첫 화면 — 지문은 영상
   mkC('good', 1, { passed: true });
   const q = pickEvergreen({ dir: pool2, ok: coverPassed });
   (q?.meta.id === 'good') ? ok('[4d] 표지 통과 + 썸네일 그대로인 편만(안 매김·떨어짐·통과 뒤 바뀜은 뺀다)') : bad(`[4d] ${q?.meta.id}`);

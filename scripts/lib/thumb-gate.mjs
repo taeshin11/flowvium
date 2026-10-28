@@ -20,9 +20,15 @@ export const PASS_ONE = 7.5; //   + 하나라도 7.5 이상
 export const PASS = PASS_ONE; // 고칠 글을 낼 만큼 낮은 점수의 선(심판에게 '이 아래면 고칠 글')
 export const NEED = ['chatgpt', 'agy', 'claude'];   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
-export function judgePrompt({ title, kind, file, textRule }) {
+export function judgePrompt({ title, kind, file, textRule, anchors = null }) {
+  // 기준 그림(10/28 Mac mini3·Mac mini2): 심판마다 눈금이 달라 실제 성적이 있는 두 장을 먼저 보여 준다.
+  const anchorLines = anchors ? [
+    `그림 세 장을 모두 열어라: ${anchors.high} = 이 채널에서 실제로 잘 된 표지 → 8.5 기준, ${anchors.low} = 실제로 안 된 표지 → 5 기준.`,
+    `${file} 만 매겨라. 눈금은 두 기준 그림에 맞춘다.`,
+  ] : [];
   return [
-    `유튜브 ${kind === 'shorts' ? '쇼츠 첫 화면(표지)' : '영상 썸네일'} 그림 ${file} 을 직접 열어 보고, 클릭률(CTR) 기준으로 10점 만점(0.5 점 단위)으로 매겨라.`,
+    ...anchorLines,
+    `유튜브 ${kind === 'shorts-open' ? '쇼츠 피드에 보이는 영상 첫 화면' : kind === 'shorts' ? '쇼츠 맞춤 썸네일' : '영상 썸네일'} 그림 ${file} 을 직접 열어 보고, 클릭률(CTR) 기준으로 10점 만점(0.5 점 단위)으로 매겨라.`,
     `영상 제목: "${title}"`,
     '기준(모두 본다):',
     '1. 폰 피드 크기에서 1초 안에 읽힌다',
@@ -117,13 +123,14 @@ export async function runThumbGate(o) {
     const r0 = now();
     const left = deadlineMs - (r0 - t0);
     const scores = await scoreAll(judges, { image, title, kind, text, timeoutMs: Math.max(30_000, Math.min(240_000, left)),
-      prompt: (file) => judgePrompt({ title, kind, file, textRule }) });
+      anchors: o.anchors ?? null,
+      prompt: (file, anchorFiles = null) => judgePrompt({ title, kind, file, textRule, anchors: anchorFiles }) });
     rounds.push({ image, text, scores, ms: now() - r0 });
     log(`[썸네일 관문] ${rounds.length}판 "${text}" — ${fmtScores(scores)}`);
     const d = decide(scores, need);
     if (d.pass) break;
     if (d.settled) { flagged = `ChatGPT 미채점(${scores.chatgpt?.skipped ?? scores.chatgpt?.error ?? '없음'}) — 나머지는 기준을 넘었다`; break; }
-    if (rounds.length > maxFixes) { flagged = `${maxFixes}번 고쳐도 기준 미달`; break; }
+    if (rounds.length > maxFixes) { flagged = maxFixes ? `${maxFixes}번 고쳐도 기준 미달` : '기준 미달'; break; }
     const roundMs = rounds.at(-1).ms;
     if (deadlineMs - (now() - t0) < roundMs) { flagged = `시간 상한 ${Math.round(deadlineMs / 60000)}분`; break; }
     const fix = Object.values(scores).filter((r) => scored(r) && r.score < PASS).sort((a, b) => a.score - b.score)
@@ -183,20 +190,25 @@ function runCli(exe, args, { cwd, timeoutMs }) {
   });
 }
 
-function stage(image) {
+function stage(image, anchors = null) {
   const dir = mkdtempSync(join(tmpdir(), 'thumb-gate-'));
   const file = `thumb${extname(image) || '.jpg'}`;
   copyFileSync(image, join(dir, file));
-  return { dir, file };
+  let anchorFiles = null;
+  if (anchors?.high && anchors?.low && existsSync(anchors.high) && existsSync(anchors.low)) {
+    anchorFiles = { high: 'anchor-high.jpg', low: 'anchor-low.jpg' };
+    copyFileSync(anchors.high, join(dir, anchorFiles.high)); copyFileSync(anchors.low, join(dir, anchorFiles.low));
+  }
+  return { dir, file, anchorFiles };
 }
 
 /** Claude — claude -p 가 그림을 Read 로 연다. 도구를 안 쓰고(턴 1) 낸 점수는 그림을 안 본 것이라 버린다. */
-export async function claudeJudge({ image, prompt, timeoutMs = 180_000 }) {
+export async function claudeJudge({ image, prompt, anchors = null, timeoutMs = 180_000 }) {
   const bin = process.env.CLAUDE_BIN || [join(homedir(), '.local/bin/claude'), '/usr/local/bin/claude', '/opt/homebrew/bin/claude'].find((p) => existsSync(p));
   if (!bin) throw new Error('claude 실행파일 없음');
-  const { dir, file } = stage(image);
+  const { dir, file, anchorFiles } = stage(image, anchors);
   try {
-    const r = await runCli(bin, ['-p', prompt(file), '--allowedTools', 'Read', '--max-turns', '4', '--output-format', 'json'], { cwd: dir, timeoutMs });
+    const r = await runCli(bin, ['-p', prompt(file, anchorFiles), '--allowedTools', 'Read', '--max-turns', '4', '--output-format', 'json'], { cwd: dir, timeoutMs });
     if (r.code !== 0) throw new Error(`종료 ${r.code}: ${r.err.slice(0, 120)}`);
     const j = firstJson(r.out);
     if (!j) throw new Error('출력을 못 읽음');
@@ -208,21 +220,21 @@ export async function claudeJudge({ image, prompt, timeoutMs = 180_000 }) {
 }
 
 /** agy — gemini-4-argon-medium(사장님 지정). 그림을 read_file 로 실제로 열었는지 대화 기록으로 확인한다(lib/agy-viewed). */
-export async function agyJudge({ image, prompt, timeoutMs = 240_000 }) {
+export async function agyJudge({ image, prompt, anchors = null, timeoutMs = 240_000 }) {
   const { agyBin, agyReady } = await import('./agy.mjs');
   const { runAgy, NO_SHELL_P } = await import('./agy-run.mjs');
   const { viewedImages } = await import('./agy-viewed.mjs');
   const { PREFERRED_VISION } = await import('./agy-models.mjs');
   const bin = agyBin();
   if (!bin || !agyReady()) throw new Error('agy 준비 안 됨');
-  const { dir, file } = stage(image);
+  const { dir, file, anchorFiles } = stage(image, anchors);
   try {
     writeFileSync(join(dir, 'schema.json'), JSON.stringify({ type: 'object',
       properties: { score: { type: 'number' }, weak: { type: 'string' }, text: { type: 'string' }, image_ok: { type: 'boolean' } }, required: ['score', 'weak', 'text', 'image_ok'] }));
     const model = process.env.THUMB_GATE_AGY_MODEL || PREFERRED_VISION[0];
     let r;
     try {
-      r = await runAgy(bin, ['-p', `${NO_SHELL_P}${prompt(file)}\n그림은 read_file 로 연다.`, '--model', model, '--sandbox', '--add-dir', dir,
+      r = await runAgy(bin, ['-p', `${NO_SHELL_P}${prompt(file, anchorFiles)}\n그림은 read_file 로 연다.`, '--model', model, '--sandbox', '--add-dir', dir,
         '--json-schema', join(dir, 'schema.json'), '--output-format', 'json'], { cwd: dir, timeoutMs });
     } catch (e) { throw new Error(e?.name === 'AbortError' ? `시간초과 ${Math.round(timeoutMs / 1000)}초` : String(e?.message ?? e).slice(0, 120)); }
     const j = firstJson(String(r.stdout).replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, ''));
@@ -247,7 +259,7 @@ export function inNightBan(d = new Date()) {
  *   score null = 못 매김(던진다 — 통과로 세지 않는다). 23:35~02:40 은 처리하지 않으니 기다리지 않고 미채점으로 둔다.
  *   그림은 대기열이 읽을 때까지 남아 있어야 해서 대기열 폴더(img/)에 복사해 두고, 답을 받으면 지운다.
  */
-export async function chatgptJudge({ image, title, timeoutMs = 300_000, qdir = process.env.THUMBQ_DIR || join(homedir(), 'history/_thumbq'),
+export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 300_000, qdir = process.env.THUMBQ_DIR || join(homedir(), 'history/_thumbq'),
   pollMs = 5000, now = () => new Date(), channel = 'FlowVium', lang = 'ko' }) {
   if (inNightBan(now())) return { skipped: 'ChatGPT 야간 미채점(23:35~02:40 대기열 쉼)' };
   if (!existsSync(join(qdir, 'in'))) throw new Error(`대기열 없음: ${qdir}`);
@@ -256,7 +268,8 @@ export async function chatgptJudge({ image, title, timeoutMs = 300_000, qdir = p
   const img = join(qdir, 'img', `${id}${extname(image) || '.jpg'}`);
   copyFileSync(image, img);
   const req = join(qdir, 'in', `${id}.json`);
-  writeFileSync(`${req}.tmp`, JSON.stringify({ image: img, title, channel, lang }));
+  // 기준 그림은 대기열이 자기 자리(anchors/<channel>/high·low.jpg)의 것을 쓴다 — 우리는 켜기만 한다.
+  writeFileSync(`${req}.tmp`, JSON.stringify({ image: img, title, channel, lang, ...(anchors ? { anchors: true } : {}) }));
   renameSync(`${req}.tmp`, req);
   const out = join(qdir, 'out', `${id}.json`);
   for (const t0 = Date.now(); Date.now() - t0 < timeoutMs; await new Promise((r) => setTimeout(r, pollMs))) {

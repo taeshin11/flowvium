@@ -203,5 +203,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const t = summarize([{ at: '2026-10-28T08:32:43Z', event: 'uploaded', kind: 'shorts', title: 'X', passed: false, flagged: '옛 기준 미달', chatgpt: 7.2, agy: 7.5, claude: 7, rounds: 4, text: 't' }], '2026-10-28');
   assert.match(t, /올린 1편\(통과 1\)/); assert.match(t, /✅ 17:32/);
 }
+// [18] 기준 그림(anchors, 10/28 Mac mini3·Mac mini2): 실제로 잘 된 표지 = 8.5, 안 된 표지 = 5 를 먼저 보여 주고 세 번째만 매긴다(심판마다 눈금이 달라서)
+{
+  const p = judgePrompt({ title: 'T', kind: 'shorts', file: 'thumb.jpg', textRule: 'r', anchors: { high: 'anchor-high.jpg', low: 'anchor-low.jpg' } });
+  assert.ok(p.includes('anchor-high.jpg') && p.includes('8.5') && p.includes('anchor-low.jpg') && p.includes('5 기준') && p.includes('thumb.jpg 만 매겨라'), p);
+  assert.ok(!judgePrompt({ title: 'T', kind: 'shorts', file: 'thumb.jpg', textRule: 'r' }).includes('anchor-'), '기준 그림이 없으면 말도 없다');
+  // 흐름 — runThumbGate 가 anchors 를 심판에게 넘긴다
+  let got = null;
+  await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: ['agy'], anchors: { high: '/a/h.jpg', low: '/a/l.jpg' },
+    judges: { agy: async (a) => { got = a.anchors; return { score: 9, weak: '', text: '' }; } }, rerender: async () => null, log: () => {} });
+  assert.deepEqual(got, { high: '/a/h.jpg', low: '/a/l.jpg' });
+}
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');

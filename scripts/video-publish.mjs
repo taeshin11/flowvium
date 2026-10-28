@@ -535,18 +535,31 @@ const GATE_LOG = resolve(ROOT, 'logs/thumb-gate.jsonl');
 if (isShorts && process.env.THUMB_GATE !== '0') {
   const { appendGateLog } = await import('./lib/thumb-gate.mjs');
   const { fileSha } = await import('./lib/shorts-spare.mjs');
+  // 10/28 저녁(Mac mini2, 사장님 최종 기준): 쇼츠 피드는 영상 첫 화면을 보여 준다 — 막는 관문은 0.5초 화면(lib/shorts-thumb gateShortsOpening).
+  //   맞춤 썸네일(가로 자리)은 두 번째 확인 — 고쳐 굽고 기록하지만 막지 않는다.
   try {
-    if (last.evergreen && last.cover?.passed && THUMB && existsSync(THUMB) && fileSha(THUMB) === last.cover.sha) {
-      // 표지 점검(evergreen-fill)이 같은 제목으로 미리 통과시킨 그 썸네일 그대로 — 다시 매기지 않는다(밤엔 ChatGPT 대기열이 쉰다).
+    if (last.evergreen && last.cover?.passed && last.cover.sha === fileSha(VIDEO)) {
+      // 상식 편 — 채우기(evergreen-fill 표지 점검)가 같은 제목·같은 영상으로 미리 통과시켰다. 다시 매기지 않는다(밤엔 대기열이 쉰다).
       THUMB_GATE = { passed: true, flagged: null, chatgpt: last.cover.chatgpt, agy: last.cover.agy, claude: last.cover.claude, text: last.cover.text, rounds: 0, pre: last.cover.checkedAt };
-      log(`[썸네일 관문] ✅ 미리 통과한 표지(${last.cover.checkedAt}) · ChatGPT ${last.cover.chatgpt} · agy ${last.cover.agy} · Claude ${last.cover.claude}`);
-    } else if (THUMB && existsSync(THUMB)) {
+      log(`[첫 화면 관문] ✅ 미리 통과(${last.cover.checkedAt}) · ChatGPT ${last.cover.chatgpt} · agy ${last.cover.agy} · Claude ${last.cover.claude}`);
+    } else {
+      const { gateShortsOpening } = await import('./lib/shorts-thumb.mjs');
+      THUMB_GATE = await gateShortsOpening({ video: VIDEO, title, meta: last, log });
+      log(`[첫 화면 관문] ${THUMB_GATE.passed ? '✅ 통과' : `⚠ ${THUMB_GATE.flagged}`} · ChatGPT ${THUMB_GATE.chatgpt} · agy ${THUMB_GATE.agy} · Claude ${THUMB_GATE.claude}`);
+      appendGateLog({ event: 'gate', kind: 'shorts', cover: 'opening', title, ...THUMB_GATE }, GATE_LOG);
+    }
+  } catch (e) { THUMB_GATE = { passed: false, flagged: `관문 오류: ${String(e?.message ?? e).slice(0, 100)}` }; log(`[첫 화면 관문] ${THUMB_GATE.flagged}`); }
+  if (THUMB_GATE.passed && THUMB && existsSync(THUMB)) {
+    try {
       const { gateShortsThumb } = await import('./lib/shorts-thumb.mjs');
-      THUMB_GATE = await gateShortsThumb({ thumb: THUMB, srcDir: SRC_DIR, locale: LOCALE, meta: last, title, log });
-      log(`[썸네일 관문] ${THUMB_GATE.passed ? '✅ 통과' : `⚠ ${THUMB_GATE.flagged}`} · ChatGPT ${THUMB_GATE.chatgpt} · agy ${THUMB_GATE.agy} · Claude ${THUMB_GATE.claude} · "${THUMB_GATE.text}"`);
-      appendGateLog({ event: 'gate', kind: 'shorts', title, ...THUMB_GATE }, GATE_LOG);
-    } else THUMB_GATE = { passed: false, flagged: '썸네일 없음(어둡거나 못 구움)' };
-  } catch (e) { THUMB_GATE = { passed: false, flagged: `관문 오류: ${String(e?.message ?? e).slice(0, 100)}` }; log(`[썸네일 관문] ${THUMB_GATE.flagged}`); }
+      const c = await gateShortsThumb({ thumb: THUMB, srcDir: SRC_DIR, locale: LOCALE, meta: last, title, log, gateOpts: { deadlineMs: 5 * 60_000, maxFixes: 2 } });
+      if (c) {
+        log(`[맞춤 썸네일] ${c.passed ? '기준 넘음' : `기준 미달(막지 않음 — ${c.flagged})`} · ChatGPT ${c.chatgpt} · agy ${c.agy} · Claude ${c.claude} · "${c.text}"`);
+        appendGateLog({ event: 'gate', kind: 'shorts', cover: 'custom', title, ...c }, GATE_LOG);
+        THUMB_GATE.custom = { passed: c.passed, chatgpt: c.chatgpt, agy: c.agy, claude: c.claude, text: c.text };
+      }
+    } catch (e) { log(`[맞춤 썸네일] 건너뜀(막지 않음): ${String(e?.message ?? e).slice(0, 80)}`); }
+  }
   if (!THUMB_GATE.passed) {
     // 10/28 저녁 사장님(Mac mini2 경유): 점수를 못 받은 썸네일은 올리지 않는다. 이 편은 다시 손볼 자리로 옮기고(비공개로 둔다 = 안 올린다)
     //   표지가 미리 통과한 상식 편으로 이 슬롯을 다시 부른다. 그것도 없으면 슬롯을 건너뛴다. 편성 대장엔 안 적는다 — 그 뉴스는 다시 고를 수 있다.
@@ -559,7 +572,7 @@ if (isShorts && process.env.THUMB_GATE !== '0') {
     }
     for (const d of ls(RW)) { try { if (Date.now() - statSync(join(RW, d)).mtimeMs > 3 * 86400e3) rm(join(RW, d), { recursive: true, force: true }); } catch { /* 비치명 */ } }
     appendGateLog({ event: 'held', kind: 'shorts', title, rework: dest, ...(({ log: _l, ...x }) => x)(THUMB_GATE) }, GATE_LOG);
-    log(`[썸네일 관문] 올리지 않는다 — ${THUMB_GATE.flagged} · 손볼 자리: ${dest}`);
+    log(`[첫 화면 관문] 올리지 않는다 — ${THUMB_GATE.flagged} · 손볼 자리: ${dest}`);
     if (RESERVE_ONLY) { log(`건너뜀 — 예비 표지도 관문을 못 넘었다(${THUMB_GATE.flagged})`); process.exit(0); }
     const why = `썸네일 미달(${THUMB_GATE.flagged})`;
     const r = spawnSync(node, process.argv.slice(1), { cwd: ROOT, stdio: 'inherit',

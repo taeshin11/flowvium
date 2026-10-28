@@ -57,12 +57,13 @@ export function evergreenDir(env = process.env) {
 /** 파일 내용 지문(sha1) — 표지 점검 뒤 썸네일이 바뀌었는지 본다. */
 export function fileSha(f) { return createHash('sha1').update(readFileSync(f)).digest('hex'); }
 
-/** 표지가 썸네일 관문(lib/thumb-gate)을 통과했고 그 뒤 썸네일이 안 바뀌었는가 — 메타 cover {passed, sha}.
+/** 첫 화면이 썸네일 관문(lib/thumb-gate)을 통과했고 그 뒤 영상이 안 바뀌었는가 — 메타 cover {passed, sha(영상)}.
  *  10/28 저녁 사장님(Mac mini2 경유): 점수를 못 받은 썸네일은 안 올린다. 밤(ChatGPT 대기열 쉼)에는 미리 통과한 편만 나갈 수 있다. */
 export function coverPassed(spare) {
   const c = spare?.meta?.cover;
   if (!c?.passed || !c.sha) return false;
-  try { return fileSha(join(spare.dir, SPARE_FILES.thumb)) === c.sha; } catch { return false; }
+  // 지문은 영상 — 막는 관문이 영상 첫 화면이다(10/28 저녁, 쇼츠 피드는 첫 화면을 보여 준다).
+  try { return fileSha(join(spare.dir, SPARE_FILES.video)) === c.sha; } catch { return false; }
 }
 
 /** 풀에서 하나 — 이미 나간 주제 빼고, 먼저 만든 것부터. 만드는 중(<id>.part)은 집지 않는다. ok 로 더 거른다(표지 통과 등). */

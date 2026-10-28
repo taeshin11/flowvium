@@ -9,7 +9,10 @@
  *   · 한글을 음절마다 끊지 않는다 — 10/20 '논란 / 에…'(shorts-thumb-wrap.test 가 아래 .h 규칙을 그대로 떼어 잰다).
  *   · 제목은 낱말 경계에서 자른다 — 글자 수로 뚝 자르면 "한화시스템 UA" 가 나온다.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { ROOT } from './project-root.mjs';
 
 export const THUMB_BG = 'shorts-ko-thumb-bg.jpg';
 
@@ -93,4 +96,32 @@ export async function gateShortsThumb({ thumb, srcDir, locale = 'ko', meta = {},
   if (g.image !== thumb) cp(g.image, thumb);
   for (const f of made) rm(f, { force: true });
   return { ...gateSummary(g), log: g.rounds.map((r) => ({ text: r.text, scores: r.scores, ms: r.ms })) };
+}
+
+/**
+ * 쇼츠 첫 화면 관문 — 10/28 저녁 Mac mini2(사장님 최종 기준): 쇼츠 피드는 **영상 첫 화면**(i.ytimg oar2, 세로)을 보여 주고
+ *   우리가 올리는 맞춤 썸네일은 가로 자리(검색·채널, maxresdefault)에만 쓰인다(10/28 iRwCmpkvBTg 등 실측).
+ *   그래서 막는 관문은 0.5초 화면이고, 맞춤 썸네일은 두 번째 확인(기록만, 막지 않음)이다.
+ *   첫 화면은 여기서 고쳐 구울 수 없다(영상 장면) — 한 판 매기고 끝. 상식 편은 채우기가 첫 장면 그림을 다시 그려 다시 굽는다.
+ *   기준 그림: 우리 쇼츠 중 실제로 잘 된 첫 화면(8.5)·안 된 첫 화면(5) — assets/thumb-anchors(10/28 조회수 48~96h 기준 위·아래 10%).
+ */
+export const SHORTS_ANCHORS = { high: resolve(ROOT, 'assets/thumb-anchors/shorts-high.jpg'), low: resolve(ROOT, 'assets/thumb-anchors/shorts-low.jpg') };
+
+export async function openingFrame(video, out, at = 0.5) {
+  const ffmpeg = (await import('ffmpeg-static')).default;
+  const r = spawnSync(ffmpeg, ['-v', 'error', '-y', '-ss', String(at), '-i', video, '-frames:v', '1', '-q:v', '3', out], { timeout: 30000 });
+  return r.status === 0 && existsSync(out) ? out : null;
+}
+
+export async function gateShortsOpening({ video, title, meta = {}, log = () => {}, gateOpts = {} }) {
+  const { runThumbGate, gateSummary } = await import('./thumb-gate.mjs');
+  const out = String(video).replace(/\.mp4$/i, '-open.jpg');
+  if (!(await openingFrame(video, out))) return { passed: false, flagged: '첫 화면을 못 뗐다' };
+  try {
+    const anchors = existsSync(SHORTS_ANCHORS.high) && existsSync(SHORTS_ANCHORS.low) ? SHORTS_ANCHORS : null;
+    const g = await runThumbGate({ image: out, text: String(meta.hooks?.[0] ?? ''), title: String(title).replace(/\s*#Shorts\b/i, '').trim(),
+      kind: 'shorts-open', source: '', maxFixes: 0, anchors, rerender: async () => null,
+      textRule: '첫 화면 위쪽 큰 글(훅) 3~6낱말', log: (m) => log(m.replace('[썸네일 관문]', '[첫 화면 관문]')), ...gateOpts });
+    return { ...gateSummary(g), log: g.rounds.map((r) => ({ text: r.text, scores: r.scores, ms: r.ms })) };
+  } finally { rmSync(out, { force: true }); }
 }

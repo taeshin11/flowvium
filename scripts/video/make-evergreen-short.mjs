@@ -34,7 +34,7 @@ import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT } from '
 import { checkEvergreen } from '../lib/evergreen-check.mjs';
 import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
 import { generateImage } from '../lib/agy-image.mjs';
-import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG, renderShortsThumb, gateShortsThumb } from '../lib/shorts-thumb.mjs';
+import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG, gateShortsThumb, gateShortsOpening } from '../lib/shorts-thumb.mjs';
 import { isReportPipelineRunning } from '../lib/report-running.mjs';
 
 loadEnvLocal();
@@ -206,46 +206,50 @@ async function render(item) {
  *   뉴스 쇼츠는 실제 사진 그대로(video-publish 관문은 글만 고친다). 점검 결과는 메타 cover 에 남겨 한 번만 한다.
  */
 const coverScene = (item) => `a large glowing stock market chart on a trading screen with candlesticks, a stock ticker board glowing behind it, mood: ${item.scenes[0].image}. The screens show only abstract shapes and lines — absolutely no text, letters, numbers or symbols anywhere`;
-// 10/28 저녁 사장님: 점수를 못 받은 썸네일은 안 올린다 — 이 점검을 통과한 편(메타 cover.passed + sha)만 발행이 대신 쓴다(lib/shorts-spare coverPassed).
-//   밤(23:35~02:40)은 ChatGPT 대기열이 쉬어 매겨도 통과 못 하니 건너뛴다 — 밤 슬롯은 낮에 미리 통과한 편으로 나간다.
-//   그림이 문제인데 그림 창이 아니면(canDraw=false) 매긴 횟수로 세지 않고 다음 그림 창에 그린다. 3번 해도 안 되면 손볼 것으로 둔다(22:02 보고).
+// 10/28 저녁 사장님: 점수를 못 받은 쇼츠는 안 올린다 — 이 점검을 통과한 편(메타 cover {passed, sha(영상)})만 발행이 대신 쓴다(lib/shorts-spare coverPassed).
+//   막는 것은 영상 첫 화면(쇼츠 피드가 보여 주는 것 — lib/shorts-thumb gateShortsOpening, 기준 그림 두 장과 함께). 맞춤 썸네일은 고치고 기록만.
+//   심판이 첫 화면 그림이 주제와 안 맞는다(image_ok=false)고 하면 첫 장면 그림을 시장 그림으로 다시 그리고 편을 통째로 다시 굽는다(그림 창일 때만).
+//   밤(23:35~02:40)은 ChatGPT 대기열이 쉬어 매겨도 통과 못 하니 건너뛴다 — 밤 슬롯은 낮에 미리 통과한 편으로 나간다. 3번 해도 안 되면 손볼 것(22:02 보고).
 async function coverCheck(dir, { canDraw = true } = {}) {
   const { coverPassed, fileSha } = await import('../lib/shorts-spare.mjs');
   const { inNightBan } = await import('../lib/thumb-gate.mjs');
   const mp = join(dir, 'shorts-ko-meta.json');
-  const meta = JSON.parse(readFileSync(mp, 'utf8'));
+  let meta = JSON.parse(readFileSync(mp, 'utf8'));
   const c = meta.cover ?? {};
   if (coverPassed({ dir, meta })) return false;
   const tries = c.attempts ?? 0;
   if (tries >= 3 || (c.needsDraw && !canDraw) || inNightBan()) return false;
   const item = DATA.items.find((x) => x.id === meta.id);
-  const thumb = join(dir, 'shorts-ko-thumb.jpg');
-  if (!item || !existsSync(thumb) || !existsSync(join(dir, THUMB_BG))) return false;
+  const video = join(dir, 'shorts-ko.mp4');
+  if (!item || !existsSync(video)) return false;
   log(`표지 점검 ${meta.id} (${tries + 1}번째)`);
-  let g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
+  let g = await gateShortsOpening({ video, title: meta.title, meta, log });
   let redrawn = false, needsDraw = false;
-  if (g && !g.passed && g.imageBad > 0) {
+  if (!g.passed && g.imageBad > 0) {
     if (!canDraw) needsDraw = true;
     else {
-      const f = join(IMG_CACHE, meta.id, `cover-${tries + 1}.jpg`);   // 번마다 새로 — 떨어진 그림을 다시 쓰지 않는다
-      if (!existsSync(f)) {
-        const r = await generateImage({ prompt: `${DATA.style}. Scene: ${coverScene(item)}.`, out: f, aspect: '9:16' });
-        if (r.quotaExhausted) throw Object.assign(new Error(r.reason), { quota: true, resetAfterMs: r.resetAfterMs });
-        if (!r.ok) { log(`  표지 그림 실패(${r.reason}) — 다음 실행에 다시`); return false; }
-        log(`  표지 다시 그림 ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초 (심판 ${g.imageBad}명이 그림 지적)`);
-      }
-      copyFileSync(f, join(dir, THUMB_BG));
-      await renderShortsThumb({ bg: join(dir, THUMB_BG), head: g.text, out: thumb });
-      meta.thumb = { ...meta.thumb, head: g.text };
-      g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
+      const f0 = join(IMG_CACHE, meta.id, 's0.jpg');
+      if (existsSync(f0)) renameSync(f0, join(IMG_CACHE, meta.id, `s0-was-${tries + 1}.jpg`));   // 떨어진 그림은 남겨 둔다(되돌릴 수 있게)
+      const again = { ...item, scenes: item.scenes.map((sc, i) => (i === 0 ? { ...sc, image: coverScene(item) } : sc)) };
+      log(`  첫 장면 그림을 시장 그림으로 다시 그려 편을 다시 굽는다(심판 ${g.imageBad}명이 그림 지적)`);
+      if (!(await render(again))) { log('  다시 굽기 실패 — 다음 실행에 다시'); return false; }
+      meta = JSON.parse(readFileSync(mp, 'utf8'));
+      g = await gateShortsOpening({ video, title: meta.title, meta, log });
       redrawn = true;
     }
   }
-  if (g) meta.thumb = { ...meta.thumb, head: g.text };
-  meta.cover = { checkedAt: new Date().toISOString(), attempts: needsDraw ? tries : tries + 1, needsDraw, redrawn, passed: !!g?.passed,
-    sha: fileSha(thumb), chatgpt: g?.chatgpt, agy: g?.agy, claude: g?.claude, flagged: g?.flagged ?? null, text: g?.text };
+  // 두 번째 확인 — 맞춤 썸네일(가로 자리). 글을 고쳐 굽고 기록하지만 막지 않는다.
+  let custom = null;
+  const thumb = join(dir, 'shorts-ko-thumb.jpg');
+  if (existsSync(thumb) && existsSync(join(dir, THUMB_BG))) {
+    try { custom = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log, gateOpts: { deadlineMs: 5 * 60_000, maxFixes: 2 } }); if (custom) meta.thumb = { ...meta.thumb, head: custom.text }; }
+    catch (e) { log(`  맞춤 썸네일 확인 건너뜀: ${String(e?.message ?? e).slice(0, 80)}`); }
+  }
+  meta.cover = { checkedAt: new Date().toISOString(), attempts: needsDraw ? tries : tries + 1, needsDraw, redrawn, passed: !!g.passed,
+    sha: fileSha(video), chatgpt: g.chatgpt, agy: g.agy, claude: g.claude, flagged: g.flagged ?? null, text: g.text,
+    custom: custom ? { passed: custom.passed, chatgpt: custom.chatgpt, agy: custom.agy, claude: custom.claude, text: custom.text } : null };
   writeFileSync(`${mp}.tmp`, JSON.stringify(meta, null, 2)); renameSync(`${mp}.tmp`, mp);
-  log(`  표지 ${g?.passed ? '✅ 통과' : `⚠ ${g?.flagged}`} · ChatGPT ${g?.chatgpt} · agy ${g?.agy} · Claude ${g?.claude}${redrawn ? ' · 배경 다시 그림' : ''}${needsDraw ? ' · 다음 그림 창에 배경을 다시 그린다' : ''} · "${g?.text}"`);
+  log(`  첫 화면 ${g.passed ? '✅ 통과' : `⚠ ${g.flagged}`} · ChatGPT ${g.chatgpt} · agy ${g.agy} · Claude ${g.claude}${redrawn ? ' · 첫 장면 다시 그림' : ''}${needsDraw ? ' · 다음 그림 창에 첫 장면을 다시 그린다' : ''}`);
   return true;
 }
 
