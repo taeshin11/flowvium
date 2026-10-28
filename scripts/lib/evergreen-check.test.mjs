@@ -64,10 +64,19 @@ assert.ok(data.items.length >= 15, `36시간치(15편) 이상: ${data.items.leng
 // 10/28: 대본(첫 훅·대사)을 고치면 풀에 이미 구운 편은 옛 말 그대로 남는다 — 채우기가 알아보고 다시 굽게 한다
 {
   const { isStale } = await import('./evergreen-check.mjs');
+  const { hookLines: hl } = await import('./shorts-layout.mjs');
   const item = { id: 'x', title: 'T', scenes: [{ hook: '새 훅', say: '새 첫 대사입니다.' }, { hook: 'h2', say: '둘째 대사입니다.' }] };
-  assert.equal(isStale({ hooks: ['새 훅', 'h2'], bodies: ['새 첫 대사입니다. 둘째 대사입니다.'] }, item), false);
-  assert.equal(isStale({ hooks: ['옛 훅', 'h2'], bodies: ['새 첫 대사입니다. 둘째 대사입니다.'] }, item), true, '훅이 다르다');
-  assert.equal(isStale({ hooks: ['새 훅', 'h2'], bodies: ['옛 첫 대사입니다. 둘째 대사입니다.'] }, item), true, '대사가 다르다');
+  const lines = item.scenes.map((x) => hl(x.hook));
+  assert.equal(isStale({ hooks: ['새 훅', 'h2'], hookLines: lines, bodies: ['새 첫 대사입니다. 둘째 대사입니다.'] }, item), false);
+  assert.equal(isStale({ hooks: ['옛 훅', 'h2'], hookLines: lines, bodies: ['새 첫 대사입니다. 둘째 대사입니다.'] }, item), true, '훅이 다르다');
+  assert.equal(isStale({ hooks: ['새 훅', 'h2'], hookLines: lines, bodies: ['옛 첫 대사입니다. 둘째 대사입니다.'] }, item), true, '대사가 다르다');
   assert.equal(isStale({}, item), true, '메타에 없으면 다시');
+  // 10/28 Mac mini2 "공포 / 지수, 바닥 신호일까": 대본이 같아도 훅 줄바꿈 규칙이 바뀌면 화면이 다르다 — 구운 줄을 메타에 두고 비교
+  const { hookLines } = await import('./shorts-layout.mjs');
+  const fg = { id: 'fg', title: 'T', scenes: [{ hook: '공포 지수, 바닥 신호일까', say: '첫 대사입니다.' }] };
+  const base = { hooks: ['공포 지수, 바닥 신호일까'], bodies: ['첫 대사입니다.'] };
+  assert.equal(isStale({ ...base, hookLines: [['공포', '지수, 바닥 신호일까']] }, fg), true, '옛 줄바꿈으로 구운 편');
+  assert.equal(isStale({ ...base, hookLines: fg.scenes.map((x) => hookLines(x.hook)) }, fg), false, '지금 규칙대로 구운 편');
+  assert.equal(isStale(base, fg), true, '줄 기록이 없으면 한 번 다시');
 }
 console.log(`evergreen-check.test: ✅ ${data.items.length}편 포함 전부 통과`);

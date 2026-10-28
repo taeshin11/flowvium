@@ -30,7 +30,7 @@ import { mixBgm } from '../lib/bgm-mix.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
-import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT } from '../lib/shorts-layout.mjs';
+import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT, hookLines } from '../lib/shorts-layout.mjs';
 import { checkEvergreen, isStale } from '../lib/evergreen-check.mjs';
 import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
 import { generateImage } from '../lib/agy-image.mjs';
@@ -178,7 +178,7 @@ async function render(item) {
   const meta = {
     evergreen: true, id: item.id, title: item.title, description: desc,
     tags: ['주식공부', '주식상식', '경제상식', '재테크', '주식 기초', 'Flowvium', ...item.title.split(/[\s,?]+/).filter((w) => w.length >= 2).slice(0, 4)],
-    headlines: [item.title], hooks: scenes.map((s) => s.hook), bodies: [scenes.map((s) => s.say).join(' ')],
+    headlines: [item.title], hooks: scenes.map((s) => s.hook), hookLines: scenes.map((s) => hookLines(s.hook)), bodies: [scenes.map((s) => s.say).join(' ')],
     keyword: `${KEY_PREFIX}${item.id}`, topic: '주식 상식', brief: false, synthetic: false, subCta: false,
     thumb: thumbMeta,   // 썸네일 글·원문 — 썸네일 관문(video-publish)
     promo: pick.path ? 'flowvium' : null, explore: false, layout: LAYOUT, opener: null, motion: 'still', trend: false,

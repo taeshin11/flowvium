@@ -9,6 +9,7 @@
  */
 import { CALL } from './comment-reply.mjs';
 import { repeatsTitle, restatesTitle } from './hook-overlap.mjs';
+import { hookLines } from './shorts-layout.mjs';
 
 const DATE = /\d{4}\s*년|\d{1,2}\s*월(?![가-힣])|\d{1,2}\s*월\s*\d|\d{1,2}\s*일(?=[\s,.]|$)|오늘|어제|내일|올해|작년|내년|요즘|최근|이번\s?주|지난\s?주(?=[\s에의는,.]|$)/;
 const PRICE = /\d[\d,.]*\s*(?:만|천|백)?\s*(?:원|달러|엔|위안|포인트|%)|\d[\d,.]*\s*(?:억|조)(?![가-힣])|\d[\d,.]*\s*(?:억|조)\s*(?:원|달러)?\s*(?:규모|짜리|회사)/;
@@ -49,5 +50,8 @@ export function checkEvergreen(item) {
 export function isStale(meta, item) {
   const hooks = item.scenes.map((s) => s.hook);
   const body = item.scenes.map((s) => s.say).join(' ');
-  return JSON.stringify(meta?.hooks ?? null) !== JSON.stringify(hooks) || String(meta?.bodies?.[0] ?? '') !== body;
+  // 10/28: 대본이 같아도 훅 줄바꿈 규칙이 바뀌면 화면이 다르다 — 구운 줄(meta.hookLines)이 지금 규칙과 다르면 다시
+  const lines = JSON.stringify(item.scenes.map((s) => hookLines(s.hook)));
+  return JSON.stringify(meta?.hooks ?? null) !== JSON.stringify(hooks) || String(meta?.bodies?.[0] ?? '') !== body
+    || JSON.stringify(meta?.hookLines ?? null) !== lines;
 }

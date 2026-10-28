@@ -68,6 +68,9 @@ export function fitHook(text, maxPerLine = 11) {
   return words.join(' ');
 }
 
+/** 화면에 실제로 그리는 훅 두 줄 — 오버레이와 상시 쇼츠 메타(hookLines, 줄바꿈 규칙이 바뀌면 다시 굽는다)가 같이 쓴다. */
+export const hookLines = (hook) => splitHook(fitHook(tightenNumbers(hook)));
+
 export function splitHook(text, maxPerLine = 11) {
   const t = String(text ?? '').replace(/\s+/g, ' ').trim();
   if (!t) return ['', ''];
@@ -79,6 +82,13 @@ export function splitHook(text, maxPerLine = 11) {
     if (t.length <= maxPerLine) return ['', t];
     // 정말 길면 어쩔 수 없이 자르되, 뒷줄이 한 줄에 들어가게 앞줄로 넘긴다.
     return [t.slice(0, t.length - maxPerLine), t.slice(t.length - maxPerLine)];
+  }
+  // 2026-10-28: "공포 / 지수, 바닥 신호일까" — 뒤에서 꽉 채우다 낱말 묶음이 갈렸다(Mac mini2).
+  //   쉼표·물음표 등 문장부호 뒤가 뜻의 마디다. 두 줄 다 한 줄에 들어가면 맨 뒤 마디에서 나눈다.
+  for (let i = words.length - 1; i >= 1; i--) {
+    if (!/[,，?!…:·]$/.test(words[i - 1])) continue;
+    const h = words.slice(0, i).join(' '), tl = words.slice(i).join(' ');
+    if (h.length <= maxPerLine && tl.length <= maxPerLine) return [h, tl];
   }
   // 뒷줄이 한 줄에 들어가도록 뒤에서부터 채운다.
   let tail = [];
@@ -95,8 +105,15 @@ export function splitHook(text, maxPerLine = 11) {
     head = [...head, tail[0]];
     tail = tail.slice(1);
   }
+  // 2026-10-28: "늘 오르는 / 건 아니다", "PBR이 낮은 / 데엔 이유가 있다" — 의존명사(수·것·건·데…)는 앞말에 붙어야
+  //   뜻이 선다. 뒷줄이 그걸로 시작하면 앞줄로 올린다(앞줄이 넘치지 않고 뒷줄이 비지 않는 한).
+  while (tail.length > 1 && DEP_NOUN.test(tail[0]) && [...head, tail[0]].join(' ').length <= maxPerLine) {
+    head = [...head, tail[0]];
+    tail = tail.slice(1);
+  }
   return [head.join(' '), tail.join(' ')];
 }
+const DEP_NOUN = /^(수|것|건|게|데|줄|뿐|만큼|때문|채)(이|가|은|는|을|를|도|만|에|엔|에는|이다|으로|로)?[,.?!…]?$/;
 
 const esc = (t) => String(t ?? '').replace(/[<>&"]/g, (c) => (
   { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
@@ -155,7 +172,7 @@ export function tightenNumbers(text) {
 }
 
 export function shortsOverlayHtml(o = {}) {
-  const [l1, l2] = splitHook(fitHook(tightenNumbers(o.hook)));
+  const [l1, l2] = hookLines(o.hook);
   const g = SHORTS;
   return `<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
