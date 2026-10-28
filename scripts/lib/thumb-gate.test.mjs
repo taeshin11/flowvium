@@ -149,6 +149,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.deepEqual(await chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), { score: 7, weak: '글을 줄여라', text: '더 나은 글' });
   answer(null, { error: 'login' });
   await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /login/);
+  // 10/28 실측: 크롬이 막 살아난 뒤 답이 'score 0' 으로 세 번 왔다(직전 판 7.2·7.8, 11초 만에). 오류가 붙었거나 고칠 점이 비면 매긴 게 아니다.
+  answer(0, { error: 'parse failed' });
+  await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /parse failed/);
+  { const t = setInterval(() => { for (const f of readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json'))) {
+      writeFileSync(join(q, 'out', f), JSON.stringify({ id: f.slice(0, -5), score: 0, fix: '', fixes: [], better_text: '', judge: 'chatgpt' })); clearInterval(t); } }, 20); }
+  await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /빈 답/);
   await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 200, now: day }), /시간초과/);
   assert.equal(readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json')).length, 1, '답 받은 요청은 지우고(저쪽은 in 을 남긴다), 시간초과 요청만 남긴다');
   assert.ok((await chatgptJudge({ image: img, title: 'T', qdir: q, now: () => new Date('2026-10-28T15:00:00Z') })).skipped, '00:00 KST 는 처리 안 하는 시간');

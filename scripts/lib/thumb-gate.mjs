@@ -260,7 +260,9 @@ export async function chatgptJudge({ image, title, timeoutMs = 300_000, qdir = p
     let a; try { a = JSON.parse(readFileSync(out, 'utf8')); } catch { continue; }   // 원자적으로 쓴다지만 한 번 더 기다려도 손해 없다
     // 받은 요청도 지운다 — 저쪽은 처리한 in 을 남겨 두고(10/28 실측), 답(out)을 지운 뒤 in 이 남으면 다시 매길 수 있다.
     rmSync(out, { force: true }); rmSync(req, { force: true }); rmSync(img, { force: true });
-    if (a.score == null) throw new Error(`ChatGPT 못 매김: ${String(a.error ?? '이유 없음').slice(0, 100)}`);
+    if (a.score == null || a.error) throw new Error(`ChatGPT 못 매김: ${String(a.error ?? '이유 없음').slice(0, 100)}`);
+    // 10/28 실측: 크롬이 막 살아난 뒤 'score 0' 이 세 번 왔다(직전 판 7.2·7.8, 11초 만에) — 0점에 고칠 점도 고칠 글도 없으면 답을 못 읽은 것이다.
+    if (Number(a.score) === 0 && !String(a.fix ?? '').trim() && !String(a.better_text ?? '').trim()) throw new Error('ChatGPT 못 매김: 0점 빈 답');
     return { score: a.score, weak: String(a.fix ?? '').slice(0, 300), text: String(a.better_text ?? '') };
   }
   // 요청은 남긴다 — 저쪽이 지금 처리 중일 수 있다. 늦게 온 답(out)과 그림은 다음 정리 때 지운다(thumb-gate-report).
