@@ -1,7 +1,7 @@
 {
- "at": "2026-10-28T07:20:00.108Z",
- "recorded": 36,
- "scored": 36,
+ "at": "2026-10-28T22:20:00.113Z",
+ "recorded": 38,
+ "scored": 38,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 9,
-   "recorded": 9,
+   "sessions": 8,
+   "recorded": 8,
    "missing": []
   },
   "us": {
-   "sessions": 9,
-   "recorded": 9,
+   "sessions": 10,
+   "recorded": 10,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 16,
+   "n": 18,
    "report": {
-    "calls": 6,
-    "hits": 2,
+    "calls": 8,
+    "hits": 4,
     "abstain": 10,
-    "hitRate": 0.3333333333333333
+    "hitRate": 0.5
    },
    "base": {
-    "brier": 0.23449821155270567,
+    "brier": 0.23102457673315838,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 16,
-      "meanP": 0.4508811461159142,
-      "observed": 0.3125
+      "n": 18,
+      "meanP": 0.4508723242442722,
+      "observed": 0.2777777777777778
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.23449821155270567,
+    "brier": 0.23102457673315838,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 16,
-      "meanP": 0.4508811461159142,
-      "observed": 0.3125
+      "n": 18,
+      "meanP": 0.4508723242442722,
+      "observed": 0.2777777777777778
      }
     ],
     "skill": 0
@@ -332,32 +332,32 @@
     }
    },
    "us": {
-    "n": 4,
+    "n": 6,
     "report": {
-     "calls": 2,
-     "hits": 2,
+     "calls": 4,
+     "hits": 4,
      "abstain": 2,
      "hitRate": 1
     },
     "base": {
-     "brier": 0.2033466469306706,
+     "brier": 0.2033095973460404,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 4,
-       "meanP": 0.45092500146669545,
+       "n": 6,
+       "meanP": 0.4508839174015093,
        "observed": 0
       }
      ],
      "skill": 0
     },
     "clim": {
-     "brier": 0.2033466469306706,
+     "brier": 0.2033095973460404,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 4,
-       "meanP": 0.45092500146669545,
+       "n": 6,
+       "meanP": 0.4508839174015093,
        "observed": 0
       }
      ],
