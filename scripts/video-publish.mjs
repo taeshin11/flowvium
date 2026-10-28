@@ -79,6 +79,8 @@ if (TRIAL_ARG) {
 }
 
 let LOAD_SPARE_ONLY = null;   // 부하가 끝내 높으면 사유 문자열 — 렌더 없이 예비만 올린다(아래 1. 렌더)
+// 썸네일 관문 미달로 다시 불린 회차(아래 '썸네일 관문') — 렌더 없이, 표지가 미리 통과한 상식 편만. 없으면 이 슬롯은 건너뛴다.
+const RESERVE_ONLY = process.env.VIDEO_PUBLISH_RESERVE_ONLY || null;
 // ── 0. 기계가 감당할 수 있는가 ──────────────────────────────────────────────
 // 왜 필요한가(2026-08-29): 이 기계는 GPU 가 하나고 보고서·임베딩·웹서버가 같이 산다.
 //   내가 립싱크를 돌렸을 때 부하가 56 까지 올라 **운영 사이트가 502** 를 냈다.
@@ -89,7 +91,7 @@ let LOAD_SPARE_ONLY = null;   // 부하가 끝내 높으면 사유 문자열 —
 //   ② 부하가 이미 높은가 — 코어 수 대비 기준을 넘으면 이번 회차는 건너뛴다.
 // 건너뛰는 게 손해처럼 보이지만, 사이트를 내리는 것보다는 한 편 빠지는 게 낫다.
 {
-  const skipGuard = argv.includes('--force');
+  const skipGuard = argv.includes('--force') || !!RESERVE_ONLY;   // 다시 불린 회차는 부모가 이미 기다렸다
   const busy = await isReportPipelineRunning().catch(() => false);
   const cores = cpus().length || 8;
   const load1 = loadavg()[0];
@@ -150,6 +152,7 @@ let LOAD_SPARE_ONLY = null;   // 부하가 끝내 높으면 사유 문자열 —
     if (w.ok) log(`부하 ${w.load.toFixed(1)} — ${Math.round(w.waitedMs / 60000)}분 기다린 뒤 진행한다`);
     else LOAD_SPARE_ONLY = `부하 ${w.load.toFixed(1)} > 한계 ${limit.toFixed(1)} (${waitMin}분 기다림) — 렌더하지 않는다`;
   }
+  if (RESERVE_ONLY) LOAD_SPARE_ONLY = RESERVE_ONLY;
   if (!LOAD_SPARE_ONLY) log(`시작 가능 — 부하 ${load1.toFixed(1)} / 한계 ${limit.toFixed(1)} · 보고서 ${busy ? '실행중' : '유휴'}`);
 }
 
@@ -175,7 +178,9 @@ let LOAD_SPARE_ONLY = null;   // 부하가 끝내 높으면 사유 문자열 —
 {
   const { acquireRunLock } = await import('./lib/run-lock.mjs');
   const waitMin = Number(process.env.VIDEO_LOCK_WAIT_MIN ?? 15);
-  const lock = await acquireRunLock(resolve(ROOT, 'logs/video-publish.lock'), {
+  // 썸네일 관문 미달로 부모가 다시 부른 회차는 부모가 락을 쥐고 기다린다 — 같은 락을 다시 잡으려 하면 서로 기다린다.
+  const heldByParent = RESERVE_ONLY && process.env.VIDEO_PUBLISH_PARENT_PID === String(process.ppid);
+  const lock = heldByParent ? { ok: true } : await acquireRunLock(resolve(ROOT, 'logs/video-publish.lock'), {
     waitMs: waitMin * 60_000, pollMs: 10_000, label: process.env.SHORTS_PREFER_PROUD === '1' ? 'backfill' : 'regular' });
   if (!lock.ok) {
     log(`건너뜀 — 다른 회차(${lock.holder?.label ?? '?'} · pid ${lock.holder?.pid ?? '?'})가 아직 돈다(${waitMin}분 기다림). 같은 작업 폴더를 쓰므로 겹치지 않는다`);
@@ -266,20 +271,22 @@ if (USE_EXISTING) {
   const useSpare = async (why, { evergreen = true } = {}) => {
     if (!isShorts || process.env.SHORTS_SPARE === '0') return false;
     try {
-      const { pickSpare, promoteSpare, spareDir, pickEvergreen, evergreenDir } = await import('./lib/shorts-spare.mjs');
+      const { pickSpare, promoteSpare, spareDir, pickEvergreen, evergreenDir, coverPassed } = await import('./lib/shorts-spare.mjs');
       const { recentShortsIssues, normalizeIssueKey } = await import('./lib/db.mjs');
       const pub = recentShortsIssues(24);
-      const sp = pickSpare({ dir: spareDir(), maxAgeH: Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6),
+      // 썸네일 관문 미달로 다시 불린 회차는 뉴스 예비를 쓰지 않는다 — 그건 올리기 직전에 매겨야 하고, 떨어지면 또 돌아온다.
+      const sp = RESERVE_ONLY ? null : pickSpare({ dir: spareDir(), maxAgeH: Number(process.env.SHORTS_SPARE_MAX_AGE_H || 6),
         isPublished: (k) => pub.has(normalizeIssueKey(k)) });
       if (!sp && evergreen) {
         const ever = recentShortsIssues(24 * 3650);   // 상식 편은 한 번만 — 기한 없이 본다
-        const ev = pickEvergreen({ dir: evergreenDir(), isPublished: (k) => ever.has(normalizeIssueKey(k)) });
+        // 10/28 저녁 사장님: 점수를 못 받은 썸네일은 안 올린다 → 상식 편은 표지가 미리 통과한 것만(evergreen-fill 표지 점검).
+        const ev = pickEvergreen({ dir: evergreenDir(), isPublished: (k) => ever.has(normalizeIssueKey(k)), ok: coverPassed });
         if (ev) {
           promoteSpare(ev, STAGE, LOCALE);
           log(`예비로 올린다 — ${why} · 뉴스 예비가 없어 상시 쇼츠 "${ev.meta.title}"`);
           return true;
         }
-        log(`상시 쇼츠 풀도 비었다 — ${why}`);
+        log(`상시 쇼츠 풀에 표지 통과한 편이 없다 — ${why}`);
       }
       if (!sp) { log(`예비 없음 — ${why}`); return false; }
       const r = promoteSpare(sp, STAGE, LOCALE);
@@ -289,6 +296,12 @@ if (USE_EXISTING) {
   };
   if (LOAD_SPARE_ONLY) {
     if (await useSpare(LOAD_SPARE_ONLY)) rendered = true;
+    else if (RESERVE_ONLY) {
+      log(`건너뜀 — ${RESERVE_ONLY} · 표지가 통과한 예비가 없어 이 슬롯은 올리지 않는다(점수 없이 올리지 않는다)`);
+      const { appendGateLog } = await import('./lib/thumb-gate.mjs');
+      appendGateLog({ event: 'skipped', kind: 'shorts', why: RESERVE_ONLY }, resolve(ROOT, 'logs/thumb-gate.jsonl'));
+      process.exit(0);
+    }
     else { log(`건너뜀 — ${LOAD_SPARE_ONLY} · 예비도 없다. --force 로 무시할 수 있다.`); process.exit(0); }
   }
   for (let a = 1; a <= TRIES && !rendered; a++) {
@@ -519,16 +532,40 @@ try {
 //   제목이 여기서 정해지므로 여기서 한다(lib/shorts-thumb gateShortsThumb). 끄려면 THUMB_GATE=0.
 let THUMB_GATE = null;
 const GATE_LOG = resolve(ROOT, 'logs/thumb-gate.jsonl');
-if (isShorts && THUMB && existsSync(THUMB) && process.env.THUMB_GATE !== '0') {
+if (isShorts && process.env.THUMB_GATE !== '0') {
+  const { appendGateLog } = await import('./lib/thumb-gate.mjs');
+  const { fileSha } = await import('./lib/shorts-spare.mjs');
   try {
-    const { gateShortsThumb } = await import('./lib/shorts-thumb.mjs');
-    const { appendGateLog } = await import('./lib/thumb-gate.mjs');
-    THUMB_GATE = await gateShortsThumb({ thumb: THUMB, srcDir: SRC_DIR, locale: LOCALE, meta: last, title, log });
-    if (THUMB_GATE) {
-      log(`[썸네일 관문] ${THUMB_GATE.passed ? '✅ 통과' : `⚠ ${THUMB_GATE.flagged} — 가장 나은 판으로 올린다`} · ChatGPT ${THUMB_GATE.chatgpt} · agy ${THUMB_GATE.agy} · Claude ${THUMB_GATE.claude} · "${THUMB_GATE.text}"`);
+    if (last.evergreen && last.cover?.passed && THUMB && existsSync(THUMB) && fileSha(THUMB) === last.cover.sha) {
+      // 표지 점검(evergreen-fill)이 같은 제목으로 미리 통과시킨 그 썸네일 그대로 — 다시 매기지 않는다(밤엔 ChatGPT 대기열이 쉰다).
+      THUMB_GATE = { passed: true, flagged: null, chatgpt: last.cover.chatgpt, agy: last.cover.agy, claude: last.cover.claude, text: last.cover.text, rounds: 0, pre: last.cover.checkedAt };
+      log(`[썸네일 관문] ✅ 미리 통과한 표지(${last.cover.checkedAt}) · ChatGPT ${last.cover.chatgpt} · agy ${last.cover.agy} · Claude ${last.cover.claude}`);
+    } else if (THUMB && existsSync(THUMB)) {
+      const { gateShortsThumb } = await import('./lib/shorts-thumb.mjs');
+      THUMB_GATE = await gateShortsThumb({ thumb: THUMB, srcDir: SRC_DIR, locale: LOCALE, meta: last, title, log });
+      log(`[썸네일 관문] ${THUMB_GATE.passed ? '✅ 통과' : `⚠ ${THUMB_GATE.flagged}`} · ChatGPT ${THUMB_GATE.chatgpt} · agy ${THUMB_GATE.agy} · Claude ${THUMB_GATE.claude} · "${THUMB_GATE.text}"`);
       appendGateLog({ event: 'gate', kind: 'shorts', title, ...THUMB_GATE }, GATE_LOG);
+    } else THUMB_GATE = { passed: false, flagged: '썸네일 없음(어둡거나 못 구움)' };
+  } catch (e) { THUMB_GATE = { passed: false, flagged: `관문 오류: ${String(e?.message ?? e).slice(0, 100)}` }; log(`[썸네일 관문] ${THUMB_GATE.flagged}`); }
+  if (!THUMB_GATE.passed) {
+    // 10/28 저녁 사장님(Mac mini2 경유): 점수를 못 받은 썸네일은 올리지 않는다. 이 편은 다시 손볼 자리로 옮기고(비공개로 둔다 = 안 올린다)
+    //   표지가 미리 통과한 상식 편으로 이 슬롯을 다시 부른다. 그것도 없으면 슬롯을 건너뛴다. 편성 대장엔 안 적는다 — 그 뉴스는 다시 고를 수 있다.
+    const { mkdirSync: mk, readdirSync: ls, renameSync: mv, copyFileSync: cp, rmSync: rm } = await import('node:fs');
+    const RW = resolve(ROOT, 'reports/video/rework');
+    const dest = join(RW, `${new Date().toISOString().replace(/[:.]/g, '-')}-${String(last.keyword ?? last.id ?? 'x').replace(/[^\w가-힣-]+/g, '_').slice(0, 40)}`);
+    mk(dest, { recursive: true });
+    for (const f of ls(SRC_DIR).filter((x) => x.startsWith(`shorts-${LOCALE}`))) {
+      try { mv(join(SRC_DIR, f), join(dest, f)); } catch { cp(join(SRC_DIR, f), join(dest, f)); rm(join(SRC_DIR, f), { force: true }); }
     }
-  } catch (e) { log(`[썸네일 관문] 건너뜀(오류 — 원래 썸네일로): ${String(e?.message ?? e).slice(0, 100)}`); }
+    for (const d of ls(RW)) { try { if (Date.now() - statSync(join(RW, d)).mtimeMs > 3 * 86400e3) rm(join(RW, d), { recursive: true, force: true }); } catch { /* 비치명 */ } }
+    appendGateLog({ event: 'held', kind: 'shorts', title, rework: dest, ...(({ log: _l, ...x }) => x)(THUMB_GATE) }, GATE_LOG);
+    log(`[썸네일 관문] 올리지 않는다 — ${THUMB_GATE.flagged} · 손볼 자리: ${dest}`);
+    if (RESERVE_ONLY) { log(`건너뜀 — 예비 표지도 관문을 못 넘었다(${THUMB_GATE.flagged})`); process.exit(0); }
+    const why = `썸네일 미달(${THUMB_GATE.flagged})`;
+    const r = spawnSync(node, process.argv.slice(1), { cwd: ROOT, stdio: 'inherit',
+      env: { ...process.env, VIDEO_PUBLISH_RESERVE_ONLY: why, VIDEO_PUBLISH_PARENT_PID: String(process.pid) } });
+    process.exit(r.status ?? 1);
+  }
 }
 
 // ── 3. 업로드 ──────────────────────────────────────────────────────────────

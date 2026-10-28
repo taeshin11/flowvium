@@ -9,6 +9,7 @@
  */
 import { existsSync, readdirSync, readFileSync, copyFileSync, rmSync, statSync } from 'fs';
 import { join, resolve } from 'path';
+import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 
 /**
@@ -53,9 +54,20 @@ export function evergreenDir(env = process.env) {
   return env.SHORTS_EVERGREEN_DIR || resolve(new URL('../..', import.meta.url).pathname, 'reports/video/evergreen-pool');
 }
 
-/** 풀에서 하나 — 이미 나간 주제 빼고, 먼저 만든 것부터. 만드는 중(<id>.part)은 집지 않는다. */
-export function pickEvergreen({ dir, isPublished = () => false }) {
-  return listSpares(dir).filter((s) => !s.dir.endsWith('.part') && !isPublished(s.meta.keyword))
+/** 파일 내용 지문(sha1) — 표지 점검 뒤 썸네일이 바뀌었는지 본다. */
+export function fileSha(f) { return createHash('sha1').update(readFileSync(f)).digest('hex'); }
+
+/** 표지가 썸네일 관문(lib/thumb-gate)을 통과했고 그 뒤 썸네일이 안 바뀌었는가 — 메타 cover {passed, sha}.
+ *  10/28 저녁 사장님(Mac mini2 경유): 점수를 못 받은 썸네일은 안 올린다. 밤(ChatGPT 대기열 쉼)에는 미리 통과한 편만 나갈 수 있다. */
+export function coverPassed(spare) {
+  const c = spare?.meta?.cover;
+  if (!c?.passed || !c.sha) return false;
+  try { return fileSha(join(spare.dir, SPARE_FILES.thumb)) === c.sha; } catch { return false; }
+}
+
+/** 풀에서 하나 — 이미 나간 주제 빼고, 먼저 만든 것부터. 만드는 중(<id>.part)은 집지 않는다. ok 로 더 거른다(표지 통과 등). */
+export function pickEvergreen({ dir, isPublished = () => false, ok = () => true }) {
+  return listSpares(dir).filter((s) => !s.dir.endsWith('.part') && !isPublished(s.meta.keyword) && ok(s))
     .sort((a, b) => a.createdAt - b.createdAt)[0] ?? null;
 }
 

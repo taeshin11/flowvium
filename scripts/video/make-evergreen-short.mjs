@@ -206,34 +206,46 @@ async function render(item) {
  *   뉴스 쇼츠는 실제 사진 그대로(video-publish 관문은 글만 고친다). 점검 결과는 메타 cover 에 남겨 한 번만 한다.
  */
 const coverScene = (item) => `a large glowing stock market chart on a trading screen with candlesticks, a stock ticker board glowing behind it, mood: ${item.scenes[0].image}. The screens show only abstract shapes and lines — absolutely no text, letters, numbers or symbols anywhere`;
-async function coverCheck(dir) {
+// 10/28 저녁 사장님: 점수를 못 받은 썸네일은 안 올린다 — 이 점검을 통과한 편(메타 cover.passed + sha)만 발행이 대신 쓴다(lib/shorts-spare coverPassed).
+//   밤(23:35~02:40)은 ChatGPT 대기열이 쉬어 매겨도 통과 못 하니 건너뛴다 — 밤 슬롯은 낮에 미리 통과한 편으로 나간다.
+//   그림이 문제인데 그림 창이 아니면(canDraw=false) 매긴 횟수로 세지 않고 다음 그림 창에 그린다. 3번 해도 안 되면 손볼 것으로 둔다(22:02 보고).
+async function coverCheck(dir, { canDraw = true } = {}) {
+  const { coverPassed, fileSha } = await import('../lib/shorts-spare.mjs');
+  const { inNightBan } = await import('../lib/thumb-gate.mjs');
   const mp = join(dir, 'shorts-ko-meta.json');
   const meta = JSON.parse(readFileSync(mp, 'utf8'));
-  if (meta.cover?.checkedAt) return false;
+  const c = meta.cover ?? {};
+  if (coverPassed({ dir, meta })) return false;
+  const tries = c.attempts ?? 0;
+  if (tries >= 3 || (c.needsDraw && !canDraw) || inNightBan()) return false;
   const item = DATA.items.find((x) => x.id === meta.id);
   const thumb = join(dir, 'shorts-ko-thumb.jpg');
   if (!item || !existsSync(thumb) || !existsSync(join(dir, THUMB_BG))) return false;
-  log(`표지 점검 ${meta.id}`);
+  log(`표지 점검 ${meta.id} (${tries + 1}번째)`);
   let g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
-  let redrawn = false;
+  let redrawn = false, needsDraw = false;
   if (g && !g.passed && g.imageBad > 0) {
-    const f = join(IMG_CACHE, meta.id, 'cover.jpg');
-    if (!existsSync(f)) {
-      const r = await generateImage({ prompt: `${DATA.style}. Scene: ${coverScene(item)}.`, out: f, aspect: '9:16' });
-      if (r.quotaExhausted) throw Object.assign(new Error(r.reason), { quota: true, resetAfterMs: r.resetAfterMs });
-      if (!r.ok) { log(`  표지 그림 실패(${r.reason}) — 다음 실행에 다시`); return false; }
-      log(`  표지 다시 그림 ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초 (심판 ${g.imageBad}명이 그림 지적)`);
+    if (!canDraw) needsDraw = true;
+    else {
+      const f = join(IMG_CACHE, meta.id, `cover-${tries + 1}.jpg`);   // 번마다 새로 — 떨어진 그림을 다시 쓰지 않는다
+      if (!existsSync(f)) {
+        const r = await generateImage({ prompt: `${DATA.style}. Scene: ${coverScene(item)}.`, out: f, aspect: '9:16' });
+        if (r.quotaExhausted) throw Object.assign(new Error(r.reason), { quota: true, resetAfterMs: r.resetAfterMs });
+        if (!r.ok) { log(`  표지 그림 실패(${r.reason}) — 다음 실행에 다시`); return false; }
+        log(`  표지 다시 그림 ${r.width}x${r.height} 밝기 ${r.yavg.toFixed(0)} · ${r.seconds}초 (심판 ${g.imageBad}명이 그림 지적)`);
+      }
+      copyFileSync(f, join(dir, THUMB_BG));
+      await renderShortsThumb({ bg: join(dir, THUMB_BG), head: g.text, out: thumb });
+      meta.thumb = { ...meta.thumb, head: g.text };
+      g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
+      redrawn = true;
     }
-    copyFileSync(f, join(dir, THUMB_BG));
-    await renderShortsThumb({ bg: join(dir, THUMB_BG), head: g.text, out: thumb });
-    meta.thumb = { ...meta.thumb, head: g.text };
-    g = await gateShortsThumb({ thumb, srcDir: dir, meta, title: meta.title, log });
-    redrawn = true;
   }
   if (g) meta.thumb = { ...meta.thumb, head: g.text };
-  meta.cover = { checkedAt: new Date().toISOString(), redrawn, passed: g?.passed ?? null, chatgpt: g?.chatgpt, agy: g?.agy, claude: g?.claude, flagged: g?.flagged ?? null };
+  meta.cover = { checkedAt: new Date().toISOString(), attempts: needsDraw ? tries : tries + 1, needsDraw, redrawn, passed: !!g?.passed,
+    sha: fileSha(thumb), chatgpt: g?.chatgpt, agy: g?.agy, claude: g?.claude, flagged: g?.flagged ?? null, text: g?.text };
   writeFileSync(`${mp}.tmp`, JSON.stringify(meta, null, 2)); renameSync(`${mp}.tmp`, mp);
-  log(`  표지 ${g?.passed ? '✅ 통과' : `⚠ ${g?.flagged}`} · agy ${g?.agy} · Claude ${g?.claude}${redrawn ? ' · 배경 다시 그림' : ''} · "${g?.text}"`);
+  log(`  표지 ${g?.passed ? '✅ 통과' : `⚠ ${g?.flagged}`} · ChatGPT ${g?.chatgpt} · agy ${g?.agy} · Claude ${g?.claude}${redrawn ? ' · 배경 다시 그림' : ''}${needsDraw ? ' · 다음 그림 창에 배경을 다시 그린다' : ''} · "${g?.text}"`);
   return true;
 }
 
@@ -254,12 +266,11 @@ if (FILL > 0) {
   //   같은 작업 폴더(tmp/flowvium-evergreen/<id>)를 함께 썼다. 앞 실행이 돌고 있으면 이번 것은 그냥 끝난다.
   const lk = await (await import('../lib/run-lock.mjs')).acquireRunLock(resolve(ROOT, 'logs/evergreen-fill.lock'), { label: 'evergreen-fill' });
   if (!lk.ok) process.exit(0);
-  try {
-    const { resetAt } = JSON.parse(readFileSync(RESET_FILE, 'utf8'));
-    if (Date.now() < Date.parse(resetAt) && inPool.size < FILL) process.exit(0);   // 리셋 전 — 조용히(매시 돈다)
-  } catch { /* 기록 없음 = 막힌 적 없음 */ }
+  // 그림 창(리셋 전이면 그림을 부르지 않는다). 표지 점검(채점)은 그림이 필요 없으니 매시 돈다 — 밤 슬롯 전에 통과한 편을 늘려 둔다.
+  let canDraw = true;
+  try { canDraw = !(Date.now() < Date.parse(JSON.parse(readFileSync(RESET_FILE, 'utf8')).resetAt)); } catch { /* 기록 없음 = 막힌 적 없음 */ }
   let have = inPool.size;
-  log(`풀 ${have}편 · 목표 ${FILL}편 · 이미 나간 주제 ${done.size}개`);
+  if (canDraw) log(`풀 ${have}편 · 목표 ${FILL}편 · 이미 나간 주제 ${done.size}개`);
   // 표지 점검 먼저 — 한 편에 그림 0~1장이라 새 편(4장)보다 싸고, 이미 풀에 있는 편이 곧 나간다.
   const onQuota = (e) => {
     const yieldMs = Number(process.env.EVERGREEN_YIELD_H ?? 3) * 3600e3;
@@ -275,14 +286,14 @@ if (FILL > 0) {
       if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');
       await new Promise((r) => setTimeout(r, 300_000));
     }
-    try { await coverCheck(sp.dir); }
+    try { await coverCheck(sp.dir, { canDraw }); }
     catch (e) {
       if (e.quota) { onQuota(e); quotaHit = true; break; }
       log(`  표지 점검 실패(${sp.meta.id}) — 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`);   // 발행이 그 편을 막 가져갔을 수 있다
     }
   }
   for (const item of DATA.items) {
-    if (have >= FILL || quotaHit) break;
+    if (have >= FILL || quotaHit || !canDraw) break;
     if (inPool.has(item.id) || done.has(item.id)) continue;
     // 보고서 중엔 무거운 일을 하지 않는다(그림·음성·합성) — 끝날 때까지 기다리고, 2시간 넘으면 다음 실행에 맡긴다.
     for (let w = 0; await isReportPipelineRunning().catch(() => false); w++) {
@@ -300,6 +311,7 @@ if (FILL > 0) {
       break;
     }
   }
+  if (!canDraw) process.exit(0);   // 그림 창이 아니면 조용히(매시 돈다) — 표지 점검 줄은 위에서 남겼다
   const left = DATA.items.filter((x) => !done.has(x.id) && !existsSync(join(POOL, x.id))).length;   // 아직 안 만든 대본
   log(`풀 ${have}편${have >= FILL ? '' : left ? ` — 목표보다 ${FILL - have}편 모자란다(안 만든 대본 ${left}편 — 다음 실행이 이어서)` : ` — 목표보다 ${FILL - have}편 모자란다(대본이 바닥났다: data/evergreen-shorts.json 에 더 써야 한다)`}`);
   process.exit(0);

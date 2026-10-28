@@ -8,7 +8,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { listSpares, pickSpare, promoteSpare, SPARE_FILES, evergreenDir, pickEvergreen } from './shorts-spare.mjs';
+import { listSpares, pickSpare, promoteSpare, SPARE_FILES, evergreenDir, pickEvergreen, coverPassed, fileSha } from './shorts-spare.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -61,6 +61,21 @@ mkdirSync(join(spares, 'broken'), { recursive: true });   // 영상 없는 반�
   pickEvergreen({ dir: join(root, 'none') }) === null ? ok('[4b] 풀이 없으면 null') : bad('[4b]');
   (evergreenDir({}).endsWith('reports/video/evergreen-pool') && evergreenDir({ SHORTS_EVERGREEN_DIR: '/x' }) === '/x')
     ? ok('[4c] 풀 자리 — 저장소 reports/video(로컬·깃 밖) · 환경변수로 바꿀 수 있다') : bad(`[4c] ${evergreenDir({})}`);
+  // [4d] 10/28 저녁 사장님: 점수를 못 받은 썸네일은 안 올린다 → 대신 쓰는 상식 편은 표지가 관문을 통과한 것만(메타 cover.passed + 그 뒤 썸네일이 안 바뀜)
+  const pool2 = join(root, 'pool2');
+  const mkC = (name, daysAgo, cover) => {
+    const d = join(pool2, name); mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, SPARE_FILES.video), 'mp4'); writeFileSync(join(d, SPARE_FILES.thumb), `thumb-${name}`);
+    writeFileSync(join(d, SPARE_FILES.meta), JSON.stringify({ evergreen: true, id: name, keyword: `주식 상식:${name}`, createdAt: new Date(Date.now() - daysAgo * 86400e3).toISOString(),
+      ...(cover ? { cover: { passed: cover.passed, sha: cover.sha ?? fileSha(join(d, SPARE_FILES.thumb)) } } : {}) }));
+    return d;
+  };
+  mkC('old-unscored', 9); mkC('old-failed', 8, { passed: false });
+  const changed = mkC('changed', 7, { passed: true }); writeFileSync(join(changed, SPARE_FILES.thumb), '다시 구움');
+  mkC('good', 1, { passed: true });
+  const q = pickEvergreen({ dir: pool2, ok: coverPassed });
+  (q?.meta.id === 'good') ? ok('[4d] 표지 통과 + 썸네일 그대로인 편만(안 매김·떨어짐·통과 뒤 바뀜은 뺀다)') : bad(`[4d] ${q?.meta.id}`);
+  (pickEvergreen({ dir: pool2 })?.meta.id === 'old-unscored') ? ok('[4e] ok 를 안 주면 종전대로 먼저 만든 것') : bad('[4e]');
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
