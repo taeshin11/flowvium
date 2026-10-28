@@ -8,7 +8,7 @@ import { checkEvergreen } from './evergreen-check.mjs';
 const ok = {
   id: 't', title: 'PER 낮으면 싼 주식일까',
   scenes: [
-    { hook: 'PER 낮으면 싼 주식일까', say: 'PER이 낮으면 무조건 싼 주식일까요?', image: 'a magnifying glass' },
+    { hook: '싸 보여도 함정일 수 있다', say: 'PER이 낮으면 무조건 싼 주식일까요?', image: 'a magnifying glass' },   // 10/28: 첫 훅은 제목을 되풀이하지 않는다
     { hook: '주가를 이익으로 나눈 값', say: 'PER은 주가를 주당순이익으로 나눈 값입니다.', image: 'a balance scale' },
   ],
 };
@@ -16,6 +16,12 @@ const withScene = (s) => ({ ...ok, scenes: [ok.scenes[0], { ...ok.scenes[1], ...
 
 // [1] 깨끗한 대본은 통과
 assert.deepEqual(checkEvergreen(ok), { ok: true, why: [] });
+// 10/28 첫 화면 관문: 첫 훅이 제목을 되풀이하면 안 된다(lib/hook-overlap — 세 심판 모두 지적)
+{
+  const bad = { ...ok, title: 'PER 낮으면 싼 주식? 꼭 그렇지 않은 이유', scenes: [{ ...ok.scenes[0], hook: 'PER 낮으면 싼 주식일까' }, ...ok.scenes.slice(1)] };
+  const r = checkEvergreen(bad);
+  assert.equal(r.ok, false); assert.ok(r.why.some((w) => /제목을 되풀이/.test(w)), r.why.join(' · '));
+}
 // [2] 날짜 — 언제 봐도 맞아야 한다
 for (const say of ['10월 금리 결정이 나왔습니다.', '2026년 들어 많이 올랐습니다.', '오늘 코스피가 올랐습니다.', '지난주 외국인이 샀습니다.', '올해 실적이 좋습니다.'])
   assert.equal(checkEvergreen(withScene({ say })).ok, false, say);

@@ -20,6 +20,7 @@
  */
 import { chromium } from 'playwright';
 import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
+import { repeatsTitle } from '../lib/hook-overlap.mjs';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
@@ -883,7 +884,7 @@ ${(BRIEF ?? []).map((p2, i) => {
 - **남의 주장은 누가 했는지 밝혀라.** 사람을 규정하는 말(카르텔·농단·3인방 …)은 발화자와 함께.
 - 정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.
 - 숫자와 단위는 붙여 쓴다("6800억원", "18문"). 자릿수 사이를 띄우지 마라.
-- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라.
+- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라. 첫 훅은 헤드라인을 되풀이하지 말고 제목에 없는 것(결과·이유의 실마리·영향 — 기사에 있는 것만)을 더하라.
   · **첫 훅은 무슨 일이 벌어졌는지로** — 누가 무엇을 했나(갈등·사건·행동). 쇼츠는 첫 1~2초에 63% 가 넘긴다.
     실측(2026-09-26, 훅 41편): 안 넘기고 본 비율 상위 = "지지율 급락"·"최전방 부대 폭발"·"재제청 거부 이유"·"유출 고발"
     (47~63%), 하위 = "영국 기준금리 동결"·"올해 경제 성장률"·"서울 ODA 국제회의"(12~24%). 지표 이름만으로 시작하지 마라.
@@ -934,6 +935,8 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
     실측(2026-09-26, 훅 41편): 안 넘기고 본 비율 상위 = "지지율 급락"·"최전방 부대 폭발"·"재제청 거부 이유"·"유출 고발"
     (47~63%), 하위 = "영국 기준금리 동결"·"올해 경제 성장률"·"서울 ODA 국제회의"(12~24%). 지표 이름만으로 시작하지 마라.
   · **1번 장면의 hook 은 썸네일이 된다**(쇼츠는 첫 화면이 썸네일이다).
+    **헤드라인(=제목)을 되풀이하지 마라** — 제목은 화면 바로 아래에 이미 보인다. 제목에 없는 것을 더하라:
+    결과·이유의 실마리·나에게 미치는 영향(기사에 있는 것만). 나쁨: 제목 "추미애, 지방세제 개편 제안" → 훅 "추미애 지방세제 개편"(2026-10-28 첫 화면 5.5~7점).
     답을 다 말하지 말고 **궁금하게** 만들어라 — 벌어진 일을 보여주고 이유는 감춘다(숫자로 시작한 훅은 오히려 조금 더 넘겼다: 34% vs 39%).
     좋음(실측 상위): "지지율 급락" / "재제청 거부 이유" / "최전방 부대 폭발" / "대법원장 거부 파장"
     나쁨(다 말해버림): "한화오션이 컨테이너선 6척을 수주했습니다"
@@ -1081,9 +1084,12 @@ for (let a = 1; a <= 3; a++) {
     const madeUp = scenes.flatMap((x) => [
       ...unsourcedAffiliation(x.hook, srcText), ...unsourcedAffiliation(x.say, srcText),
     ]);
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks
+    // 2026-10-28 첫 화면 관문(Mac mini2·사장님 썸네일 기준): 세 심판 모두 "첫 화면 훅이 제목(=헤드라인)을 되풀이해 더하는 게 없다"를
+    //   가장 큰 약점으로 짚었다(첫 화면 5.5~7). 첫 훅이 첫 헤드라인을 되풀이하면 다시 쓴다(lib/hook-overlap). 끝내 못 고치면 막지는 않는다.
+    const echoTitle = scenes[0] && headlines[0] && repeatsTitle(scenes[0].hook, headlines[0]);
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅이 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) {
     log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
     // 모델이 없으면 다시 써 봐야 같은 결과다 — 이 회차를 접는다(발행 쪽이 예비·다음 슬롯으로 메운다).
@@ -2087,6 +2093,60 @@ for (let i = 0; i < scenes.length; i++) {
     await page.screenshot({ path: f, omitBackground: true });
     scenes[i].ov.push(f);
   }
+}
+
+// ── 5b. 첫 화면 미리 매기기 (2026-10-28 Mac mini2 — 사장님 썸네일 기준) ─────────────────
+//   쇼츠 피드는 영상 첫 화면을 보여 주고, 발행 직전 관문(video-publish gateShortsOpening)이 그 0.5초 화면으로 막는다.
+//   거기선 영상을 다시 굽지 못하니 **여기서** 첫 장면 사진 + 첫 자막 판으로 정지 화면을 만들어 agy·Claude 로 먼저 매기고,
+//   미달이면 심판이 낸 훅(12자 안 · 원문에 없는 숫자 금지 · 헤드라인 되풀이 금지)으로 그 판만 다시 그려 다시 매긴다(최대 2번·5분).
+//   ChatGPT 는 쓰지 않는다 — 대기열 첨부 한도(Mac mini3), 발행 직전에 한 번만. 실패해도 렌더는 계속한다.
+if (process.env.THUMB_GATE !== '0' && process.env.SHORTS_PRESCORE !== '0' && scenes[0]?.media && !scenes[0].isOutro && scenes[0].ov?.length) {
+  try {
+    const { runThumbGate, agyJudge, claudeJudge } = await import('../lib/thumb-gate.mjs');
+    const { SHORTS_ANCHORS } = await import('../lib/shorts-thumb.mjs');
+    let src0 = scenes[0].media;
+    if (/\.mp4$/i.test(src0)) {
+      const f = `${WORK}/open-src.png`;
+      const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-ss', '0.5', '-i', src0, '-frames:v', '1', f], ffmpegOpts({ timeoutMs: 30000 }));
+      src0 = r.status === 0 && existsSync(f) ? f : null;
+    }
+    const still = (ov, n) => {
+      const out = `${WORK}/open-${n}.jpg`;
+      const r = spawnSync(ffmpegPath, ['-v', 'error', '-y', '-i', src0, '-i', ov,
+        '-filter_complex', `${mediaFilter('0:v', 'v0', { motion: false })};[v0][1:v]overlay=0:0[o]`, '-map', '[o]', '-frames:v', '1', '-q:v', '3', out],
+        ffmpegOpts({ timeoutMs: 30000 }));
+      return r.status === 0 && existsSync(out) ? out : null;
+    };
+    const tried = new Map();
+    const first = src0 && still(scenes[0].ov[0], 0);
+    if (first) {
+      const g = await runThumbGate({
+        image: first, text: scenes[0].hook, title: headlines[0] ?? '', kind: 'shorts-open', maxChars: 14, maxWords: 5,
+        source: headlines.join(' '), accept: (t) => !repeatsTitle(t, headlines[0] ?? ''),
+        textRule: '첫 화면 위쪽 큰 글(훅) 12자 안·명사로 끝·제목에 없는 것(결과·이유의 실마리·영향)',
+        judges: { agy: agyJudge, claude: claudeJudge }, need: ['agy', 'claude'], maxFixes: 2, deadlineMs: 5 * 60_000,
+        anchors: existsSync(SHORTS_ANCHORS.high) && existsSync(SHORTS_ANCHORS.low) ? SHORTS_ANCHORS : null,
+        rerender: async (t) => {
+          const n = tried.size + 1; const ovs = [];
+          for (let k = 0; k < scenes[0].cues.length; k++) {
+            await page.setContent(shortsOverlayHtml({ hook: t, caption: scenes[0].cues[k].text, credit: scenes[0].credit }));
+            const f = `${WORK}/ov0_${k}-h${n}.png`;
+            await page.screenshot({ path: f, omitBackground: true });
+            ovs.push(f);
+          }
+          tried.set(t, ovs);
+          return still(ovs[0], n);
+        },
+        log: (m) => log(m.replace('[썸네일 관문]', '[첫 화면 미리]')),
+      });
+      if (g.text !== scenes[0].hook && tried.has(g.text)) {
+        log(`[첫 화면 미리] 훅을 바꾼다 "${scenes[0].hook}" → "${g.text}"`);
+        scenes[0].hook = g.text; scenes[0].ov = tried.get(g.text);
+      }
+      const sc = g.rounds[g.best].scores;
+      log(`[첫 화면 미리] ${g.passed ? '기준 넘음' : '기준 미달(렌더는 계속 — 발행 직전 관문이 다시 본다)'} · agy ${sc.agy?.score ?? '✗'} · Claude ${sc.claude?.score ?? '✗'} · ${g.rounds.length}판`);
+    }
+  } catch (e) { log(`[첫 화면 미리] 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`); }
 }
 // 소재가 없는 장면에 깔 카드.
 //   **소재 영역 크기(1080×760)로 만든다.** 전체 화면 크기로 만들었더니 아래 합성에서 다시

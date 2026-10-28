@@ -7,7 +7,7 @@
       "title": "PER 낮으면 싼 주식? 꼭 그렇지 않은 이유",
       "scenes": [
         {
-          "hook": "PER 낮으면 싼 주식일까",
+          "hook": "낮은 PER의 함정",
           "say": "PER이 낮으면 무조건 싼 주식일까요?",
           "image": "a magnifying glass over a small shop building, a coin stack beside it, curious mood"
         },
@@ -33,7 +33,7 @@
       "title": "금리를 내리면 주가가 오르는 이유",
       "scenes": [
         {
-          "hook": "금리 내리면 왜 주가가 뛸까",
+          "hook": "금리 인하, 예금 떠난 돈의 행방",
           "say": "중앙은행이 금리를 내리면 왜 주가가 오를까요?",
           "image": "a central bank building with a large arrow pointing downward above it"
         },
@@ -59,7 +59,7 @@
       "title": "주가보다 먼저 봐야 할 것, 거래량 읽는 법",
       "scenes": [
         {
-          "hook": "주가만 보면 놓치는 것",
+          "hook": "거래량이 먼저 알려 주는 신호",
           "say": "주가가 올랐는데, 거래량은 왜 같이 봐야 할까요?",
           "image": "a crowd of small people figures gathered around a market stall"
         },
@@ -85,7 +85,7 @@
       "title": "PBR 1배 아래면 회사를 싸게 사는 걸까",
       "scenes": [
         {
-          "hook": "PBR 1배 아래의 뜻",
+          "hook": "PBR이 낮은 데엔 이유가 있다",
           "say": "PBR이 1보다 낮으면 회사를 장부보다 싸게 사는 걸까요?",
           "image": "an open ledger book next to a small office building"
         },
@@ -111,7 +111,7 @@
       "title": "배당수익률 높다고 좋은 주식이 아닌 이유",
       "scenes": [
         {
-          "hook": "배당 많이 주면 좋은 주식?",
+          "hook": "배당률이 오르는 나쁜 이유",
           "say": "배당수익률이 높으면 좋은 주식일까요?",
           "image": "a basket of golden apples on a table"
         },
@@ -137,7 +137,7 @@
       "title": "환율 오르면 수출 기업이 웃는 이유",
       "scenes": [
         {
-          "hook": "환율 오르면 누가 웃나",
+          "hook": "환율 오르면 남는 장사",
           "say": "원달러 환율이 오르면 왜 수출 기업에 유리하다고 할까요?",
           "image": "a cargo ship loaded with containers leaving a harbor"
         },
@@ -163,7 +163,7 @@
       "title": "공매도, 주가가 떨어지면 돈을 버는 구조",
       "scenes": [
         {
-          "hook": "떨어져야 돈 버는 투자",
+          "hook": "공매도, 빌려서 먼저 판다",
           "say": "주가가 떨어져야 돈을 버는 투자가 있다는 거, 알고 계셨나요?",
           "image": "a person figure standing calmly under a falling arrow shaped like a slide"
         },
@@ -189,7 +189,7 @@
       "title": "주가가 비싸다고 큰 회사가 아닌 이유",
       "scenes": [
         {
-          "hook": "주가 높으면 큰 회사?",
+          "hook": "시가총액이 진짜 몸값",
           "say": "한 주에 비싼 회사가 더 큰 회사일까요?",
           "image": "two buildings, one tall and thin, one wide and massive"
         },
@@ -215,7 +215,7 @@
       "title": "ETF 한 번 사면 수십 개 회사를 사는 이유",
       "scenes": [
         {
-          "hook": "한 번에 수십 개 회사를",
+          "hook": "ETF, 주식 하나 값에 바구니째",
           "say": "주식 하나 사듯 수십 개 회사를 한 번에 살 수 있다면요?",
           "image": "a single gift box containing many tiny buildings"
         },
@@ -241,7 +241,7 @@
       "title": "분산투자가 막아 주는 것과 못 막는 것",
       "scenes": [
         {
-          "hook": "나눠 담으면 안전할까",
+          "hook": "분산투자의 빈틈, 시장 전체 하락",
           "say": "주식을 여러 개로 나눠 담으면 정말 안전할까요?",
           "image": "eggs spread across several separate baskets"
         },
@@ -267,7 +267,7 @@
       "title": "물가가 오르면 주식이 흔들리는 이유",
       "scenes": [
         {
-          "hook": "물가 오르면 왜 주가가",
+          "hook": "물가가 깎아 먹는 미래 이익",
           "say": "물가가 오른다는 소식에 왜 주가가 떨어질까요?",
           "image": "a shopping cart with a price tag balloon floating upward"
         },
@@ -293,7 +293,7 @@
       "title": "국채 금리가 오르면 성장주가 더 아픈 이유",
       "scenes": [
         {
-          "hook": "금리 오르면 성장주가 먼저",
+          "hook": "성장주의 약점, 먼 미래 이익",
           "say": "국채 금리가 오르면 왜 기술 성장주가 더 크게 빠질까요?",
           "image": "a young sapling bending in strong wind while an old tree stands"
         },
@@ -319,7 +319,7 @@
       "title": "공포탐욕지수, 공포일 때 사면 될까",
       "scenes": [
         {
-          "hook": "공포일 때 사라는 말",
+          "hook": "공포 지수, 바닥 신호일까",
           "say": "남들이 겁낼 때 사라는 말, 지수로 확인할 수 있을까요?",
           "image": "a half dark and half bright face mask split down the middle"
         },
@@ -345,7 +345,7 @@
       "title": "실적이 좋은데 주가가 떨어지는 이유",
       "scenes": [
         {
-          "hook": "실적 좋은데 주가는 하락",
+          "hook": "실적 발표 전에 이미 오른 주가",
           "say": "역대 최대 실적이 나왔는데 주가는 왜 떨어질까요?",
           "image": "a trophy on a table while a balloon deflates behind it"
         },
@@ -371,7 +371,7 @@
       "title": "52주 신고가, 너무 올라서 위험할까",
       "scenes": [
         {
-          "hook": "신고가면 너무 오른 걸까",
+          "hook": "52주 신고가는 힘의 신호",
           "say": "52주 신고가를 찍은 주식, 너무 올라서 위험할까요?",
           "image": "a climber reaching the top of a mountain with a flag without text"
         },
@@ -397,7 +397,7 @@
       "title": "외국인 순매수, 뉴스에 매일 나오는 이유",
       "scenes": [
         {
-          "hook": "외국인이 샀다는 말",
+          "hook": "외국인 순매수, 큰돈의 방향",
           "say": "외국인이 샀다는 뉴스, 왜 매일 나올까요?",
           "image": "a globe with arrows of coins flowing into a city"
         },
@@ -423,7 +423,7 @@
       "title": "유상증자 소식에 주가가 빠지는 이유",
       "scenes": [
         {
-          "hook": "유상증자 발표에 주가 하락",
+          "hook": "유상증자, 내 몫이 얇아진다",
           "say": "유상증자를 한다고 하면 왜 주가가 빠질까요?",
           "image": "a pizza being cut into more and more slices"
         },
@@ -449,7 +449,7 @@
       "title": "액면분할 하면 주가가 싸지는 걸까",
       "scenes": [
         {
-          "hook": "주가가 확 낮아졌다",
+          "hook": "액면분할, 피자를 잘게 잘랐을 뿐",
           "say": "액면분할을 하면 주가가 확 낮아지는데, 그럼 싸진 걸까요?",
           "image": "a large chocolate bar next to the same bar broken into pieces"
         },
