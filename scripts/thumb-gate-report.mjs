@@ -8,11 +8,16 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ROOT } from './lib/project-root.mjs';
+import { decide } from './lib/thumb-gate.mjs';
 
 const kstDay = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().slice(0, 10);
 
+// 지금 기준으로 다시 판정한다 — 기준이 하루에 세 번 바뀌었다(10/28: 셋 다 8 → 8·8·7.5 → 셋 다 7 + 하나 7.5). 점수가 셋 다 있으면 다시 매기고, 아니면 저장된 판정.
+const passNow = (x) => (['chatgpt', 'agy', 'claude'].every((k) => typeof x[k] === 'number')
+  ? decide({ chatgpt: { score: x.chatgpt }, agy: { score: x.agy }, claude: { score: x.claude } }).pass : !!x.passed);
+
 export function summarize(lines, day) {
-  const today = lines.filter((x) => kstDay(x.at) === day);
+  const today = lines.filter((x) => kstDay(x.at) === day).map((x) => ({ ...x, passed: passNow(x), flagged: passNow(x) ? null : x.flagged }));
   const ups = today.filter((x) => x.event === 'uploaded');
   const held = today.filter((x) => x.event === 'held');
   const skipped = today.filter((x) => x.event === 'skipped');

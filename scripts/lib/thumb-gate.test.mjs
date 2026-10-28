@@ -197,5 +197,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.match(t, /✋ 18:00 쇼츠 ChatGPT 7 · agy 6 · Claude 6 .* — 3번 고쳐도 기준 미달/);
   assert.match(t, /✋ 19:00 롱폼\(krclose\)/);
 }
+// [17] 보고는 지금 기준으로 다시 판정한다(사장님: 22:02 요약은 최종 기준으로) — 저장된 passed 가 옛 기준이어도
+{
+  const { summarize } = await import('../thumb-gate-report.mjs');
+  const t = summarize([{ at: '2026-10-28T08:32:43Z', event: 'uploaded', kind: 'shorts', title: 'X', passed: false, flagged: '옛 기준 미달', chatgpt: 7.2, agy: 7.5, claude: 7, rounds: 4, text: 't' }], '2026-10-28');
+  assert.match(t, /올린 1편\(통과 1\)/); assert.match(t, /✅ 17:32/);
+}
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');
