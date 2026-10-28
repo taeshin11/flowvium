@@ -2,7 +2,7 @@
  * thumb-gate.mjs — 올리기 전 썸네일 3자 채점 관문. (2026-10-28 사장님, Mac mini2 경유) 머리말 규칙은 thumb-gate.test.mjs.
  *
  * 심판 셋이 따로 10점 만점: ChatGPT · agy(gemini-4-argon-medium, 그림 첨부) · Claude(claude -p, 그림을 Read).
- *   통과 = 정해진 심판(need)이 모두 매겼고, 셋 다 7 이상 + 하나라도 7.5 이상(10/28 저녁 최종). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
+ *   통과 = 정해진 심판(need)이 모두 매겼고, 셋 다 FLOOR 이상 + 하나라도 PASS_ONE 이상(10/28 18:3x 사장님: 7.5·8). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
  *   7 이하가 있으면 가장 낮은 심판이 낸 글로 부르는 쪽이 다시 굽고(rerender) 다시 매긴다 — 최대 3번, 전체 10분.
  *   그래도 안 되면 가장 나은 판(최저점 → 합)을 쓰고 flagged 에 이유를 남긴다(22:00 보고).
  * 고칠 수 있는 건 **썸네일 글뿐**이다. 사진은 그 뉴스의 실제 사진이라 바꾸지 않는다(바꾸면 낚시 — make-shorts 머리말).
@@ -15,8 +15,9 @@ import { tmpdir, homedir } from 'node:os';
 import { join, dirname, extname } from 'node:path';
 import { CALL } from './comment-reply.mjs';
 
-export const FLOOR = 7;      // 10/28 저녁 최종(사장님): 셋 다 7 이상
-export const PASS_ONE = 7.5; //   + 하나라도 7.5 이상
+// 10/28 18:3x 사장님이 다시 바꿈(desktop1 창, Mac mini2 경유): 셋 다 7.5 이상 + 하나라도 8 이상. (그 전: 셋 다 7 + 하나 7.5 → 8·8·7.5 → 셋 다 8)
+export const FLOOR = 7.5;
+export const PASS_ONE = 8;
 export const PASS = PASS_ONE; // 고칠 글을 낼 만큼 낮은 점수의 선(심판에게 '이 아래면 고칠 글')
 export const NEED = ['chatgpt', 'agy', 'claude'];   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
@@ -68,9 +69,8 @@ export function safeText(t, { source = '', maxChars = 24, maxWords = 6, digits =
 const scored = (r) => r && Number.isFinite(r.score);
 
 /**
- * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수가 모두 7 이상이며 하나라도 7.5 이상.
- *   (10/28 저녁 최종 — 사장님이 보정 결과(심판 점수가 실제 성적과 거의 안 맞음)를 보고 정했다. 그 전엔 8·8·7.5, 처음엔 셋 다 8.)
- * low = 기준을 깨는 심판(7 미만, 또는 7.5 이상이 하나도 없으면 전부) — 고칠 글은 이들의 것에서 고른다.
+ * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수가 모두 FLOOR 이상이며 하나라도 PASS_ONE 이상(지금 7.5·8 — 위 상수).
+ * low = 기준을 깨는 심판(FLOOR 미만, 또는 PASS_ONE 이상이 하나도 없으면 전부) — 고칠 글은 이들의 것에서 고른다.
  * settled = 통과는 아니지만 더 고쳐도 소용없는 경우 — ChatGPT 만 못 매겼고 나머지는 기준을 넘었다.
  *   그 편은 통과가 아니다(사장님: 미채점·오류는 통과로 세지 않는다). 다시 굽지 않고 멈춘다.
  */
@@ -105,7 +105,7 @@ async function scoreAll(judges, a, lazy = []) {
   const all = Object.entries(judges);
   await Promise.all(all.filter(([k]) => !lazy.includes(k)).map(ask));
   // 아껴 쓰는 심판(ChatGPT — 대기열의 파일 첨부 한도, 10/28 Mac mini3): 나머지가 모두 매겼고 모두 7 이상일 때만 묻는다.
-  //   하나라도 7 미만·못 매김이면 그 판은 어차피 떨어지니 묻지 않는다(7.5 는 ChatGPT 가 채울 수 있어 7 로 본다).
+  //   하나라도 FLOOR 미만·못 매김이면 그 판은 어차피 떨어지니 묻지 않는다(PASS_ONE 은 ChatGPT 가 채울 수 있어 FLOOR 로 본다).
   const rest = all.filter(([k]) => !lazy.includes(k)).map(([k]) => out[k]);
   const worth = rest.every((r) => scored(r) && r.score >= FLOOR);
   for (const j of all.filter(([k]) => lazy.includes(k))) {

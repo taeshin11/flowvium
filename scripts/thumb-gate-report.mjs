@@ -17,7 +17,7 @@ const passNow = (x) => (['chatgpt', 'agy', 'claude'].every((k) => typeof x[k] ==
   ? decide({ chatgpt: { score: x.chatgpt }, agy: { score: x.agy }, claude: { score: x.claude } }).pass : !!x.passed);
 
 export function summarize(lines, day) {
-  const today = lines.filter((x) => kstDay(x.at) === day).map((x) => ({ ...x, passed: passNow(x), flagged: passNow(x) ? null : x.flagged }));
+  const today = lines.filter((x) => kstDay(x.at) === day).map((x) => ({ ...x, passed: passNow(x), flagged: passNow(x) ? null : (x.flagged ?? '지금 기준 미달(올릴 땐 그때 기준으로 통과)') }));
   const ups = today.filter((x) => x.event === 'uploaded');
   const held = today.filter((x) => x.event === 'held');
   const skipped = today.filter((x) => x.event === 'skipped');

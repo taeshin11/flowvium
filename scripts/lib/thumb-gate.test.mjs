@@ -170,13 +170,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(parseJudge({ score: 7.46, weak: '', text: '' }).score, 7.5, '한 자리로 반올림');
   assert.equal(decide({ chatgpt: { score: 6.9 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, false, '6.9 는 7 미만');
   // 10/28 저녁 최종(사장님, 보정 결과를 보고): 셋 다 7 이상 + 하나라도 7.5 이상
-  assert.equal(decide({ chatgpt: { score: 7.2 }, agy: { score: 7.5 }, claude: { score: 7 } }, N3).pass, true, 'pZd7tHnjg2o 7.2/7.5/7');
-  assert.equal(decide({ chatgpt: { score: 7 }, agy: { score: 7 }, claude: { score: 7.4 } }, N3).pass, false, '7.5 이상이 하나도 없다');
-  assert.equal(decide({ chatgpt: { score: 6.9 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7 미만이 있다');
+  // 10/28 18:3x 사장님 다시 바꿈(desktop1 창): 셋 다 7.5 이상 + 하나라도 8 이상
+  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 7.5 }, claude: { score: 8 } }, N3).pass, true);
+  assert.equal(decide({ chatgpt: { score: 7.2 }, agy: { score: 7.5 }, claude: { score: 7 } }, N3).pass, false, 'pZd7tHnjg2o 7.2/7.5/7 — 이제 미달');
+  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 7.5 }, claude: { score: 7.5 } }, N3).pass, false, '8 이상이 하나도 없다');
+  assert.equal(decide({ chatgpt: { score: 8.4 }, agy: { score: 8.5 }, claude: { score: 7.5 } }, N3).pass, true, '16:55 krclose');
+
+  assert.equal(decide({ chatgpt: { score: 7.4 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7.5 미만이 있다');
   assert.equal(decide({ chatgpt: { score: 7.8 }, agy: { score: 5.5 }, claude: { score: 6.5 } }, N3).pass, false, '16:43 편');
-  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7 }, claude: { score: 7.5 } }, N3);
+  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7.5 }, claude: { score: 8 } }, N3);
   assert.equal(night.pass, false); assert.equal(night.settled, true, '못 매긴 ChatGPT 말고는 기준을 넘었다 — 더 굽지 않는다');
-  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 6.5 }, claude: { score: 9 } }, N3);
+  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7 }, claude: { score: 9 } }, N3);
   assert.equal(night2.pass, false); assert.equal(night2.settled, false);
   // 흐름 — ChatGPT 가 빠진 채 나머지가 기준을 넘으면 더 굽지 않고 멈춘다
   let calls = 0;
@@ -200,7 +204,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // [17] 보고는 지금 기준으로 다시 판정한다(사장님: 22:02 요약은 최종 기준으로) — 저장된 passed 가 옛 기준이어도
 {
   const { summarize } = await import('../thumb-gate-report.mjs');
-  const t = summarize([{ at: '2026-10-28T08:32:43Z', event: 'uploaded', kind: 'shorts', title: 'X', passed: false, flagged: '옛 기준 미달', chatgpt: 7.2, agy: 7.5, claude: 7, rounds: 4, text: 't' }], '2026-10-28');
+  const t = summarize([{ at: '2026-10-28T08:32:43Z', event: 'uploaded', kind: 'shorts', title: 'X', passed: false, flagged: '옛 기준 미달', chatgpt: 7.5, agy: 8, claude: 7.5, rounds: 4, text: 't' }], '2026-10-28');
   assert.match(t, /올린 1편\(통과 1\)/); assert.match(t, /✅ 17:32/);
 }
 // [18] 기준 그림(anchors, 10/28 Mac mini3·Mac mini2): 실제로 잘 된 표지 = 8.5, 안 된 표지 = 5 를 먼저 보여 주고 세 번째만 매긴다(심판마다 눈금이 달라서)
@@ -220,10 +224,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const mk = (a, c) => ({ agy: async () => ({ score: a, weak: 'w', text: '새 글' }), claude: async () => ({ score: c, weak: 'w', text: '새 글2' }),
     chatgpt: async () => { asked++; return { score: 8, weak: '', text: '' }; } });
   const N3 = ['chatgpt', 'agy', 'claude'];
-  const r1 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(6.5, 9), rerender: async () => null, log: () => {} });
+  const r1 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7, 9), rerender: async () => null, log: () => {} });
   assert.equal(asked, 0, '이미 7 미만이 있으면 ChatGPT 를 묻지 않는다'); assert.equal(r1.passed, false); assert.ok(r1.rounds[0].scores.chatgpt.skipped);
-  const r2 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7, 7), rerender: async () => null, log: () => {} });
-  assert.equal(asked, 1, '나머지가 7 이상이면 묻는다(7.5 는 ChatGPT 가 채울 수 있다)'); assert.equal(r2.passed, true);
+  const r2 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7.5, 7.5), rerender: async () => null, log: () => {} });
+  assert.equal(asked, 1, '나머지가 FLOOR 이상이면 묻는다(8 은 ChatGPT 가 채울 수 있다)'); assert.equal(r2.passed, true);
 }
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');
