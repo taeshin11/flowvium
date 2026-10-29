@@ -25,6 +25,7 @@
  */
 import Database from 'better-sqlite3';
 import { readFileSync, writeFileSync, copyFileSync, renameSync } from 'fs';
+import { freezeOf } from './lib/rule-freeze.mjs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { REALIZED, sqlIn } from './lib/outcome-classes.mjs';
@@ -36,6 +37,10 @@ const RULES_PATH = resolve(ROOT, 'data/sell-rules-tuned.json');
 const db = new Database(resolve(ROOT, 'data/flowvium.db'), { readonly: true });
 
 const APPLY = process.argv.includes('--apply');
+// 2026-10-30: 전향 연구 기간엔 점수·임계를 안 바꾸고 제안만 남긴다(lib/rule-freeze 머리말).
+const FROZEN = freezeOf();
+if (FROZEN.error) console.warn(`  ⚠️ ${FROZEN.error} — 동결 없이 진행`);
+if (FROZEN.frozen) console.log(`  🧊 규칙 점수·임계 동결(${FROZEN.why}) — 제안만 기록`);
 
 const spec = JSON.parse(readFileSync(RULES_PATH, 'utf8'));
 
@@ -330,14 +335,14 @@ for (const r of spec.rules) {
   if (r.id === 'price_target_near' && bestTarget.threshold != null && bestTarget.recall > 0) {
     if (r.condition.ratio_gte !== bestTarget.threshold) {
       console.log(`  ◇ (제안) price_target_near 임계: ${r.condition.ratio_gte} → ${bestTarget.threshold}`);
-      if (APPLY) { r.condition.ratio_gte = bestTarget.threshold; }
+      if (APPLY && !FROZEN.frozen) { r.condition.ratio_gte = bestTarget.threshold; }
       thresholdUpdates++;
     }
   }
   if (r.id === 'price_stop_near' && bestStop.threshold != null && bestStop.recall > 0) {
     if (r.condition.ratio_lte !== bestStop.threshold) {
       console.log(`  ◇ (제안) price_stop_near 임계: ${r.condition.ratio_lte} → ${bestStop.threshold}`);
-      if (APPLY) { r.condition.ratio_lte = bestStop.threshold; }
+      if (APPLY && !FROZEN.frozen) { r.condition.ratio_lte = bestStop.threshold; }
       thresholdUpdates++;
     }
   }
@@ -354,7 +359,7 @@ if (FREEZE_SCORE) console.warn(`  ⚠️ [동결] sell outcome 비변별(non-neu
 if (APPLY) {
   // score 적용 (동결 시 SKIP).
   const proposalById = new Map(proposals.map((p) => [p.id, p]));
-  if (!FREEZE_SCORE) for (const r of spec.rules) {
+  if (!FREEZE_SCORE && !FROZEN.frozen) for (const r of spec.rules) {
     const p = proposalById.get(r.id);
     if (p && p.changed) r.score = p.proposed;
   }
@@ -367,7 +372,7 @@ if (APPLY) {
     edgeFormula: 'forward-loss-avoided*0.6 + (goodRate-0.5)*2*0.4',
     proposals: proposals.map((p) => ({
       id: p.id, fired: p.fired, evaluated: p.evaluated, edge: p.edge,
-      current: p.current, applied: p.proposed, changed: p.changed,
+      current: p.current, applied: FREEZE_SCORE || FROZEN.frozen ? p.current : p.proposed, proposed: p.proposed, changed: p.changed,
     })),
   };
   spec.gridSearch = {
@@ -383,7 +388,7 @@ if (APPLY) {
   const tmpPath = RULES_PATH + '.tmp';
   writeFileSync(tmpPath, JSON.stringify(spec, null, 2) + '\n', 'utf8');
   renameSync(tmpPath, RULES_PATH);
-  console.log(`\n✅ APPLY 완료 — score 변경 ${FREEZE_SCORE ? 0 : changedScores.length}${FREEZE_SCORE ? '(동결)' : ''}, 임계 변경 ${thresholdUpdates}.`);
+  console.log(`\n✅ APPLY 완료 — score 변경 ${FREEZE_SCORE || FROZEN.frozen ? 0 : changedScores.length}${FREEZE_SCORE || FROZEN.frozen ? '(동결)' : ''}, 임계 변경 ${FROZEN.frozen ? `0(동결 — 제안 ${thresholdUpdates})` : thresholdUpdates}.`);
   console.log(`   백업: ${bakPath}`);
   console.log(`   갱신: ${RULES_PATH}  (sample n=${spec.sampleSize})`);
 } else {

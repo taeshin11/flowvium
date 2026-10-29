@@ -1,0 +1,5 @@
+{
+ "from": "2026-10-31",
+ "until": "2026-12-26",
+ "why": "전향 연구 v0.3 확증 기간(8주 중간 판정까지) — 규칙 점수·임계 자동 변경 멈춤, 튜너 제안은 frozenProposals 에 기록. 10/30 ChatGPT·agy·Claude 상의. lib/rule-freeze.mjs"
+}

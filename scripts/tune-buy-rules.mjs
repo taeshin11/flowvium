@@ -15,6 +15,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { REALIZED, ENTRY_SCOPE, sqlIn } from './lib/outcome-classes.mjs';
 import { direction, describe } from './lib/edge-significance.mjs';
+import { freezeOf } from './lib/rule-freeze.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -189,12 +190,21 @@ spec.outcomeStats = {
 //   호출 → 갱신분이 커밋+푸시돼 report cron checkout 에 revert 안 됨(기존엔 write-then-revert 로 무효).
 if (process.argv.includes('--apply')) {
   // [3.5] 룰별 outcome 백튜닝 score 적용 (표본충족 룰만 — 위에서 changed 판정)
-  for (const p of changes) { const rule = spec.rules.find((x) => x.id === p.id); if (rule) rule.score = p.proposed; }
+  // 2026-10-30: 전향 연구 기간엔 점수를 안 바꾸고 제안만 남긴다(lib/rule-freeze 머리말 — 매주 +1 래칫).
+  const freeze = freezeOf();
+  if (freeze.error) console.warn(`  ⚠️ ${freeze.error} — 동결 없이 진행`);
+  if (freeze.frozen) {
+    spec.frozenProposals = { at: new Date().toISOString(), why: freeze.why, changes: changes.map((p) => ({ id: p.id, current: p.current, proposed: p.proposed, n: p.n, winRate: p.winRate, avgAlpha: p.avgAlpha, edge: p.edge })) };
+    console.log(`  🧊 규칙 점수 동결(${freeze.why}) — 제안 ${changes.length}건은 frozenProposals 에만 적는다`);
+  } else {
+    delete spec.frozenProposals;
+    for (const p of changes) { const rule = spec.rules.find((x) => x.id === p.id); if (rule) rule.score = p.proposed; }
+  }
   try { writeFileSync(RULES_PATH + '.bak', readFileSync(RULES_PATH)); } catch {}
   // 2026-06-19(ChatGPT #1): 원자적 교체 — 부분 JSON race 방지(loader hot-reload).
   writeFileSync(RULES_PATH + '.tmp', JSON.stringify(spec, null, 2) + '\n', 'utf8');
   renameSync(RULES_PATH + '.tmp', RULES_PATH);
-  console.log(`\n✅ buy-rules-tuned.json 적용 — outcomeStats 갱신 (n=${total}, hitRate ${spec.outcomeStats.hitRate}%) + 룰 score 백튜닝 ${changes.length}건`);
+  console.log(`\n✅ buy-rules-tuned.json 적용 — outcomeStats 갱신 (n=${total}, hitRate ${spec.outcomeStats.hitRate}%) + 룰 score 백튜닝 ${freeze.frozen ? `0건(동결 — 제안 ${changes.length})` : `${changes.length}건`}`);
 } else {
   console.log(`\n[dry-run] buy-rules-tuned.json 미적용 (--apply 로 적용). outcomeStats n=${total}, hitRate ${spec.outcomeStats.hitRate}%, avgAlpha ${spec.outcomeStats.avgAlpha}% | 룰 백튜닝 제안 ${changes.length}건 (표본충족 ${tunable.length})`);
 }
