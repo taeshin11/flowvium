@@ -4,6 +4,9 @@
 //   당일 뉴스는 오래 못 기다린다 — 관문 전체 10분 상한. 점수 셋은 업로드마다 남긴다.
 //   ChatGPT 는 아직 길이 없다(9334 크롬 금지·API 키 없음) — 'ChatGPT 미채점'으로 남기고, 있는 심판만으로 판정한다.
 import assert from 'node:assert/strict';
+// 운영 기준 파일·3번 매기기와 떨어져서 잰다 — 옛 시험은 한 번 매기기·기본 기준(7.5·8) 전제. [20]·[21] 이 3번·채널 기준을 따로 본다.
+process.env.THUMB_REPEAT = '1';
+process.env.THUMB_BAR_FILE = '/nonexistent/thumb-bar.json';
 import { parseJudge, safeText, decide, rankKey, runThumbGate, judgePrompt, firstJson } from './thumb-gate.mjs';
 
 // [1] 심판 답 읽기 — 정수 0~10, 약점, 고칠 글. 모양이 틀리면 null(점수로 세지 않는다)
@@ -228,6 +231,35 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(asked, 0, '이미 7 미만이 있으면 ChatGPT 를 묻지 않는다'); assert.equal(r1.passed, false); assert.ok(r1.rounds[0].scores.chatgpt.skipped);
   const r2 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7.5, 7.5), rerender: async () => null, log: () => {} });
   assert.equal(asked, 1, '나머지가 FLOOR 이상이면 묻는다(8 은 ChatGPT 가 채울 수 있다)'); assert.equal(r2.passed, true);
+}
+// [20] 10/29 사장님(Mac mini2 경유): 심판마다 3번 따로 매겨 가운데 값 — 한 번 점수는 ±2 흔들린다
+{
+  const { medianOf } = await import('./thumb-gate.mjs');
+  assert.equal(medianOf([{ score: 5, weak: 'a' }, { score: 9, weak: 'b' }, { score: 7, weak: 'c' }]).score, 7);
+  assert.equal(medianOf([{ score: 5, weak: 'a' }, { score: 9, weak: 'b' }, { score: 7, weak: 'c' }]).weak, 'c', '가운데 답의 지적·글을 쓴다');
+  assert.equal(medianOf([{ error: 'x' }, { score: 8 }, { score: 6 }]).score, 6, '둘만 매겼으면 낮은 쪽(통과를 부풀리지 않는다)');
+  assert.ok(medianOf([{ error: 'x' }, { error: 'y' }, { error: 'z' }]).error, '다 못 매기면 못 매김');
+  assert.equal(medianOf([{ score: 8 }, { error: 'y' }, { error: 'z' }]).error !== undefined, true, '하나만 매긴 건 가운데 값이 아니다');
+  let n = 0; const seq = [6, 9, 8];
+  const r = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: ['agy'], maxFixes: 0, repeat: 3,
+    judges: { agy: async () => ({ score: seq[n++], weak: '', text: '' }) }, rerender: async () => null, log: () => {} });
+  assert.equal(n, 3, '3번 묻는다'); assert.equal(r.rounds[0].scores.agy.score, 8); assert.deepEqual(r.rounds[0].scores.agy.samples, [6, 9, 8]);
+}
+// [21] 10/29 사장님: 잘 되는 채널(지난 7일 조회 > 그 전 7일)은 셋 다 7.0 + 하나 7.5. 나머지는 7.5·8. 날마다 다시 잰다(logs/thumb-bar.json)
+{
+  const { barFrom, decide: d2 } = await import('./thumb-gate.mjs');
+  const now = Date.parse('2026-10-29T12:00:00Z');
+  const up = barFrom({ at: '2026-10-29T07:00:00Z', last7: 120, prev7: 100 }, now);
+  assert.deepEqual([up.floor, up.passOne, up.name], [7, 7.5, '잘 되는 채널']);
+  const down = barFrom({ at: '2026-10-29T07:00:00Z', last7: 51106, prev7: 54085 }, now);
+  assert.deepEqual([down.floor, down.passOne], [7.5, 8]);
+  assert.deepEqual([barFrom({ at: '2026-10-27T07:00:00Z', last7: 120, prev7: 100 }, now).floor], [7.5], '하루 넘게 안 잰 값은 안 믿는다');
+  assert.equal(barFrom(null, now).floor, 7.5, '모르면 엄한 쪽');
+  assert.equal(barFrom({ at: '2026-10-29T07:00:00Z', last7: 100, prev7: 100 }, now).floor, 7.5, '같으면 잘 되는 게 아니다');
+  const sc = { chatgpt: { score: 7 }, agy: { score: 7.5 }, claude: { score: 7 } };
+  assert.equal(d2(sc, ['chatgpt', 'agy', 'claude'], up).pass, true);
+  assert.equal(d2(sc, ['chatgpt', 'agy', 'claude'], down).pass, false);
+  assert.equal(d2({ agy: { score: 9 }, claude: { score: 9 } }, ['chatgpt', 'agy', 'claude'], up).pass, false, '미채점은 낮은 기준에서도 실패');
 }
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');

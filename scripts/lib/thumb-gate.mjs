@@ -19,7 +19,35 @@ import { CALL } from './comment-reply.mjs';
 export const FLOOR = 7.5;
 export const PASS_ONE = 8;
 export const PASS = PASS_ONE; // 고칠 글을 낼 만큼 낮은 점수의 선(심판에게 '이 아래면 고칠 글')
-export const NEED = ['chatgpt', 'agy', 'claude'];   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
+export const NEED = ['chatgpt', 'agy', 'claude'];
+
+// 10/29 16:0x 사장님(desktop1 → Mac mini2 경유): 잘 되는 채널(지난 7일 조회 > 그 전 7일)은 셋 다 7.0 + 하나 7.5.
+//   나머지는 위 7.5·8 그대로. 날마다 다시 잰다 — scripts/thumb-bar.mjs 가 logs/thumb-bar.json 에 두 숫자를 적는다.
+//   하루 반 넘게 안 잰 값·모르는 값은 믿지 않고 엄한 쪽(미채점이 통과가 아닌 것과 같은 이유).
+export const RELAXED = { floor: 7, passOne: 7.5 };
+export const BAR_FILE = join(dirname(new URL(import.meta.url).pathname), '../../logs/thumb-bar.json');
+export function barFrom(rec, now = Date.now()) {
+  const fresh = rec && Number.isFinite(Date.parse(rec.at)) && now - Date.parse(rec.at) <= 36 * 3600e3;
+  const good = fresh && Number.isFinite(rec.last7) && Number.isFinite(rec.prev7) && rec.last7 > rec.prev7;
+  const nums = { last7: fresh ? rec.last7 ?? null : null, prev7: fresh ? rec.prev7 ?? null : null, measuredAt: fresh ? rec.at : null };
+  return good ? { ...RELAXED, name: '잘 되는 채널', ...nums } : { floor: FLOOR, passOne: PASS_ONE, name: '기본', ...nums };
+}
+export function currentBar(now = Date.now(), file = process.env.THUMB_BAR_FILE || BAR_FILE) {
+  try { return barFrom(JSON.parse(readFileSync(file, 'utf8')), now); } catch { return barFrom(null, now); }
+}
+
+// 10/29 사장님: 심판마다 3번 따로(매번 새 대화·새 호출) 매겨 가운데 값. 한 번 점수는 ±2 흔들린다.
+//   둘만 매겼으면 낮은 쪽(통과를 부풀리지 않는다), 하나 이하면 못 매김. 지적·고칠 글은 고른 답의 것.
+export function medianOf(results) {
+  const ok = results.filter(scored);
+  if (ok.length < 2) {
+    const sk = results.find((r) => r?.skipped);
+    return sk && !ok.length ? { skipped: sk.skipped } : { error: `가운데 값을 낼 만큼 못 매김(${ok.length}/${results.length}) ${results.map((r) => r?.error).filter(Boolean)[0] ?? ''}`.trim() };
+  }
+  const sorted = [...ok].sort((a, b) => a.score - b.score);
+  const pick = ok.length >= 3 ? sorted[Math.floor((sorted.length - 1) / 2)] : sorted[0];
+  return { ...pick, samples: results.map((r) => (scored(r) ? r.score : null)) };
+}   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
 export function judgePrompt({ title, kind, file, textRule, anchors = null }) {
   // 기준 그림(10/28 Mac mini3·Mac mini2): 심판마다 눈금이 달라 실제 성적이 있는 두 장을 먼저 보여 준다.
@@ -74,11 +102,11 @@ const scored = (r) => r && Number.isFinite(r.score);
  * settled = 통과는 아니지만 더 고쳐도 소용없는 경우 — ChatGPT 만 못 매겼고 나머지는 기준을 넘었다.
  *   그 편은 통과가 아니다(사장님: 미채점·오류는 통과로 세지 않는다). 다시 굽지 않고 멈춘다.
  */
-export function decide(scores, need = NEED) {
+export function decide(scores, need = NEED, bar = { floor: FLOOR, passOne: PASS_ONE }) {
   const missing = need.filter((k) => !scored(scores[k]));
   const vals = Object.entries(scores).filter(([, r]) => scored(r));
-  const under = vals.filter(([, r]) => r.score < FLOOR);
-  const top = vals.some(([, r]) => r.score >= PASS_ONE);
+  const under = vals.filter(([, r]) => r.score < bar.floor);
+  const top = vals.some(([, r]) => r.score >= bar.passOne);
   const low = under.length ? under.map(([k]) => k) : top ? [] : vals.map(([k]) => k);
   const pass = !missing.length && !low.length;
   const settled = !pass && missing.length === 1 && missing[0] === 'chatgpt' && !low.length && vals.length > 0;
@@ -94,20 +122,27 @@ export function rankKey(scores) {
   return Math.min(...nums) * 100 + sum;
 }
 
-async function scoreAll(judges, a, lazy = []) {
+async function scoreAll(judges, a, lazy = [], repeat = 1, floor = FLOOR) {
   const out = {};
-  const ask = async ([k, fn]) => {
+  const once = async (fn) => {
     try {
       const r = await fn(a);
-      out[k] = r?.skipped ? { skipped: r.skipped } : (parseJudge(r) ?? { error: `답 모양이 틀림: ${JSON.stringify(r).slice(0, 80)}` });
-    } catch (e) { out[k] = { error: String(e?.message ?? e).slice(0, 160) }; }
+      return r?.skipped ? { skipped: r.skipped } : (parseJudge(r) ?? { error: `답 모양이 틀림: ${JSON.stringify(r).slice(0, 80)}` });
+    } catch (e) { return { error: String(e?.message ?? e).slice(0, 160) }; }
+  };
+  // 한 심판의 세 번은 차례로 — 매번 새 호출(새 대화)이고, 미채점(야간 등)이면 더 묻지 않는다.
+  const ask = async ([k, fn]) => {
+    if (repeat <= 1) { out[k] = await once(fn); return; }
+    const rs = [];
+    for (let i = 0; i < repeat; i++) { const r = await once(fn); rs.push(r); if (r?.skipped) break; }
+    out[k] = medianOf(rs);
   };
   const all = Object.entries(judges);
   await Promise.all(all.filter(([k]) => !lazy.includes(k)).map(ask));
   // 아껴 쓰는 심판(ChatGPT — 대기열의 파일 첨부 한도, 10/28 Mac mini3): 나머지가 모두 매겼고 모두 7 이상일 때만 묻는다.
   //   하나라도 FLOOR 미만·못 매김이면 그 판은 어차피 떨어지니 묻지 않는다(PASS_ONE 은 ChatGPT 가 채울 수 있어 FLOOR 로 본다).
   const rest = all.filter(([k]) => !lazy.includes(k)).map(([k]) => out[k]);
-  const worth = rest.every((r) => scored(r) && r.score >= FLOOR);
+  const worth = rest.every((r) => scored(r) && r.score >= floor);
   for (const j of all.filter(([k]) => lazy.includes(k))) {
     if (worth) await ask(j); else out[j[0]] = { skipped: '안 물음(다른 심판이 이미 기준 미달)' };
   }
@@ -121,7 +156,8 @@ async function scoreAll(judges, a, lazy = []) {
  */
 export async function runThumbGate(o) {
   const { title, kind, source = o.text, maxChars = 24, maxWords = 6, digits = true, rerender, log = () => {}, now = Date.now,
-    deadlineMs = 600_000, maxFixes = 3, need = NEED, accept = () => true, lazy = [] } = o;
+    deadlineMs = 600_000, maxFixes = 3, need = NEED, accept = () => true, lazy = [],
+    repeat = Number(process.env.THUMB_REPEAT ?? 3), bar = currentBar() } = o;
   const judges = o.judges ?? defaultJudges();
   const textRule = o.textRule ?? `${maxWords}낱말·${maxChars}자 안`;
   const t0 = now();
@@ -133,16 +169,16 @@ export async function runThumbGate(o) {
     const left = deadlineMs - (r0 - t0);
     const scores = await scoreAll(judges, { image, title, kind, text, timeoutMs: Math.max(30_000, Math.min(240_000, left)),
       anchors: o.anchors ?? null,
-      prompt: (file, anchorFiles = null) => judgePrompt({ title, kind, file, textRule, anchors: anchorFiles }) }, lazy);
+      prompt: (file, anchorFiles = null) => judgePrompt({ title, kind, file, textRule, anchors: anchorFiles }) }, lazy, repeat, bar.floor);
     rounds.push({ image, text, scores, ms: now() - r0 });
-    log(`[썸네일 관문] ${rounds.length}판 "${text}" — ${fmtScores(scores)}`);
-    const d = decide(scores, need);
+    log(`[썸네일 관문] ${rounds.length}판 "${text}" — ${fmtScores(scores)}${rounds.length === 1 ? ` · 기준 ${bar.name} ${bar.floor}·${bar.passOne}(7일 ${bar.last7 ?? '?'} / 그 전 ${bar.prev7 ?? '?'})` : ''}`);
+    const d = decide(scores, need, bar);
     if (d.pass) break;
     if (d.settled) { flagged = `ChatGPT 미채점(${scores.chatgpt?.skipped ?? scores.chatgpt?.error ?? '없음'}) — 나머지는 기준을 넘었다`; break; }
     if (rounds.length > maxFixes) { flagged = maxFixes ? `${maxFixes}번 고쳐도 기준 미달` : '기준 미달'; break; }
     const roundMs = rounds.at(-1).ms;
     if (deadlineMs - (now() - t0) < roundMs) { flagged = `시간 상한 ${Math.round(deadlineMs / 60000)}분`; break; }
-    const fix = Object.values(scores).filter((r) => scored(r) && r.score < PASS).sort((a, b) => a.score - b.score)
+    const fix = Object.values(scores).filter((r) => scored(r) && r.score < bar.passOne).sort((a, b) => a.score - b.score)
       .map((r) => safeText(r.text, { source, maxChars, maxWords, digits })).find((t) => t && !tried.has(t) && accept(t));
     if (!fix) { flagged = d.missing.length && !d.low.length ? `${d.missing.join('·')} 못 매김` : '쓸 수 있는 고칠 글이 없다'; break; }
     tried.add(fix);
@@ -151,10 +187,10 @@ export async function runThumbGate(o) {
     image = next; text = fix;
   }
   const best = rounds.reduce((b, r, i) => (rankKey(r.scores) > rankKey(rounds[b].scores) ? i : b), 0);
-  const passed = decide(rounds[best].scores, need).pass;
+  const passed = decide(rounds[best].scores, need, bar).pass;
   if (passed) flagged = null;
   else if (!flagged) flagged = '기준 미달';
-  return { passed, flagged, image: rounds[best].image, text: rounds[best].text, best, rounds };
+  return { passed, flagged, image: rounds[best].image, text: rounds[best].text, best, rounds, bar };
 }
 
 export function fmtScores(scores) {
@@ -166,7 +202,8 @@ export function gateSummary(g) {
   if (!g) return null;
   const s = g.rounds[g.best].scores;
   const pick = (k) => (scored(s[k]) ? s[k].score : s[k]?.skipped ? '미채점' : s[k] ? '못 매김' : '없음');
-  return { passed: g.passed, flagged: g.flagged, chatgpt: pick('chatgpt'), agy: pick('agy'), claude: pick('claude'),
+  return { passed: g.passed, flagged: g.flagged, bar: g.bar ? { name: g.bar.name, floor: g.bar.floor, passOne: g.bar.passOne, last7: g.bar.last7, prev7: g.bar.prev7 } : null,
+    chatgpt: pick('chatgpt'), agy: pick('agy'), claude: pick('claude'),
     text: g.text, rounds: g.rounds.length, imageBad: Object.values(s).filter((r) => r?.imageOk === false).length, weak: Object.values(s).filter((r) => scored(r) && r.score < PASS).map((r) => r.weak).filter(Boolean) };
 }
 

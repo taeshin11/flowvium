@@ -224,7 +224,8 @@ async function coverCheck(dir, { canDraw = true } = {}) {
   if (!item || !existsSync(video)) return false;
   // 같은 영상을 다시 매기지 않는다(10/28 Mac mini3 — ChatGPT 첨부 한도). 단 **점수로 떨어진 경우만** — 심판이 못 매겨서(대기열 쉼·시간초과)
   //   떨어진 편은 다음 실행에 다시 매긴다. 10/28 18:05 실행: 대기열 첨부 한도로 rate-cut·per 가 'ChatGPT 못 매김' 이었다.
-  const { FLOOR } = await import('../lib/thumb-gate.mjs');
+  const { currentBar } = await import('../lib/thumb-gate.mjs');
+  const FLOOR = currentBar().floor;   // 10/29: 채널 성적 기준(잘 되는 주엔 7.0) — 기준이 내려가면 7.0~7.4 로 떨어진 편은 다시 매길 값어치가 있다
   const realFail = ['chatgpt', 'agy', 'claude'].some((k) => typeof c[k] === 'number' && c[k] < FLOOR)
     || ['chatgpt', 'agy', 'claude'].every((k) => typeof c[k] === 'number');
   if (c.checkedAt && !c.needsDraw && realFail && c.sha === fileSha(video)) return false;

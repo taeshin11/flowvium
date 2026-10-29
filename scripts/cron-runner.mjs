@@ -680,6 +680,9 @@ const MAINT_JOBS = [
   //   정치·욕설·스팸은 건너뛴다(지우지 않는다). 영상당 하루 5·계정 하루 20. 할 일 없으면 조용히 끝난다.
   { label: 'yt-reply',             script: 'scripts/yt-reply-comments.mjs',          timeoutMs: 900000,  commitPaths: [], duringReport: true,                  schedules: ['23 * * * *'],                 maxAgeH: 3 },
   { label: 'pin-watch',            script: 'scripts/yt-pin-comment.mjs --due',      timeoutMs: 1500000, commitPaths: [], duringReport: true,                  schedules: ['*/10 * * * *'],               maxAgeH: 2 },
+  // 2026-10-29 사장님(Mac mini2 경유): 썸네일 관문 기준을 채널 성적으로 — 지난 7일 조회 > 그 전 7일이면 7.0·7.5, 아니면 7.5·8.
+  //   날마다 다시 잰다(logs/thumb-bar.json, 기록 thumb-bar.jsonl). 09:13 KST = 00:13 UTC — 보고서 시간 밖, API 몇 단위.
+  { label: 'thumb-bar',            script: 'scripts/thumb-bar.mjs',                   timeoutMs: 120000,  commitPaths: [],                                     schedules: ['13 0 * * *'],                 maxAgeH: 30 },
   { label: 'yt-post',              script: 'scripts/youtube-post.mjs',                timeoutMs: 600000,  commitPaths: [],                                     schedules: ['10 10 * * *'],                maxAgeH: 30 },
   //   2026-09-28: :30 → :50. 보고서 트리거(05:30·10:30·14:30·22:30)와 같은 분이라 '보고서 중이면 쉰다' 검사를 먼저 통과해
   //   보고서와 나란히 렌더했다(9/28 22:30 실패). :50 이면 :30 보고서는 이미 돌고 있어 쉰다(lib/spare-schedule.test).

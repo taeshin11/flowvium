@@ -14,7 +14,8 @@ const kstDay = (iso) => new Date(Date.parse(iso) + 9 * 3600e3).toISOString().sli
 
 // 지금 기준으로 다시 판정한다 — 기준이 하루에 세 번 바뀌었다(10/28: 셋 다 8 → 8·8·7.5 → 셋 다 7 + 하나 7.5). 점수가 셋 다 있으면 다시 매기고, 아니면 저장된 판정.
 const passNow = (x) => (['chatgpt', 'agy', 'claude'].every((k) => typeof x[k] === 'number')
-  ? decide({ chatgpt: { score: x.chatgpt }, agy: { score: x.agy }, claude: { score: x.claude } }).pass : !!x.passed);
+  ? decide({ chatgpt: { score: x.chatgpt }, agy: { score: x.agy }, claude: { score: x.claude } }, undefined, x.bar?.floor ? x.bar : undefined).pass : !!x.passed);
+// 10/29: 채널 성적 기준(잘 되는 주 7.0·7.5)으로 매긴 줄은 그 기준(x.bar)으로 — 그 전 줄은 기본 7.5·8.
 
 export function summarize(lines, day) {
   const today = lines.filter((x) => kstDay(x.at) === day).map((x) => ({ ...x, passed: passNow(x), flagged: passNow(x) ? null : (x.flagged ?? '지금 기준 미달(올릴 땐 그때 기준으로 통과)') }));
