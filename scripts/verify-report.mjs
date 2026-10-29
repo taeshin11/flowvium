@@ -162,6 +162,20 @@ export function mismatchedIndustryTerm(text, sectorLower) {
   return null;
 }
 
+// ①무주어 등락%: noon 실증 패턴 "N주 기준 -12.1%" — 같은 절 60자 창에 대상(티커/지수/기준 주석) 부재.
+//   2026-10-30: "%포인트·%p" 는 두 대상 사이의 격차라 지수 등락으로 오독될 수 없다 — 세지 않는다.
+//   (10/30 midnight "대체자산(alts)에서 원유(oil)로 … 1주 기준 7.9%포인트의 수익률 격차" 가 걸려 모든 푸시가 막혔다.)
+const PCT_SUBJ = /[A-Z]{2,5}|KOSPI|코스피|코스닥|나스닥|S&P|다우|VIX|기준\)/;
+export function subjectlessPctCount(text) {
+  const s = String(text ?? '');
+  let n = 0;
+  for (const m of s.matchAll(/[1-4]주(?:일)?\s*기준\s*[+-]?\d+\.?\d*\s*%(?!\s*(?:포인트|p\b|P\b))/g)) {
+    const from = Math.max(0, m.index - 60, s.lastIndexOf('.', m.index) + 1);
+    if (!PCT_SUBJ.test(s.slice(from, m.index + m[0].length + 14))) n++;
+  }
+  return n;
+}
+
 export async function verifyReport(file, { silent = false } = {}) {
   const log = silent ? () => {} : console.log;
   const r = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -346,15 +360,7 @@ export async function verifyReport(file, { silent = false } = {}) {
       }
     }
     // ①무주어 등락%: noon 실증 패턴 "N주 기준 -12.1%" — 같은 절 60자 창에 대상(티커/지수/기준 주석) 부재.
-    const SUBJ = /[A-Z]{2,5}|KOSPI|코스피|코스닥|나스닥|S&P|다우|VIX|기준\)/;
-    let nNoSubj = 0;
-    for (const text of [r.thesis, r.macroAnalysis].filter(Boolean)) {
-      const s = String(text);
-      for (const m of s.matchAll(/[1-4]주(?:일)?\s*기준\s*[+-]?\d+\.?\d*\s*%/g)) {
-        const from = Math.max(0, m.index - 60, s.lastIndexOf('.', m.index) + 1);
-        if (!SUBJ.test(s.slice(from, m.index + m[0].length + 14))) nNoSubj++;
-      }
-    }
+    const nNoSubj = [r.thesis, r.macroAnalysis].filter(Boolean).reduce((n, text) => n + subjectlessPctCount(text), 0);
     if (nNoSubj) {
       log(`  ❌ 무주어 등락% ${nNoSubj}건 ("N주 기준 X%" 절에 대상 없음 — EWY 오독형)`);
       defects.push({ ticker: 'NARRATIVE', defect_type: 'pct_subject_missing', llm_value: `${nNoSubj}건`, correct_value: '등락% 절에 대상(티커/지수명) 명시 — 생성기 attributePctSubjects 무력화 여부 확인', severity: 'medium' });
