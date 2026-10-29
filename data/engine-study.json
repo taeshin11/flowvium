@@ -1,6 +1,6 @@
 {
  "startedAt": "2026-10-15T13:20:17.795Z",
- "protocol": "docs/prospective-study-protocol.md v0.1",
+ "protocol": "docs/prospective-study-protocol.md v0.3",
  "seed": "flowvium-prospective-2026-10-15",
  "v0": {
   "git": "73b0fc03",
@@ -180,5 +180,11 @@
   "generatedAt": "2026-06-12T22:14:54.416Z",
   "total": 1338,
   "etfExcluded": 233
+ },
+ "v03": {
+  "startedAt": "2026-10-31",
+  "decidedAt": "2026-10-30",
+  "ruleFreeze": "data/rule-freeze.json",
+  "note": "파일럿(10/15~10/30)과 섞지 않는다. H9·H10 추가, 규칙 점수 동결 10/31~12/26."
  }
 }

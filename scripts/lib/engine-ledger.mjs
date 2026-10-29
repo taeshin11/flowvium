@@ -81,3 +81,26 @@ export function neweyWest(xs, lag) {
   const se = Math.sqrt(Math.max(v, 0) / n);
   return { n, mean, se, t: se > 0 ? mean / se : null };
 }
+
+/** 날짜가 이보다 적으면 t 를 내지 않는다 — NW 분산이 0 근처로 무너져 t 가 수백·수천이 된다(10/15 시험: 2일에 t=-1070). */
+export const MIN_DAYS_T = 10;
+
+/**
+ * 역할 묶음 A − B 의 날짜 포트폴리오 차이(같은 날 둘 다 있을 때만) + Newey-West(lag=h-1).
+ * 2026-10-30 v0.3: A '추세 거부 없음' = funnel_veto_trend vs 후보 30(뽑힘+안뽑힘), B 는 같은 대조를 시장 폭 넓은 날만(keep).
+ */
+export function contrast(rows, rolesA, rolesB, market, h, keep = () => true) {
+  const pick = (roles) => {
+    const by = new Map();
+    for (const r of rows ?? []) {
+      if (r.market !== market || r.h !== h || !roles.includes(r.role) || !Number.isFinite(r.net) || !keep(r)) continue;
+      (by.get(r.day) ?? by.set(r.day, []).get(r.day)).push(r.net);
+    }
+    return new Map([...by].map(([d, v]) => [d, v.reduce((s, x) => s + x, 0) / v.length]));
+  };
+  const A = pick(rolesA), B = pick(rolesB);
+  const d = [...A.keys()].filter((k) => B.has(k)).sort().map((k) => A.get(k) - B.get(k));
+  const nw = neweyWest(d, h - 1);
+  const tOk = d.length >= MIN_DAYS_T && nw.t != null;
+  return { days: d.length, mean: nw.mean, se: tOk ? nw.se : null, t: tOk ? nw.t : null };
+}

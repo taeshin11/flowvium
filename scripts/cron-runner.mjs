@@ -640,6 +640,8 @@ const MAINT_JOBS = [
   // 2026-10-15 사장님 "예측력 전향적 연구 — 종목선정·매수·매도·심판 엔진": 회차 결정을 발간 직후 장부에 고정(커밋 시각 = 증거),
   //   채점은 하루 두 번(미국 마감 뒤·한국 마감 뒤). 프로토콜 docs/prospective-study-protocol.md.
   { label: 'engine-ledger-record', script: 'scripts/engine-ledger-record.mjs',      timeoutMs: 60000,   commitPaths: ['data/engine-ledger.jsonl', 'data/engine-study.json'], schedules: ['7,27,47 * * * *'], maxAgeH: 2, duringReport: true },
+  // 2026-10-30: 시장 폭(200일선 아래·데드크로스 비율, 시장별) — 보고서 KR 판정 이유 한 줄 + 전향 연구 v0.3 B 가설 국면. KST 07:10(미국 장 뒤)·16:10(한국 장 뒤).
+  { label: 'market-breadth',       script: 'scripts/market-breadth.mjs',            timeoutMs: 900000,  commitPaths: ['data/market-breadth.json', 'data/market-breadth.jsonl'], schedules: ['10 22 * * *', '10 7 * * *'], maxAgeH: 30 },
   { label: 'engine-ledger-score',  script: 'scripts/engine-ledger-score.mjs',       timeoutMs: 600000,  commitPaths: ['data/engine-summary.json'], schedules: ['45 22 * * *', '45 7 * * *'], maxAgeH: 30 },
   // 2026-10-16: 보고서 → 가상매매(/paper-trading). 로컬 생성기로 옮긴 뒤 부르는 곳이 없어 '처리된 리포트 0' 이었다.
   { label: 'paper-trade-sync',     script: 'scripts/paper-trade-sync.mjs',            timeoutMs: 180000,  commitPaths: [], schedules: ['12,32,52 * * * *'], maxAgeH: 2, duringReport: true },

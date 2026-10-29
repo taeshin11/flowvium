@@ -72,5 +72,20 @@ const spy = [12, 13, 14, 15, 16].map((d, i) => ({ t: T(d), o: 500, h: 0, l: 0, c
   const a = neweyWest(persist, 0), b = neweyWest(persist, 3);
   b.se > a.se && near(neweyWest(iid, 0).mean, 0) ? ok(`[13] 겹치는 창(자기상관) → NW 표준오차 커짐 ${a.se.toFixed(4)} → ${b.se.toFixed(4)}`) : bad(`[13] ${JSON.stringify([a, b])}`);
 }
+{
+  // [14] 2026-10-30 v0.3: 역할 묶음 대조(A — 추세 거부된 종목 vs 후보 30) + 국면 걸러 보기(B — 시장 폭 70% 이상인 날만)
+  const { contrast } = await import('./engine-ledger.mjs');
+  const rows = [
+    { day: 'd1', role: 'funnel_veto_trend', market: 'kr', h: 5, net: 0.03, wide: true }, { day: 'd1', role: 'cand_picked', market: 'kr', h: 5, net: 0.00, wide: true },
+    { day: 'd1', role: 'cand_unpicked', market: 'kr', h: 5, net: 0.02, wide: true },
+    { day: 'd2', role: 'funnel_veto_trend', market: 'kr', h: 5, net: -0.04, wide: false }, { day: 'd2', role: 'cand_unpicked', market: 'kr', h: 5, net: 0.00, wide: false },
+    { day: 'd2', role: 'funnel_veto_trend', market: 'us', h: 5, net: 0.50, wide: false },
+  ];
+  const all = contrast(rows, ['funnel_veto_trend'], ['cand_picked', 'cand_unpicked'], 'kr', 5);
+  all.days === 2 && near(all.mean, ((0.03 - 0.01) + (-0.04 - 0)) / 2) ? ok('[14a] 역할 묶음: 후보 30 = 뽑힘+안뽑힘 한 바구니, 시장 따로') : bad(`[14a] ${JSON.stringify(all)}`);
+  const wide = contrast(rows, ['funnel_veto_trend'], ['cand_picked', 'cand_unpicked'], 'kr', 5, (r) => r.wide);
+  wide.days === 1 && near(wide.mean, 0.02) ? ok('[14b] 국면 걸러 보기: 폭이 넓은 날만') : bad(`[14b] ${JSON.stringify(wide)}`);
+  wide.t === null ? ok('[14c] 날이 적으면 t 를 내지 않는다') : bad(`[14c] ${wide.t}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

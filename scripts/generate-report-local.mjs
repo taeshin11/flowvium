@@ -82,6 +82,7 @@ import { inspectContextSections, formatContextCoverage, describeContextShapes } 
 import { isTicker } from './lib/ticker.mjs';
 import { evaluateBuyRule, evaluateSellRule, adjudicate, hasHardBuyVeto, volumeAbsorptionSignals } from '../src/lib/buy-sell-engine.mjs';
 import { HARD_SELL_IDS, finalGateHardVeto } from './lib/funnel-hard-veto.mjs';
+import { funnelSummary, krFunnelReason, freshBreadth } from './lib/funnel-breadth.mjs';
 import { outlookStance } from '../src/lib/market-outlook.mjs';
 // 이름은 sec-name-clean 의 sameCompany(회사 '이름' 비교)와 겹친다 — 이쪽은 **티커**로 본다.
 import { sameCompany as sameCompanyByTicker, alreadyHeld } from './lib/same-company.mjs';
@@ -105,6 +106,11 @@ import { filterConflicts, filterAveragingDown } from './lib/buy-sell-conflict.mj
 const _shadowHitsPending = [];
 // 2026-07-04 (이연 이행): 조건부 진입 감시 — 매수 hard veto 로 무언 탈락하던 고득점 후보를 조건과 함께 노출.
 const _conditionalWatchPending = [];
+// 2026-10-30: Stage2 거부 집계(시장별 수·거부 종목) — 보고서 KR 판정 이유 한 줄 + 전향 장부(protocol v0.3 A·B). lib/funnel-breadth
+let _funnelSummary = null;
+function _marketBreadth() {
+  try { return JSON.parse(readFileSync(resolve(ROOT, 'data/market-breadth.json'), 'utf8')); } catch { return null; }
+}
 import Database from 'better-sqlite3';  // 2026-05-28: F19 getRecentQualityFeedback 의 ESM require fail fix.
 import { snapshotAllEndpoints } from './lib/snapshot-endpoints.mjs';
 import { normalizeAllocations } from './lib/allocation-normalize.mjs';
@@ -5593,6 +5599,8 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     if (!c._buyVeto) { const hv = finalGateHardVeto(ctx, _sellRulesForFunnel, evaluateSellRule); if (hv) c._buyVeto = `최종심판 hard(${hv.id}): ${hv.reason}`; }
   }
   const stage2Vetoed = stage2Cands.filter(c => c._buyVeto);
+  _funnelSummary = funnelSummary(stage2Cands);
+  console.log(`  [buy-funnel] Stage2 거부 — ${Object.entries(_funnelSummary.byMarket).map(([m, b]) => `${m.toUpperCase()} ${b.in}중 추세 ${b.trend}·기타 ${b.other}·남음 ${b.kept}`).join(' / ')}`);
   if (stage2Vetoed.length) console.log(`  [buy-veto] ${stage2Vetoed.length}건 신규매수 차단(칼받기/과열): ${stage2Vetoed.slice(0, 8).map(c => `${c.ticker}(${c._buyVeto.slice(0, 18)})`).join(', ')}`);
   // 2026-07-04 (이연 이행): veto 탈락 고득점 후보 → conditionalEntryWatch (조건 결정론 파생).
   _conditionalWatchPending.length = 0;
@@ -8298,6 +8306,8 @@ async function generateViaOllama() {
   const analogData = await computeHistoricalAnalog(ctxRaw);
   const fearBuySig = computeFearBuy(ctxRaw, analogData);
   const marketVerdict = computeMarketVerdict(earlyWarning, reboundWatch, fearBuySig, analogData, ctxRaw);
+  // 2026-10-30 사장님 "한국종목들이 안나오는 이유는?" — 깔때기에서 KR 이 추세 거부로 거의 다 빠지면 KR 판정 이유에 한 줄.
+  { const why = krFunnelReason(_funnelSummary, _marketBreadth()); if (why && Array.isArray(marketVerdict.krVerdict?.reasons)) { marketVerdict.krVerdict.reasons.push(why); console.log(`  [verdict-kr] + ${why}`); } }
   console.log(`  [verdict] ${marketVerdict.verdict} — ${marketVerdict.reasons[0] ?? ''}${analogData?.matches ? ` (유사국면 ${analogData.matches}회, 3m 중앙값 ${analogData.med3m}%)` : ''}`);
   // 2026-10-03: 맨 위 시장 전망은 결정론 판정(미국·한국)에서 — LLM stance 는 바로 아래 종합 판단과 40개 중 38개가 어긋났다.
   //   판정이 없을 때만 LLM 값. 아래 조기경보·risk-off 게이트는 그대로 덮는다. lib/market-outlook.test
@@ -8439,6 +8449,9 @@ async function generateViaOllama() {
         ticker: c.ticker, sector: c.sector, market: c.market,
         score: c.stage1Score, reasons: c.reasons.slice(0, 4).map(r => r.ruleId),
       })),
+      // 2026-10-30: Stage2 에서 거부된 종목 전부(최대 100 — 자르면 낮은 점수의 KR 거부가 빠져 H9·H10 이 기운다, ChatGPT·Claude 리뷰)와
+      //   시장별 수, 그때의 시장 폭(새것만) — 전향 장부가 '거부 안 했으면'을 잰다.
+      funnel: _funnelSummary ? { byMarket: _funnelSummary.byMarket, vetoed: _funnelSummary.vetoed, breadth: freshBreadth(_marketBreadth()) } : null,
     },
     generatedAt: now,
     dataAsOf: now,

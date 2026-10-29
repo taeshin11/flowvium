@@ -22,6 +22,7 @@ import { createHash } from 'crypto';
 import { execFileSync } from 'child_process';
 import { ROOT } from './lib/project-root.mjs';
 import { isEtf, isCashLikeEtf } from './lib/etf-filter.mjs';
+import { freshBreadth } from './lib/funnel-breadth.mjs';
 
 const DIR = process.env.ENGINE_LEDGER_DIR || resolve(ROOT, 'data');
 const LEDGER = resolve(DIR, 'engine-ledger.jsonl');
@@ -73,6 +74,8 @@ export function decisionsOf(r) {
   for (const c of rec.candidates ?? []) out.push({ role: `judge_${c.tier ?? 'unknown'}`, ticker: c.ticker, market: mkt(c.ticker), hardHit: c.hardHit ?? null,
     buyConviction: c.buyConviction ?? null, netSoft: c.netSoft ?? null });
   for (const d of rec.downgraded ?? []) out.push({ role: 'judge_downgraded', ticker: d.ticker ?? d, market: mkt(d.ticker ?? d) });
+  // 2026-10-30 (protocol v0.3 A·B): Stage2 에서 거부돼 후보 30에 못 든 종목 — '거부 안 했으면' 대조군. 보고서가 낸 목록 그대로.
+  for (const v of r.buyCandidateScoring?.funnel?.vetoed ?? []) out.push({ role: `funnel_veto_${v.kind}`, ticker: v.ticker, market: mkt(v.ticker, v.market), score: v.score ?? null, why: v.why ?? null });
   const sr = r.sellRecommendations;
   const sells = Array.isArray(sr) ? sr : [...(sr?.us ?? []), ...(sr?.kr ?? [])];
   for (const s of sells) out.push({ role: 'sell', ticker: s.ticker, market: mkt(s.ticker, s.market), ruleId: s.ruleId ?? null, score: s.score ?? null,
@@ -102,10 +105,13 @@ if (isMain) {
       // 결정 당시 입력 증거(ChatGPT 10/15 P0): 보고서 원문 전체·유니버스 파일의 해시. 원문은 reports/ 에 남고, 해시로 나중에 바뀌지 않았음을 확인한다.
       inputs: { report: sha(`reports/${f}`), universe: sha('data/candidate-tickers.json'), model: r.model ?? null, buildId: r.buildId ?? null },
       krVerdict: kv ? { verdict: kv.verdict ?? null, verdictA: kv.verdictA ?? kv.verdict ?? null } : null,
+      // 2026-10-30: 그 회차가 본 시장 폭(200일선 아래·데드크로스 비율) — v0.3 B 가설(폭 70% 이상일 때)의 국면 표시.
+      //   보고서가 이미 새것만 넣지만(freshBreadth) 그 회차 생성 시각 기준으로 한 번 더 본다 — 오래된 폭으로 국면을 판정하지 않게.
+      breadth: (() => { const b = freshBreadth(r.buyCandidateScoring?.funnel?.breadth, gen); return b ? { at: b.at ?? null, kr: b.kr?.pct ?? null, us: b.us?.pct ?? null } : null; })(),
       usVerdict: r.marketVerdict?.verdict ?? null, warn: r.earlyWarning ? { level: r.earlyWarning.level, score: r.earlyWarning.score } : null,
       decisions: decisionsOf(r),
     };
-    console.log(`${DRY ? '[dry] ' : ''}${id} — 결정 ${line.decisions.length}개(pick ${line.decisions.filter((d) => d.role === 'pick').length}·cand ${line.decisions.filter((d) => d.role === 'cand').length}·judge ${line.decisions.filter((d) => d.role.startsWith('judge_')).length}·sell ${line.decisions.filter((d) => d.role === 'sell').length})`);
+    console.log(`${DRY ? '[dry] ' : ''}${id} — 결정 ${line.decisions.length}개(pick ${line.decisions.filter((d) => d.role === 'pick').length}·cand ${line.decisions.filter((d) => d.role === 'cand').length}·judge ${line.decisions.filter((d) => d.role.startsWith('judge_')).length}·sell ${line.decisions.filter((d) => d.role === 'sell').length}·깔때기 거부 ${line.decisions.filter((d) => d.role.startsWith('funnel_veto_')).length})`);
     if (!DRY) appendFileSync(LEDGER, JSON.stringify(line) + '\n');
     wrote++;
   }
