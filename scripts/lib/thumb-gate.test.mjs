@@ -158,6 +158,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   { const t = setInterval(() => { for (const f of readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json'))) {
       writeFileSync(join(q, 'out', f), JSON.stringify({ id: f.slice(0, -5), score: 0, fix: '', fixes: [], better_text: '', judge: 'chatgpt' })); clearInterval(t); } }, 20); }
   await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /빈 답/);
+  // 10/29 Mac mini2: 대기열이 첨부 한도에 걸리면 .upload-limit 를 둔다 — 기다리지 않고 못 매김(=실패), 요청도 넣지 않는다
+  { writeFileSync(join(q, '.upload-limit'), '');
+    const before = readdirSync(join(q, 'in')).length; const t1 = Date.now();
+    await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /첨부 한도/);
+    assert.ok(Date.now() - t1 < 500, '기다리지 않는다'); assert.equal(readdirSync(join(q, 'in')).length, before, '요청을 넣지 않는다');
+    rmSync(join(q, '.upload-limit')); }
   await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 200, now: day }), /시간초과/);
   assert.equal(readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json')).length, 1, '답 받은 요청은 지우고(저쪽은 in 을 남긴다), 시간초과 요청만 남긴다');
   assert.ok((await chatgptJudge({ image: img, title: 'T', qdir: q, now: () => new Date('2026-10-28T15:00:00Z') })).skipped, '00:00 KST 는 처리 안 하는 시간');
@@ -209,6 +215,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const { summarize } = await import('../thumb-gate-report.mjs');
   const t = summarize([{ at: '2026-10-28T08:32:43Z', event: 'uploaded', kind: 'shorts', title: 'X', passed: false, flagged: '옛 기준 미달', chatgpt: 7.5, agy: 8, claude: 7.5, rounds: 4, text: 't' }], '2026-10-28');
   assert.match(t, /올린 1편\(통과 1\)/); assert.match(t, /✅ 17:32/);
+  // 10/29 Mac mini2: ChatGPT 첨부 한도(.upload-limit)로 못 매긴 판이 있으면 보고에 따로 센다
+  const t2 = summarize([{ at: '2026-10-29T08:00:00Z', event: 'gate', kind: 'shorts', chatgpt: '못 매김', chatgptWhy: 'ChatGPT 대기열 첨부 한도(.upload-limit) — 못 매김', agy: 8, claude: 8 }], '2026-10-29');
+  assert.match(t2, /ChatGPT 첨부 한도 1번/);
+  assert.doesNotMatch(summarize([], '2026-10-29'), /첨부 한도/);
 }
 // [18] 기준 그림(anchors, 10/28 Mac mini3·Mac mini2): 실제로 잘 된 표지 = 8.5, 안 된 표지 = 5 를 먼저 보여 주고 세 번째만 매긴다(심판마다 눈금이 달라서)
 {

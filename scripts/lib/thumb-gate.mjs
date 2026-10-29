@@ -203,7 +203,7 @@ export function gateSummary(g) {
   const s = g.rounds[g.best].scores;
   const pick = (k) => (scored(s[k]) ? s[k].score : s[k]?.skipped ? '미채점' : s[k] ? '못 매김' : '없음');
   return { passed: g.passed, flagged: g.flagged, bar: g.bar ? { name: g.bar.name, floor: g.bar.floor, passOne: g.bar.passOne, last7: g.bar.last7, prev7: g.bar.prev7 } : null,
-    chatgpt: pick('chatgpt'), agy: pick('agy'), claude: pick('claude'),
+    chatgpt: pick('chatgpt'), ...(s.chatgpt?.error ? { chatgptWhy: String(s.chatgpt.error).slice(0, 120) } : {}), agy: pick('agy'), claude: pick('claude'),
     text: g.text, rounds: g.rounds.length, imageBad: Object.values(s).filter((r) => r?.imageOk === false).length, weak: Object.values(s).filter((r) => scored(r) && r.score < PASS).map((r) => r.weak).filter(Boolean) };
 }
 
@@ -309,6 +309,8 @@ export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 3
   pollMs = 5000, now = () => new Date(), channel = 'FlowVium', lang = 'ko' }) {
   if (inNightBan(now())) return { skipped: 'ChatGPT 야간 미채점(23:35~02:40 대기열 쉼)' };
   if (!existsSync(join(qdir, 'in'))) throw new Error(`대기열 없음: ${qdir}`);
+  // 10/29 Mac mini2: 대기열이 ChatGPT 첨부 한도에 걸리면 .upload-limit 를 둔다 — 못 매김(=실패)으로, 기다리지도 넣지도 않는다(세 번 묻기라 시간만 세 배로 버린다).
+  if (existsSync(join(qdir, '.upload-limit'))) throw new Error('ChatGPT 대기열 첨부 한도(.upload-limit) — 못 매김');
   const id = `flowvium-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   mkdirSync(join(qdir, 'img'), { recursive: true });
   const img = join(qdir, 'img', `${id}${extname(image) || '.jpg'}`);

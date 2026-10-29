@@ -29,6 +29,9 @@ export function summarize(lines, day) {
     const mark = x.event === 'held' ? '✋' : x.passed ? '✅' : '⚠';
     out.push(`${mark} ${hm(x)} ${kind(x)} ChatGPT ${x.chatgpt} · agy ${x.agy} · Claude ${x.claude}${x.rounds != null ? ` (${x.rounds}판)` : ''} "${x.text ?? ''}"${x.passed ? '' : ` — ${x.flagged}`} · ${String(x.title ?? '').replace(/\s*#Shorts/i, '').slice(0, 40)}`);
   }
+  // 10/29 Mac mini2: 대기열 첨부 한도(.upload-limit)로 ChatGPT 가 못 매긴 판은 따로 센다 — 그 편은 실패(미채점)다
+  const limit = today.filter((x) => x.event === 'gate' && /upload-limit|첨부 한도/.test(String(x.chatgptWhy ?? ''))).length;
+  if (limit) out.push(`⚠ ChatGPT 첨부 한도 ${limit}번 — 그 판은 미채점(실패)`);
   return out.join('\n');
 }
 
