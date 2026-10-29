@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-28T22:43:12.539Z",
+  "generatedAt": "2026-10-29T13:00:52.519Z",
   "universe": "US",
   "scanned": 314,
-  "count": 7,
+  "count": 6,
   "strongCount": 2,
-  "watchCount": 5,
+  "watchCount": 4,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -18,7 +18,7 @@
         "거래량 2.9× 급증(가격 평탄)",
         "종가 일중 상단 60%",
         "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
       ],
       "runup20dPct": -7.8,
       "runup5dPct": -3.9,
@@ -107,22 +107,6 @@
       "runup20dPct": -9.6,
       "runup5dPct": -3.3,
       "medDollarVolUsd": 750708,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SCD",
-      "name": "LMP Capital and Income Fund Inc",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": 2.8,
-      "runup5dPct": 0.5,
-      "medDollarVolUsd": 1040160,
       "smartAccum": false,
       "official": null
     }
