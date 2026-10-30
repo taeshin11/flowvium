@@ -1,7 +1,7 @@
 {
- "at": "2026-10-30T07:20:00.111Z",
- "recorded": 44,
- "scored": 42,
+ "at": "2026-10-30T22:20:00.110Z",
+ "recorded": 46,
+ "scored": 44,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 11,
-   "recorded": 11,
+   "sessions": 10,
+   "recorded": 10,
    "missing": []
   },
   "us": {
-   "sessions": 11,
-   "recorded": 11,
+   "sessions": 12,
+   "recorded": 12,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 20,
+   "n": 22,
    "report": {
-    "calls": 8,
+    "calls": 10,
     "hits": 4,
     "abstain": 12,
-    "hitRate": 0.5
+    "hitRate": 0.4
    },
    "base": {
-    "brier": 0.23809434014787229,
+    "brier": 0.24386870048663303,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 20,
-      "meanP": 0.4508570539258752,
-      "observed": 0.35
+      "n": 22,
+      "meanP": 0.45085365558089996,
+      "observed": 0.4090909090909091
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.23809434014787229,
+    "brier": 0.24386870048663303,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 20,
-      "meanP": 0.4508570539258752,
-      "observed": 0.35
+      "n": 22,
+      "meanP": 0.45085365558089996,
+      "observed": 0.4090909090909091
      }
     ],
     "skill": 0
@@ -332,33 +332,33 @@
     }
    },
    "us": {
-    "n": 8,
+    "n": 10,
     "report": {
-     "calls": 4,
+     "calls": 6,
      "hits": 4,
      "abstain": 4,
-     "hitRate": 1
+     "hitRate": 0.6666666666666666
     },
     "base": {
-     "brier": 0.22791275072960468,
+     "brier": 0.2426526613585319,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 8,
-       "meanP": 0.45084284331620755,
-       "observed": 0.25
+       "n": 10,
+       "meanP": 0.45083820907919553,
+       "observed": 0.4
       }
      ],
      "skill": 0
     },
     "clim": {
-     "brier": 0.22791275072960468,
+     "brier": 0.2426526613585319,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 8,
-       "meanP": 0.45084284331620755,
-       "observed": 0.25
+       "n": 10,
+       "meanP": 0.45083820907919553,
+       "observed": 0.4
       }
      ],
      "skill": 0
@@ -367,7 +367,7 @@
   }
  },
  "missByType": {
-  "미분류": 12,
+  "미분류": 13,
   "변동성 급등": 1
  },
  "misses": [
@@ -458,6 +458,13 @@
   {
    "id": "kr-KOSDAQ-2026-10-29",
    "ret": -0.023402717745174884,
+   "types": [
+    "미분류"
+   ]
+  },
+  {
+   "id": "us-NASDAQ-2026-10-30",
+   "ret": -0.028555685765277783,
    "types": [
     "미분류"
    ]
