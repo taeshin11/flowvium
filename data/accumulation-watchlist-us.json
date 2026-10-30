@@ -1,48 +1,12 @@
 {
-  "generatedAt": "2026-10-29T22:43:19.994Z",
+  "generatedAt": "2026-10-30T13:01:02.539Z",
   "universe": "US",
   "scanned": 314,
-  "count": 9,
-  "strongCount": 2,
-  "watchCount": 7,
+  "count": 8,
+  "strongCount": 0,
+  "watchCount": 8,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "VSECU",
-      "name": "VSE Corporation - Tangible Equi",
-      "tier": "strong",
-      "score": 46,
-      "coFire": 4,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -3.6,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 630210,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "VLRS",
-      "name": "Controladora Vuela Compania de ",
-      "tier": "strong",
-      "score": 34,
-      "coFire": 3,
-      "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": -3.3,
-      "runup5dPct": 9,
-      "medDollarVolUsd": 2586435,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "CLDT",
       "name": "Chatham Lodging Trust (REIT)",
@@ -57,6 +21,22 @@
       "runup20dPct": 10.5,
       "runup5dPct": 5.1,
       "medDollarVolUsd": 3513288,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "VLRS",
+      "name": "Controladora Vuela Compania de ",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.5× 상승(지속 매집)",
+        "거래량 4.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -3.3,
+      "runup5dPct": 9,
+      "medDollarVolUsd": 2586435,
       "smartAccum": false,
       "official": null
     },
