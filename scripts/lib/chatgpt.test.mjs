@@ -35,5 +35,11 @@ on('https://chatgpt.com/c/abc') === true && on('https://labs.google/fx/tools/flo
   ? ok('[6] chatgpt.com 인지 판정(Flow·비슷한 도메인은 아님)') : bad('[6] onChatGpt');
 /Target\.createTarget[^)]*newWindow: true, background: true/.test(readFileSync(new URL('./chatgpt.mjs', import.meta.url), 'utf8'))
   ? ok('[7] 따로 연 창(newWindow·background) — 뒤쪽 탭은 hidden 이라 ChatGPT 가 안 그린다') : bad('[7] 창 여는 방식');
+// [8] 2026-10-31 Mac mini2: Claude Code 의 Bash 셸에서 띄운 크롬은 detached+unref 여도 그 셸 프로세스 트리와 함께 18~20분 뒤 죽는다
+//   (9334 가 하루 세 번 죽음, 충돌 보고서 없음). LaunchServices(open -na)로 띄워 부모를 launchd 로 만든다.
+{ const L = CG.launchCommand?.();
+  L && L.cmd === 'open' && L.args[0] === '-na' && L.args[1] === 'Google Chrome' && L.args[2] === '--args'
+    && L.args.includes(`--remote-debugging-port=${CG.PORT}`) && L.args.some((a) => a.startsWith('--user-data-dir=') && a.endsWith('secrets/chatgpt-profile'))
+    ? ok('[8] 크롬은 open -na 로(부모 launchd) — 띄운 셸이 죽어도 산다') : bad(`[8] ${JSON.stringify(L)}`); }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

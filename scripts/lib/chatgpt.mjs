@@ -10,7 +10,6 @@ import { ROOT } from './project-root.mjs';
 
 export const PORT = Number(process.env.CHATGPT_CDP_PORT ?? 9334);
 const PROFILE = resolve(ROOT, 'secrets/chatgpt-profile');
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const BASE = `http://127.0.0.1:${PORT}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -27,10 +26,17 @@ async function alive() {
   try { return (await fetch(`${BASE}/json/version`, { signal: AbortSignal.timeout(3000) })).ok; } catch { return false; }
 }
 
+/** 크롬 띄우는 명령. 2026-10-31 Mac mini2: Claude Code 의 Bash 셸에서 바로 띄운 크롬은 detached+unref 여도 그 셸 트리와 함께
+ *  18~20분 뒤 죽었다(9334 하루 세 번, 충돌 보고서 없음). open -na(LaunchServices)로 띄우면 부모가 launchd 라 셸과 무관하다.
+ *  -n 은 새 인스턴스 — 다른 프로필의 크롬에 붙지 않는다(전용 --user-data-dir). chatgpt.test [8]. */
+export function launchCommand() {
+  return { cmd: 'open', args: ['-na', 'Google Chrome', '--args', `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check'] };
+}
+
 export async function ensureBrowser() {
   if (await alive()) return 'running';
-  spawn(CHROME, [`--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check'],
-    { detached: true, stdio: 'ignore' }).unref();
+  const { cmd, args } = launchCommand();
+  spawn(cmd, args, { stdio: 'ignore' });
   for (let i = 0; i < 30; i++) { await sleep(1000); if (await alive()) return 'launched'; }
   throw new Error(`ChatGPT 크롬(포트 ${PORT})이 뜨지 않는다`);
 }
