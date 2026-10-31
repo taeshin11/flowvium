@@ -34,12 +34,23 @@ export function launchCommand() {
   return { cmd: 'open', args: ['-na', 'Google Chrome', '--args', `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check'] };
 }
 
-export async function ensureBrowser() {
-  if (await alive()) return 'running';
-  const { cmd, args } = launchCommand();
-  spawn(cmd, args, { stdio: 'ignore' });
-  for (let i = 0; i < 30; i++) { await sleep(1000); if (await alive()) return 'launched'; }
+// 2026-10-31: 9334 는 launchd 잡(com.spinai.chrome9334, KeepAlive)이 되살린다 — 그 틈(~10초)에 우리가 같은 프로필로 또 띄우지 않게
+//   먼저 20초 기다려 보고, 그래도 없을 때만 직접 띄운다(chatgpt.test [9e·9f]).
+export const RELAUNCH_WAIT_MS = 20_000;
+export async function ensureBrowser({ _alive = alive, _launch = () => { const { cmd, args } = launchCommand(); spawn(cmd, args, { stdio: 'ignore' }); }, _sleep = sleep } = {}) {
+  if (await _alive()) return 'running';
+  for (let t = 0; t < RELAUNCH_WAIT_MS; t += 1000) { await _sleep(1000); if (await _alive()) return 'running'; }
+  _launch();
+  for (let i = 0; i < 30; i++) { await _sleep(1000); if (await _alive()) return 'launched'; }
   throw new Error(`ChatGPT 크롬(포트 ${PORT})이 뜨지 않는다`);
+}
+
+/** 크롬에 못 닿은 오류인가(거부·끊김·창 못 엶). 시간초과·로그아웃·입력창 없음은 아니다 — 다시 물어도 같다. */
+export function isConnError(e) {
+  const code = e?.cause?.code ?? e?.code;
+  if (['ECONNREFUSED', 'ECONNRESET', 'EPIPE', 'UND_ERR_SOCKET'].includes(code)) return true;
+  const m = String(e?.message ?? e ?? '');
+  return /^fetch failed$|디버거 주소를 못 찾았다|WebSocket|socket hang up/i.test(m);
 }
 
 /** 그 탭이 아직 chatgpt.com 인가(공용 맥 — 입력 직전마다 본다). */
@@ -81,7 +92,17 @@ async function openPage(url) {
 
 const TURNS_JS = `[...document.querySelectorAll('h4.sr-only, h5.sr-only, h6.sr-only')].map(h=>({label:h.innerText.trim(), text:h.parentElement.innerText}))`;
 
-export async function ask(question, { timeoutMs = 180000, log = () => {} } = {}) {
+/** 묻기. 2026-10-31 Mac mini2: 크롬이 되살아나는 틈(~10초)에 걸린 연결 오류만 20초 쉬고 한 번 더 — 시간초과는 다시 안 묻는다(chatgpt.test [9]). */
+export async function ask(question, { timeoutMs = 180000, log = () => {}, _once = askOnce, _sleep = sleep } = {}) {
+  try { return await _once(question, { timeoutMs, log }); } catch (e) {
+    if (!isConnError(e)) throw e;
+    log(`크롬에 못 닿음(${e.cause?.code ?? e.message}) — 20초 뒤 한 번 더`);
+    await _sleep(20_000);
+    return _once(question, { timeoutMs, log });
+  }
+}
+
+async function askOnce(question, { timeoutMs, log }) {
   log(`브라우저 ${await ensureBrowser()}`);
   const pg = await openPage('https://chatgpt.com/');
   try {

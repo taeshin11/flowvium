@@ -10,7 +10,9 @@
  *   페이지 CDP(웹소켓)로 직접 다룬다.
  */
 import { readFileSync } from 'fs';
-import * as CG from './chatgpt.mjs';
+// 2026-10-31: 시험은 공용 9334 에 닿으면 안 된다 — 고치기 전 [9] 가 진짜 ask 로 빠져 'q' 를 실제 ChatGPT 에 보냈다. 닫힌 포트로 묶는다.
+process.env.CHATGPT_CDP_PORT = '1';
+const CG = await import('./chatgpt.mjs');
 const { answerFromTurns, isLoggedOut } = CG;
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -41,5 +43,30 @@ on('https://chatgpt.com/c/abc') === true && on('https://labs.google/fx/tools/flo
   L && L.cmd === 'open' && L.args[0] === '-na' && L.args[1] === 'Google Chrome' && L.args[2] === '--args'
     && L.args.includes(`--remote-debugging-port=${CG.PORT}`) && L.args.some((a) => a.startsWith('--user-data-dir=') && a.endsWith('secrets/chatgpt-profile'))
     ? ok('[8] 크롬은 open -na 로(부모 launchd) — 띄운 셸이 죽어도 산다') : bad(`[8] ${JSON.stringify(L)}`); }
+// [9] 2026-10-31 Mac mini2: 9334 는 launchd(KeepAlive)가 되살리는데 그 틈이 ~10초. 연결 오류(거부·창 못 엶)만 20초 쉬고 한 번 더.
+//   시간초과·로그아웃은 다시 묻지 않는다(같은 답을 두 번 기다리거나 사람 일을 기계가 반복하지 않는다).
+{
+  const refused = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNREFUSED' } });
+  (CG.isConnError?.(refused) && CG.isConnError(new Error('새 탭의 디버거 주소를 못 찾았다'))
+    && !CG.isConnError(new Error('ChatGPT 답이 180초 안에 끝나지 않았다')) && !CG.isConnError(new Error('ChatGPT 로그아웃 상태 — …')))
+    ? ok('[9a] 연결 오류만 연결 오류로 본다') : bad('[9a] isConnError');
+  const run = async (errs) => { const calls = [], slept = [];
+    const r = await CG.ask('q', { _once: async () => { calls.push(1); const e = errs.shift(); if (e) throw e; return 'A'; }, _sleep: async (ms) => { slept.push(ms); } })
+      .then((a) => ({ a }), (e) => ({ e: e.message }));
+    return { ...r, calls: calls.length, slept }; };
+  const a = await run([refused]);
+  (a.a === 'A' && a.calls === 2 && a.slept.join() === '20000') ? ok('[9b] 연결 거부 → 20초 쉬고 한 번 더 → 답') : bad(`[9b] ${JSON.stringify(a)}`);
+  const b = await run([refused, refused]);
+  (b.e === 'fetch failed' && b.calls === 2) ? ok('[9c] 두 번째도 거부면 던진다(한 번만)') : bad(`[9c] ${JSON.stringify(b)}`);
+  const c = await run([new Error('ChatGPT 답이 180초 안에 끝나지 않았다')]);
+  (c.e && c.calls === 1 && c.slept.length === 0) ? ok('[9d] 시간초과는 다시 안 묻는다') : bad(`[9d] ${JSON.stringify(c)}`);
+  // ensureBrowser: 안 살아 있어도 launchd 가 되살리는 중일 수 있다 — 20초 기다려 보고 그래도 없을 때만 직접 띄운다(같은 프로필 둘 방지).
+  const seq = [false, false, true]; let launched = 0;
+  const st = await CG.ensureBrowser?.({ _alive: async () => seq.shift() ?? true, _launch: () => { launched++; }, _sleep: async () => {} });
+  (st === 'running' && launched === 0) ? ok('[9e] 되살아나는 중이면 직접 띄우지 않는다') : bad(`[9e] ${st} launched=${launched}`);
+  let up = false; launched = 0;
+  const st2 = await CG.ensureBrowser?.({ _alive: async () => up, _launch: () => { launched++; up = true; }, _sleep: async () => {} });
+  (st2 === 'launched' && launched === 1) ? ok('[9f] 20초 지나도 없으면 직접 띄운다') : bad(`[9f] ${st2} launched=${launched}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

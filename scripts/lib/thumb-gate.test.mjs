@@ -158,6 +158,29 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   { const t = setInterval(() => { for (const f of readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json'))) {
       writeFileSync(join(q, 'out', f), JSON.stringify({ id: f.slice(0, -5), score: 0, fix: '', fixes: [], better_text: '', judge: 'chatgpt' })); clearInterval(t); } }, 20); }
   await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /빈 답/);
+  // 10/31 Mac mini2: 9334 는 launchd 가 되살리는데 그 틈이 ~10초. 대기열 답이 '크롬에 못 닿음'(꺼짐·거부·창 못 엶)이면 20초 쉬고 한 번만 다시 넣는다.
+  //   시간초과·로그인·못 읽음은 다시 안 넣는다.
+  { const seq = (answers) => { const t = setInterval(() => {
+      for (const f of readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json'))) {
+        if (existsSync(join(q, 'out', f)) || seq.done?.has(f)) continue;
+        (seq.done ??= new Set()).add(f);
+        const a = answers.shift(); writeFileSync(join(q, 'out', f), JSON.stringify({ id: f.slice(0, -5), fix: '글을 줄여라', better_text: '더 나은 글', judge: 'chatgpt', ...a }));
+        if (!answers.length) clearInterval(t);
+      } }, 20); seq.t = t; };
+    const down = { score: null, error: 'ChatGPT 크롬(포트 9334)이 꺼져 있다 — 다시 띄우지 않는다' };
+    seq([down, { score: 7 }]);
+    const r = await chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day, retryWaitMs: 30 });
+    assert.equal(r.score, 7, '크롬 꺼짐 → 한 번 더 넣어 매김');
+    seq.done = null; seq([down, down]);
+    await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day, retryWaitMs: 30 }), /꺼져/, '두 번째도 꺼짐이면 못 매김(한 번만)');
+    seq.done = null; seq([{ score: null, error: 'ECONNREFUSED 127.0.0.1:9334' }, { score: 8 }]);
+    assert.equal((await chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day, retryWaitMs: 30 })).score, 8, '연결 거부도');
+    seq.done = null; seq([{ score: null, error: 'login' }, { score: 9 }]);
+    await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day, retryWaitMs: 30 }), /login/, '로그인은 다시 안 넣는다');
+    clearInterval(seq.t);   // 다시 안 넣었으니 남은 답(9)은 쓰이지 않는다
+    for (const f of readdirSync(join(q, 'in'))) rmSync(join(q, 'in', f), { force: true });
+    for (const f of readdirSync(join(q, 'out'))) rmSync(join(q, 'out', f), { force: true });
+  }
   // 10/29 Mac mini2: 대기열이 첨부 한도에 걸리면 .upload-limit 를 둔다 — 기다리지 않고 못 매김(=실패), 요청도 넣지 않는다
   { writeFileSync(join(q, '.upload-limit'), '');
     const before = readdirSync(join(q, 'in')).length; const t1 = Date.now();

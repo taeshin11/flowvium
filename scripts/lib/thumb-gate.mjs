@@ -306,7 +306,7 @@ export function inNightBan(d = new Date()) {
  *   그림은 대기열이 읽을 때까지 남아 있어야 해서 대기열 폴더(img/)에 복사해 두고, 답을 받으면 지운다.
  */
 export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 300_000, qdir = process.env.THUMBQ_DIR || join(homedir(), 'history/_thumbq'),
-  pollMs = 5000, now = () => new Date(), channel = 'FlowVium', lang = 'ko' }) {
+  pollMs = 5000, now = () => new Date(), channel = 'FlowVium', lang = 'ko', retryWaitMs = 20_000 }) {
   if (inNightBan(now())) return { skipped: 'ChatGPT 야간 미채점(23:35~02:40 대기열 쉼)' };
   if (!existsSync(join(qdir, 'in'))) throw new Error(`대기열 없음: ${qdir}`);
   // 10/29 Mac mini2: 대기열이 ChatGPT 첨부 한도에 걸리면 .upload-limit 를 둔다 — 못 매김(=실패)으로, 기다리지도 넣지도 않는다(세 번 묻기라 시간만 세 배로 버린다).
@@ -319,27 +319,38 @@ export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 3
     if (until > 0 && until <= now().getTime()) { try { rmSync(limitF, { force: true }); } catch { /* 남이 먼저 지웠다 */ } }
     else if (existsSync(limitF)) throw new Error('ChatGPT 대기열 첨부 한도(.upload-limit) — 못 매김');
   }
-  const id = `flowvium-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  mkdirSync(join(qdir, 'img'), { recursive: true });
-  const img = join(qdir, 'img', `${id}${extname(image) || '.jpg'}`);
-  copyFileSync(image, img);
-  const req = join(qdir, 'in', `${id}.json`);
-  // 기준 그림은 대기열이 자기 자리(anchors/<channel>/high·low.jpg)의 것을 쓴다 — 우리는 켜기만 한다.
-  writeFileSync(`${req}.tmp`, JSON.stringify({ image: img, title, channel, lang, ...(anchors ? { anchors: true } : {}) }));
-  renameSync(`${req}.tmp`, req);
-  const out = join(qdir, 'out', `${id}.json`);
-  for (const t0 = Date.now(); Date.now() - t0 < timeoutMs; await new Promise((r) => setTimeout(r, pollMs))) {
-    if (!existsSync(out)) continue;
-    let a; try { a = JSON.parse(readFileSync(out, 'utf8')); } catch { continue; }   // 원자적으로 쓴다지만 한 번 더 기다려도 손해 없다
-    // 받은 요청도 지운다 — 저쪽은 처리한 in 을 남겨 두고(10/28 실측), 답(out)을 지운 뒤 in 이 남으면 다시 매길 수 있다.
-    rmSync(out, { force: true }); rmSync(req, { force: true }); rmSync(img, { force: true });
-    if (a.score == null || a.error) throw new Error(`ChatGPT 못 매김: ${String(a.error ?? '이유 없음').slice(0, 100)}`);
-    // 10/28 실측: 크롬이 막 살아난 뒤 'score 0' 이 세 번 왔다(직전 판 7.2·7.8, 11초 만에) — 0점에 고칠 점도 고칠 글도 없으면 답을 못 읽은 것이다.
-    if (Number(a.score) === 0 && !String(a.fix ?? '').trim() && !String(a.better_text ?? '').trim()) throw new Error('ChatGPT 못 매김: 0점 빈 답');
-    return { score: a.score, weak: String(a.fix ?? '').slice(0, 300), text: String(a.better_text ?? '') };
+  const t0 = Date.now(), deadline = t0 + timeoutMs;
+  const once = async () => {
+    const id = `flowvium-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    mkdirSync(join(qdir, 'img'), { recursive: true });
+    const img = join(qdir, 'img', `${id}${extname(image) || '.jpg'}`);
+    copyFileSync(image, img);
+    const req = join(qdir, 'in', `${id}.json`);
+    // 기준 그림은 대기열이 자기 자리(anchors/<channel>/high·low.jpg)의 것을 쓴다 — 우리는 켜기만 한다.
+    writeFileSync(`${req}.tmp`, JSON.stringify({ image: img, title, channel, lang, ...(anchors ? { anchors: true } : {}) }));
+    renameSync(`${req}.tmp`, req);
+    const out = join(qdir, 'out', `${id}.json`);
+    for (; Date.now() < deadline; await new Promise((r) => setTimeout(r, pollMs))) {
+      if (!existsSync(out)) continue;
+      let a; try { a = JSON.parse(readFileSync(out, 'utf8')); } catch { continue; }   // 원자적으로 쓴다지만 한 번 더 기다려도 손해 없다
+      // 받은 요청도 지운다 — 저쪽은 처리한 in 을 남겨 두고(10/28 실측), 답(out)을 지운 뒤 in 이 남으면 다시 매길 수 있다.
+      rmSync(out, { force: true }); rmSync(req, { force: true }); rmSync(img, { force: true });
+      if (a.score == null || a.error) throw new Error(`ChatGPT 못 매김: ${String(a.error ?? '이유 없음').slice(0, 100)}`);
+      // 10/28 실측: 크롬이 막 살아난 뒤 'score 0' 이 세 번 왔다(직전 판 7.2·7.8, 11초 만에) — 0점에 고칠 점도 고칠 글도 없으면 답을 못 읽은 것이다.
+      if (Number(a.score) === 0 && !String(a.fix ?? '').trim() && !String(a.better_text ?? '').trim()) throw new Error('ChatGPT 못 매김: 0점 빈 답');
+      return { score: a.score, weak: String(a.fix ?? '').slice(0, 300), text: String(a.better_text ?? '') };
+    }
+    // 요청은 남긴다 — 저쪽이 지금 처리 중일 수 있다. 늦게 온 답(out)과 그림은 다음 정리 때 지운다(thumb-gate-report).
+    throw new Error(`ChatGPT 시간초과 ${Math.round(timeoutMs / 1000)}초(대기열 밀림)`);
+  };
+  // 10/31 Mac mini2: 9334 는 launchd 잡이 되살리는데 그 틈이 ~10초 — 대기열 답이 '크롬에 못 닿음'이면 20초 쉬고 한 번만 다시 넣는다.
+  //   시간초과·로그인·못 읽음은 다시 안 넣는다(thumb-gate.test).
+  try { return await once(); } catch (e) {
+    if (!CHROME_UNREACHABLE.test(e.message) || Date.now() + retryWaitMs >= deadline) throw e;
+    await new Promise((r) => setTimeout(r, retryWaitMs));
+    return once();
   }
-  // 요청은 남긴다 — 저쪽이 지금 처리 중일 수 있다. 늦게 온 답(out)과 그림은 다음 정리 때 지운다(thumb-gate-report).
-  throw new Error(`ChatGPT 시간초과 ${Math.round(timeoutMs / 1000)}초(대기열 밀림)`);
 }
+const CHROME_UNREACHABLE = /크롬\(포트 \d+\)이 꺼져|ECONNREFUSED|ECONNRESET|fetch failed|창을? 못 열|디버거 주소를 못 찾/;
 
 export function defaultJudges() { return { chatgpt: chatgptJudge, agy: agyJudge, claude: claudeJudge }; }
