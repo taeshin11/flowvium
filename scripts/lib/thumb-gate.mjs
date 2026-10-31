@@ -310,7 +310,15 @@ export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 3
   if (inNightBan(now())) return { skipped: 'ChatGPT 야간 미채점(23:35~02:40 대기열 쉼)' };
   if (!existsSync(join(qdir, 'in'))) throw new Error(`대기열 없음: ${qdir}`);
   // 10/29 Mac mini2: 대기열이 ChatGPT 첨부 한도에 걸리면 .upload-limit 를 둔다 — 못 매김(=실패)으로, 기다리지도 넣지도 않는다(세 번 묻기라 시간만 세 배로 버린다).
-  if (existsSync(join(qdir, '.upload-limit'))) throw new Error('ChatGPT 대기열 첨부 한도(.upload-limit) — 못 매김');
+  //   10/31: 안에 적힌 '풀리는 시각'(ms)이 지났으면 지우고 묻는다 — 아무도 안 지워 10/28 저녁부터 사흘간 전 판이 미채점이었다(thumb-gate.test).
+  //   시각이 없거나 아직이면 전처럼 못 매김(언제 풀릴지 모르는 걸 풀렸다고 치지 않는다).
+  const limitF = join(qdir, '.upload-limit');
+  if (existsSync(limitF)) {
+    let until = NaN;
+    try { until = Number(readFileSync(limitF, 'utf8').trim()); } catch { /* 그새 지워졌다 */ }
+    if (until > 0 && until <= now().getTime()) { try { rmSync(limitF, { force: true }); } catch { /* 남이 먼저 지웠다 */ } }
+    else if (existsSync(limitF)) throw new Error('ChatGPT 대기열 첨부 한도(.upload-limit) — 못 매김');
+  }
   const id = `flowvium-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   mkdirSync(join(qdir, 'img'), { recursive: true });
   const img = join(qdir, 'img', `${id}${extname(image) || '.jpg'}`);

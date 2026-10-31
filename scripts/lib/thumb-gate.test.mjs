@@ -137,7 +137,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // [14] ChatGPT 대기열(Mac mini3, ~/history/_thumbq) — in/<id>.json 을 쓰고 out/<id>.json 을 기다린다. score null 은 못 매김. 23:35~02:40 은 처리 안 함 → 바로 미채점
 {
   const { chatgptJudge, inNightBan } = await import('./thumb-gate.mjs');
-  const { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, rmSync } = await import('node:fs');
+  const { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, rmSync, existsSync } = await import('node:fs');
   const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
   const q = mkdtempSync(join(tmpdir(), 'thumbq-test-')); mkdirSync(join(q, 'in')); mkdirSync(join(q, 'out'));
   const img = join(q, 'a.jpg'); writeFileSync(img, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
@@ -168,6 +168,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(readdirSync(join(q, 'in')).filter((x) => x.endsWith('.json')).length, 1, '답 받은 요청은 지우고(저쪽은 in 을 남긴다), 시간초과 요청만 남긴다');
   assert.ok((await chatgptJudge({ image: img, title: 'T', qdir: q, now: () => new Date('2026-10-28T15:00:00Z') })).skipped, '00:00 KST 는 처리 안 하는 시간');
   assert.equal(inNightBan(new Date('2026-10-28T14:34:00Z')), false); assert.equal(inNightBan(new Date('2026-10-28T14:35:00Z')), true);
+  // 10/31 Mac mini2: .upload-limit 안의 '풀리는 시각'(ms)이 지났는데 아무도 안 지워 10/28 저녁부터 모든 판이 ChatGPT 미채점(=실패)이었다.
+  //   시각이 지났으면 지우고 그대로 묻는다. 시각이 아직이거나 내용이 없으면(언제 풀릴지 모른다) 전처럼 못 매김.
+  { const lim = join(q, '.upload-limit'), at = day().getTime();
+    writeFileSync(lim, String(at + 3_600_000));
+    await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 3000, now: day }), /첨부 한도/, '아직 안 풀렸다');
+    writeFileSync(lim, String(at - 60_000));
+    await assert.rejects(chatgptJudge({ image: img, title: 'T', qdir: q, pollMs: 20, timeoutMs: 200, now: day }), /시간초과/, '풀린 한도는 묻는다');
+    assert.equal(existsSync(lim), false, '지난 한도 파일은 지운다'); }
   assert.equal(inNightBan(new Date('2026-10-28T17:39:00Z')), true); assert.equal(inNightBan(new Date('2026-10-28T17:40:00Z')), false);
 }
 // [15] 10/28 저녁 완화(사장님, Mac mini2 경유): 둘이 8 이상 + 나머지 하나 7.5 이상이면 통과. 0.5 점 단위를 받는다.
