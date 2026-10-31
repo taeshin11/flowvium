@@ -1,10 +1,10 @@
 {
- "at": "2026-10-31T07:45:16.477Z",
+ "at": "2026-10-31T22:45:23.294Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 79,
- "signals": 6559,
- "newSignals": 3347,
+ "ledgerLines": 82,
+ "signals": 7059,
+ "newSignals": 3512,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -201,11 +201,11 @@
    "t": null
   },
   "judge_veto|us|1": {
-   "new": 20,
+   "new": 21,
    "ok": 19,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1,
+   "pending": 2,
    "noData": 0,
    "days": 9,
    "meanNet": -0.00919,
@@ -213,11 +213,11 @@
    "t": null
   },
   "judge_veto|us|5": {
-   "new": 20,
+   "new": 21,
    "ok": 18,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2,
+   "pending": 3,
    "noData": 0,
    "days": 8,
    "meanNet": 0.00649,
@@ -225,11 +225,11 @@
    "t": null
   },
   "judge_veto|us|20": {
-   "new": 20,
+   "new": 21,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 21,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -237,11 +237,11 @@
    "t": null
   },
   "judge_veto|us|60": {
-   "new": 20,
+   "new": 21,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 21,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -393,11 +393,11 @@
    "t": null
   },
   "control|us|1": {
-   "new": 1700,
+   "new": 1800,
    "ok": 1600,
    "stale": 0,
    "mismatch": 0,
-   "pending": 100,
+   "pending": 200,
    "noData": 0,
    "days": 16,
    "meanNet": -0.00028,
@@ -405,11 +405,11 @@
    "t": -0.24
   },
   "control|us|5": {
-   "new": 1700,
+   "new": 1800,
    "ok": 1200,
    "stale": 0,
    "mismatch": 0,
-   "pending": 500,
+   "pending": 600,
    "noData": 0,
    "days": 12,
    "meanNet": 0.01054,
@@ -417,11 +417,11 @@
    "t": 3.58
   },
   "control|us|20": {
-   "new": 1700,
+   "new": 1800,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1700,
+   "pending": 1800,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -429,11 +429,11 @@
    "t": null
   },
   "control|us|60": {
-   "new": 1700,
+   "new": 1800,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1700,
+   "pending": 1800,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -441,11 +441,11 @@
    "t": null
   },
   "control|kr|1": {
-   "new": 1020,
+   "new": 1080,
    "ok": 960,
    "stale": 0,
    "mismatch": 0,
-   "pending": 60,
+   "pending": 120,
    "noData": 0,
    "days": 16,
    "meanNet": -0.0089,
@@ -453,11 +453,11 @@
    "t": -4.16
   },
   "control|kr|5": {
-   "new": 1020,
+   "new": 1080,
    "ok": 720,
    "stale": 0,
    "mismatch": 0,
-   "pending": 300,
+   "pending": 360,
    "noData": 0,
    "days": 12,
    "meanNet": -0.02825,
@@ -465,11 +465,11 @@
    "t": -8.64
   },
   "control|kr|20": {
-   "new": 1020,
+   "new": 1080,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1020,
+   "pending": 1080,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -477,11 +477,11 @@
    "t": null
   },
   "control|kr|60": {
-   "new": 1020,
+   "new": 1080,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1020,
+   "pending": 1080,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -921,11 +921,11 @@
    "t": null
   },
   "funnel_veto_trend|us|1": {
-   "new": 43,
+   "new": 44,
    "ok": 23,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 21,
    "noData": 0,
    "days": 1,
    "meanNet": -0.00144,
@@ -933,11 +933,11 @@
    "t": null
   },
   "funnel_veto_trend|us|5": {
-   "new": 43,
+   "new": 44,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 43,
+   "pending": 44,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -945,11 +945,11 @@
    "t": null
   },
   "funnel_veto_trend|us|20": {
-   "new": 43,
+   "new": 44,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 43,
+   "pending": 44,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -957,11 +957,11 @@
    "t": null
   },
   "funnel_veto_trend|us|60": {
-   "new": 43,
+   "new": 44,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 43,
+   "pending": 44,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -969,11 +969,11 @@
    "t": null
   },
   "funnel_veto_other|us|1": {
-   "new": 41,
+   "new": 42,
    "ok": 29,
    "stale": 0,
    "mismatch": 0,
-   "pending": 12,
+   "pending": 13,
    "noData": 0,
    "days": 1,
    "meanNet": -0.00688,
@@ -981,11 +981,11 @@
    "t": null
   },
   "funnel_veto_other|us|5": {
-   "new": 41,
+   "new": 42,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 41,
+   "pending": 42,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -993,11 +993,11 @@
    "t": null
   },
   "funnel_veto_other|us|20": {
-   "new": 41,
+   "new": 42,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 41,
+   "pending": 42,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1005,11 +1005,11 @@
    "t": null
   },
   "funnel_veto_other|us|60": {
-   "new": 41,
+   "new": 42,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 41,
+   "pending": 42,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1017,11 +1017,11 @@
    "t": null
   },
   "funnel_veto_trend|kr|1": {
-   "new": 20,
+   "new": 22,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 22,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1029,11 +1029,11 @@
    "t": null
   },
   "funnel_veto_trend|kr|5": {
-   "new": 20,
+   "new": 22,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 22,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1041,11 +1041,11 @@
    "t": null
   },
   "funnel_veto_trend|kr|20": {
-   "new": 20,
+   "new": 22,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 22,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1053,11 +1053,11 @@
    "t": null
   },
   "funnel_veto_trend|kr|60": {
-   "new": 20,
+   "new": 22,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 20,
+   "pending": 22,
    "noData": 0,
    "days": 0,
    "meanNet": null,
