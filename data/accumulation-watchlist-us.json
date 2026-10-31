@@ -1,12 +1,46 @@
 {
-  "generatedAt": "2026-10-30T13:01:02.539Z",
+  "generatedAt": "2026-10-31T00:44:06.209Z",
   "universe": "US",
   "scanned": 314,
-  "count": 8,
-  "strongCount": 0,
-  "watchCount": 8,
+  "count": 10,
+  "strongCount": 1,
+  "watchCount": 9,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "JOF",
+      "name": "Japan Smaller Capitalization Fu",
+      "tier": "strong",
+      "score": 32,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 3.4× 급증(가격 평탄)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -13.2,
+      "runup5dPct": -5,
+      "medDollarVolUsd": 801983,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "VSECU",
+      "name": "VSE Corporation - Tangible Equi",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.5× 상승(지속 매집)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -11,
+      "runup5dPct": 1.7,
+      "medDollarVolUsd": 630210,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "CLDT",
       "name": "Chatham Lodging Trust (REIT)",
@@ -36,7 +70,7 @@
       ],
       "runup20dPct": -3.3,
       "runup5dPct": 9,
-      "medDollarVolUsd": 2586435,
+      "medDollarVolUsd": 2774252,
       "smartAccum": false,
       "official": null
     },
@@ -57,22 +91,6 @@
       "official": null
     },
     {
-      "ticker": "JOF",
-      "name": "Japan Smaller Capitalization Fu",
-      "tier": "watch",
-      "score": 25,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -9.7,
-      "runup5dPct": -3.6,
-      "medDollarVolUsd": 801983,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "VINP",
       "name": "Vinci Compass Investments Ltd.",
       "tier": "watch",
@@ -80,11 +98,11 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 3.7× 급증(가격 평탄)"
+        "거래량 3.6× 급증(가격 평탄)"
       ],
       "runup20dPct": -5.3,
       "runup5dPct": -23.1,
-      "medDollarVolUsd": 440848,
+      "medDollarVolUsd": 481143,
       "smartAccum": false,
       "official": null
     },
@@ -101,7 +119,23 @@
       ],
       "runup20dPct": -14.8,
       "runup5dPct": -15.1,
-      "medDollarVolUsd": 1095214,
+      "medDollarVolUsd": 1119738,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "LGI",
+      "name": "Lazard Global Total Return and ",
+      "tier": "watch",
+      "score": 18,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": -0.6,
+      "medDollarVolUsd": 545042,
       "smartAccum": false,
       "official": null
     },
@@ -117,7 +151,7 @@
       ],
       "runup20dPct": 4.2,
       "runup5dPct": 10.6,
-      "medDollarVolUsd": 24585119,
+      "medDollarVolUsd": 24640463,
       "smartAccum": false,
       "official": null
     },
@@ -133,7 +167,7 @@
       ],
       "runup20dPct": 10.6,
       "runup5dPct": 11.2,
-      "medDollarVolUsd": 1060920,
+      "medDollarVolUsd": 1072764,
       "smartAccum": false,
       "official": null
     }
