@@ -7,7 +7,7 @@
  *   ⌊n/4⌋ 짝홀로 바꾸면 여덟 편마다 세 실험의 모든 조합이 한 번씩 나온다(2×2×2).
  * 파일이 없으면 다른 광고로 대신한다 — 광고 때문에 회차를 잃지 않는다.
  */
-import { promoFor, promoPath, PROMO_FILES } from './promo-card.mjs';
+import { promoFor, promoPath, PROMO_FILES, AISVI_SHORT_AD } from './promo-card.mjs';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -36,6 +36,12 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const v1 = promoPath('aisvi', root, { version: 'b' }), v2 = promoPath('flowvium', root, { version: 'b' });
   (v0.path.endsWith('aisvi-card.mp4') && v1.path.endsWith('aisvi-card-b.mp4') && v1.version === 'b' && v2.path.endsWith('flowvium-card.mp4'))
     ? ok('[2d] aisvi 판 파일 → 있으면 그 판, 없으면 옛 카드 · flowvium 은 판 없음') : bad(`[2d] ${JSON.stringify([v0, v1, v2])}`);
+  // [2e] 2026-10-31 사장님(Mac mini2 경유): 한국어 AISVI 광고를 카톡 무료체험 v16 짧은 판(2.5초)으로 바꾼다 — 공용 파일 하나(ots-9e 가 자름).
+  //   있으면 판(a/b/c)과 상관없이 그것. 판 기호는 그대로 돌려 설명란 utm_content 는 계속 돈다. 없으면 종전 판 카드.
+  writeFileSync(join(root, AISVI_SHORT_AD), 'x');
+  const k1 = promoPath('aisvi', root, { version: 'b' }), k2 = promoPath('aisvi', root), k3 = promoPath('flowvium', root, { version: 'b' });
+  (k1.path.endsWith(AISVI_SHORT_AD) && k1.version === 'b' && k2.path.endsWith(AISVI_SHORT_AD) && k3.path.endsWith('flowvium-card.mp4'))
+    ? ok('[2e] 새 AISVI 짧은 광고가 있으면 aisvi 자리는 그것(판 기호는 유지) · flowvium 은 그대로') : bad(`[2e] ${JSON.stringify([k1, k2, k3])}`);
   const d = promoPath('nope', mkdtempSync(join(tmpdir(), 'promo-empty-')));
   (d.path === null) ? ok('[2c] 둘 다 없으면 광고 없이') : bad(`[2c] ${JSON.stringify(d)}`);
 }
