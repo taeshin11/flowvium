@@ -3538,14 +3538,14 @@ async function computeHistoricalAnalog(ctxRaw) {
         ksEp.push((f.c / kospi[r.i].c - 1) * 100);
         lk = r.i;
       }
-      // KR breadth — KOSDAQ(^KQ11) vs KOSPI 20일 상대수익 (소형주 참여도; 양수=광범위 참여).
+      // KR breadth — KOSDAQ(^KQ11) vs KOSPI 20일 상대수익 (중소형주 상대 강도 — 종목 비율로 잰 시장 폭은 market-breadth).
       let krBreadth = null;
       try {
         const kq = await hist('^KQ11');
         if (kq?.length > 21) {
           const r20kq = (kq[kq.length - 1].c / kq[kq.length - 21].c - 1) * 100;
           const r20ks = (lastK.c / kospi[kospi.length - 21].c - 1) * 100;
-          krBreadth = { divergencePp: +(r20kq - r20ks).toFixed(1) };  // 양수 = KOSDAQ(소형주) 주도, 광범위
+          krBreadth = { divergencePp: +(r20kq - r20ks).toFixed(1) };  // 양수 = KOSDAQ(중소형주) 상대 강세
         }
       } catch { /* non-fatal */ }
       // 2026-10-15: 전날 밤 SOX → 다음 KR 장 꼬리위험. 판정 거부권 입력(kr-verdict.test 머리말 — 10/15 KOSPI -8% 날 아침판이 accumulate 였다).

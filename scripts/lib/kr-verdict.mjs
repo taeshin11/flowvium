@@ -44,9 +44,10 @@ export function computeKrVerdict(k, earlyWarning) {
   else { verdict = 'neutral'; reasons.push('KR 뚜렷한 전조 없음 — 기존 포지션 유지'); }
   // 근거 디테일 (US 박스와 동일 깊이)
   reasons.push(`KOSPI 추세: 200일선 ${k.above200 ? '위' : '아래'}(${k.distPct > 0 ? '+' : ''}${k.distPct}%) · 고점대비 ${k.dd}% · 20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%`);
+  // 2026-10-31: '시장 폭'이 아니다 — 종목 몇 %가 오르는지는 market-breadth(200일선 비율)가 잰다(kr-verdict.test [11]).
   if (k.breadth?.divergencePp != null) {
-    if (k.breadth.divergencePp >= 1.5) reasons.push(`KR 시장 폭 양호: KOSDAQ이 KOSPI 대비 20일 +${k.breadth.divergencePp}%p 우위 — 광범위 참여`);
-    else if (k.breadth.divergencePp <= -1.5) reasons.push(`KR 시장 폭 취약: KOSDAQ이 KOSPI 대비 20일 ${k.breadth.divergencePp}%p 열위 — 대형주 편중`);
+    if (k.breadth.divergencePp >= 1.5) reasons.push(`KR 중소형주 상대 강세: KOSDAQ이 KOSPI보다 20일 +${k.breadth.divergencePp}%p 앞섬`);
+    else if (k.breadth.divergencePp <= -1.5) reasons.push(`KR 중소형주 상대 약세: KOSDAQ이 KOSPI보다 20일 ${k.breadth.divergencePp}%p 뒤처짐 — 대형주 편중`);
   }
   if (k.analog?.matches >= 5) reasons.push(`KR 과거 유사국면 ${k.analog.matches}회 — 현재 지문(KOSPI 고점대비 ${k.dd}%·20일 ${k.r20 > 0 ? '+' : ''}${k.r20}%)을 KOSPI 전 역사와 거리매칭한 가장 가까운 국면들: 3개월 후 중앙값 ${k.analog.med3m > 0 ? '+' : ''}${k.analog.med3m}% · 상승확률 ${k.analog.posRate3m}%`);
   if (k.seasonality) reasons.push(`KOSPI 계절성(${k.seasonality.month}월, ${k.seasonality.n}표본): 1개월 forward 중앙값 ${k.seasonality.med1m > 0 ? '+' : ''}${k.seasonality.med1m}%`);

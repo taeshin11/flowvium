@@ -76,5 +76,17 @@ const mkSeries = (soxR, ksR) => {
   both.verdict === 'wait' && both.verdictA === 'wait' && /SOX/.test(both.reasons[0])
     ? ok('[10] 밤 거부권도 켜지면 (a) 판정도 wait — (b) 규칙의 몫이 아니다') : bad(`[10] ${JSON.stringify(both)}`);
 }
+
+// [11] 2026-10-31: KOSDAQ↔KOSPI 20일 상대수익을 '시장 폭 양호 — 광범위 참여'라 부르면, 같은 박스의 '한국 전체 421종 중
+//   361종(86%)이 200일선 아래' 줄과 정반대로 읽힌다(10/30 noon). 이 값이 재는 건 중소형주가 대형주보다 덜 빠졌다는 것뿐 —
+//   종목 몇 %가 오르는지(폭)가 아니다. 이름을 잰 것대로 부른다.
+{
+  const ew = { level: 'low' };
+  const base = { dd: -38, r20: -17.4, above200: false, distPct: -12.9 };
+  const up = computeKrVerdict({ ...base, breadth: { divergencePp: 2.4 } }, ew).reasons.join('\n');
+  const dn = computeKrVerdict({ ...base, breadth: { divergencePp: -3.1 } }, ew).reasons.join('\n');
+  !/시장 폭|광범위/.test(up + dn) && /중소형주/.test(up) && /\+2\.4%p/.test(up) && /중소형주/.test(dn) && /-3\.1%p/.test(dn)
+    ? ok('[11] KOSDAQ 대비 줄은 \'중소형주 상대\'로 부른다(시장 폭·광범위 참여 아님)') : bad(`[11] ${up} || ${dn}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
