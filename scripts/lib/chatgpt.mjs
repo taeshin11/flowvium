@@ -26,9 +26,10 @@ async function alive() {
   try { return (await fetch(`${BASE}/json/version`, { signal: AbortSignal.timeout(3000) })).ok; } catch { return false; }
 }
 
-/** 크롬 띄우는 명령. 2026-10-31 Mac mini2: Claude Code 의 Bash 셸에서 바로 띄운 크롬은 detached+unref 여도 그 셸 트리와 함께
- *  18~20분 뒤 죽었다(9334 하루 세 번, 충돌 보고서 없음). open -na(LaunchServices)로 띄우면 부모가 launchd 라 셸과 무관하다.
- *  -n 은 새 인스턴스 — 다른 프로필의 크롬에 붙지 않는다(전용 --user-data-dir). chatgpt.test [8]. */
+/** 크롬 띄우는 명령 — open -na(LaunchServices)로, 부모가 launchd 라 띄운 셸과 무관하다. -n 은 새 인스턴스(전용 --user-data-dir). chatgpt.test [8].
+ *  2026-10-31: 9334 가 하루 세 번 ~20분 만에 죽어 '띄운 셸과 같이 죽는다'고 보고 이렇게 바꿨지만, 이렇게 띄운 것(부모 1)도
+ *  14:43 에 20분 만에 죽었다 — 원인은 셸이 아니고 아직 모른다(Mac mini2). 지금 9334 는 launchd 잡 com.spinai.chrome9334
+ *  (KeepAlive)가 띄우고 되살린다 — 그때 ensureBrowser 는 'running' 이라 여기까지 안 온다. */
 export function launchCommand() {
   return { cmd: 'open', args: ['-na', 'Google Chrome', '--args', `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`, '--no-first-run', '--no-default-browser-check'] };
 }
