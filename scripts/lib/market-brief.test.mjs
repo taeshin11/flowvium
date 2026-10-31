@@ -220,10 +220,16 @@ const M = await import('./market-brief.mjs');
   (f.name === 'aisvi' && f.fallback && /brief-ad-aisvi\.mp4$/.test(f.path)) ? ok('[19b] 원하는 광고 없으면 다른 쪽') : bad(`[19b] ${JSON.stringify(f)}`);
   (M.briefPromo(h(0), { exists: () => false }).path === null) ? ok('[19c] 둘 다 없으면 광고 없이') : bad('[19c]');
   // [19d] 2026-10-28 AISVI 광고 새 판 — 끝 광고는 2.5초 카드(make-brief-ads --card <판>), aisvi 차례마다 a→b→c. 판 카드가 없으면 옛 긴 광고.
-  const v = [0, 2, 4, 6].map((n) => M.briefPromo(h(n), { exists: has }));
+  const noKak = (p) => p !== M.AISVI_BRIEF_AD;
+  const v = [0, 2, 4, 6].map((n) => M.briefPromo(h(n), { exists: noKak }));
   (v.map((x) => x.version).join('') === 'abca' && v.every((x) => /brief-card-aisvi-[abc]\.mp4$/.test(x.path)))
     ? ok('[19d] aisvi 차례마다 판 카드 a→b→c') : bad(`[19d] ${JSON.stringify(v)}`);
-  const old = M.briefPromo(h(0), { exists: (p) => !/brief-card/.test(p) });
+  const old = M.briefPromo(h(0), { exists: (p) => !/brief-card/.test(p) && noKak(p) });
+  // [19f] 2026-10-31 사장님(Mac mini2 경유): 한국어 AISVI 광고 교체 — 카톡 무료체험 v16 짧은 판(세로 2.5초)을 가로 화면 가운데에 둔 판.
+  //   있으면 aisvi 차례는 그것(판 기호는 설명란 utm 용으로 계속 돈다), flowvium 차례는 그대로.
+  const kak = [0, 1, 2].map((n) => M.briefPromo(h(n), { exists: has }));
+  (kak[0].path === M.AISVI_BRIEF_AD && kak[0].version === 'a' && kak[2].path === M.AISVI_BRIEF_AD && kak[2].version === 'b' && kak[1].name === 'flowvium')
+    ? ok('[19f] 새 AISVI 가로 광고가 있으면 aisvi 차례는 그것 · 판 기호 유지') : bad(`[19f] ${JSON.stringify(kak)}`);
   (/brief-ad-aisvi\.mp4$/.test(old.path) && !old.version) ? ok('[19e] 판 카드가 없으면 옛 긴 광고') : bad(`[19e] ${JSON.stringify(old)}`);
 }
 // [20] 마감판 등락률·주가는 장 끝난 뒤 근거에서만 — 10/23 첫 마감판 "삼성E&A는 … 6.5% 급등했습니다": 10시 [특징주] 기사의 장중 숫자
