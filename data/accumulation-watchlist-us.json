@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-10-31T00:44:06.209Z",
+  "generatedAt": "2026-10-31T13:01:14.238Z",
   "universe": "US",
   "scanned": 314,
-  "count": 10,
-  "strongCount": 1,
-  "watchCount": 9,
+  "count": 7,
+  "strongCount": 2,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "VLRS",
+      "name": "Controladora Vuela Compania de ",
+      "tier": "strong",
+      "score": 42,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 3.3× 상승(지속 매집)",
+        "거래량 4.7× 급증(가격 평탄)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -1.2,
+      "runup5dPct": 12.9,
+      "medDollarVolUsd": 2774252,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "JOF",
       "name": "Japan Smaller Capitalization Fu",
@@ -21,6 +39,23 @@
       "runup20dPct": -13.2,
       "runup5dPct": -5,
       "medDollarVolUsd": 801983,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CLDT",
+      "name": "Chatham Lodging Trust (REIT)",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 7.8,
+      "runup5dPct": 5.1,
+      "medDollarVolUsd": 3513288,
       "smartAccum": false,
       "official": null
     },
@@ -42,84 +77,18 @@
       "official": null
     },
     {
-      "ticker": "CLDT",
-      "name": "Chatham Lodging Trust (REIT)",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 10.5,
-      "runup5dPct": 5.1,
-      "medDollarVolUsd": 3513288,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "VLRS",
-      "name": "Controladora Vuela Compania de ",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -3.3,
-      "runup5dPct": 9,
-      "medDollarVolUsd": 2774252,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CMCM",
-      "name": "Cheetah Mobile Inc.",
-      "tier": "watch",
-      "score": 28,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 5.2× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -6.2,
-      "runup5dPct": 3.8,
-      "medDollarVolUsd": 14575,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "VINP",
       "name": "Vinci Compass Investments Ltd.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)"
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -5.3,
-      "runup5dPct": -23.1,
+      "runup20dPct": -6.9,
+      "runup5dPct": -23.4,
       "medDollarVolUsd": 481143,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "MTLS",
-      "name": "Materialise NV",
-      "tier": "watch",
-      "score": 21,
-      "coFire": 2,
-      "lead": [
-        "거래량 2.6× 급증(가격 평탄)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": -14.8,
-      "runup5dPct": -15.1,
-      "medDollarVolUsd": 1119738,
       "smartAccum": false,
       "official": null
     },
@@ -140,34 +109,18 @@
       "official": null
     },
     {
-      "ticker": "HAPN",
-      "name": "Happen, Inc.",
+      "ticker": "LENZ",
+      "name": "LENZ Therapeutics, Inc.",
       "tier": "watch",
       "score": 16,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.9× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 추세 1.7× 상승",
+        "거래량 2.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 4.2,
-      "runup5dPct": 10.6,
-      "medDollarVolUsd": 24640463,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ABOS",
-      "name": "Acumen Pharmaceuticals, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 10.6,
-      "runup5dPct": 11.2,
-      "medDollarVolUsd": 1072764,
+      "runup20dPct": -14.8,
+      "runup5dPct": -3.5,
+      "medDollarVolUsd": 2913844,
       "smartAccum": false,
       "official": null
     }
