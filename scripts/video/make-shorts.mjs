@@ -2103,7 +2103,7 @@ for (let i = 0; i < scenes.length; i++) {
 //   거기선 영상을 다시 굽지 못하니 **여기서** 첫 장면 사진 + 첫 자막 판으로 정지 화면을 만들어 agy·Claude 로 먼저 매기고,
 //   미달이면 심판이 낸 훅(12자 안 · 원문에 없는 숫자 금지 · 헤드라인 되풀이 금지)으로 그 판만 다시 그려 다시 매긴다(최대 2번·5분).
 //   ChatGPT 는 쓰지 않는다 — 대기열 첨부 한도(Mac mini3), 발행 직전에 한 번만. 실패해도 렌더는 계속한다.
-if (process.env.THUMB_GATE !== '0' && process.env.SHORTS_PRESCORE !== '0' && scenes[0]?.media && !scenes[0].isOutro && scenes[0].ov?.length) {
+if ((await import('../lib/thumb-gate.mjs')).gateOn() && process.env.SHORTS_PRESCORE !== '0' && scenes[0]?.media && !scenes[0].isOutro && scenes[0].ov?.length) {
   try {
     const { runThumbGate, agyJudge, claudeJudge } = await import('../lib/thumb-gate.mjs');
     const { SHORTS_ANCHORS } = await import('../lib/shorts-thumb.mjs');

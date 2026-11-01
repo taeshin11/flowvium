@@ -496,7 +496,7 @@ if (UPLOAD) {
   //   미달이면 지적한 두 줄로 다시 굽고 다시 매긴다(3번). 롱폼은 작업 상한(40분)·렌더 락 대기(20분)가 있어 8분으로 묶는다.
   //   두 줄 규칙(줄마다 2~8자·숫자 없음)은 대본 쪽 thumbLines 와 같다.
   let gate = null;
-  if (process.env.THUMB_GATE !== '0') {
+  if ((await import('../lib/thumb-gate.mjs')).gateOn()) {
     try {
       const { runThumbGate, gateSummary, appendGateLog } = await import('../lib/thumb-gate.mjs');
       const made = [];

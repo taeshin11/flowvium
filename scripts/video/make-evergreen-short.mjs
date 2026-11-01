@@ -292,7 +292,7 @@ if (FILL > 0) {
   };
   let quotaHit = false;
   for (const sp of listSpares(POOL).filter((x) => !x.dir.endsWith('.part'))) {
-    if (process.env.THUMB_GATE === '0') break;
+    if (!(await import('../lib/thumb-gate.mjs')).gateOn()) break;   // 11/02: 관문 꺼짐 — 표지 점검 안 함
     for (let w = 0; await isReportPipelineRunning().catch(() => false); w++) {
       if (w >= 24) { log('보고서가 2시간 넘게 돈다 — 여기서 멈추고 다음 실행에 맡긴다'); process.exit(0); }
       if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');

@@ -297,5 +297,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(d2({ agy: { score: 9 }, claude: { score: 9 } }, ['chatgpt', 'agy', 'claude'], down).pass, false, '미채점은 실패');
   assert.equal(d2({ chatgpt: { score: 6.9 }, agy: { score: 9 }, claude: { score: 9 } }, ['chatgpt', 'agy', 'claude'], down).pass, false);
 }
+// [22] 11/02 사장님(Mac mini2 경유): FlowVium 은 썸네일 채점을 아예 안 한다 — 관문 기본 꺼짐, THUMB_GATE=1 일 때만 켠다.
+//   발행·롱폼·대본 미리 매기기·상식 편 표지 점검·예비 고르기가 모두 같은 스위치(gateOn)를 본다.
+{
+  const { gateOn } = await import('./thumb-gate.mjs');
+  assert.equal(gateOn({}), false, '기본은 꺼짐');
+  assert.equal(gateOn({ THUMB_GATE: '0' }), false);
+  assert.equal(gateOn({ THUMB_GATE: '1' }), true, '켜려면 1');
+  const { readFileSync: rf } = await import('node:fs');
+  const src = (f) => rf(new URL(`../${f}`, import.meta.url), 'utf8');
+  for (const f of ['video-publish.mjs', 'video/make-market-brief.mjs', 'video/make-shorts.mjs', 'video/make-evergreen-short.mjs'])
+    assert.ok(/gateOn\(\)/.test(src(f)) && !/env\.THUMB_GATE [!=]==/.test(src(f)), `${f} 가 gateOn 으로 본다`);
+  assert.ok(/ok: gateOn\(\) \? coverPassed : undefined/.test(src('video-publish.mjs')), '꺼지면 상식 편은 표지 통과를 안 따진다');
+}
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');

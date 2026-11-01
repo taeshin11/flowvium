@@ -272,6 +272,7 @@ if (USE_EXISTING) {
     if (!isShorts || process.env.SHORTS_SPARE === '0') return false;
     try {
       const { pickSpare, promoteSpare, spareDir, pickEvergreen, evergreenDir, coverPassed } = await import('./lib/shorts-spare.mjs');
+      const { gateOn } = await import('./lib/thumb-gate.mjs');
       const { recentShortsIssues, normalizeIssueKey } = await import('./lib/db.mjs');
       const pub = recentShortsIssues(24);
       // 썸네일 관문 미달로 다시 불린 회차는 뉴스 예비를 쓰지 않는다 — 그건 올리기 직전에 매겨야 하고, 떨어지면 또 돌아온다.
@@ -280,7 +281,7 @@ if (USE_EXISTING) {
       if (!sp && evergreen) {
         const ever = recentShortsIssues(24 * 3650);   // 상식 편은 한 번만 — 기한 없이 본다
         // 10/28 저녁 사장님: 점수를 못 받은 썸네일은 안 올린다 → 상식 편은 표지가 미리 통과한 것만(evergreen-fill 표지 점검).
-        const ev = pickEvergreen({ dir: evergreenDir(), isPublished: (k) => ever.has(normalizeIssueKey(k)), ok: coverPassed });
+        const ev = pickEvergreen({ dir: evergreenDir(), isPublished: (k) => ever.has(normalizeIssueKey(k)), ok: gateOn() ? coverPassed : undefined });   // 11/02: 관문을 끄면 표지 통과를 안 따진다
         if (ev) {
           promoteSpare(ev, STAGE, LOCALE);
           log(`예비로 올린다 — ${why} · 뉴스 예비가 없어 상시 쇼츠 "${ev.meta.title}"`);
@@ -532,7 +533,7 @@ try {
 //   제목이 여기서 정해지므로 여기서 한다(lib/shorts-thumb gateShortsThumb). 끄려면 THUMB_GATE=0.
 let THUMB_GATE = null;
 const GATE_LOG = resolve(ROOT, 'logs/thumb-gate.jsonl');
-if (isShorts && process.env.THUMB_GATE !== '0') {
+if (isShorts && (await import('./lib/thumb-gate.mjs')).gateOn()) {
   const { appendGateLog } = await import('./lib/thumb-gate.mjs');
   const { fileSha } = await import('./lib/shorts-spare.mjs');
   // 10/28 저녁(Mac mini2, 사장님 최종 기준): 쇼츠 피드는 영상 첫 화면을 보여 준다 — 막는 관문은 0.5초 화면(lib/shorts-thumb gateShortsOpening).

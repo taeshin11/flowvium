@@ -21,6 +21,9 @@ export const FLOOR = 7;
 export const PASS_ONE = 7;
 export const PASS = PASS_ONE; // 고칠 글을 낼 만큼 낮은 점수의 선(심판에게 '이 아래면 고칠 글')
 export const NEED = ['chatgpt', 'agy', 'claude'];
+// 11/02 사장님(Mac mini2 경유): FlowVium 은 썸네일 채점을 아예 안 한다 — 다 만든 편은 바로 올린다. 다시 켜려면 THUMB_GATE=1.
+//   (10/28~11/01 관문이 6.5~7 점에서 막아 하루 0~4편 — 채널이 비었다)
+export function gateOn(env = process.env) { return env.THUMB_GATE === '1'; }
 
 // 10/29 엔 지난 7일 조회가 늘면 기준을 낮췄다. 11/01 사장님이 나누기를 없앴다 — 기준은 늘 FLOOR·PASS_ONE.
 //   scripts/thumb-bar.mjs 가 날마다 재는 조회수는 관문 기록(bar)에 남기기만 한다.
