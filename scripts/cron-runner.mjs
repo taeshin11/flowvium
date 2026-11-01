@@ -681,6 +681,9 @@ const MAINT_JOBS = [
   // 2026-10-27 사장님(Mac mini2 경유): 시청자 댓글엔 늦어도 24시간·매시 보면 1시간 안에 1~2줄 답글. 규칙은 lib/comment-reply.
   //   정치·욕설·스팸은 건너뛴다(지우지 않는다). 영상당 하루 5·계정 하루 20. 할 일 없으면 조용히 끝난다.
   { label: 'yt-reply',             script: 'scripts/yt-reply-comments.mjs',          timeoutMs: 900000,  commitPaths: [], duringReport: true,                  schedules: ['23 * * * *'],                 maxAgeH: 3 },
+  // 2026-11-02 사장님(Mac mini2 경유): 새 롱폼(11/02~)에 최종 화면(시청자 맞춤 동영상 + 구독) — Data API 에 없어 스튜디오 헤드리스(youtube-profile 잠금).
+  //   올린 지 30분 지난 공개 편만, 편당 최대 3번. 할 일 없으면 브라우저를 안 띄운다. 11/16 클릭률 측정. 근거 lib/endscreen-due.test.
+  { label: 'yt-endscreen',         script: 'scripts/yt-endscreen.mjs',               timeoutMs: 900000,  commitPaths: [],                                     schedules: ['25,55 * * * *'],              maxAgeH: 2 },
   { label: 'pin-watch',            script: 'scripts/yt-pin-comment.mjs --due',      timeoutMs: 1500000, commitPaths: [], duringReport: true,                  schedules: ['*/10 * * * *'],               maxAgeH: 2 },
   // 2026-10-29 사장님(Mac mini2 경유): 썸네일 관문 기준을 채널 성적으로 — 지난 7일 조회 > 그 전 7일이면 7.0·7.5, 아니면 7.5·8.
   //   날마다 다시 잰다(logs/thumb-bar.json, 기록 thumb-bar.jsonl). 09:13 KST = 00:13 UTC — 보고서 시간 밖, API 몇 단위.
