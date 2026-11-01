@@ -1,10 +1,10 @@
 {
- "at": "2026-10-31T22:45:23.294Z",
+ "at": "2026-11-01T07:45:15.584Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 82,
- "signals": 7059,
- "newSignals": 3512,
+ "ledgerLines": 84,
+ "signals": 7285,
+ "newSignals": 3515,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -345,11 +345,11 @@
    "t": null
   },
   "sell|us|1": {
-   "new": 55,
+   "new": 57,
    "ok": 52,
    "stale": 0,
    "mismatch": 0,
-   "pending": 3,
+   "pending": 5,
    "noData": 0,
    "days": 14,
    "meanNet": -0.00281,
@@ -357,11 +357,11 @@
    "t": -1.05
   },
   "sell|us|5": {
-   "new": 55,
+   "new": 57,
    "ok": 46,
    "stale": 0,
    "mismatch": 0,
-   "pending": 9,
+   "pending": 11,
    "noData": 0,
    "days": 12,
    "meanNet": -0.0046,
@@ -369,11 +369,11 @@
    "t": -1.61
   },
   "sell|us|20": {
-   "new": 55,
+   "new": 57,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 55,
+   "pending": 57,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -381,11 +381,11 @@
    "t": null
   },
   "sell|us|60": {
-   "new": 55,
+   "new": 57,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 55,
+   "pending": 57,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -921,11 +921,11 @@
    "t": null
   },
   "funnel_veto_trend|us|1": {
-   "new": 44,
+   "new": 45,
    "ok": 23,
    "stale": 0,
    "mismatch": 0,
-   "pending": 21,
+   "pending": 22,
    "noData": 0,
    "days": 1,
    "meanNet": -0.00144,
@@ -933,11 +933,11 @@
    "t": null
   },
   "funnel_veto_trend|us|5": {
-   "new": 44,
+   "new": 45,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 44,
+   "pending": 45,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -945,11 +945,11 @@
    "t": null
   },
   "funnel_veto_trend|us|20": {
-   "new": 44,
+   "new": 45,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 44,
+   "pending": 45,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -957,11 +957,11 @@
    "t": null
   },
   "funnel_veto_trend|us|60": {
-   "new": 44,
+   "new": 45,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 44,
+   "pending": 45,
    "noData": 0,
    "days": 0,
    "meanNet": null,
