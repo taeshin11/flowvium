@@ -585,6 +585,14 @@ if (FORCE_ISSUE) {
           + ` · 후보 주제 ${Object.entries(dist).map(([k, v]) => `${k} ${v}`).join(' · ')}`
           + `${moved ? ` · 약한 주제 ${moved}건 뒤로` : ''} · 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
       } else log('[편성] 조회수 성적 — 유의한 강·약 주제 없음(표본 부족 또는 차이가 우연 범위) — 순서 유지');
+      // 2026-11-02 주제·흐름 점검(자문 셋 합의, lib/topic-mix.test): 돈과 안 이어진 정당 공방은 후보 맨 뒤로(지우지 않는다). 실험 칸은 대조군이라 예외.
+      if (!EXPLORE) {
+        const { demoteSquabble } = await import('../lib/topic-mix.mjs');
+        const top = fresh.slice(0, TOP), before = fresh[0]?.keyword;
+        fresh = [...demoteSquabble(top), ...fresh.slice(TOP)];
+        issue = fresh[0];
+        if (before !== issue.keyword) log(`[편성] 정당 공방은 뒤로 — 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
+      }
       if (MARKET && !EXPLORE) {
         const { marketFirst } = await import('../lib/explore-slot.mjs');
         const top = fresh.slice(0, TOP), before = fresh[0]?.keyword;
@@ -595,19 +603,23 @@ if (FORCE_ISSUE) {
     } else log(`[편성] 주제 분류 실패(agy: ${classifyWhy || '사유 없음'}) — 조회수 성적 반영 건너뜀, 순서 유지`);
   } catch (e) { log(`[편성] 조회수 성적 반영 건너뜀: ${String(e.message).slice(0, 60)}`); }
   if (TREND) try {
-    const tr = JSON.parse(readFileSync(resolve(ROOT, 'logs/yt-trends.json'), 'utf8'));
+    // 2026-11-02: 스튜디오 트렌드 낱말(주 1회, 8일 넘으면 안 씀) + 날짜 붙은 11월 일정 낱말(data/season-terms.json, lib/topic-mix.test).
+    let tr = { terms: [] }; try { tr = JSON.parse(readFileSync(resolve(ROOT, 'logs/yt-trends.json'), 'utf8')); } catch { /* 없으면 일정 낱말만 */ }
     const ageD = (Date.now() - Date.parse(tr.at)) / 86400000;
-    if (!(ageD <= 8) || !tr.terms?.length) log(`[편성] 트렌드 칸 — 주제어가 없거나 묵었다(${Number.isFinite(ageD) ? ageD.toFixed(1) : '?'}일) — 순서 유지`);
+    const { activeSeasonTerms } = await import('../lib/topic-mix.mjs');
+    let season = []; try { season = activeSeasonTerms(JSON.parse(readFileSync(resolve(ROOT, 'data/season-terms.json'), 'utf8'))); } catch { /* 파일 없음 */ }
+    const terms = [...new Set([...(ageD <= 8 ? tr.terms ?? [] : []), ...season])];
+    if (!terms.length) log(`[편성] 트렌드 칸 — 주제어가 없거나 묵었다(${Number.isFinite(ageD) ? ageD.toFixed(1) : '?'}일) — 순서 유지`);
     else {
       const { trendOrder } = await import('../lib/explore-slot.mjs');
       const TOP = Number(process.env.SHORTS_TOPIC_POOL || 15);
       const before = fresh[0]?.keyword;
-      fresh = [...trendOrder(fresh.slice(0, TOP), tr.terms), ...fresh.slice(TOP)];
+      fresh = [...trendOrder(fresh.slice(0, TOP), terms), ...fresh.slice(TOP)];
       issue = fresh[0];
       const s = [issue.keyword, ...(issue.headlines ?? [])].join(' ').toLowerCase();
-      const hit = tr.terms.filter((w) => s.includes(w));
+      const hit = terms.filter((w) => s.includes(w));
       TREND_USED = hit.length > 0;
-      log(`[편성] 트렌드 칸 — 주제어 ${tr.terms.slice(0, 8).join('·')} · 1순위 ${before} → ${issue.keyword}${hit.length ? ` (겹침 ${hit.join('·')})` : ' (겹치는 후보 없음 — 보통 편으로 기록)'}`);
+      log(`[편성] 트렌드 칸 — 주제어 ${terms.slice(0, 10).join('·')} · 1순위 ${before} → ${issue.keyword}${hit.length ? ` (겹침 ${hit.join('·')})` : ' (겹치는 후보 없음 — 보통 편으로 기록)'}`);
     }
   } catch (e) { log(`[편성] 트렌드 칸 건너뜀: ${String(e.message).slice(0, 60)}`); }
   // 2026-10-24 사장님 "지표가 자라는지 보고 안 되면 고쳐라"(Mac mini2 경유): 공인 실명/직함도 대립도 없는 헤드라인
