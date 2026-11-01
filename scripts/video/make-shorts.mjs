@@ -349,6 +349,8 @@ let IS_HOOK_WEAK = () => false;
 // 2026-09-30 실험 칸(lib/explore-slot) — video-publish 가 여섯 편에 한 편 SHORTS_EXPLORE=1 을 준다.
 //   이 편은 조회수 성적(약한 갈래·주제 등급)으로 뒤로 미는 것을 하지 않고, 최근 14일에 적게 다룬 주제를 앞으로 둔다.
 const EXPLORE = process.env.SHORTS_EXPLORE === '1';
+// 2026-11-02 기업·증시 칸(lib/explore-slot marketFor) — 이 칸은 주제 정렬 뒤 기업·증시 후보 하나를 맨 앞으로(shorts-market-slot.test).
+const MARKET = process.env.SHORTS_MARKET === '1';
 // 2026-10-02 트렌드 칸(lib/explore-slot trendFor) — 여섯 편에 한 편, 주 1회 모은 스튜디오 트렌드 주제어(logs/yt-trends.json)가 겹치는 후보를 앞으로.
 const TREND = process.env.SHORTS_TREND === '1';
 // 2026-10-11 첫 문장 A/B(lib/explore-slot openerFor) — question 칸은 1번 장면 첫 문장을 질문·시청자 이해관계로 연다.
@@ -583,6 +585,13 @@ if (FORCE_ISSUE) {
           + ` · 후보 주제 ${Object.entries(dist).map(([k, v]) => `${k} ${v}`).join(' · ')}`
           + `${moved ? ` · 약한 주제 ${moved}건 뒤로` : ''} · 1순위 ${before} → ${issue.keyword}(${issue.__topic})`);
       } else log('[편성] 조회수 성적 — 유의한 강·약 주제 없음(표본 부족 또는 차이가 우연 범위) — 순서 유지');
+      if (MARKET && !EXPLORE) {
+        const { marketFirst } = await import('../lib/explore-slot.mjs');
+        const top = fresh.slice(0, TOP), before = fresh[0]?.keyword;
+        fresh = [...marketFirst(top, { unsafe: (c) => !!(UNSAFE_THUMB && UNSAFE_THUMB(c)) }), ...fresh.slice(TOP)];
+        issue = fresh[0];
+        log(`[편성] 기업·증시 칸 — 1순위 ${before} → ${issue.keyword}(${issue.__topic})${before === issue.keyword ? ' (바꿀 후보 없음·이미 앞)' : ''}`);
+      }
     } else log(`[편성] 주제 분류 실패(agy: ${classifyWhy || '사유 없음'}) — 조회수 성적 반영 건너뜀, 순서 유지`);
   } catch (e) { log(`[편성] 조회수 성적 반영 건너뜀: ${String(e.message).slice(0, 60)}`); }
   if (TREND) try {

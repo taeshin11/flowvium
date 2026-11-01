@@ -254,6 +254,12 @@ if (USE_EXISTING) {
     try { MOTION_ENV = (await import('./lib/explore-slot.mjs')).motionFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
     catch { /* 모르면 지금 모습 */ }
   }
+  // 2026-11-02 기업·증시 칸(45%) — lib/explore-slot marketFor, shorts-market-slot.test. SHORTS_MARKET 이 주어지면 그 값.
+  let MARKET_ENV = process.env.SHORTS_MARKET ?? '0';
+  if (isShorts && process.env.SHORTS_MARKET == null) {
+    try { MARKET_ENV = (await import('./lib/explore-slot.mjs')).marketFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
+    catch { /* 모르면 지금 순서 */ }
+  }
   let PROMO_ENV = process.env.SHORTS_PROMO ?? 'aisvi';
   if (isShorts && process.env.SHORTS_PROMO == null) {
     try { PROMO_ENV = (await import('./lib/promo-card.mjs')).promoFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
@@ -312,7 +318,7 @@ if (USE_EXISTING) {
     const r = spawnSync(node, args, {
       cwd: ROOT,
       stdio: 'inherit',
-      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV, SHORTS_OPENER: OPENER_ENV, SHORTS_MOTION: MOTION_ENV, SHORTS_BRIEF_OK: a >= TRIES ? '1' : '0' } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV, SHORTS_OPENER: OPENER_ENV, SHORTS_MOTION: MOTION_ENV, SHORTS_MARKET: MARKET_ENV, SHORTS_BRIEF_OK: a >= TRIES ? '1' : '0' } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
       timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
     if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {

@@ -66,3 +66,11 @@ export const openerFor = (seed) => ((mix(Number(seed) + 15485863) >>> 5) % 2 ===
 
 // ── 첫 장면 움직임 A/B(2026-10-17) — push(4초 동안 12% 다가가기)|still(지금 그대로). 근거는 shorts-motion-ab.test.mjs 머리말.
 export const motionFor = (seed) => (((mix(Number(seed) + 104729) >>> 7) & 1) ? 'push' : 'still');
+
+// ── 기업·증시 칸(2026-11-02 벤치마크) — 45% 칸에서 기업·증시 후보를 맨 앞으로. 근거는 shorts-market-slot.test.mjs 머리말.
+export const MARKET_TOPICS = ['기업·산업', '증시·금리·환율'];
+export const marketFor = (seed) => ((mix(Number(seed) + 104729) >>> 7) % 20 < 9 ? '1' : '0');
+export function marketFirst(head, { unsafe = () => false } = {}) {
+  const i = head.findIndex((c) => MARKET_TOPICS.includes(c.__topic) && !unsafe(c));
+  return i <= 0 ? head : [head[i], ...head.slice(0, i), ...head.slice(i + 1)];
+}
