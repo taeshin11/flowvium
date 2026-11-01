@@ -6215,6 +6215,13 @@
     "roePct": 0.6,
     "fy": "2025"
   },
+  "375500.KS": {
+    "revUsd": 5105120777,
+    "revYoYPct": -11,
+    "opMarginPct": 5.2,
+    "roePct": 7.1,
+    "fy": "2025"
+  },
   "028670.KS": {
     "revUsd": 3746819310,
     "revYoYPct": 5.3,
@@ -6460,6 +6467,13 @@
     "roePct": -1.1,
     "fy": "2025"
   },
+  "067310.KQ": {
+    "revUsd": 1058219913,
+    "revYoYPct": 22.7,
+    "opMarginPct": 8.3,
+    "roePct": 10,
+    "fy": "2025"
+  },
   "100790.KQ": {
     "revUsd": 165412582,
     "revYoYPct": 2.6,
@@ -6495,6 +6509,13 @@
     "roePct": 35.8,
     "fy": "2025"
   },
+  "218410.KQ": {
+    "revUsd": 128140542,
+    "revYoYPct": 61.7,
+    "opMarginPct": 16.6,
+    "roePct": 9,
+    "fy": "2025"
+  },
   "095610.KQ": {
     "revUsd": 242148781,
     "revYoYPct": 46.3,
@@ -6521,6 +6542,13 @@
     "revYoYPct": 91.3,
     "opMarginPct": 9.8,
     "roePct": 36.7,
+    "fy": "2025"
+  },
+  "030530.KQ": {
+    "revUsd": 429649382,
+    "revYoYPct": -3.5,
+    "opMarginPct": -0.1,
+    "roePct": 3.9,
     "fy": "2025"
   },
   "131290.KQ": {
@@ -6719,6 +6747,20 @@
     "roePct": 5.7,
     "fy": "2025"
   },
+  "090710.KQ": {
+    "revUsd": 116072268,
+    "revYoYPct": 26.5,
+    "opMarginPct": -10.3,
+    "roePct": -14.8,
+    "fy": "2025"
+  },
+  "003380.KQ": {
+    "revUsd": 9113713103,
+    "revYoYPct": 7.7,
+    "opMarginPct": 6.7,
+    "roePct": 8.2,
+    "fy": "2025"
+  },
   "328130.KQ": {
     "revUsd": 57330549,
     "revYoYPct": 53.4,
@@ -6738,6 +6780,13 @@
     "revYoYPct": 21.4,
     "opMarginPct": -3.8,
     "roePct": -18.1,
+    "fy": "2025"
+  },
+  "065350.KQ": {
+    "revUsd": 651975030,
+    "revYoYPct": 3.9,
+    "opMarginPct": 2.9,
+    "roePct": 6.8,
     "fy": "2025"
   },
   "281740.KQ": {
@@ -6817,6 +6866,13 @@
     "roePct": -11.8,
     "fy": "2025"
   },
+  "036830.KQ": {
+    "revUsd": 383894332,
+    "revYoYPct": 8,
+    "opMarginPct": 1.6,
+    "roePct": 25.4,
+    "fy": "2025"
+  },
   "388720.KQ": {
     "revUsd": 25460518,
     "revYoYPct": 5,
@@ -6871,6 +6927,13 @@
     "revYoYPct": -14.7,
     "opMarginPct": 29.9,
     "roePct": 24.5,
+    "fy": "2025"
+  },
+  "086450.KQ": {
+    "revUsd": 639230139,
+    "revYoYPct": 14.1,
+    "opMarginPct": 10.4,
+    "roePct": 9.7,
     "fy": "2025"
   },
   "033790.KQ": {
@@ -6955,6 +7018,13 @@
     "revYoYPct": -3.5,
     "opMarginPct": 5.7,
     "roePct": 1.3,
+    "fy": "2025"
+  },
+  "033640.KQ": {
+    "revUsd": 359613301,
+    "revYoYPct": 12.3,
+    "opMarginPct": 4.6,
+    "roePct": 8.2,
     "fy": "2025"
   },
   "056080.KQ": {
