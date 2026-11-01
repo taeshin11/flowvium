@@ -22,9 +22,13 @@ const { promoFor } = await import('./promo-card.mjs');
 //   3일 조회는 차이 없음(1,046→1,070), 본 비율은 반대 방향(0.51→0.45, p=0.065) — 그래서 끝낸 뒤에도 본 비율을 지켜본다.
 //   자문: agy(gemini-4-argon-medium) 조건부 찬성(본 비율 지켜볼 것) · ChatGPT 'question 기본 + anchor 20~30% 대조군' · Claude 같은 의견.
 //   → question 기본, anchor 1/4 대조군(본 비율·조회가 따라오는지 계속 잰다).
+// 2026-11-01 사장님 성장 점검(Mac mini2 경유) → 다시 반반. 10/20~ 48시간 편(question 30 · anchor 8): 본 비율 중앙 0.46 vs 0.55,
+//   평균 시청률 65.0 vs 64.5(10/20 의 차이가 사라짐), 48시간 조회 1,100 vs 1,119. 본 비율이 두 번 연속 anchor 쪽.
+//   자문 셋(ChatGPT·agy·Claude) 모두 '첫 문장에 핵심 사실, 배경은 뒤로' — Claude 는 반반 A/B, ChatGPT 는 40~50편 뒤 비교.
+//   → anchor 반반. 11/16 에 3초 잔존·본 비율·평균 시청률을 다시 잰다(각 40편+).
 const N = 600, O = Array.from({ length: N }, (_, n) => openerFor(n));
 const qr = O.filter((x) => x === 'question').length / N;
-(O.every((x) => x === 'question' || x === 'anchor') && qr > 0.68 && qr < 0.82) ? ok(`[1] question 기본(${(qr * 100).toFixed(0)}%) · anchor 대조군`) : bad(`[1] question ${(qr * 100).toFixed(0)}%`);
+(O.every((x) => x === 'question' || x === 'anchor') && qr > 0.42 && qr < 0.58) ? ok(`[1] question·anchor 반반(question ${(qr * 100).toFixed(0)}%)`) : bad(`[1] question ${(qr * 100).toFixed(0)}%`);
 void layoutFor; void promoFor;
 const src = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const pub = src('video-publish.mjs'), ms = src('video/make-shorts.mjs');
