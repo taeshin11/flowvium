@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-10-31T22:20:36.599Z",
+  "generatedAt": "2026-11-01T07:21:25.516Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 2,
   "strongCount": 1,
-  "watchCount": 2,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -39,23 +39,6 @@
       "runup20dPct": -13.9,
       "runup5dPct": -17.7,
       "medDollarVolUsd": 3448422,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "456160.KQ",
-      "name": "지투지바이오",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 0.7,
-      "runup5dPct": -28.4,
-      "medDollarVolUsd": 4569520,
       "smartAccum": true,
       "official": null
     }
