@@ -35,6 +35,7 @@ const WINDOWS = {
   last7: [shift(END, -6), END],
   prev7: [shift(END, -13), shift(END, -7)],
   last28: [shift(END, -27), END],
+  prev28: [shift(END, -55), shift(END, -28)],   // 11/01 사장님: 28일도 직전 28일과 비교
 };
 
 async function q(params) {
@@ -47,7 +48,7 @@ async function q(params) {
 // 채널 업로드 — 연쇄 시청(우리 영상에서 온 조회) 판정과 창별 게시 편 잔존 곡선에 쓴다.
 const ch = await yt.channels.list({ part: ['contentDetails'], id: [envValue('YOUTUBE_CHANNEL_ID')] });
 const uploadsPl = ch.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-const firstStart = WINDOWS.last28[0] < WINDOWS.prev7[0] ? WINDOWS.last28[0] : WINDOWS.prev7[0];
+const firstStart = Object.values(WINDOWS).map((w) => w[0]).sort()[0];
 const ownIds = new Set();
 const published = [];   // 창 안에 게시된 편
 for (let pageToken; ;) {
