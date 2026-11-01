@@ -312,7 +312,7 @@ if (USE_EXISTING) {
     const r = spawnSync(node, args, {
       cwd: ROOT,
       stdio: 'inherit',
-      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV, SHORTS_OPENER: OPENER_ENV, SHORTS_MOTION: MOTION_ENV } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV, SHORTS_OPENER: OPENER_ENV, SHORTS_MOTION: MOTION_ENV, SHORTS_BRIEF_OK: a >= TRIES ? '1' : '0' } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
       timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
     if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {

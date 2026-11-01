@@ -43,3 +43,19 @@ export function sharesStory(hook, story) {
   const s = new Set(stems(story));
   return h.some((w) => s.has(w));
 }
+
+/** 헤드라인의 주어 — 첫 낱말(편집 표시·따옴표·끝 조사 뗌). 한 글자(野·與·靑)나 숫자면 null(판정 안 함). 11/02 벤치마크. */
+export function headlineSubject(headline) {
+  const t = String(headline ?? '').replace(/^\s*(\[[^\]]*\]\s*)+/, '').replace(/^[\s'"‘’“”「」]+/, '');
+  let w = (t.match(/^[0-9A-Za-z가-힣]+/) ?? [''])[0];
+  if (w.length > 2 && /[가-힣]$/.test(w) && /[이가은는의도]$/.test(w)) w = w.slice(0, -1);
+  return w.length >= 2 && !/^[0-9]/.test(w) ? w : null;
+}
+
+/** 첫 훅이 헤드라인의 주어를 담나 — 어간 근사(앞 두 글자·영문 통째)로 하나라도 겹치면 된다. 주어를 못 뽑으면 true. */
+export function namesSubject(hook, headline) {
+  const s = headlineSubject(headline);
+  if (!s) return true;
+  const want = new Set(stems(s));
+  return stems(hook).some((w) => want.has(w));
+}

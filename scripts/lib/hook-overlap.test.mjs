@@ -2,6 +2,7 @@
 //   Mac mini2(사장님 썸네일 기준): 첫 화면 훅은 제목이 말하지 않는 것을 더해야 한다. node scripts/lib/hook-overlap.test.mjs
 import assert from 'node:assert/strict';
 import { hookOverlap, repeatsTitle } from './hook-overlap.mjs';
+import { headlineSubject, namesSubject } from './hook-overlap.mjs';
 
 // [1] 실제로 떨어진 훅들(10/28 첫 화면 점수 5.5~6.5)
 assert.ok(repeatsTitle('PER 낮으면 싼 주식일까', 'PER 낮으면 싼 주식? 꼭 그렇지 않은 이유'));
@@ -31,5 +32,18 @@ import('./hook-overlap.mjs').then(({ sharesStory }) => {
   assert.ok(sharesStory('피해자 끝까지 보호', minister));
   assert.ok(sharesStory('골프 의혹 제기 후폭풍', '김여사 골프 의혹 제기한 주진우가 결국 고발당한 이유'), '뉴스 낱말 하나에 새 말을 붙이는 건 된다');
   assert.ok(!sharesStory('', minister));
+  // [9] 11/02 벤치마크(경제 쇼츠 상위 10편 첫 화면): 위쪽 큰 글이 늘 주어(회사·인물·자산)로 시작한다 — "삼전, 영업익 107조".
+  //   우리는 "16년 / 만의 최악 부진" 처럼 누구 얘기인지 빠졌다. 자문 agy·Claude 둘 다 1~2순위(2/3). 첫 훅은 헤드라인의 주어를 담는다.
+  assert.equal(headlineSubject('현대차, 16년 만에 최악의 부진…GV80 하이브리드'), '현대차');
+  assert.equal(headlineSubject("'김건희 로저비비에' 1심서 김기현 무죄·부인 벌금 500만원"), '김건희');
+  assert.equal(headlineSubject('[속보] 한미일 외교장관 "北 완전한 비핵화"'), '한미일');
+  assert.equal(headlineSubject("국민의힘이 1년 만에 대규모 장외집회"), '국민의힘', '붙은 조사(이·가·은·는)는 뗀다');
+  assert.equal(headlineSubject('SK하이닉스 대박 실적...100조원대 주주환원 온다'), 'SK하이닉스');
+  assert.equal(headlineSubject('野 "올공 투표지 전체 증거보전해야"'), null, '한 글자 약칭은 주어로 못 쓴다 — 판정 안 함');
+  assert.ok(!namesSubject('16년 만의 최악 부진', '현대차, 16년 만에 최악의 부진'), '실제 우리 상위 2위 첫 화면 — 누구 얘기인지 없다');
+  assert.ok(namesSubject('현대차 16년 만의 부진', '현대차, 16년 만에 최악의 부진'));
+  assert.ok(namesSubject('SK하닉 영업익 83조', 'SK하이닉스 대박 실적...100조원대 주주환원 온다'), '줄임말도 같은 주어');
+  assert.ok(namesSubject('발사대 향한 누리호', '누리호, 역대 최다 15기 싣고 우주로'));
+  assert.ok(namesSubject('투표지 전부 보전?', '野 "올공 투표지 전체 증거보전해야"'), '주어를 못 뽑으면 막지 않는다');
   console.log('hook-overlap.test: ✅ 전부 통과');
 });

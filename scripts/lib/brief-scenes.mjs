@@ -57,3 +57,6 @@ export function sceneHeadlines(scene, headlines, brief) {
   if (brief && Number.isInteger(scene?.story) && headlines?.[scene.story]) return [headlines[scene.story]];
   return [...(headlines ?? [])];
 }
+
+/** 묶음(브리핑)을 만들어도 되나 — 11/02 한 편 한 뉴스가 먼저(shorts-single-story.test). 발행은 마지막 시도에만 '1', 앞 시도엔 '0'. 손으로 돌리면 종전대로. */
+export function briefAllowed(env = process.env) { return env.SHORTS_BRIEF_OK !== '0'; }

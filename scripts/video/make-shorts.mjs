@@ -20,7 +20,7 @@
  */
 import { chromium } from 'playwright';
 import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
-import { repeatsTitle, restatesTitle, sharesStory } from '../lib/hook-overlap.mjs';
+import { repeatsTitle, restatesTitle, sharesStory, namesSubject } from '../lib/hook-overlap.mjs';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
@@ -726,6 +726,13 @@ if (!FORCE_ISSUE) {
       return imgs.filter((c) => isRealFootage(c));
     };
     const lead = await shots(issue);
+    // 11/02: 한 편 한 뉴스가 먼저 — 발행의 앞 시도에선 묶지 않고 이 이슈를 빼고 다른 이슈로 다시(shorts-single-story.test).
+    const { briefAllowed } = await import('../lib/brief-scenes.mjs');
+    if (lead.length < 2 && !briefAllowed()) {
+      log(`[편성] 1순위 사진이 ${lead.length}장뿐 — 묶지 않고 다른 이슈로 한 편을 만든다(묶음은 마지막 시도에만)`);
+      try { writeFileSync(resolve(ROOT, 'logs/last-issue.txt'), String(issue.keyword ?? ''), 'utf8'); } catch { /* noop */ }
+      process.exit(3);
+    }
     if (lead.length < 2) {
       const picks = [{ it: issue, imgs: lead }];
       for (const cand of (BRIEF_POOL.length ? BRIEF_POOL : fresh)) {
@@ -936,6 +943,8 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
     실측(2026-09-26, 훅 41편): 안 넘기고 본 비율 상위 = "지지율 급락"·"최전방 부대 폭발"·"재제청 거부 이유"·"유출 고발"
     (47~63%), 하위 = "영국 기준금리 동결"·"올해 경제 성장률"·"서울 ODA 국제회의"(12~24%). 지표 이름만으로 시작하지 마라.
   · **1번 장면의 hook 은 썸네일이 된다**(쇼츠는 첫 화면이 썸네일이다).
+    **첫 훅은 헤드라인의 주어(회사·인물·기관·자산 이름)를 담는다** — 첫 화면 글만 봐도 누구 얘기인지 알게. 줄임말 가능(SK하이닉스→SK하닉).
+    좋음: "현대차 16년 만의 부진" / "삼전 영업익 107조" / "누리호 위성 15기". 나쁨(누구인지 없음): "16년 만의 최악 부진" / "1년 만의 장외집회".
     **헤드라인(=제목)을 되풀이하지 마라** — 제목은 화면 바로 아래에 이미 보인다. 제목에 없는 것을 더하라:
     결과·이유의 실마리·나에게 미치는 영향(기사에 있는 것만). 나쁨: 제목 "추미애, 지방세제 개편 제안" → 훅 "추미애 지방세제 개편"(2026-10-28 첫 화면 5.5~7점).
     **1번 장면의 첫 문장(say)도 헤드라인을 다시 읽지 마라** — 첫 자막이 된다. 장면·결과·숫자의 의미처럼 헤드라인 다음 이야기로 시작하라.
@@ -1090,9 +1099,11 @@ for (let a = 1; a <= 3; a++) {
     //   가장 큰 약점으로 짚었다(첫 화면 5.5~7). 첫 훅이 첫 헤드라인을 되풀이하면 다시 쓴다(lib/hook-overlap). 끝내 못 고치면 막지는 않는다.
     // 첫 대사(=첫 화면 아래 자막)도 같다(10/28 Mac mini2) — 제목 낱말 절반 이상을 다시 말하면 다시 쓴다.
     const echoTitle = scenes[0] && headlines[0] && (repeatsTitle(scenes[0].hook, headlines[0]) || restatesTitle(scenes[0].say, headlines[0]));
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle
+    // 11/02 벤치마크(경제 쇼츠 상위 10편 첫 화면은 늘 주어부터, 자문 agy·Claude 2/3): 첫 훅에 헤드라인 주어가 없으면 다시 쓴다(lib/hook-overlap namesSubject).
+    const noSubject = scenes[0] && headlines[0] && !namesSubject(scenes[0].hook, headlines[0]);
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle && !noSubject
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) {
     log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
     // 모델이 없으면 다시 써 봐야 같은 결과다 — 이 회차를 접는다(발행 쪽이 예비·다음 슬롯으로 메운다).
