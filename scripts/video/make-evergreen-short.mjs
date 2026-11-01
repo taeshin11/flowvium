@@ -211,26 +211,27 @@ const coverScene = (item) => `a large glowing stock market chart on a trading sc
 //   심판이 첫 화면 그림이 주제와 안 맞는다(image_ok=false)고 하면 첫 장면 그림을 시장 그림으로 다시 그리고 편을 통째로 다시 굽는다(그림 창일 때만).
 //   밤(23:35~02:40)은 ChatGPT 대기열이 쉬어 매겨도 통과 못 하니 건너뛴다 — 밤 슬롯은 낮에 미리 통과한 편으로 나간다. 3번 해도 안 되면 손볼 것(22:02 보고).
 async function coverCheck(dir, { canDraw = true } = {}) {
-  const { coverPassed, fileSha } = await import('../lib/shorts-spare.mjs');
+  const { coverPassed, fileSha, coverRecheckable, reuseScoredJudges } = await import('../lib/shorts-spare.mjs');
   const { inNightBan } = await import('../lib/thumb-gate.mjs');
   const mp = join(dir, 'shorts-ko-meta.json');
   let meta = JSON.parse(readFileSync(mp, 'utf8'));
   const c = meta.cover ?? {};
   if (coverPassed({ dir, meta })) return false;
   const tries = c.attempts ?? 0;
-  if (tries >= 3 || (c.needsDraw && !canDraw) || inNightBan()) return false;
+  const { currentBar } = await import('../lib/thumb-gate.mjs');
+  const FLOOR = currentBar().floor;   // 11/01 사장님: 셋 다 7.0
+  if (!coverRecheckable(c, FLOOR) || (c.needsDraw && !canDraw) || inNightBan()) return false;
   const item = DATA.items.find((x) => x.id === meta.id);
   const video = join(dir, 'shorts-ko.mp4');
   if (!item || !existsSync(video)) return false;
   // 같은 영상을 다시 매기지 않는다(10/28 Mac mini3 — ChatGPT 첨부 한도). 단 **점수로 떨어진 경우만** — 심판이 못 매겨서(대기열 쉼·시간초과)
   //   떨어진 편은 다음 실행에 다시 매긴다. 10/28 18:05 실행: 대기열 첨부 한도로 rate-cut·per 가 'ChatGPT 못 매김' 이었다.
-  const { currentBar } = await import('../lib/thumb-gate.mjs');
-  const FLOOR = currentBar().floor;   // 10/29: 채널 성적 기준(잘 되는 주엔 7.0) — 기준이 내려가면 7.0~7.4 로 떨어진 편은 다시 매길 값어치가 있다
   const realFail = ['chatgpt', 'agy', 'claude'].some((k) => typeof c[k] === 'number' && c[k] < FLOOR)
     || ['chatgpt', 'agy', 'claude'].every((k) => typeof c[k] === 'number');
   if (c.checkedAt && !c.needsDraw && realFail && c.sha === fileSha(video)) return false;
   log(`표지 점검 ${meta.id} (${tries + 1}번째)`);
-  let g = await gateShortsOpening({ video, title: meta.title, meta, log });
+  const { defaultJudges } = await import('../lib/thumb-gate.mjs');
+  let g = await gateShortsOpening({ video, title: meta.title, meta, log, gateOpts: { judges: reuseScoredJudges(c, fileSha(video), defaultJudges()) } });
   let redrawn = false, needsDraw = false;
   if (!g.passed && g.imageBad > 0) {
     if (!canDraw) needsDraw = true;

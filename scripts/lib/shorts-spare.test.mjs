@@ -8,7 +8,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { listSpares, pickSpare, promoteSpare, SPARE_FILES, evergreenDir, pickEvergreen, coverPassed, fileSha } from './shorts-spare.mjs';
+import { listSpares, pickSpare, promoteSpare, SPARE_FILES, evergreenDir, pickEvergreen, coverPassed, fileSha, coverRecheckable, reuseScoredJudges } from './shorts-spare.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  PASS  ${m}`);
@@ -76,6 +76,28 @@ mkdirSync(join(spares, 'broken'), { recursive: true });   // 영상 없는 반�
   const q = pickEvergreen({ dir: pool2, ok: coverPassed });
   (q?.meta.id === 'good') ? ok('[4d] 표지 통과 + 썸네일 그대로인 편만(안 매김·떨어짐·통과 뒤 바뀜은 뺀다)') : bad(`[4d] ${q?.meta.id}`);
   (pickEvergreen({ dir: pool2 })?.meta.id === 'old-unscored') ? ok('[4e] ok 를 안 주면 종전대로 먼저 만든 것') : bad('[4e]');
+}
+// [5] 표지 다시 매기기 — 3번 상한은 '점수로 떨어진' 판만 센다. 심판이 못 매겨서(ChatGPT 대기열 한도 등) 떨어진 판은 3시간 뒤 다시.
+//   11/01: pbr·rate-cut 이 agy 7.5·Claude 7 인데 10/30 ChatGPT 대기열 한도(.upload-limit)로 0/3 → attempts 3 이 차서 영영 안 매겨졌다.
+{
+  const now = Date.parse('2026-11-01T02:00:00Z'), old = '2026-10-30T03:11:12Z', fresh = '2026-11-01T01:30:00Z';
+  const c = (o) => ({ attempts: 3, checkedAt: old, chatgpt: '못 매김', agy: 7.5, claude: 7, ...o });
+  coverRecheckable(c(), 7, now) ? ok('[5a] 못 매김만 남은 판은 3번이 차도 다시') : bad('[5a]');
+  !coverRecheckable(c({ checkedAt: fresh }), 7, now) ? ok('[5b] 3시간 안엔 다시 묻지 않는다(대기열 아끼기)') : bad('[5b]');
+  !coverRecheckable(c({ agy: 6.5 }), 7, now) ? ok('[5c] 매긴 점수가 기준 아래면 3번으로 끝') : bad('[5c]');
+  !coverRecheckable(c({ chatgpt: 6.5 }), 7, now) ? ok('[5d] 셋 다 매겼으면 3번으로 끝') : bad('[5d]');
+  coverRecheckable(c({ attempts: 1, agy: 6.5 }), 7, now) ? ok('[5e] 3번 전엔 종전대로 다시') : bad('[5e]');
+  !coverRecheckable(c({ chatgpt: '미채점', agy: '못 매김', claude: '못 매김' }), 7, now) ? ok('[5f] 아무도 못 매겼으면 상한대로(고장 반복 막기)') : bad('[5f]');
+}
+// [6] 다시 매길 때 이미 매긴 심판(3번 가운데 값)은 다시 묻지 않는다 — 11/01 Mac mini2: 다시 굴리기 없음. 영상이 바뀌었으면 전부 새로.
+{
+  const asked = [];
+  const base = { chatgpt: async () => (asked.push('chatgpt'), { score: 8 }), agy: async () => (asked.push('agy'), { score: 5 }), claude: async () => (asked.push('claude'), { score: 5 }) };
+  const c = { sha: 'S1', chatgpt: '못 매김', agy: 7.5, claude: 7 };
+  const j = reuseScoredJudges(c, 'S1', base);
+  const got = [await j.chatgpt({}), await j.agy({}), await j.claude({})].map((r) => r.score);
+  (JSON.stringify(got) === '[8,7.5,7]' && asked.join() === 'chatgpt') ? ok('[6a] 못 매긴 심판만 묻고 나머지는 적힌 값') : bad(`[6a] ${got} ${asked}`);
+  (reuseScoredJudges(c, 'S2', base) === base) ? ok('[6b] 영상이 바뀌었으면 전부 새로 묻는다') : bad('[6b]');
 }
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

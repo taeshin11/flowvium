@@ -66,6 +66,25 @@ export function coverPassed(spare) {
   try { return fileSha(join(spare.dir, SPARE_FILES.video)) === c.sha; } catch { return false; }
 }
 
+/** 표지를 다시 매길 값어치가 있나 — 3번 상한은 점수로 떨어진 판만 센다.
+ *  매긴 점수가 모두 기준 이상인데 심판 하나 이상이 못 매겼으면(대기열 한도·크롬 꺼짐) 마지막 확인 3시간 뒤 다시 묻는다.
+ *  11/01: pbr·rate-cut 이 agy 7.5·Claude 7 인데 10/30 ChatGPT 대기열 한도로 0/3 → 3번이 차서 영영 안 매겨졌다. */
+export function coverRecheckable(c, floor, now = Date.now()) {
+  if ((c?.attempts ?? 0) < 3) return true;
+  const v = ['chatgpt', 'agy', 'claude'].map((k) => c[k]);
+  const nums = v.filter((x) => typeof x === 'number');
+  const onlyUnscored = nums.length > 0 && nums.length < v.length && nums.every((x) => x >= floor);
+  return onlyUnscored && now - Date.parse(c.checkedAt ?? 0) >= 3 * 3600e3;
+}
+
+/** 다시 매길 때 이미 매긴 심판(3번 가운데 값)은 적힌 값을 쓴다 — 다시 굴리지 않는다(11/01). 영상이 바뀌었으면 base 그대로(전부 새로). */
+export function reuseScoredJudges(c, videoSha, base) {
+  if (!c?.sha || c.sha !== videoSha) return base;
+  const out = { ...base };
+  for (const k of Object.keys(base)) if (typeof c[k] === 'number') out[k] = async () => ({ score: c[k], weak: '', text: '' });
+  return out;
+}
+
 /** 풀에서 하나 — 이미 나간 주제 빼고, 먼저 만든 것부터. 만드는 중(<id>.part)은 집지 않는다. ok 로 더 거른다(표지 통과 등). */
 export function pickEvergreen({ dir, isPublished = () => false, ok = () => true }) {
   return listSpares(dir).filter((s) => !s.dir.endsWith('.part') && !isPublished(s.meta.keyword) && ok(s))

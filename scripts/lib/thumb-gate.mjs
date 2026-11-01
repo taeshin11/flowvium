@@ -2,7 +2,7 @@
  * thumb-gate.mjs — 올리기 전 썸네일 3자 채점 관문. (2026-10-28 사장님, Mac mini2 경유) 머리말 규칙은 thumb-gate.test.mjs.
  *
  * 심판 셋이 따로 10점 만점: ChatGPT · agy(gemini-4-argon-medium, 그림 첨부) · Claude(claude -p, 그림을 Read).
- *   통과 = 정해진 심판(need)이 모두 매겼고, 셋 다 FLOOR 이상 + 하나라도 PASS_ONE 이상(10/28 18:3x 사장님: 7.5·8). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
+ *   통과 = 정해진 심판(need)이 모두 매겼고, 셋 다 FLOOR 이상(11/01 사장님: 7.0 하나). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
  *   7 이하가 있으면 가장 낮은 심판이 낸 글로 부르는 쪽이 다시 굽고(rerender) 다시 매긴다 — 최대 3번, 전체 10분.
  *   그래도 안 되면 가장 나은 판(최저점 → 합)을 쓰고 flagged 에 이유를 남긴다(22:00 보고).
  * 고칠 수 있는 건 **썸네일 글뿐**이다. 사진은 그 뉴스의 실제 사진이라 바꾸지 않는다(바꾸면 낚시 — make-shorts 머리말).
@@ -15,22 +15,19 @@ import { tmpdir, homedir } from 'node:os';
 import { join, dirname, extname } from 'node:path';
 import { CALL } from './comment-reply.mjs';
 
-// 10/28 18:3x 사장님이 다시 바꿈(desktop1 창, Mac mini2 경유): 셋 다 7.5 이상 + 하나라도 8 이상. (그 전: 셋 다 7 + 하나 7.5 → 8·8·7.5 → 셋 다 8)
-export const FLOOR = 7.5;
-export const PASS_ONE = 8;
+// 11/01 10:3x 사장님(Mac mini2 경유): 셋 다(3번 가운데 값) 7.0 이상이면 끝. '하나라도 ~ 이상'은 없앴다 — PASS_ONE = FLOOR 이면 저절로 채워진다.
+//   (그 전: 10/28 셋 다 7.5 + 하나 8 → 10/28~10/31 28칸이 6.5~7.5 로 전부 걸려 채널이 사흘 반 비었다)
+export const FLOOR = 7;
+export const PASS_ONE = 7;
 export const PASS = PASS_ONE; // 고칠 글을 낼 만큼 낮은 점수의 선(심판에게 '이 아래면 고칠 글')
 export const NEED = ['chatgpt', 'agy', 'claude'];
 
-// 10/29 16:0x 사장님(desktop1 → Mac mini2 경유): 잘 되는 채널(지난 7일 조회 > 그 전 7일)은 셋 다 7.0 + 하나 7.5.
-//   나머지는 위 7.5·8 그대로. 날마다 다시 잰다 — scripts/thumb-bar.mjs 가 logs/thumb-bar.json 에 두 숫자를 적는다.
-//   하루 반 넘게 안 잰 값·모르는 값은 믿지 않고 엄한 쪽(미채점이 통과가 아닌 것과 같은 이유).
-export const RELAXED = { floor: 7, passOne: 7.5 };
+// 10/29 엔 지난 7일 조회가 늘면 기준을 낮췄다. 11/01 사장님이 나누기를 없앴다 — 기준은 늘 FLOOR·PASS_ONE.
+//   scripts/thumb-bar.mjs 가 날마다 재는 조회수는 관문 기록(bar)에 남기기만 한다.
 export const BAR_FILE = join(dirname(new URL(import.meta.url).pathname), '../../logs/thumb-bar.json');
 export function barFrom(rec, now = Date.now()) {
   const fresh = rec && Number.isFinite(Date.parse(rec.at)) && now - Date.parse(rec.at) <= 36 * 3600e3;
-  const good = fresh && Number.isFinite(rec.last7) && Number.isFinite(rec.prev7) && rec.last7 > rec.prev7;
-  const nums = { last7: fresh ? rec.last7 ?? null : null, prev7: fresh ? rec.prev7 ?? null : null, measuredAt: fresh ? rec.at : null };
-  return good ? { ...RELAXED, name: '잘 되는 채널', ...nums } : { floor: FLOOR, passOne: PASS_ONE, name: '기본', ...nums };
+  return { floor: FLOOR, passOne: PASS_ONE, name: '기본', last7: fresh ? rec.last7 ?? null : null, prev7: fresh ? rec.prev7 ?? null : null, measuredAt: fresh ? rec.at : null };
 }
 export function currentBar(now = Date.now(), file = process.env.THUMB_BAR_FILE || BAR_FILE) {
   try { return barFrom(JSON.parse(readFileSync(file, 'utf8')), now); } catch { return barFrom(null, now); }
@@ -47,7 +44,7 @@ export function medianOf(results) {
   const sorted = [...ok].sort((a, b) => a.score - b.score);
   const pick = ok.length >= 3 ? sorted[Math.floor((sorted.length - 1) / 2)] : sorted[0];
   return { ...pick, samples: results.map((r) => (scored(r) ? r.score : null)) };
-}   // 사장님: 셋 다 8 이상. 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
+}   // 못 매긴 심판(야간 미채점 포함)이 있으면 통과가 아니다
 
 export function judgePrompt({ title, kind, file, textRule, anchors = null }) {
   // 기준 그림(10/28 Mac mini3·Mac mini2): 심판마다 눈금이 달라 실제 성적이 있는 두 장을 먼저 보여 준다.
@@ -97,7 +94,7 @@ export function safeText(t, { source = '', maxChars = 24, maxWords = 6, digits =
 const scored = (r) => r && Number.isFinite(r.score);
 
 /**
- * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수가 모두 FLOOR 이상이며 하나라도 PASS_ONE 이상(지금 7.5·8 — 위 상수).
+ * 통과 = 정해진 심판(need)이 모두 매겼고, 매긴 점수가 모두 FLOOR 이상이며 하나라도 PASS_ONE 이상(지금 7·7 — 사실상 셋 다 7.0).
  * low = 기준을 깨는 심판(FLOOR 미만, 또는 PASS_ONE 이상이 하나도 없으면 전부) — 고칠 글은 이들의 것에서 고른다.
  * settled = 통과는 아니지만 더 고쳐도 소용없는 경우 — ChatGPT 만 못 매겼고 나머지는 기준을 넘었다.
  *   그 편은 통과가 아니다(사장님: 미채점·오류는 통과로 세지 않는다). 다시 굽지 않고 멈춘다.

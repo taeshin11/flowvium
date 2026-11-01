@@ -210,17 +210,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal(parseJudge({ score: 7.46, weak: '', text: '' }).score, 7.5, '한 자리로 반올림');
   assert.equal(decide({ chatgpt: { score: 6.9 }, agy: { score: 8 }, claude: { score: 9 } }, N3).pass, false, '6.9 는 7 미만');
   // 10/28 저녁 최종(사장님, 보정 결과를 보고): 셋 다 7 이상 + 하나라도 7.5 이상
-  // 10/28 18:3x 사장님 다시 바꿈(desktop1 창): 셋 다 7.5 이상 + 하나라도 8 이상
-  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 7.5 }, claude: { score: 8 } }, N3).pass, true);
-  assert.equal(decide({ chatgpt: { score: 7.2 }, agy: { score: 7.5 }, claude: { score: 7 } }, N3).pass, false, 'pZd7tHnjg2o 7.2/7.5/7 — 이제 미달');
-  assert.equal(decide({ chatgpt: { score: 7.5 }, agy: { score: 7.5 }, claude: { score: 7.5 } }, N3).pass, false, '8 이상이 하나도 없다');
+  // 11/01 10:3x 사장님(Mac mini2 경유): 셋 다(3번 가운데 값) 7.0 이상이면 끝. '하나라도 8'·조회수로 나누기는 없앴다.
+  assert.equal(decide({ chatgpt: { score: 7 }, agy: { score: 7 }, claude: { score: 7 } }, N3).pass, true, '셋 다 7.0 — 통과');
+  assert.equal(decide({ chatgpt: { score: 7.2 }, agy: { score: 7.5 }, claude: { score: 7 } }, N3).pass, true, 'pZd7tHnjg2o 7.2/7.5/7 — 다시 통과');
   assert.equal(decide({ chatgpt: { score: 8.4 }, agy: { score: 8.5 }, claude: { score: 7.5 } }, N3).pass, true, '16:55 krclose');
-
-  assert.equal(decide({ chatgpt: { score: 7.4 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7.5 미만이 있다');
+  assert.equal(decide({ chatgpt: { score: 6.9 }, agy: { score: 9 }, claude: { score: 9 } }, N3).pass, false, '7.0 미만이 있다');
   assert.equal(decide({ chatgpt: { score: 7.8 }, agy: { score: 5.5 }, claude: { score: 6.5 } }, N3).pass, false, '16:43 편');
-  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7.5 }, claude: { score: 8 } }, N3);
+  const night = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7 }, claude: { score: 7 } }, N3);
   assert.equal(night.pass, false); assert.equal(night.settled, true, '못 매긴 ChatGPT 말고는 기준을 넘었다 — 더 굽지 않는다');
-  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 7 }, claude: { score: 9 } }, N3);
+  const night2 = decide({ chatgpt: { skipped: '야간' }, agy: { score: 6.5 }, claude: { score: 9 } }, N3);
   assert.equal(night2.pass, false); assert.equal(night2.settled, false);
   // 흐름 — ChatGPT 가 빠진 채 나머지가 기준을 넘으면 더 굽지 않고 멈춘다
   let calls = 0;
@@ -268,10 +266,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const mk = (a, c) => ({ agy: async () => ({ score: a, weak: 'w', text: '새 글' }), claude: async () => ({ score: c, weak: 'w', text: '새 글2' }),
     chatgpt: async () => { asked++; return { score: 8, weak: '', text: '' }; } });
   const N3 = ['chatgpt', 'agy', 'claude'];
-  const r1 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7, 9), rerender: async () => null, log: () => {} });
+  const r1 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(6.5, 9), rerender: async () => null, log: () => {} });
   assert.equal(asked, 0, '이미 7 미만이 있으면 ChatGPT 를 묻지 않는다'); assert.equal(r1.passed, false); assert.ok(r1.rounds[0].scores.chatgpt.skipped);
   const r2 = await runThumbGate({ image: 'v0.jpg', text: 'x', title: 'T', kind: 'shorts', need: N3, lazy: ['chatgpt'], maxFixes: 0, judges: mk(7.5, 7.5), rerender: async () => null, log: () => {} });
-  assert.equal(asked, 1, '나머지가 FLOOR 이상이면 묻는다(8 은 ChatGPT 가 채울 수 있다)'); assert.equal(r2.passed, true);
+  assert.equal(asked, 1, '나머지가 FLOOR(7.0) 이상이면 묻는다'); assert.equal(r2.passed, true);
 }
 // [20] 10/29 사장님(Mac mini2 경유): 심판마다 3번 따로 매겨 가운데 값 — 한 번 점수는 ±2 흔들린다
 {
@@ -286,21 +284,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     judges: { agy: async () => ({ score: seq[n++], weak: '', text: '' }) }, rerender: async () => null, log: () => {} });
   assert.equal(n, 3, '3번 묻는다'); assert.equal(r.rounds[0].scores.agy.score, 8); assert.deepEqual(r.rounds[0].scores.agy.samples, [6, 9, 8]);
 }
-// [21] 10/29 사장님: 잘 되는 채널(지난 7일 조회 > 그 전 7일)은 셋 다 7.0 + 하나 7.5. 나머지는 7.5·8. 날마다 다시 잰다(logs/thumb-bar.json)
+// [21] 11/01 사장님: 조회수로 기준을 나누지 않는다 — 잘 되든 안 되든·모르든 셋 다 7.0. 잰 조회수는 기록으로만 남긴다.
 {
   const { barFrom, decide: d2 } = await import('./thumb-gate.mjs');
-  const now = Date.parse('2026-10-29T12:00:00Z');
-  const up = barFrom({ at: '2026-10-29T07:00:00Z', last7: 120, prev7: 100 }, now);
-  assert.deepEqual([up.floor, up.passOne, up.name], [7, 7.5, '잘 되는 채널']);
-  const down = barFrom({ at: '2026-10-29T07:00:00Z', last7: 51106, prev7: 54085 }, now);
-  assert.deepEqual([down.floor, down.passOne], [7.5, 8]);
-  assert.deepEqual([barFrom({ at: '2026-10-27T07:00:00Z', last7: 120, prev7: 100 }, now).floor], [7.5], '하루 넘게 안 잰 값은 안 믿는다');
-  assert.equal(barFrom(null, now).floor, 7.5, '모르면 엄한 쪽');
-  assert.equal(barFrom({ at: '2026-10-29T07:00:00Z', last7: 100, prev7: 100 }, now).floor, 7.5, '같으면 잘 되는 게 아니다');
-  const sc = { chatgpt: { score: 7 }, agy: { score: 7.5 }, claude: { score: 7 } };
-  assert.equal(d2(sc, ['chatgpt', 'agy', 'claude'], up).pass, true);
-  assert.equal(d2(sc, ['chatgpt', 'agy', 'claude'], down).pass, false);
-  assert.equal(d2({ agy: { score: 9 }, claude: { score: 9 } }, ['chatgpt', 'agy', 'claude'], up).pass, false, '미채점은 낮은 기준에서도 실패');
+  const now = Date.parse('2026-11-01T01:00:00Z');
+  const up = barFrom({ at: '2026-11-01T00:00:00Z', last7: 120, prev7: 100 }, now);
+  const down = barFrom({ at: '2026-11-01T00:00:00Z', last7: 51775, prev7: 55873 }, now);
+  for (const b of [up, down, barFrom(null, now), barFrom({ at: '2026-10-20T00:00:00Z', last7: 1, prev7: 2 }, now)]) assert.deepEqual([b.floor, b.passOne], [7, 7]);
+  assert.deepEqual([down.last7, down.prev7], [51775, 55873], '숫자는 기록에 남는다');
+  const sc = { chatgpt: { score: 7 }, agy: { score: 7 }, claude: { score: 7 } };
+  assert.equal(d2(sc, ['chatgpt', 'agy', 'claude'], down).pass, true, '조회 줄어든 주에도 7.0 이면 통과');
+  assert.equal(d2({ agy: { score: 9 }, claude: { score: 9 } }, ['chatgpt', 'agy', 'claude'], down).pass, false, '미채점은 실패');
+  assert.equal(d2({ chatgpt: { score: 6.9 }, agy: { score: 9 }, claude: { score: 9 } }, ['chatgpt', 'agy', 'claude'], down).pass, false);
 }
 await sleep(0);
 console.log('thumb-gate.test: ✅ 전부 통과');
