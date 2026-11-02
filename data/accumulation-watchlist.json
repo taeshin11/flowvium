@@ -1,61 +1,26 @@
 {
-  "generatedAt": "2026-11-01T22:20:32.310Z",
+  "generatedAt": "2026-11-02T07:20:36.187Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
-  "strongCount": 1,
-  "watchCount": 2,
+  "count": 1,
+  "strongCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "035900.KQ",
       "name": "JYP Ent.",
-      "tier": "strong",
-      "score": 46,
+      "tier": "watch",
+      "score": 33,
       "coFire": 2,
       "lead": [
         "거래량 추세 3.3× 상승(지속 매집)",
-        "거래량 4.2× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "거래량 3.8× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 4.9,
-      "runup5dPct": 6.9,
-      "medDollarVolUsd": 5998537,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "445680.KQ",
-      "name": "큐리옥스바이오시스템즈",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.3× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -13.9,
-      "runup5dPct": -17.7,
-      "medDollarVolUsd": 3448422,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "456160.KQ",
-      "name": "지투지바이오",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 0.7,
-      "runup5dPct": -28.4,
-      "medDollarVolUsd": 4569520,
+      "runup20dPct": 0.5,
+      "runup5dPct": 5.4,
+      "medDollarVolUsd": 5985624,
       "smartAccum": true,
       "official": null
     }
