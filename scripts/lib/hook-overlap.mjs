@@ -52,9 +52,12 @@ export function headlineSubject(headline) {
   return w.length >= 2 && !/^[0-9]/.test(w) ? w : null;
 }
 
-/** 첫 훅이 헤드라인의 주어를 담나 — 어간 근사(앞 두 글자·영문 통째)로 하나라도 겹치면 된다. 주어를 못 뽑으면 true. */
-export function namesSubject(hook, headline) {
-  const s = headlineSubject(headline);
+/** 첫 훅이 헤드라인의 주어를 담나 — 어간 근사(앞 두 글자·영문 통째)로 하나라도 겹치면 된다. 주어를 못 뽑으면 true.
+ *  keyword(이슈 키워드 — 이 회차가 모은 이야기의 주인공)가 헤드라인에 있으면 그게 주어다. 첫 낱말은 꾸밈말일 수 있다
+ *  (11/02 "[일문일답] 국빈방한 에르도안 …" 에서 '국빈방한' 을 주어로 뽑았다). */
+export function namesSubject(hook, headline, keyword) {
+  const k = String(keyword ?? '').trim();
+  const s = k.length >= 2 && String(headline ?? '').includes(k) ? k : headlineSubject(headline);
   if (!s) return true;
   const want = new Set(stems(s));
   return stems(hook).some((w) => want.has(w));

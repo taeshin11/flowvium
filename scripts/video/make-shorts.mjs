@@ -1121,7 +1121,7 @@ for (let a = 1; a <= 3; a++) {
     // 첫 대사(=첫 화면 아래 자막)도 같다(10/28 Mac mini2) — 제목 낱말 절반 이상을 다시 말하면 다시 쓴다.
     const echoTitle = scenes[0] && headlines[0] && (repeatsTitle(scenes[0].hook, headlines[0]) || restatesTitle(scenes[0].say, headlines[0]));
     // 11/02 벤치마크(경제 쇼츠 상위 10편 첫 화면은 늘 주어부터, 자문 agy·Claude 2/3): 첫 훅에 헤드라인 주어가 없으면 다시 쓴다(lib/hook-overlap namesSubject).
-    const noSubject = scenes[0] && headlines[0] && !namesSubject(scenes[0].hook, headlines[0]);
+    const noSubject = scenes[0] && headlines[0] && !namesSubject(scenes[0].hook, headlines[0], issue.keyword);
     if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle && !noSubject
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
     log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
