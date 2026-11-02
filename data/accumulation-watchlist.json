@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T07:20:36.187Z",
+  "generatedAt": "2026-11-02T22:20:27.999Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 1,
@@ -8,19 +8,19 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "035900.KQ",
-      "name": "JYP Ent.",
+      "ticker": "445680.KQ",
+      "name": "큐리옥스바이오시스템즈",
       "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.3× 상승(지속 매집)",
-        "거래량 3.8× 급증(가격 평탄)",
+        "거래량 추세 3.5× 상승(지속 매집)",
+        "거래량 2.5× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 0.5,
-      "runup5dPct": 5.4,
-      "medDollarVolUsd": 5985624,
+      "runup20dPct": -10.3,
+      "runup5dPct": -9.5,
+      "medDollarVolUsd": 3550352,
       "smartAccum": true,
       "official": null
     }
