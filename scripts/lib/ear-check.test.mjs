@@ -96,5 +96,23 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
     ? ok(`[S] 표기 차이는 통과(${a.toFixed(2)}) · 같으면 1 · 반 넘게 빠지면 걸린다(${c.toFixed(2)})`) : bad(`[S] a=${a} b=${b} c=${c}`);
   (d < 1) ? ok(`[S2] 낱말 하나 틀리면 점수가 준다(${d.toFixed(2)}) — 문턱은 넘을 수 있다(낱말 오독은 약어 귀검증·사람 귀가 맡는다)`) : bad('[S2]');
 }
+
+// [L] 11/03 Mac mini2(구글 청구): 한 줄은 한 번만 만든다. 7일 동안 DMZ 가 7번 'dot 표기로 다시 만들어 해결' — 고친 표기를 기억해 첫 합성부터 쓴다.
+{
+  const { earCheckAndRepair: fix, learnedSpoken, WHOLE_REDO_ROUNDS } = await import('./ear-check.mjs');
+  const texts = ['DMZ 지뢰 사건입니다.'];
+  const r = fix({ texts, out: [{ path: 'a.wav' }],
+    synth: (sp) => sp.map((x, k) => ({ path: `r${k}.wav`, spoken: x })),
+    transcribe: (items) => items.map((x) => (x.spoken ? '디엠제트 지뢰 사건입니다' : '띠 지뢰 사건입니다')),
+    log: () => {}, record: () => {} });
+  JSON.stringify(r.learned) === JSON.stringify({ DMZ: 'dot' }) ? ok('[L] 고친 표기를 돌려준다(DMZ→dot)') : bad(`[L] learned=${JSON.stringify(r.learned)}`);
+  let remade = 0;
+  const sp = typeof learnedSpoken === 'function' ? learnedSpoken(texts[0], { DMZ: 'dot' }) : null;
+  const first = typeof learnedSpoken === 'function' ? fix({ texts, out: [{ path: 'a.wav', spoken: sp }], synth: () => { remade++; return []; },
+    transcribe: (items) => items.map((x) => (x.spoken ? '디엠제트 지뢰 사건입니다' : '띠')), log: () => {}, record: () => {} }) : null;
+  (sp && sp !== texts[0] && first?.fixed === 0 && first?.checked === 1 && remade === 0) ? ok(`[L2] 기억한 표기로 처음부터 부르면 다시 만들지 않는다("${sp}")`) : bad(`[L2] sp=${sp}`);
+  (typeof learnedSpoken === 'function' && learnedSpoken('삼성전자 실적입니다.', { DMZ: 'dot' }) === '삼성전자 실적입니다.') ? ok('[L3] 기억한 약어가 없는 문장은 그대로') : bad('[L3]');
+  WHOLE_REDO_ROUNDS === 1 ? ok('[L4] 문장 전체 다시 부르기는 1번까지') : bad(`[L4] ${WHOLE_REDO_ROUNDS}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

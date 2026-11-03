@@ -18,6 +18,17 @@ import { speakNumbers } from './kr-number.mjs';
 
 const STYLES = ['dot', 'spaced', 'commas'];
 
+/** 문장 전체 되듣기(tts-korean wholeSentenceCheck)로 다시 부르는 횟수. 11/03 Mac mini2(구글 청구): 다시 만드는 건 최소로 — 2→1. */
+export const WHOLE_REDO_ROUNDS = 1;
+
+/** 전에 고친 표기(learned: 약어→style)를 첫 합성부터 쓴다 — 같은 약어를 매번 틀리고 다시 만들지 않게(11/03, DMZ 7일 7번).
+ *  기억한 약어가 없으면 글 그대로 돌려준다(Gemini 는 대본 글을 그대로 읽는다). */
+export function learnedSpoken(text, learned = {}) {
+  const hit = keyTerms(text).filter((t) => learned[t]);
+  if (!hit.length) return text;
+  return speakNumbers(speakLatin(text, { overrides: Object.fromEntries(hit.map((t) => [t, spellTerm(t, learned[t])])) }));
+}
+
 /** 문장에서 소리를 확인할 약어들(중복 없이, 나온 순서대로). */
 export function keyTerms(text) {
   const out = [];
@@ -77,6 +88,7 @@ export function earCheckAndRepair({ texts, out, synth, transcribe, log, record }
   for (const p of pending) log(`[귀검증] ⚠ ${p.i + 1}번 문장 ${p.missed.join('·')} 가 안 들렸다 — 들린 말: "${p.heardAs.slice(0, 60)}"`);
 
   let fixed = 0;
+  const learned = {};
   for (const style of STYLES) {
     if (!pending.length) break;
     const spoken = pending.map((p) => speakNumbers(speakLatin(texts[p.i], {
@@ -93,6 +105,7 @@ export function earCheckAndRepair({ texts, out, synth, transcribe, log, record }
         next[p.i] = made[k];   // 나아졌으면 이것을 쓴다
         log(`[귀검증] ✅ ${p.i + 1}번 문장 ${style} 표기로 다시 만들어 ${p.missed.filter((t) => !miss.includes(t)).join('·')} 해결`);
         if (!miss.length) fixed++;
+        for (const t of p.missed) if (!miss.includes(t)) learned[t] = style;
       }
       if (miss.length) still.push({ ...p, missed: miss, heardAs: again[k] ?? p.heardAs });
     });
@@ -103,7 +116,7 @@ export function earCheckAndRepair({ texts, out, synth, transcribe, log, record }
     log(`[귀검증] ❗ ${u.term} 은 어떤 표기로도 제대로 안 들렸다 — 발행은 하되 발음 사전 후보로 기록한다`);
     record(u);
   }
-  return { out: next, checked: items.length, fixed, unresolved };
+  return { out: next, checked: items.length, fixed, unresolved, learned };
 }
 
 /**

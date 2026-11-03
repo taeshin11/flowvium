@@ -34,7 +34,7 @@ import { ROOT } from './project-root.mjs';
 import { speakNumbers } from './kr-number.mjs';
 import { speakLatin } from './kr-latin.mjs';
 import { speakWords } from './kr-pron.mjs';
-import { earCheckAndRepair, sentenceScore, SENTENCE_MIN } from './ear-check.mjs';
+import { earCheckAndRepair, sentenceScore, SENTENCE_MIN, learnedSpoken, WHOLE_REDO_ROUNDS } from './ear-check.mjs';
 import { cleanVoOut } from './vo-burst.mjs';
 import { koEngine, ttsSettings, batchTexts, BATCH_SEP, splitBatch, readWav16, writeWav16 } from './gemini-tts.mjs';
 import { createRequire } from 'module';
@@ -245,6 +245,14 @@ function ttsConf() {
 }
 function geminiKey() { return ttsConf().key; }
 
+// Gemini 가 틀려 다른 표기로 고친 약어(약어→표기). 다음 편부터 첫 합성에 쓴다 — 같은 줄을 두 번 만들지 않게(11/03 구글 청구, Mac mini2).
+const EAR_LEARNED = () => join(ROOT, 'logs/ear-learned-gemini.json');
+function readLearned() { try { return JSON.parse(readFileSync(EAR_LEARNED(), 'utf8')); } catch { return {}; } }
+function saveLearned(add) {
+  if (!add || !Object.keys(add).length) return;
+  try { writeFileSync(EAR_LEARNED(), JSON.stringify({ ...readLearned(), ...add }, null, 2)); } catch { /* 기억 못 해도 이번 편은 이미 고쳤다 */ }
+}
+
 function recordEngine(x) {
   try {
     mkdirSync(join(ROOT, 'logs'), { recursive: true });
@@ -350,7 +358,7 @@ function wholeSentenceCheck(texts, out, { synth, log, record }) {
   const best = out.map((o, i) => ({ o, score: sentenceScore(texts[i], heardNow[i]), heard: heardNow[i] }));
   const low = () => best.map((b, i) => (b.score < SENTENCE_MIN ? i : -1)).filter((i) => i >= 0);
   if (!low().length) { log(`[귀검증·문장] ✅ ${texts.length}문장 모두 통과(최저 ${Math.min(...best.map((b) => b.score)).toFixed(2)})`); return out; }
-  for (let round = 1; round <= 2 && low().length; round++) {
+  for (let round = 1; round <= WHOLE_REDO_ROUNDS && low().length; round++) {
     const idx = low();
     for (const i of idx) log(`[귀검증·문장] ⚠ ${i + 1}번 ${best[i].score.toFixed(2)} — 들린 말 "${String(best[i].heard).slice(0, 50)}" · 다시 부른다(${round})`);
     let made; let again;
@@ -370,21 +378,27 @@ export function synthesizeKoreanAuto(texts, opts = {}) {
     log('엔진 gemini 선택 (KO_TTS_ENGINE=gemini)');
     if (!opts.outPrefix) throw new Error('outPrefix 가 필요하다');   // 부르는 쪽 실수 — 엔진 실패로 세지 않는다
     try {
-      const out = synthesizeKoreanGemini(texts, opts);
+      const learned = readLearned();
+      const spoken = texts.map((t) => learnedSpoken(t, learned));
+      const pre = spoken.filter((x, i) => x !== texts[i]).length;
+      if (pre) log(`전에 고친 약어 표기로 처음부터 부른다 — ${pre}문장`);
+      const out = synthesizeKoreanGemini(spoken, { ...opts, display: texts });
       log(`엔진 gemini (${out.model} · ${out.voice}) · ${texts.length}문장 · 오디오 토큰 ${out.tokens}`);
       recordEngine({ engine: 'gemini', model: out.model, voice: out.voice, sentences: texts.length, tokens: out.tokens });
       if (process.env.EAR_CHECK === '0') return out;
       let n = 0;
-      const fixed = earCheckAndRepair({
+      const ear = earCheckAndRepair({
         texts,
-        out: out.map((o) => ({ ...o, spoken: undefined })),
+        out: out.map((o, i) => ({ ...o, spoken: spoken[i] !== texts[i] ? spoken[i] : undefined })),
         synth: (sp, disp) => synthesizeKoreanGemini(sp, { ...opts, display: disp, outPrefix: `${opts.outPrefix}-ear${++n}` }),
         transcribe: (items) => transcribeKo(items.map((x) => x.path)),
         log,
         record: (x) => recordEngine({ engine: 'gemini', ear: x }),
-      }).out;
+      });
+      saveLearned(ear.learned);
+      const fixed = ear.out;
       return wholeSentenceCheck(texts, fixed, {
-        synth: (idx) => synthesizeKoreanGemini(idx.map((i) => texts[i]), { ...opts, outPrefix: `${opts.outPrefix}-whole${++n}` }),
+        synth: (idx) => synthesizeKoreanGemini(idx.map((i) => spoken[i]), { ...opts, display: idx.map((i) => texts[i]), outPrefix: `${opts.outPrefix}-whole${++n}` }),
         log, record: (x) => recordEngine({ engine: 'gemini', whole: x }) });
     } catch (e) {
       // 회차 전체를 melo 로 — 한 편 안에서 목소리가 섞이지 않게. 한도(429) 소진도 여기로 온다.
