@@ -1,10 +1,10 @@
 {
   "AAPL": {
-    "revUsd": 416161000000,
-    "revYoYPct": 6.4,
-    "opMarginPct": 32,
-    "roePct": 151.9,
-    "fy": "2025"
+    "revUsd": 478834000000,
+    "revYoYPct": 15.1,
+    "opMarginPct": 33,
+    "roePct": 117.9,
+    "fy": "2026"
   },
   "NVDA": {
     "revUsd": 215938000000,
@@ -5970,20 +5970,6 @@
     "roePct": 21.2,
     "fy": "2025"
   },
-  "039490.KS": {
-    "revUsd": 11808071683,
-    "revYoYPct": 51.8,
-    "opMarginPct": 8.7,
-    "roePct": 16.6,
-    "fy": "2025"
-  },
-  "000880.KS": {
-    "revUsd": 51576165517,
-    "revYoYPct": 34.4,
-    "opMarginPct": 5.5,
-    "roePct": 4.1,
-    "fy": "2025"
-  },
   "353200.KS": {
     "revUsd": 734685903,
     "revYoYPct": 19.4,
@@ -5996,13 +5982,6 @@
     "revYoYPct": 10.5,
     "opMarginPct": 3.5,
     "roePct": 5.5,
-    "fy": "2025"
-  },
-  "034220.KS": {
-    "revUsd": 17800056552,
-    "revYoYPct": -3,
-    "opMarginPct": 2,
-    "roePct": 3.9,
     "fy": "2025"
   },
   "062040.KS": {
@@ -6122,13 +6101,6 @@
     "revYoYPct": 29.6,
     "opMarginPct": 7.4,
     "roePct": 17.6,
-    "fy": "2025"
-  },
-  "023530.KS": {
-    "revUsd": 9474727397,
-    "revYoYPct": -1.8,
-    "opMarginPct": 4,
-    "roePct": 0.4,
     "fy": "2025"
   },
   "111770.KS": {
@@ -6318,55 +6290,6 @@
     "revYoYPct": -2.5,
     "opMarginPct": null,
     "roePct": null,
-    "fy": "2025"
-  },
-  "000250.KQ": {
-    "revUsd": 159865709,
-    "revYoYPct": 9.9,
-    "opMarginPct": 3.7,
-    "roePct": 3.3,
-    "fy": "2025"
-  },
-  "087010.KQ": {
-    "revUsd": 3886081,
-    "revYoYPct": 78.8,
-    "opMarginPct": null,
-    "roePct": -9.7,
-    "fy": "2025"
-  },
-  "028300.KQ": {
-    "revUsd": 58050051,
-    "revYoYPct": 23.6,
-    "opMarginPct": null,
-    "roePct": -47.6,
-    "fy": "2025"
-  },
-  "298380.KQ": {
-    "revUsd": 54724033,
-    "revYoYPct": 137.6,
-    "opMarginPct": -50.9,
-    "roePct": -24.2,
-    "fy": "2025"
-  },
-  "440110.KQ": {
-    "revUsd": 63737471,
-    "revYoYPct": 112.4,
-    "opMarginPct": -70.8,
-    "roePct": null,
-    "fy": "2025"
-  },
-  "141080.KQ": {
-    "revUsd": 97622806,
-    "revYoYPct": null,
-    "opMarginPct": -75.2,
-    "roePct": -16.9,
-    "fy": "2025"
-  },
-  "240810.KQ": {
-    "revUsd": 627445304,
-    "revYoYPct": 21.6,
-    "opMarginPct": 8.1,
-    "roePct": 8.7,
     "fy": "2025"
   },
   "310210.KQ": {
