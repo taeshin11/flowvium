@@ -220,7 +220,7 @@ const M = await import('./market-brief.mjs');
   (f.name === 'aisvi' && f.fallback && /brief-ad-aisvi\.mp4$/.test(f.path)) ? ok('[19b] 원하는 광고 없으면 다른 쪽') : bad(`[19b] ${JSON.stringify(f)}`);
   (M.briefPromo(h(0), { exists: () => false }).path === null) ? ok('[19c] 둘 다 없으면 광고 없이') : bad('[19c]');
   // [19d] 2026-10-28 AISVI 광고 새 판 — 끝 광고는 2.5초 카드(make-brief-ads --card <판>), aisvi 차례마다 a→b→c. 판 카드가 없으면 옛 긴 광고.
-  const noKak = (p) => p !== M.AISVI_BRIEF_AD;
+  const noKak = (p) => !M.AISVI_BRIEF_ADS.includes(p);
   const v = [0, 2, 4, 6].map((n) => M.briefPromo(h(n), { exists: noKak }));
   (v.map((x) => x.version).join('') === 'abca' && v.every((x) => /brief-card-aisvi-[abc]\.mp4$/.test(x.path)))
     ? ok('[19d] aisvi 차례마다 판 카드 a→b→c') : bad(`[19d] ${JSON.stringify(v)}`);
@@ -230,6 +230,11 @@ const M = await import('./market-brief.mjs');
   const kak = [0, 1, 2].map((n) => M.briefPromo(h(n), { exists: has }));
   (kak[0].path === M.AISVI_BRIEF_AD && kak[0].version === 'a' && kak[2].path === M.AISVI_BRIEF_AD && kak[2].version === 'b' && kak[1].name === 'flowvium')
     ? ok('[19f] 새 AISVI 가로 광고가 있으면 aisvi 차례는 그것 · 판 기호 유지') : bad(`[19f] ${JSON.stringify(kak)}`);
+  // [19g] 2026-11-04 사장님(Mac mini2 경유): 롱폼 끝은 v44 원본(17.4초)을 가로 가운데에 둔 판. 들어오기 전엔 v16 유지.
+  const v16only = M.briefPromo(h(0), { exists: (p) => !/v44/.test(p) });
+  const v44 = M.briefPromo(h(0), { exists: has });
+  (M.AISVI_BRIEF_ADS?.[0] === M.AISVI_BRIEF_AD && /kakao-v44\.mp4$/.test(v44.path) && /kakao-v16\.mp4$/.test(v16only.path) && v44.version === 'a')
+    ? ok('[19g] 롱폼 aisvi 는 v44 판이 있으면 그것, 없으면 v16') : bad(`[19g] ${JSON.stringify([v16only, v44])}`);
   (/brief-ad-aisvi\.mp4$/.test(old.path) && !old.version) ? ok('[19e] 판 카드가 없으면 옛 긴 광고') : bad(`[19e] ${JSON.stringify(old)}`);
 }
 // [20] 마감판 등락률·주가는 장 끝난 뒤 근거에서만 — 10/23 첫 마감판 "삼성E&A는 … 6.5% 급등했습니다": 10시 [특징주] 기사의 장중 숫자

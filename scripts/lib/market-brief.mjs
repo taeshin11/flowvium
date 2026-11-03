@@ -226,7 +226,9 @@ export function pickCalendar(econ, earn) {
  */
 /** 2026-10-31 사장님(Mac mini2 경유): 한국어 AISVI 광고 교체 — 카톡 무료체험 v16 짧은 판(세로 2.5초, ots-9e 공용 파일)을
  *  가로 1920x1080 가운데에 그 광고 바탕색(#0b1c3f)으로 둔 판. 롱폼은 끝 광고를 scale=1920:1080 으로 다시 구우니 세로를 그대로 주면 늘어난다. */
-export const AISVI_BRIEF_AD = 'assets/outro/brief-ad-aisvi-kakao-v16.mp4';
+/** 2026-11-04 사장님(Mac mini2 경유): v44 원본(17.4초)을 같은 방식으로 가로 가운데에 둔 판으로 교체. 들어오기 전엔 v16 — 앞이 새 판. */
+export const AISVI_BRIEF_ADS = ['assets/outro/brief-ad-aisvi-kakao-v44.mp4', 'assets/outro/brief-ad-aisvi-kakao-v16.mp4'];
+export const AISVI_BRIEF_AD = AISVI_BRIEF_ADS[0];
 export const BRIEF_ADS = { aisvi: 'assets/outro/brief-ad-aisvi.mp4', flowvium: 'assets/outro/brief-ad-flowvium.mp4' };
 export function briefPromo(history, { exists }) {
   const n = (history ?? []).filter((h) => h?.id).length;
@@ -235,7 +237,7 @@ export function briefPromo(history, { exists }) {
   //   (10/23 '긴 버전'은 이 지시로 바뀌었다. 판 카드가 없으면 옛 긴 광고.) 설명란 링크도 같은 판(make-market-brief 가 넘긴다).
   if (want === 'aisvi') {
     const version = adVersionFor(Math.floor(n / 2));
-    if (exists(AISVI_BRIEF_AD)) return { name: 'aisvi', path: AISVI_BRIEF_AD, fallback: false, version };
+    for (const p of AISVI_BRIEF_ADS) if (exists(p)) return { name: 'aisvi', path: p, fallback: false, version };
     const card = `assets/outro/brief-card-aisvi-${version}.mp4`;
     if (exists(card)) return { name: 'aisvi', path: card, fallback: false, version };
   }

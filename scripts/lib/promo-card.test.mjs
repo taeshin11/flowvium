@@ -7,7 +7,7 @@
  *   ⌊n/4⌋ 짝홀로 바꾸면 여덟 편마다 세 실험의 모든 조합이 한 번씩 나온다(2×2×2).
  * 파일이 없으면 다른 광고로 대신한다 — 광고 때문에 회차를 잃지 않는다.
  */
-import { promoFor, promoPath, PROMO_FILES, AISVI_SHORT_AD } from './promo-card.mjs';
+import { promoFor, promoPath, PROMO_FILES, AISVI_SHORT_AD, AISVI_SHORT_ADS } from './promo-card.mjs';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -42,6 +42,16 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
   const k1 = promoPath('aisvi', root, { version: 'b' }), k2 = promoPath('aisvi', root), k3 = promoPath('flowvium', root, { version: 'b' });
   (k1.path.endsWith(AISVI_SHORT_AD) && k1.version === 'b' && k2.path.endsWith(AISVI_SHORT_AD) && k3.path.endsWith('flowvium-card.mp4'))
     ? ok('[2e] 새 AISVI 짧은 광고가 있으면 aisvi 자리는 그것(판 기호는 유지) · flowvium 은 그대로') : bad(`[2e] ${JSON.stringify([k1, k2, k3])}`);
+  // [2f] 2026-11-04 사장님(Mac mini2 경유): 한국어 AISVI 광고를 v44 로 전면 교체. 짧은 판(ots-9e)이 오기 전엔 지금 카드(v16) 유지 —
+  //   새 판이 들어오면 그날부터 그것. 목록 앞이 새 판.
+  const r2 = mkdtempSync(join(tmpdir(), 'promo-v44-'));
+  mkdirSync(join(r2, 'assets/outro'), { recursive: true });
+  writeFileSync(join(r2, 'assets/outro/aisvi-ad-kakao-v16.mp4'), 'x');
+  const n1 = promoPath('aisvi', r2, { version: 'a' });
+  writeFileSync(join(r2, 'assets/outro/aisvi-ad-kakao-v44.mp4'), 'x');
+  const n2 = promoPath('aisvi', r2, { version: 'a' });
+  (AISVI_SHORT_ADS?.[0] === AISVI_SHORT_AD && n1.path.endsWith('aisvi-ad-kakao-v16.mp4') && n2.path.endsWith('aisvi-ad-kakao-v44.mp4') && n2.version === 'a')
+    ? ok('[2f] v44 짧은 판이 있으면 그것, 아직 없으면 v16 유지') : bad(`[2f] ${JSON.stringify([n1, n2])}`);
   const d = promoPath('nope', mkdtempSync(join(tmpdir(), 'promo-empty-')));
   (d.path === null) ? ok('[2c] 둘 다 없으면 광고 없이') : bad(`[2c] ${JSON.stringify(d)}`);
 }
