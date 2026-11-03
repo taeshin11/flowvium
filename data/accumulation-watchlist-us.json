@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-11-03T13:01:26.859Z",
+  "generatedAt": "2026-11-03T22:44:48.171Z",
   "universe": "US",
   "scanned": 352,
-  "count": 9,
-  "strongCount": 1,
+  "count": 10,
+  "strongCount": 2,
   "watchCount": 8,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "VSECU",
+      "name": "VSE Corporation - Tangible Equi",
+      "tier": "strong",
+      "score": 39,
+      "coFire": 3,
+      "lead": [
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": -3.5,
+      "runup5dPct": 6.8,
+      "medDollarVolUsd": 558450,
+      "smartAccum": false,
+      "official": null
+    },
     {
       "ticker": "JOF",
       "name": "Japan Smaller Capitalization Fu",
@@ -14,47 +32,30 @@
       "score": 32,
       "coFire": 3,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "거래량 3.9× 급증(가격 평탄)",
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 3.6× 급증(가격 평탄)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": -12.1,
-      "runup5dPct": -3.1,
-      "medDollarVolUsd": 814064,
+      "runup20dPct": -12.6,
+      "runup5dPct": -3.5,
+      "medDollarVolUsd": 801983,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "CLDT",
-      "name": "Chatham Lodging Trust (REIT)",
+      "ticker": "VLRS",
+      "name": "Controladora Vuela Compania de ",
       "tier": "watch",
       "score": 34,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.5× 상승(지속 매집)",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 9.4,
-      "runup5dPct": 5.9,
-      "medDollarVolUsd": 3513288,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "VSECU",
-      "name": "VSE Corporation - Tangible Equi",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.5× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": -5.6,
-      "runup5dPct": 4.9,
-      "medDollarVolUsd": 564231,
+      "runup20dPct": 6.2,
+      "runup5dPct": 13.1,
+      "medDollarVolUsd": 2774252,
       "smartAccum": false,
       "official": null
     },
@@ -65,12 +66,12 @@
       "score": 27,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
+        "거래량 추세 1.7× 상승",
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 6.9,
-      "runup5dPct": -5.3,
+      "runup20dPct": 2.2,
+      "runup5dPct": -9.9,
       "medDollarVolUsd": 1621323,
       "smartAccum": false,
       "official": null
@@ -86,9 +87,42 @@
         "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": 4.2,
-      "runup5dPct": 10.2,
-      "medDollarVolUsd": 15159062,
+      "runup20dPct": 3.7,
+      "runup5dPct": 10.9,
+      "medDollarVolUsd": 15641607,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "WIW",
+      "name": "Western Asset Inflation-Linked ",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 0.9,
+      "runup5dPct": 1,
+      "medDollarVolUsd": 2401708,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "DBD",
+      "name": "Diebold Nixdorf Incorporated",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -14.8,
+      "runup5dPct": -16.3,
+      "medDollarVolUsd": 14804353,
       "smartAccum": false,
       "official": null
     },
@@ -99,30 +133,13 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": -2.2,
-      "runup5dPct": 12.5,
-      "medDollarVolUsd": 2367844,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ALKT",
-      "name": "Alkami Technology, Inc.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
         "거래량 추세 1.5× 상승",
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)"
       ],
-      "runup20dPct": -5.7,
-      "runup5dPct": -15.1,
-      "medDollarVolUsd": 24897023,
+      "runup20dPct": -0.3,
+      "runup5dPct": 7.3,
+      "medDollarVolUsd": 2402288,
       "smartAccum": false,
       "official": null
     },
@@ -134,27 +151,28 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)"
+        "거래량 2.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": 0.7,
-      "runup5dPct": 4.1,
+      "runup20dPct": -2.6,
+      "runup5dPct": 0.7,
       "medDollarVolUsd": 5378320,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "DBD",
-      "name": "Diebold Nixdorf Incorporated",
+      "ticker": "LENZ",
+      "name": "LENZ Therapeutics, Inc.",
       "tier": "watch",
-      "score": 16,
-      "coFire": 2,
+      "score": 22,
+      "coFire": 3,
       "lead": [
         "거래량 추세 2.0× 상승",
-        "거래량 3.1× 급증(가격 평탄)"
+        "거래량 3.4× 급증(가격 평탄)",
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": -14.6,
-      "runup5dPct": -18.6,
-      "medDollarVolUsd": 14804353,
+      "runup20dPct": -7.7,
+      "runup5dPct": 11.1,
+      "medDollarVolUsd": 2913844,
       "smartAccum": false,
       "official": null
     }
