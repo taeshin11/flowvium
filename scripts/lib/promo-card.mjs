@@ -7,8 +7,9 @@ import { join } from 'path';
 export const PROMO_FILES = { aisvi: 'assets/outro/aisvi-card.mp4', flowvium: 'assets/outro/flowvium-card.mp4' };
 /** 2026-10-31 사장님(Mac mini2 경유): 한국어 AISVI 광고 교체 — 카톡 무료체험 v16 짧은 판(2.5초, ots-9e 가 자른 공용 파일)에
  *  무음 소리 길을 붙여 본편 규격으로 다시 감싼 것. 있으면 aisvi 자리는 판(a/b/c)과 상관없이 이것(판 기호는 설명란 utm_content 용으로 유지). */
-/** 2026-11-04 사장님(Mac mini2 경유): v44(카톡 비서→버스→경제 뉴스→엑셀→「카톡에서 에이스비 검색」)로 전면 교체. 짧은 판이 오기 전엔 v16 유지 — 앞이 새 판. */
-export const AISVI_SHORT_ADS = ['assets/outro/aisvi-ad-kakao-v44.mp4', 'assets/outro/aisvi-ad-kakao-v16.mp4'];
+/** 2026-11-04 사장님(Mac mini2 경유): v45(카톡 비서→버스→경제 뉴스→엑셀→「카톡에서 에이스비 검색」)로 전면 교체 — v44 는 휙 잡음이라 안 쓴다.
+ *  짧은 판이 오기 전엔 v16 유지 — 앞이 새 판. */
+export const AISVI_SHORT_ADS = ['assets/outro/aisvi-ad-kakao-v45.mp4', 'assets/outro/aisvi-ad-kakao-v16.mp4'];
 export const AISVI_SHORT_AD = AISVI_SHORT_ADS[0];
 export const promoFor = (seed) => (Math.floor(Math.abs(Math.trunc(Number(seed) || 0)) / 4) % 2 === 0 ? 'aisvi' : 'flowvium');
 
