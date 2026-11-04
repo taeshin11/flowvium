@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-03T22:44:48.171Z",
+  "generatedAt": "2026-11-04T13:01:13.921Z",
   "universe": "US",
   "scanned": 352,
-  "count": 10,
+  "count": 9,
   "strongCount": 2,
-  "watchCount": 8,
+  "watchCount": 7,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -90,23 +90,6 @@
       "runup20dPct": 3.7,
       "runup5dPct": 10.9,
       "medDollarVolUsd": 15641607,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "WIW",
-      "name": "Western Asset Inflation-Linked ",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 0.9,
-      "runup5dPct": 1,
-      "medDollarVolUsd": 2401708,
       "smartAccum": false,
       "official": null
     },
