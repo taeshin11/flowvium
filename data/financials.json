@@ -2317,11 +2317,11 @@
     "fy": "2025"
   },
   "QCOM": {
-    "revUsd": 44284000000,
-    "revYoYPct": 13.7,
-    "opMarginPct": 27.9,
-    "roePct": 26.1,
-    "fy": "2025"
+    "revUsd": 43120000000,
+    "revYoYPct": -2.6,
+    "opMarginPct": 20.1,
+    "roePct": 44.8,
+    "fy": "2026"
   },
   "TXN": {
     "revUsd": 17682000000,
@@ -6563,13 +6563,6 @@
     "revYoYPct": 12.3,
     "opMarginPct": 10.5,
     "roePct": 8.9,
-    "fy": "2025"
-  },
-  "290650.KQ": {
-    "revUsd": 58949252,
-    "revYoYPct": 18.6,
-    "opMarginPct": 5.2,
-    "roePct": -66.3,
     "fy": "2025"
   },
   "347700.KQ": {
