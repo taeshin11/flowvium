@@ -1,47 +1,35 @@
 {
-  "generatedAt": "2026-11-04T22:20:35.657Z",
+  "generatedAt": "2026-11-05T07:20:36.601Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 1,
   "strongCount": 1,
-  "watchCount": 1,
-  "officialFewAccount": 0,
+  "watchCount": 0,
+  "officialFewAccount": 1,
   "watchlist": [
     {
       "ticker": "065500.KQ",
       "name": "오리엔트정공",
       "tier": "strong",
-      "score": 46,
+      "score": 71,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
-        "거래량 4.6× 급증(가격 평탄)",
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 5.0× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
+        "세력 매집(기관·외인 순매수)",
+        "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
       ],
-      "runup20dPct": 0.2,
-      "runup5dPct": 14,
+      "runup20dPct": -8.7,
+      "runup5dPct": 11.4,
       "medDollarVolUsd": 54905,
       "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "065690.KQ",
-      "name": "파커스",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 80%(강한 매수 흡수)",
-        "아래꼬리 매집 7개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 1.8,
-      "runup5dPct": -0.4,
-      "medDollarVolUsd": 34951,
-      "smartAccum": true,
-      "official": null
+      "official": {
+        "category": "caution",
+        "reason": "매매관여과다종목",
+        "fewAccount": true,
+        "designatedDate": "2026-11-04"
+      }
     }
   ]
 }
