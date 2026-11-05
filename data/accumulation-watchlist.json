@@ -1,35 +1,51 @@
 {
-  "generatedAt": "2026-11-05T07:20:36.601Z",
+  "generatedAt": "2026-11-05T22:20:30.932Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 1,
-  "watchCount": 0,
+  "watchCount": 1,
   "officialFewAccount": 1,
   "watchlist": [
     {
       "ticker": "065500.KQ",
       "name": "오리엔트정공",
       "tier": "strong",
-      "score": 71,
+      "score": 61,
       "coFire": 2,
       "lead": [
         "거래량 추세 3.2× 상승(지속 매집)",
         "거래량 5.0× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
       ],
       "runup20dPct": -8.7,
       "runup5dPct": 11.4,
       "medDollarVolUsd": 54905,
-      "smartAccum": true,
+      "smartAccum": false,
       "official": {
         "category": "caution",
         "reason": "매매관여과다종목",
         "fewAccount": true,
         "designatedDate": "2026-11-04"
       }
+    },
+    {
+      "ticker": "046890.KQ",
+      "name": "서울반도체",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 5.8× 상승(지속 매집)",
+        "거래량 9.5× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -11.2,
+      "runup5dPct": -17.5,
+      "medDollarVolUsd": 1210615,
+      "smartAccum": true,
+      "official": null
     }
   ]
 }
