@@ -7,9 +7,42 @@
  *   · 의료·투자 조언 없음 — 종목 질문엔 사라·팔라 없이, '투자 권유가 아닙니다' 한 줄.
  *   · 스팸·욕설·정치는 건너뛴다(지우지 않는다). 영상당 하루 5개, 계정 하루 20개.
  */
-export const CAP_PER_VIDEO = 5;
-export const CAP_PER_DAY = 20;
-export const MAX_AGE_H = 24;
+// 11/07 사장님 "전 세션 대댓글도 잘 달아서 팬 관리해"(Mac mini2 경유): 영상당 10·계정 30, 최근 7일 영상 댓글은 빠짐없이,
+//   7일 넘은 영상은 질문에만. 같은 문장 복붙 금지, 단골은 이름으로. 정치·욕설·스팸은 그대로 건너뛴다.
+export const CAP_PER_VIDEO = 10;
+export const CAP_PER_DAY = 30;
+export const MAX_AGE_H = 168;
+export const VIDEO_FRESH_DAYS = 7;
+
+/** agy 분류 응답(JSON 글·```json 감싼 글·객체)을 객체로. 못 읽으면 null — 종전엔 글을 그대로 봐 늘 '분류 못 받음'이었다. */
+export function parseClassify(out) {
+  if (out && typeof out === 'object') return out.category ? out : null;
+  const m = /\{[\s\S]*\}/.exec(String(out ?? ''));
+  if (!m) return null;
+  try { const o = JSON.parse(m[0]); return o && typeof o === 'object' && o.category ? o : null; } catch { return null; }
+}
+/** 7일 넘은 영상은 질문 댓글에만 답한다. */
+export const allowedForVideo = ({ videoAgeDays, category }) => !(videoAgeDays > VIDEO_FRESH_DAYS) || category === 'question';
+const norm = (x) => String(x ?? '').replace(/[\s\p{P}\p{S}]+/gu, '').toLowerCase();
+const bigrams = (x) => { const s = norm(x), out = new Set(); for (let i = 0; i < s.length - 1; i++) out.add(s.slice(i, i + 2)); return out; };
+/** 최근 답글과 거의 같은가(글자 두 개씩 겹침 0.8 이상) — 같은 문장 복붙 금지. */
+export function tooSimilar(text, previous = []) {
+  const a = bigrams(text);
+  if (!a.size) return false;
+  return previous.some((p) => {
+    const b = bigrams(p);
+    if (!b.size) return false;
+    let inter = 0; for (const g of a) if (b.has(g)) inter++;
+    return inter / Math.min(a.size, b.size) >= 0.8 && Math.abs(a.size - b.size) / Math.max(a.size, b.size) < 0.3;
+  });
+}
+/** 단골(댓글 두 번 이상)의 부를 이름. 자동 생성 핸들(@user-…)은 부르지 않고, '이름-영숫자' 꼬리는 뗀다. */
+export function regularName(display, count) {
+  if (!(count >= 2)) return null;
+  const h = String(display ?? '').replace(/^@/, '').trim();
+  if (!h || /^user-[a-z0-9]+$/i.test(h)) return null;
+  return h.replace(/-[a-z0-9]{3,6}$/i, '') || null;
+}
 
 const LINK = /https?:\/\/|www\.|\b[\w-]+\.(?:com|net|kr|io|co|me|ly)\b/i;
 const PROMO = /쿠팡|coupang|구독|좋아요\s*(?:눌러|부탁)|알림\s*설정|subscribe/i;

@@ -8,6 +8,11 @@
  *   올린 답글의 작성자가 우리 채널인지 화면에서 보고, Data API(공개 읽기)로 한 번 더 확인한다.
  * 정치 주제(국내정치) 영상의 댓글은 내용을 보기 전에 건너뛴다 — 거기 달린 댓글은 거의 전부 정치다(10/27 실측 18건 중 18건).
  *
+ * 11/07 사장님 "전 세션 대댓글도 잘 달아서 팬 관리해": 최근 7일 영상 댓글 빠짐없이·7일 넘은 영상은 질문만, 영상당 10·하루 30,
+ *   그 사람 말을 집어 매번 다르게(최근 답글과 거의 같으면 버림), 단골(두 번 이상)은 이름으로, 답한 댓글엔 하트,
+ *   질문은 다음 편 후보로 logs/comment-questions.jsonl 에 남긴다. 같은 날 고친 결함: agy 분류가 JSON 글로 오는데
+ *   객체로 읽어 비정치 댓글을 한 번도 분류 못 했다(24시간 뒤 사라짐) — lib parseClassify.
+ *
  * 사용: node scripts/yt-reply-comments.mjs [--dry]   (--dry: 초안까지 만들고 화면 입력까지 한 뒤 올리지 않는다)
  * 원장: logs/comment-replies.json { commentId: { at, videoId, status: replied|skipped|failed, why?, reply? } }
  */
@@ -17,7 +22,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { authorizedClient, currentChannel } from './lib/youtube.mjs';
-import { checkReply, pickTargets } from './lib/comment-reply.mjs';
+import { checkReply, pickTargets, parseClassify, allowedForVideo, tooSimilar, regularName, MAX_AGE_H } from './lib/comment-reply.mjs';
 
 const DRY = process.argv.includes('--dry');
 const LEDGER = resolve(ROOT, 'logs/comment-replies.json');
@@ -34,15 +39,15 @@ const auth = await authorizedClient();
 const yt = google.youtube({ version: 'v3', auth });
 const ch = await currentChannel();
 
-// ── 1. 최근 24시간 댓글 ──
+// ── 1. 최근 7일 댓글(MAX_AGE_H) ──
 const threads = [];
 let pageToken;
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < 20; i++) {
   const r = await yt.commentThreads.list({ part: ['snippet', 'replies'], allThreadsRelatedToChannelId: ch.id, maxResults: 100, order: 'time', pageToken });
   let old = false;
   for (const it of r.data.items ?? []) {
     const s = it.snippet.topLevelComment.snippet;
-    if (Date.now() - Date.parse(s.publishedAt) > 26 * 3600e3) { old = true; break; }
+    if (Date.now() - Date.parse(s.publishedAt) > (MAX_AGE_H + 2) * 3600e3) { old = true; break; }
     threads.push({ id: it.id, videoId: s.videoId, publishedAt: s.publishedAt, authorId: s.authorChannelId?.value, author: s.authorDisplayName,
       text: s.textOriginal, repliedByUs: (it.replies?.comments ?? []).some((c) => c.snippet.authorChannelId?.value === ch.id) });
   }
@@ -61,7 +66,8 @@ const vids = [...new Set(targets.map((t) => t.videoId))];
 const vinfo = new Map();
 for (let i = 0; i < vids.length; i += 50) {
   const r = await yt.videos.list({ part: ['snippet'], id: vids.slice(i, i + 50) });
-  for (const v of r.data.items ?? []) vinfo.set(v.id, { title: v.snippet.title, lang: v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage ?? 'ko' });
+  for (const v of r.data.items ?? []) vinfo.set(v.id, { title: v.snippet.title, lang: v.snippet.defaultAudioLanguage ?? v.snippet.defaultLanguage ?? 'ko',
+    ageDays: (Date.now() - Date.parse(v.snippet.publishedAt)) / 864e5 });
 }
 let topicOf = () => null;
 try {
@@ -70,30 +76,43 @@ try {
   topicOf = (id) => st.get(id)?.topic ?? null;
 } catch { /* 주제를 모르면 내용 분류에 맡긴다 */ }
 
+// 단골: 7일 댓글 + 원장(authorId)에서 두 번 이상 단 사람. 최근 30일 답글은 복붙 검사용.
+const seen = new Map();
+for (const x of threads) if (x.authorId) seen.set(x.authorId, (seen.get(x.authorId) ?? new Set()).add(x.id));
+for (const [id, e] of Object.entries(ledger)) if (e.authorId) seen.set(e.authorId, (seen.get(e.authorId) ?? new Set()).add(id));
+const recentReplies = Object.values(ledger).filter((e) => e.reply && e.status === 'replied' && Date.now() - Date.parse(e.at) < 30 * 864e5).map((e) => e.reply);
+const QLOG = resolve(ROOT, 'logs/comment-questions.jsonl');
+
 // ── 3. 분류·초안 ──
 const { agyReport } = await import('./lib/agy-report.mjs');
 const drafts = FORCE ? targets.map((t) => ({ t, reply: process.argv[process.argv.indexOf('--say') + 1] })) : [];
 for (const t of FORCE ? [] : targets) {
   const v = vinfo.get(t.videoId) ?? { title: '', lang: 'ko' };
   const lang = /^en/i.test(v.lang) ? 'en' : 'ko';
-  if (topicOf(t.videoId) === '국내정치') { mark(t, 'skipped', { why: '정치 영상' }); continue; }
+  // 국내정치 영상 댓글은 실측 32건 중 32건이 정치 의견·욕설(10/27 18건, 11/07 14건) — 내용을 보기 전에 건너뛴다.
+  if (topicOf(t.videoId) === '국내정치') { mark(t, 'skipped', { why: '정치 영상', authorId: t.authorId }); continue; }
+  const name = regularName(t.author, seen.get(t.authorId)?.size ?? 0);
   const prompt = [
     `유튜브 채널 Flowvium(시장·뉴스 요약) 운영자로서 시청자 댓글 하나를 분류하고, 답할 만하면 답글 초안을 써라.`,
-    `영상 제목: ${v.title}`, `댓글: ${t.text}`, '',
+    `영상 제목: ${v.title}`, `댓글: ${t.text}`, name ? `이 시청자는 단골이다(댓글 두 번 이상) — 답글을 "${name}님," 으로 시작해라.` : '', '',
     'category: question(질문) | feedback(의견·제안) | thanks(칭찬·인사) | spam | abuse(욕설·비하) | politics(정치 의견·진영) | other',
     'stock: 특정 종목·투자 판단을 묻는가(true/false). product_link: 상품 링크·구매처를 묻는가(true/false).',
     `reply: spam·abuse·politics·other 면 null. 아니면 ${lang === 'en' ? '영어' : '한국어'}로 1~2줄 — 질문엔 아는 사실로만 답하고, 모르면 지어내지 말고 null.`,
-    '  의견·칭찬엔 고맙다는 말과 영상 내용 사실 하나. 링크·사이트 주소·쿠팡·구독 부탁 금지. 의료 조언 금지.',
+    '  그 사람 말의 낱말 하나를 집어서 답하고, 틀에 박힌 인사("시청해 주셔서 감사합니다")로 시작하지 마라. 매번 다르게.',
+    '  칭찬엔 고맙다는 말과 영상 내용 사실 하나. 제안엔 "다음 편에 반영해 볼게요" 같은 한마디. 링크·사이트 주소·쿠팡·구독 부탁 금지. 의료 조언 금지.',
     '  stock 이면 사라·팔라·추천 없이 사실만, 마지막 줄에 정확히 "투자 권유가 아닙니다." (영어면 "Not investment advice.").',
     '  product_link 면 "링크는 고정 댓글에 있습니다." 한 줄.',
     '출력: {"category":"...","stock":false,"product_link":false,"reply":"..."|null}',
   ].join('\n');
   let r;
-  try { r = await agyReport(prompt, { model: 'gemini-4-argon-medium' }); } catch (e) { log(`분류 실패 ${t.id}: ${String(e?.message ?? e).slice(0, 80)}`); continue; }   // 원장에 안 남긴다 — 다음 시간에 다시
+  try { r = parseClassify(await agyReport(prompt, { model: 'gemini-4-argon-medium' })); } catch (e) { log(`분류 실패 ${t.id}: ${String(e?.message ?? e).slice(0, 80)}`); continue; }   // 원장에 안 남긴다 — 다음 시간에 다시
   if (!r?.category) { log(`분류를 못 받았다 ${t.id} — 다음 시간에 다시`); continue; }   // agy 실패를 '건너뜀'으로 굳히지 않는다
-  if (['spam', 'abuse', 'politics', 'other'].includes(r.category) || !r.reply) { mark(t, 'skipped', { why: r.category }); continue; }
+  if (r.category === 'question' && !DRY) { try { const { appendFileSync } = await import('fs'); appendFileSync(QLOG, JSON.stringify({ at: new Date().toISOString(), videoId: t.videoId, title: v.title, text: t.text }) + '\n'); } catch {} }
+  if (['spam', 'abuse', 'politics', 'other'].includes(r.category) || !r.reply) { mark(t, 'skipped', { why: r.category, authorId: t.authorId }); continue; }
+  if (!allowedForVideo({ videoAgeDays: v.ageDays, category: r.category })) { mark(t, 'skipped', { why: `7일 넘은 영상·${r.category}`, authorId: t.authorId }); continue; }
   const c = checkReply(r.reply, { stock: !!r.stock, lang });
-  if (!c.ok) { mark(t, 'skipped', { why: `규칙: ${c.why}`, reply: r.reply }); log(`초안 버림(${c.why}): ${r.reply}`); continue; }
+  if (!c.ok) { mark(t, 'skipped', { why: `규칙: ${c.why}`, reply: r.reply, authorId: t.authorId }); log(`초안 버림(${c.why}): ${r.reply}`); continue; }
+  if (tooSimilar(r.reply, [...recentReplies, ...drafts.map((d) => d.reply)])) { log(`초안 버림(최근 답글과 거의 같음): ${r.reply} — 다음 시간에 다시`); continue; }
   drafts.push({ t, reply: String(r.reply).trim() });
 }
 if (!drafts.length) process.exit(0);
@@ -133,8 +152,17 @@ try {
       const rr = await yt.comments.list({ part: ['snippet'], parentId: t.id, maxResults: 50 });
       const mine = (rr.data.items ?? []).find((c) => c.snippet.authorChannelId?.value === ch.id);
       if (!mine) throw new Error('올렸는데 공개 목록에 우리 답글이 없다');
-      mark(t, 'replied', { reply, replyId: mine.id });
-      log(`✅ ${t.videoId} · "${t.text.slice(0, 30)}" → ${reply}`);
+      // 하트 — 채널 주인에게만 보이는 단추. 못 찾거나 안 눌려도 답글은 성공으로 둔다(기록만).
+      let hearted = false;
+      try {
+        const heart = thread.locator('#creator-heart-button button, #creator-heart-button').first();
+        if (await heart.count()) {
+          if ((await heart.getAttribute('aria-pressed')) !== 'true') { await heart.click(); await page.waitForTimeout(1500); }
+          hearted = (await heart.getAttribute('aria-pressed')) === 'true' || (await thread.locator('#creator-heart #hearted, ytd-creator-heart-renderer [aria-pressed="true"]').count()) > 0;
+        }
+      } catch { /* 하트 실패는 답글을 되돌리지 않는다 */ }
+      mark(t, 'replied', { reply, replyId: mine.id, authorId: t.authorId, hearted });
+      log(`✅ ${t.videoId} · "${t.text.slice(0, 30)}" → ${reply}${hearted ? ' ♥' : ' (하트 못 누름)'}`);
     } catch (e) {
       mark(t, 'failed', { why: String(e?.message ?? e).slice(0, 120), reply });
       log(`❌ ${t.id}: ${String(e?.message ?? e).slice(0, 120)}`);
