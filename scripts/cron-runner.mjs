@@ -642,6 +642,8 @@ const MAINT_JOBS = [
   { label: 'engine-ledger-record', script: 'scripts/engine-ledger-record.mjs',      timeoutMs: 60000,   commitPaths: ['data/engine-ledger.jsonl', 'data/engine-study.json'], schedules: ['7,27,47 * * * *'], maxAgeH: 2, duringReport: true },
   // 2026-10-30: 시장 폭(200일선 아래·데드크로스 비율, 시장별) — 보고서 KR 판정 이유 한 줄 + 전향 연구 v0.3 B 가설 국면. KST 07:10(미국 장 뒤)·16:10(한국 장 뒤).
   { label: 'market-breadth',       script: 'scripts/market-breadth.mjs',            timeoutMs: 900000,  commitPaths: ['data/market-breadth.json', 'data/market-breadth.jsonl'], schedules: ['10 22 * * *', '10 7 * * *'], maxAgeH: 30 },
+  // 2026-11-07 사장님 '이번 급락장 기반으로 전향적연구 해' — 개장 전 고정한 급락 예측(data/crash-study-2026-11.json)을 만기마다 채점. 만기 전은 pending.
+  { label: 'crash-study-score',    script: 'scripts/crash-study-score.mjs',           timeoutMs: 300000,  commitPaths: ['data/crash-study-2026-11-score.json'], schedules: ['30 7 * * 1-5'], maxAgeH: 80 },  // UTC — KST 16:30 평일
   { label: 'engine-ledger-score',  script: 'scripts/engine-ledger-score.mjs',       timeoutMs: 600000,  commitPaths: ['data/engine-summary.json'], schedules: ['45 22 * * *', '45 7 * * *'], maxAgeH: 30 },
   // 2026-10-16: 보고서 → 가상매매(/paper-trading). 로컬 생성기로 옮긴 뒤 부르는 곳이 없어 '처리된 리포트 0' 이었다.
   { label: 'paper-trade-sync',     script: 'scripts/paper-trade-sync.mjs',            timeoutMs: 180000,  commitPaths: [], schedules: ['12,32,52 * * * *'], maxAgeH: 2, duringReport: true },

@@ -533,8 +533,10 @@ console.log('\n## [5b] buy↔sell 모순 (동일 종목 매수/매도 반복 whi
 try {
   // 2026-10-15: '펀더멘털 매도' 판정을 lib/fundamental-sell 로 — 종전 rationale LIKE '%악화%' 가 매크로·모멘텀·수급
   //   '악화' 까지 세어 GOOG(10/12 macro_high_risk 뒤 10/14 매수, 보고서는 whipsawRisk 로 정상 처리)를 '게이트 우회' ❌ 로 냈다.
-  const { isFundamentalSell, fundamentalSellIds } = await import('./lib/fundamental-sell.mjs');
-  const fundIds = fundamentalSellIds(JSON.parse(readFileSync(`${ROOT}/data/sell-rules-tuned.json`, 'utf8')));
+  const { isFundamentalSell, fundamentalSellIds, marginClaimUnsupported } = await import('./lib/fundamental-sell.mjs');
+  const sellRulesJson = JSON.parse(readFileSync(`${ROOT}/data/sell-rules-tuned.json`, 'utf8'));
+  const fundIds = fundamentalSellIds(sellRulesJson);
+  const marginRule = (sellRulesJson.rules ?? []).find((r) => r.id === 'fund_margin_decline');
   const isFund = (s) => isFundamentalSell(s.sell_type, s.rationale, fundIds);
   const recentSells = db.prepare(`SELECT ticker, sell_type, rationale, generated_at FROM sell_recommendations WHERE datetime(generated_at) >= datetime('now','-7 days')`).all().filter(isFund);
   const buyCount = db.prepare(`SELECT COUNT(DISTINCT generated_at) n FROM recommendations WHERE ticker=? AND datetime(generated_at) >= datetime('now','-7 days')`);
@@ -555,8 +557,21 @@ try {
         // 2026-06-12: 순서 인지 — "우회"는 매수가 *기존* 펀더멘털 sell 신호를 무시하고 나온 경우만
         //   (sell 이 매수보다 먼저 존재). sell 이 매수 이후 등장한 건 신규 정보 도착(whipsaw 모니터링
         //   대상, warn)이지 게이트 결함이 아님. 실측: FTV/MOH 둘 다 sell-after-buy 인데 ❌ 오탐.
-        const priorSell = db.prepare(`SELECT sell_type, rationale, generated_at FROM sell_recommendations WHERE ticker=? AND generated_at < ? ORDER BY generated_at DESC`).all(c.ticker, recentBuy).find(isFund)?.generated_at;
-        if (priorSell) {
+        const priorRow = db.prepare(`SELECT sell_type, rationale, generated_at FROM sell_recommendations WHERE ticker=? AND generated_at < ? ORDER BY generated_at DESC`).all(c.ticker, recentBuy).find(isFund);
+        const priorSell = priorRow?.generated_at;
+        // 2026-11-07 V: 사유 글로만 펀더멘털이 된 매도는 재무 데이터로 확인한다 — 게이트는 데이터(영업이익률 전년 대비)로 막는다.
+        //   데이터상 안 떨어졌으면 매수 통과가 맞고 틀린 건 매도 사유 글이다(warn). 데이터를 못 받으면 판단 안 하고 오류 유지.
+        let claim = { unsupported: null };
+        if (priorRow && !fundIds.has(priorRow.sell_type)) {
+          const isKRt = /\.(KS|KQ)$/.test(c.ticker);
+          const url = `https://flowvium.net/api/${isKRt ? `company-kr/${c.ticker.replace(/\.(KS|KQ)$/, '')}` : `company-financials/${c.ticker}`}`;
+          const fin = await fetch(url, { signal: AbortSignal.timeout(8000), cache: 'no-store' })
+            .then((r) => (r.ok && /json/.test(r.headers.get('content-type') ?? '') ? r.json() : null)).catch(() => null);
+          claim = marginClaimUnsupported({ sellType: priorRow.sell_type, ids: fundIds, fin, rule: marginRule });
+        }
+        if (priorSell && claim.unsupported === true) {
+          warn(`${c.ticker}: 매도(${priorSell.slice(5, 16)} ${priorRow.sell_type}) 사유의 '마진 악화'가 재무 데이터와 다름(영업이익률 ${claim.prev}→${claim.cur}%) — 매수(${recentBuy.slice(5, 16)}) 통과는 맞음, 틀린 건 매도 사유 글`);
+        } else if (priorSell) {
           err(`${c.ticker}: buy(${recentBuy.slice(5, 16)})가 기존 펀더멘털sell(${priorSell.slice(5, 16)}) 무시 — 정합 게이트 우회`);
         } else {
           warn(`${c.ticker}: buy(${recentBuy.slice(5, 16)}) 후 펀더멘털sell 등장 — whipsaw 추적 (게이트 결함 아님, 신규 정보)`);

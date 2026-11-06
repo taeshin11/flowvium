@@ -1135,6 +1135,7 @@ Finnhub 무료 티어 연동, `/earnings` 페이지 신설. 블룸버그 EE 대�
 | 1 | 장 전 예측(보고서 방향·기준선 하락확률·-2%이하 확률·기후값) | 🔄 cron | 최신 보고서 regionStances·marketVerdict + Yahoo ^SOX·^KS11·^KQ11·^GSPC·^IXIC(2005~) | KR 08:30·08:50 · US 21:50·22:20 KST |
 | 2 | 실제 등락·적중·Brier | 🔄 cron | Yahoo 일봉 | 16:20·07:20 KST |
 | 3 | 주별 적중률·Brier skill·보정표 | 🔄 cron | data/forecast-scores.jsonl 집계 | 16:20·07:20 KST |
+| 3b | 급락장 전향 기록 채점(2026-11 KOSPI·KOSDAQ 5·20·60일, KR 관망·추세 거부 38종목) | 🔄 cron | data/crash-study-2026-11-score.json (crash-study-score) | 평일 16:30 KST |
 | 4 | 놓친 날 유형별 건수 | 🔄 cron | SOX·KRW=X·^VIX + news_archive 헤드라인 | 16:20·07:20 KST |
 | 5 | US 선행 기준선 | ⛔ missing | 미국 장 전 선행 입력 미검증 — 지금은 기후값 | — |
 
