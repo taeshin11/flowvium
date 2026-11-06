@@ -17,5 +17,10 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 (isShortUpload({ durationSec: 43 }) && isShortUpload({ durationSec: 180 }) && !isShortUpload({ durationSec: 271 }) && !isShortUpload({ durationSec: null })) ? ok('[2] 3분 이하만 쇼츠 · 모르면 아님') : bad('[2]');
 const src = readFileSync(new URL('../shorts-reconcile.mjs', import.meta.url), 'utf8');
 /isShortUpload\(/.test(src) && /contentDetails/.test(src) ? ok('[3] reconcile 이 길이를 보고 거른다') : bad('[3] reconcile 이 아직 전부 넣는다');
+// [4] 2026-11-07: 증시 브리핑 롱폼(가로 1920x1080, 2분 54초 등)이 3분 이하라 쇼츠 원장에 21편 들어가 쇼츠 중앙값·주제별 성적을 깎았다.
+//   유튜브 쇼츠는 세로다. videos.list part=player(maxHeight) 의 embedWidth/Height 가 화면비를 따른다(실측: 브리핑 640x360, 쇼츠 203x360).
+(!isShortUpload({ durationSec: 174, width: 640, height: 360 }) && isShortUpload({ durationSec: 43, width: 203, height: 360 }) && isShortUpload({ durationSec: 43 }))
+  ? ok('[4] 3분 이하라도 가로면 쇼츠 아님 · 화면비 모르면 길이로') : bad('[4] 가로 롱폼이 쇼츠로 셌다');
+/part:\s*\[[^\]]*'player'/.test(src) && /maxHeight/.test(src) ? ok('[5] reconcile 이 화면비(player)를 받는다') : bad('[5] reconcile 이 화면비를 안 본다');
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

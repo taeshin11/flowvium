@@ -8,5 +8,7 @@ export function isoDurationSec(s) {
   const v = (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
   return v > 0 ? v : null;
 }
-/** 유튜브 쇼츠 길이 상한 3분 이하만. 길이를 모르면 쇼츠로 세지 않는다. */
-export const isShortUpload = ({ durationSec }) => Number.isFinite(durationSec) && durationSec > 0 && durationSec <= 180;
+/** 유튜브 쇼츠 = 3분 이하 + 세로. 길이를 모르면 쇼츠로 세지 않는다. 화면비(player embed)를 알면 가로는 쇼츠 아님 —
+ *  2026-11-07 증시 브리핑 롱폼(가로, 2~3분)이 길이만으로 쇼츠 원장에 21편 들어갔다. */
+export const isShortUpload = ({ durationSec, width, height }) => Number.isFinite(durationSec) && durationSec > 0 && durationSec <= 180
+  && !(width > 0 && height > 0 && width >= height);
