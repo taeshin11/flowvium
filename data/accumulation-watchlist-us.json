@@ -1,49 +1,81 @@
 {
-  "generatedAt": "2026-11-06T13:01:05.512Z",
+  "generatedAt": "2026-11-06T22:43:16.225Z",
   "universe": "US",
   "scanned": 352,
-  "count": 7,
-  "strongCount": 1,
-  "watchCount": 6,
+  "count": 5,
+  "strongCount": 0,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
+      "ticker": "LENZ",
+      "name": "LENZ Therapeutics, Inc.",
+      "tier": "watch",
+      "score": 30,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -4,
+      "runup5dPct": 14.8,
+      "medDollarVolUsd": 2870820,
+      "smartAccum": false,
+      "official": null
+    },
+    {
       "ticker": "JOF",
       "name": "Japan Smaller Capitalization Fu",
-      "tier": "strong",
-      "score": 32,
-      "coFire": 3,
+      "tier": "watch",
+      "score": 25,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 추세 2.9× 상승(지속 매집)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": -14.9,
-      "runup5dPct": -6.3,
+      "runup20dPct": -13.6,
+      "runup5dPct": -2.4,
       "medDollarVolUsd": 801983,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "VSECU",
-      "name": "VSE Corporation - Tangible Equi",
+      "ticker": "CLM",
+      "name": "Cornerstone Strategic Value Fd",
       "tier": "watch",
-      "score": 33,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -1.1,
-      "runup5dPct": 3.3,
-      "medDollarVolUsd": 449718,
+      "runup20dPct": -9.1,
+      "runup5dPct": -0.2,
+      "medDollarVolUsd": 13753547,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "JBLU",
-      "name": "JetBlue Airways Corporation",
+      "ticker": "GOLD",
+      "name": "Gold.com, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -7.5,
+      "runup5dPct": -1.1,
+      "medDollarVolUsd": 19462416,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "IRS",
+      "name": "IRSA Inversiones Y Representaci",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
@@ -52,75 +84,9 @@
         "종가 일중 상단 60%",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -11,
-      "runup5dPct": 14.4,
-      "medDollarVolUsd": 87881509,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "GBX",
-      "name": "Greenbrier Companies, Inc. (The",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 11,
-      "runup5dPct": 11.3,
-      "medDollarVolUsd": 15779582,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LEGH",
-      "name": "Legacy Housing Corporation",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 6.1,
-      "runup5dPct": 4.1,
-      "medDollarVolUsd": 2047736,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LITB",
-      "name": "LightInTheBox Holding Co., Ltd.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.5× 상승",
-        "거래량 2.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -11.6,
-      "runup5dPct": -4.3,
-      "medDollarVolUsd": 11340,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "IRS",
-      "name": "IRSA Inversiones Y Representaci",
-      "tier": "watch",
-      "score": 15,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": -12.5,
-      "runup5dPct": -17.5,
-      "medDollarVolUsd": 2225808,
+      "runup20dPct": -7.9,
+      "runup5dPct": -11.7,
+      "medDollarVolUsd": 2249592,
       "smartAccum": false,
       "official": null
     }
