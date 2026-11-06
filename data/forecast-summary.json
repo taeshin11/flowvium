@@ -1,7 +1,7 @@
 {
- "at": "2026-11-06T07:20:00.100Z",
- "recorded": 64,
- "scored": 64,
+ "at": "2026-11-06T22:20:00.136Z",
+ "recorded": 66,
+ "scored": 66,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 16,
-   "recorded": 16,
+   "sessions": 15,
+   "recorded": 15,
    "missing": []
   },
   "us": {
-   "sessions": 16,
-   "recorded": 16,
+   "sessions": 17,
+   "recorded": 17,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 30,
+   "n": 32,
    "report": {
-    "calls": 14,
+    "calls": 16,
     "hits": 6,
     "abstain": 16,
-    "hitRate": 0.42857142857142855
+    "hitRate": 0.375
    },
    "base": {
-    "brier": 0.24616140376854115,
+    "brier": 0.24348719307318198,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 30,
-      "meanP": 0.45087483991412713,
-      "observed": 0.43333333333333335
+      "n": 32,
+      "meanP": 0.4508798757952903,
+      "observed": 0.40625
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.24616140376854115,
+    "brier": 0.24348719307318198,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 30,
-      "meanP": 0.45087483991412713,
-      "observed": 0.43333333333333335
+      "n": 32,
+      "meanP": 0.4508798757952903,
+      "observed": 0.40625
      }
     ],
     "skill": 0
@@ -430,33 +430,33 @@
     }
    },
    "us": {
-    "n": 8,
+    "n": 10,
     "report": {
-     "calls": 4,
+     "calls": 6,
      "hits": 2,
      "abstain": 4,
-     "hitRate": 0.5
+     "hitRate": 0.3333333333333333
     },
     "base": {
-     "brier": 0.2524663377937885,
+     "brier": 0.24264787676358973,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 8,
-       "meanP": 0.4509330968305017,
-       "observed": 0.5
+       "n": 10,
+       "meanP": 0.45093756026694914,
+       "observed": 0.4
       }
      ],
      "skill": 0
     },
     "clim": {
-     "brier": 0.2524663377937885,
+     "brier": 0.24264787676358973,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 8,
-       "meanP": 0.4509330968305017,
-       "observed": 0.5
+       "n": 10,
+       "meanP": 0.45093756026694914,
+       "observed": 0.4
       }
      ],
      "skill": 0
