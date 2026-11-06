@@ -441,11 +441,11 @@
     "fy": "2025"
   },
   "V": {
-    "revUsd": 40000000000,
-    "revYoYPct": 11.3,
-    "opMarginPct": 60,
-    "roePct": 52.9,
-    "fy": "2025"
+    "revUsd": 45903000000,
+    "revYoYPct": 14.8,
+    "opMarginPct": 61.2,
+    "roePct": 65.1,
+    "fy": "2026"
   },
   "MA": {
     "revUsd": 32791000000,
@@ -2800,11 +2800,11 @@
     "fy": "2026"
   },
   "FICO": {
-    "revUsd": 1990869000,
-    "revYoYPct": 15.9,
-    "opMarginPct": 46.5,
+    "revUsd": 2534873000,
+    "revYoYPct": 27.3,
+    "opMarginPct": 49.9,
     "roePct": null,
-    "fy": "2025"
+    "fy": "2026"
   },
   "FRT": {
     "revUsd": 1278975000,
@@ -4388,6 +4388,20 @@
     "roePct": 12.3,
     "fy": "2025"
   },
+  "051910.KS": {
+    "revUsd": 31677356552,
+    "revYoYPct": -6.1,
+    "opMarginPct": 2.6,
+    "roePct": -2.1,
+    "fy": "2025"
+  },
+  "068270.KS": {
+    "revUsd": 2870686282,
+    "revYoYPct": 17,
+    "opMarginPct": 28.1,
+    "roePct": 5.9,
+    "fy": "2025"
+  },
   "035420.KS": {
     "revUsd": 8300004979,
     "revYoYPct": 12.1,
@@ -4400,6 +4414,13 @@
     "revYoYPct": -3.2,
     "opMarginPct": 8.1,
     "roePct": 6.8,
+    "fy": "2025"
+  },
+  "012330.KS": {
+    "revUsd": 42150432414,
+    "revYoYPct": 6.8,
+    "opMarginPct": 5.5,
+    "roePct": 7.4,
     "fy": "2025"
   },
   "066570.KS": {
@@ -4556,6 +4577,13 @@
     "roePct": -2.5,
     "fy": "2025"
   },
+  "036460.KS": {
+    "revUsd": 24639542069,
+    "revYoYPct": -6.9,
+    "opMarginPct": 5.9,
+    "roePct": 1.2,
+    "fy": "2025"
+  },
   "001040.KS": {
     "revUsd": 31047468432,
     "revYoYPct": 3.1,
@@ -4568,6 +4596,13 @@
     "revYoYPct": -6.9,
     "opMarginPct": 4.5,
     "roePct": -3.6,
+    "fy": "2025"
+  },
+  "078930.KS": {
+    "revUsd": 17368363448,
+    "revYoYPct": -0.4,
+    "opMarginPct": 11.7,
+    "roePct": 5.4,
     "fy": "2025"
   },
   "011200.KS": {
@@ -4708,6 +4743,20 @@
     "revYoYPct": 18.7,
     "opMarginPct": 15.6,
     "roePct": 26.4,
+    "fy": "2025"
+  },
+  "036570.KS": {
+    "revUsd": 1039258666,
+    "revYoYPct": -4.5,
+    "opMarginPct": 1.1,
+    "roePct": 10.3,
+    "fy": "2025"
+  },
+  "251270.KS": {
+    "revUsd": 1955223732,
+    "revYoYPct": 6.4,
+    "opMarginPct": 12.4,
+    "roePct": 4.2,
     "fy": "2025"
   },
   "293490.KQ": {
