@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-11-06T07:20:25.556Z",
+  "generatedAt": "2026-11-06T22:20:23.901Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
-  "strongCount": 1,
+  "count": 5,
+  "strongCount": 2,
   "watchCount": 3,
   "officialFewAccount": 1,
   "watchlist": [
@@ -15,7 +15,7 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 5.7× 급증(가격 평탄)",
+        "거래량 5.8× 급증(가격 평탄)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
       ],
       "runup20dPct": -11.4,
@@ -30,13 +30,31 @@
       }
     },
     {
+      "ticker": "121600.KQ",
+      "name": "나노신소재",
+      "tier": "strong",
+      "score": 46,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 4.0× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 0.5,
+      "runup5dPct": 3.7,
+      "medDollarVolUsd": 2813351,
+      "smartAccum": true,
+      "official": null
+    },
+    {
       "ticker": "035900.KQ",
       "name": "JYP Ent.",
       "tier": "watch",
       "score": 40,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.8× 상승(지속 매집)",
+        "거래량 추세 3.9× 상승(지속 매집)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
