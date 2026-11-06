@@ -27,10 +27,12 @@ if (!res.ok || !/json/.test(res.headers.get('content-type') ?? '')) { console.er
 const r = (await res.json()).chart?.result?.[0];
 const q = r?.indicators?.quote?.[0] ?? {};
 const b = (r?.timestamp ?? []).map((s, i) => ({ d: new Date(s * 1000 + 9 * 3600e3).toISOString().slice(0, 10), c: q.close?.[i] })).filter((x) => x.c > 0);
-if (baseDate && b.at(-1).d < baseDate) b.push({ d: baseDate, c: Number(baseClose) });
+// 기준일 종가는 늘 --base 값(네이버)으로 — 나중에 야후에 그날이 들어와도 고정 확률이 바뀌지 않게(agy 리뷰 11/07).
+if (baseDate) { const k = b.findIndex((x) => x.d >= baseDate); if (k >= 0) b.splice(k); b.push({ d: baseDate, c: Number(baseClose) }); }
 const L = b.length - 1;
 
 const hit = (i) => b[i].c / Math.max(...b.slice(Math.max(0, i - LOOK + 1), i + 1).map((x) => x.c)) - 1 <= DROP;
+// 사건 묶기: 조건이 끊긴 날이 20거래일을 넘겨야 새 사건(첫날). 현재 에피소드 안의 날도 '끊김' 계산엔 넣는다.
 const allDays = [], firstDay = [];
 let last = -999;
 for (let i = LOOK; i < L; i++) {
@@ -38,9 +40,12 @@ for (let i = LOOK; i < L; i++) {
   if (b[i].d < excludeFrom) { allDays.push(i); if (i - last > LOOK) firstDay.push(i); }
   last = i;
 }
-const clim = []; for (let i = 0; i < L; i++) clim.push(i);
-const up = (ev, h) => { const e = ev.filter((i) => i + h <= L); return [e.filter((i) => b[i + h].c > b[i].c).length, e.length]; };
-const further = (ev) => { const e = ev.filter((i) => i + 60 <= L); return [e.filter((i) => Math.min(...b.slice(i + 1, i + 61).map((x) => x.c)) / b[i].c - 1 <= FURTHER).length, e.length]; };
+const clim = []; for (let i = 0; i < L; i++) if (b[i].d < excludeFrom) clim.push(i);
+// 결과 창이 현재 에피소드에 닿는 표본은 뺀다 — 지금 급락이 과거 확률에 섞이지 않게(agy 리뷰 11/07).
+const cut = b.findIndex((x) => x.d >= excludeFrom);
+const ok = (i, h) => i + h < (cut < 0 ? L + 1 : cut);
+const up = (ev, h) => { const e = ev.filter((i) => ok(i, h)); return [e.filter((i) => b[i + h].c > b[i].c).length, e.length]; };
+const further = (ev) => { const e = ev.filter((i) => ok(i, 60)); return [e.filter((i) => Math.min(...b.slice(i + 1, i + 61).map((x) => x.c)) / b[i].c - 1 <= FURTHER).length, e.length]; };
 const fmt = ([a, n]) => `${(a / n).toFixed(3)} (${a}/${n})`;
 
 console.log(`^${index} ${b[0].d}~${b[L].d} · 기준 ${b[L].d} ${b[L].c} · 지금 조건 해당 ${hit(L)} · 제외 ${excludeFrom}~`);
