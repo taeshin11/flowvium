@@ -38,7 +38,10 @@ const N = 600, L = Array.from({ length: N }, (_, n) => layoutFor(n));
 const zr = L.filter((x) => x === 'zoom').length / N;
 const share = (f) => { const e = L.map((x, n) => [x === 'zoom', f(n)]).filter(([x]) => x); return e.filter(([, v]) => v).length / e.length; };
 const t = share((n) => n % 2 === 0), p = share((n) => promoFor(n) === 'flowvium');
-(zr > 0.42 && zr < 0.58 && [t, p].every((v) => v > 0.38 && v < 0.62)) ? ok(`[3] 반반(${(zr * 100).toFixed(0)}%) · zoom 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% — 다른 실험과 안 겹친다`) : bad(`[3] zr=${zr} t=${t} p=${p}`);
+// 2026-11-07 zoom 기본 · classic 대조군 1/4 — 10/03~11/06 쇼츠 122편: 같은 날 중앙 넘김 zoom 0.50 vs classic 0.44, 본 비율 0.480 vs 0.448,
+//   평균 시청률 중앙 68 vs 61(첫 문장 question 안에선 classic 71 vs zoom 68 — 엇갈려 대조군을 남긴다). 사장님 11/07 지표 점검,
+//   agy·ChatGPT 둘 다 '화면 아래 빈 검정'을 원인 후보로 꼽음(zoom 이 사진 영역을 키운 갈래).
+(zr > 0.70 && zr < 0.80 && [t, p].every((v) => v > 0.38 && v < 0.62)) ? ok(`[3] zoom ${(zr * 100).toFixed(0)}%(기본)·classic 대조군 · zoom 안에서 제목 ${(t * 100).toFixed(0)}% · 광고 ${(p * 100).toFixed(0)}% — 다른 실험과 안 겹친다`) : bad(`[3] zr=${zr} t=${t} p=${p}`);
 const src = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 (/SHORTS_LAYOUT: LAYOUT_ENV/.test(src('video-publish.mjs')) && /layout: last\.layout/.test(src('video-publish.mjs'))) ? ok('[4a] 발행이 칸을 정하고 기록') : bad('[4a]');
 /layout: LAYOUT/.test(src('video/make-shorts.mjs')) ? ok('[4b] meta.layout') : bad('[4b]');

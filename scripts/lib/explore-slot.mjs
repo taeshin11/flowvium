@@ -56,8 +56,8 @@ export function slotLift(rows) {
   return new Map([...groups].map(([k, a]) => [k, { lift: Number(med(a).toFixed(2)), beat: Number((a.filter((x) => x > 1).length / a.length).toFixed(2)), n: a.length }]));
 }
 
-// ── 화면 배분 A/B(2026-10-03) — classic|zoom 반반. 근거는 shorts-layout-ab.test.mjs 머리말.
-export const layoutFor = (seed) => (((mix(Number(seed) + 7919) >>> 3) & 1) ? 'zoom' : 'classic');
+// ── 화면 배분 A/B(2026-10-03 classic|zoom 반반 → 2026-11-07 zoom 기본 · classic 대조군 1/4). 근거는 shorts-layout-ab.test.mjs [3].
+export const layoutFor = (seed) => (((mix(Number(seed) + 7919) >>> 3) % 4 === 0) ? 'classic' : 'zoom');
 
 // ── 첫 문장(2026-10-11 A/B anchor|question 반반 → 2026-10-20 question 기본 · anchor 대조군 1/4). 근거는 shorts-opener-ab.test.mjs [1].
 //   대조군을 남기는 이유: question 은 본 비율이 반대 방향(0.51→0.45, p=0.065) — 조회까지 오르는지 계속 잰다.
