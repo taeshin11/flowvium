@@ -15,3 +15,4 @@
 {"at":"2026-11-05T07:11:30.257Z","universe":1105,"failed":13,"kr":{"n":421,"below200":363,"deadCross":329,"either":381,"pct":0.905},"us":{"n":663,"below200":255,"deadCross":326,"either":374,"pct":0.564}}
 {"at":"2026-11-05T22:11:14.592Z","universe":1105,"failed":13,"kr":{"n":421,"below200":363,"deadCross":329,"either":381,"pct":0.905},"us":{"n":663,"below200":305,"deadCross":327,"either":404,"pct":0.609}}
 {"at":"2026-11-06T07:10:47.374Z","universe":1105,"failed":13,"kr":{"n":421,"below200":371,"deadCross":331,"either":387,"pct":0.919},"us":{"n":663,"below200":305,"deadCross":327,"either":404,"pct":0.609}}
+{"at":"2026-11-06T22:10:43.444Z","universe":1105,"failed":13,"kr":{"n":421,"below200":371,"deadCross":331,"either":387,"pct":0.919},"us":{"n":663,"below200":318,"deadCross":330,"either":398,"pct":0.6}}
