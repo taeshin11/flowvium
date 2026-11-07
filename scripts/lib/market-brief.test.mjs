@@ -257,6 +257,16 @@ const M = await import('./market-brief.mjs');
   (M.thumbPhoto('krclose', c, docs)?.file === 'pm.jpg') ? ok('[21] 마감판은 장 끝난 뒤 기사 사진') : bad(`[21] ${JSON.stringify(M.thumbPhoto('krclose', c, docs))}`);
   (M.thumbPhoto('krclose', [c[0], c[2]], docs) === null) ? ok('[21b] 그런 사진이 없으면 사진 없이') : bad('[21b]');
   (M.thumbPhoto('krmid', c, docs)?.file === 'am.jpg') ? ok('[21c] 장중판·미국판은 첫 사진 그대로') : bad('[21c]');
+  // [21d] 2026-11-07 눈 검증: 11/6 오전판·마감판 썸네일이 같은 사진(전광판 앞 뒤통수) — 새 편인지 구분이 안 된다(agy 도 결함으로 짚음).
+  //   최근 편에 쓴 사진(주소·파일 지문)은 건너뛴다. 다 썼으면 원래 고른 것(사진 없는 판보다 낫다).
+  const cu = [{ file: 'a.jpg', url: 'u/a', sha: 'A', doc: 1 }, { file: 'b.jpg', url: 'u/b', sha: 'B', doc: 1 }];
+  const used = { urls: new Set(['u/a']), shas: new Set() };
+  (M.thumbPhoto('krclose', cu, docs, { avoid: used })?.file === 'b.jpg') ? ok('[21d] 최근 편 사진(주소)은 건너뛴다') : bad(`[21d] ${JSON.stringify(M.thumbPhoto('krclose', cu, docs, { avoid: used }))}`);
+  (M.thumbPhoto('krmid', cu, docs, { avoid: { urls: new Set(), shas: new Set(['A']) } })?.file === 'b.jpg') ? ok('[21e] 주소가 달라도 같은 파일(지문)이면 건너뛴다') : bad('[21e]');
+  (M.thumbPhoto('krmid', cu, docs, { avoid: { urls: new Set(['u/a', 'u/b']), shas: new Set() } })?.file === 'a.jpg') ? ok('[21f] 다 썼으면 원래 고른 것') : bad('[21f]');
+  const hist = [{ thumbPhoto: { url: 'u/x', sha: 'X' } }, {}, { thumbPhoto: { url: 'u/y', sha: 'Y' } }, { thumbPhoto: { url: 'u/z', sha: 'Z' } }, { thumbPhoto: { url: 'u/w', sha: 'W' } }];
+  const av = M.recentThumbPhotos?.(hist, 3);
+  (av && av.urls.has('u/w') && av.urls.has('u/z') && av.urls.has('u/y') && !av.urls.has('u/x') && av.shas.has('W')) ? ok('[21g] 최근 3편(기록 있는 것)') : bad(`[21g] ${JSON.stringify(av && [...av.urls])}`);
 }
 // [22] 코스피·코스닥이 엇갈린 날은 제목 숫자에 둘 다 — 10/23 마감판 "코스닥 -1.6%, AI 투자 우려에 코스닥 급락" 은 코스피 +0.30% 상승 마감을
 //   빼서 그날 한국 증시 전체가 급락한 것처럼 읽혔다(agy 교차). 칩(썸네일 큰 숫자)은 가장 크게 움직인 것 그대로.

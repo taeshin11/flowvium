@@ -26,7 +26,8 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL, staleMoves, isLateDoc, thumbPhoto } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL, staleMoves, isLateDoc, thumbPhoto, recentThumbPhotos } from '../lib/market-brief.mjs';
+import { createHash } from 'crypto';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -439,11 +440,15 @@ if (!(LEN >= 80 && LEN <= 300)) die(`길이 ${LEN?.toFixed(0)}초 — 80~300초 
 
 // ── 10. 썸네일(레퍼런스 꼴) · 설명 ───────────────────────────────────────────────
 const THUMB = join(OUT, 'thumb.jpg');
+let THUMB_PHOTO = null;   // 이번 편 썸네일 사진(주소·지문) — 다음 편이 같은 사진을 피하게 기록
 let drawThumb = null;
 {
   const story = chapters.find((c) => c.kind === 'story');
   // 대조를 통과한 사진만, 첫 이야기 장 것 먼저. 마감판은 장 끝난 뒤 기사 사진만(lib thumbPhoto — 10/23 오전 시세판 사진이 마감판 썸네일에).
-  const pic = thumbPhoto(ED, [...(allowed.get(chapters.indexOf(story)) ?? []), ...[...allowed.values()].flat()], docs);
+  const shaOf = (f) => { try { return createHash('sha1').update(readFileSync(f)).digest('hex').slice(0, 16); } catch { return null; } };
+  const cands = [...(allowed.get(chapters.indexOf(story)) ?? []), ...[...allowed.values()].flat()].map((m) => ({ ...m, sha: shaOf(m.file) }));
+  const pic = thumbPhoto(ED, cands, docs, { avoid: recentThumbPhotos(history, 3) });   // 11/07: 최근 3편 사진은 건너뛴다
+  THUMB_PHOTO = pic ? { url: pic.url ?? null, sha: pic.sha ?? null } : null;
   if (!pic && allowed.size) log('[썸네일] 장 끝난 뒤 기사 사진이 없다 — 사진 없이');
   // 10/23 사장님 "너무 오선을 따라한 형태다" → 데이터 우선 꼴(agy·Claude 검토 종합): 왼쪽 짙은 판에 그날 가장 크게 움직인 지수
   //   숫자(색 칩 위 흰 글씨 — 남색 위 파랑 글씨는 폰에서 묻힌다) + 2줄 핵심(노랑·흰, 줄당 7자 안). 오른쪽에 사진(채도 낮춤).
@@ -529,7 +534,7 @@ if (UPLOAD) {
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
   if (gate) { const { appendGateLog } = await import('../lib/thumb-gate.mjs'); appendGateLog({ event: 'uploaded', kind: 'long', edition: ED, id: u.id, title, ...gate }, resolve(ROOT, 'logs/thumb-gate.jsonl')); }
-  history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), at: new Date().toISOString() });
+  history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), thumbPhoto: THUMB_PHOTO, at: new Date().toISOString() });
   writeFileSync(HIST, JSON.stringify(history, null, 2));
   // 예약 공개 편은 여기서 달지 않는다 — 공개 전(비공개)엔 댓글 칸이 없어 실패만 센다(10/23 h_nRYqiJDEg 실패 2회 → 고정 댓글 없이 공개).
   //   공개되면 pin-watch(cron-runner, 10분마다 yt-pin-comment --due)가 채널 업로드 목록에서 잡아 달고 +10분·+24시간 재확인한다.

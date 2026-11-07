@@ -263,9 +263,16 @@ export function isLateDoc(edition, capturedAt) {
  * +0.30% 로 끝난 날 마감판 썸네일에 나갔다. 사진 속 숫자는 못 읽으니 출처 기사 시각으로 거른다. 없으면 null(사진 없이).
  * candidates: [{ file, doc }] (doc = docs 번호, 기사 밖에서 찾은 사진은 -1). 장중판·미국판은 첫 사진.
  */
-export function thumbPhoto(edition, candidates, docs) {
+export function thumbPhoto(edition, candidates, docs, { avoid } = {}) {
   const { afterKst, live } = EDITIONS[edition] ?? {};
-  const list = candidates ?? [];
-  if (live || !afterKst) return list[0] ?? null;
-  return list.find((c) => c.doc >= 0 && docs[c.doc] && isLateDoc(edition, docs[c.doc].captured_at)) ?? null;
+  const ok = (candidates ?? []).filter((c) => live || !afterKst || (c.doc >= 0 && docs[c.doc] && isLateDoc(edition, docs[c.doc].captured_at)));
+  // 2026-11-07: 최근 편에 쓴 사진(주소·파일 지문)은 건너뛴다 — 11/6 오전·마감판이 같은 사진이라 새 편인지 구분이 안 됐다.
+  //   다 썼으면 원래 고른 것(사진 없는 짙은 판보다 낫다).
+  const fresh = avoid ? ok.find((c) => !avoid.urls?.has(c.url) && !(c.sha && avoid.shas?.has(c.sha))) : null;
+  return fresh ?? ok[0] ?? null;
+}
+/** 최근 n 편(썸네일 사진 기록이 있는 편)에 쓴 사진 주소·지문. */
+export function recentThumbPhotos(history, n = 3) {
+  const used = (history ?? []).filter((h) => h?.thumbPhoto).slice(-n);
+  return { urls: new Set(used.map((h) => h.thumbPhoto.url).filter(Boolean)), shas: new Set(used.map((h) => h.thumbPhoto.sha).filter(Boolean)) };
 }
