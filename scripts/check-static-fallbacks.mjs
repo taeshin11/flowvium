@@ -38,6 +38,7 @@ const ALLOWED = new Set([
   'src/lib/daily-brief.ts',                     // newsGapData → AI prompt 재료 (사용자 직접 노출 아님)
   'src/lib/news-gap-service.ts',                // source: 'static' 명시, getNewsGapData() 투명 처리
   'src/lib/ishares-holdings.ts',                // UNIVERSE_SEARCH 는 ticker/name/sector(구조 메타)만 사용 — marketValue/weight/price 는 Naver 라이브 quote(없으면 skip), 정적 시세 폴백 아님 (2026-06-05 검증)
+  'src/lib/company-seo-data.ts',               // allCompanies 에서 ticker/name 만 — 페이지 제목·사이트맵용 이름표(구조 메타), 시세·지표 아님 (2026-11-08)
 ]);
 
 // type-only import 패턴 (문제 아님)
