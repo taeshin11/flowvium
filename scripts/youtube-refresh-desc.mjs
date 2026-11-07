@@ -24,7 +24,7 @@ const ONLY = arg('--id');
 
 const SITE = process.env.SITE_URL || 'flowvium.net';
 const CTA = {
-  ko: (l) => `▶ 전체 기사 · 실시간 시장 데이터 · 심층 분석: ${l}`,
+  ko: (l) => `▶ 오늘의 매수·매도 후보와 근거 (무료): ${l}`,   // youtube-upload 와 같은 글(2026-11-07)
   en: (l) => `▶ Full coverage, live market data and deeper analysis: ${l}`,
 };
 

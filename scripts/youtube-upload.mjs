@@ -29,7 +29,8 @@ const SITE = process.env.SITE_URL || 'flowvium.net';
 //   붙는다 — 클릭한 사람이 영어 사이트로 간다. 링크와 문구를 로케일에서 뽑는다.
 const siteLink = (locale) => process.env.SITE_LINK || `https://${SITE}/go/${locale}`;
 const SITE_CTA = {
-  ko: (link) => `▶ 전체 기사 · 실시간 시장 데이터 · 심층 분석: ${link}`,
+  // 2026-11-07: 무엇이 있는지 구체적으로(ChatGPT·agy 상의) — 종전 '전체 기사·실시간 데이터·심층 분석'은 45일 클릭 29회.
+  ko: (link) => `▶ 오늘의 매수·매도 후보와 근거 (무료): ${link}`,
   en: (link) => `▶ Full coverage, live market data and deeper analysis: ${link}`,
 };
 // 2026-09-03 (사용자 "유입 모으자"): 종전엔 설명란 **맨 끝**에 붙였다. 실측한 영상은 링크가
