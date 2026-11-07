@@ -305,7 +305,9 @@ export function inNightBan(d = new Date()) {
  *   score null = 못 매김(던진다 — 통과로 세지 않는다). 23:35~02:40 은 처리하지 않으니 기다리지 않고 미채점으로 둔다.
  *   그림은 대기열이 읽을 때까지 남아 있어야 해서 대기열 폴더(img/)에 복사해 두고, 답을 받으면 지운다.
  */
-export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 300_000, qdir = process.env.THUMBQ_DIR || join(homedir(), 'history/_thumbq'),
+// 11/07 Mac mini3: 대기열이 첨부 사이 90초를 강제해 줄이 길어진다 — 따로 부르는 쪽(시안 채점 등) 기본 기다림 25분.
+//   관문 안에서는 scoreAll 이 판마다 남은 시간(쇼츠 10분·롱폼 8분 상한)으로 넘기므로 그 상한은 그대로다.
+export async function chatgptJudge({ image, title, anchors = null, timeoutMs = 25 * 60_000, qdir = process.env.THUMBQ_DIR || join(homedir(), 'history/_thumbq'),
   pollMs = 5000, now = () => new Date(), channel = 'FlowVium', lang = 'ko', retryWaitMs = 20_000 }) {
   if (inNightBan(now())) return { skipped: 'ChatGPT 야간 미채점(23:35~02:40 대기열 쉼)' };
   if (!existsSync(join(qdir, 'in'))) throw new Error(`대기열 없음: ${qdir}`);
