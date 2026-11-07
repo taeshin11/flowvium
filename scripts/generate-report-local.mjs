@@ -90,6 +90,8 @@ import { fetchKrxInvestorFlow } from './lib/krx-investor.mjs';
 import { fetchOptionsData } from './lib/yahoo-options.mjs';
 import { emptyCards } from './lib/report-cards.mjs';
 import { trackRecordVeto, recentTrackFromDb } from './lib/track-record.mjs';
+import { hotTopicsFromDb, formatHotTopics, hotTopicsPromptBlock } from './lib/news-topics.mjs';
+import { loadFeeds } from './lib/news-feeds.mjs';
 import { openDb, saveReport, saveRecommendations, saveSellRecommendations, saveBuyCandidates, saveNewsArchive, saveMacroSnapshot, saveDomainArchives, saveFearGreedArchive, getEntryFeedbackStats, getRecentHallucinationsForPromptInject, getPreviousFearGreedScore, getEvidenceClaims, getLatestFiling, saveShadowHits, recentSellTickers, recommendationHistory } from './lib/db.mjs';
 // 2026-09-26: 종목 성적 veto 가 쓰는 종목별 최근 기록 — 한 번만 읽는다. openDb() 는 싱글턴이라 닫지 않는다.
 let _buyTrackMap = null;
@@ -4983,6 +4985,8 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
     `[Sector Leadership — 실 섹터 성과 1w/4w] ${ctx.sectorLeadership || 'No data'}`,
     `[Commodity Curves] ${ctx.commodity || 'No data'}`,
     `[News — 연준발언 우선] ${ctx.news || 'No data'}`,
+    // 2026-11-07: 많이 보도된 이슈 — 최근 12건만 보던 [News] 가 11/03 미국 중간선거를 통째로 놓쳤다(lib/news-topics 머리말).
+    ...(ctx.hotTopics ? [ctx.hotTopics] : []),
     '',
     '⚠️ FACT-CHECK RULES (2차 검증):',
     '- thesis/macroAnalysis 에 [Macro Indicators] + [News] 에 명시된 사실만 사용.',
@@ -6453,6 +6457,7 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,
     `[News Events] ${ctx.news || 'No data'}`,
+    ...(ctx.hotTopics ? [ctx.hotTopics] : []),
     `[Supply Chain Signals] ${ctx.supplyChain || 'No data'}`,
     `[Macro Context] ${ctx.macro || 'No data'}`,
     `[Institutional & Insider Signals] ${institutional || 'No data'}`,
@@ -7034,6 +7039,16 @@ async function generateViaOllama() {
   const { text: indexLevels, map: indexLevelsMap, levels: indexLevelsAbs } = await buildIndexLevelsBlock();
   if (indexLevels) console.log(`  [index-levels] ${indexLevels}`);
   const ctx = buildCtxSummary({ ...ctxRaw, indexLevelsMap });
+  // 2026-11-07: 최근 48시간 경제 언론이 평소보다 많이 다룬 이슈(lib/news-topics). 실패하면 칸 없이 가되 크게 남긴다.
+  let hotTopicsBlock = '';
+  try {
+    const scanSources = new Set(loadFeeds().filter((f) => f.topicScan).map((f) => f.source));
+    const topics = hotTopicsFromDb(openDb(), { scanSources, top: 6 });
+    hotTopicsBlock = hotTopicsPromptBlock(formatHotTopics(topics));
+    console.log(`  [hot-topics] ${topics.length}개: ${topics.map((t) => `${t.word}(${t.sources}곳)`).join(', ') || '없음'}`);
+  } catch (e) {
+    console.warn(`  [hot-topics] ⚠️ 못 셌다 — 이번 보고서는 이 칸 없이 간다: ${String(e?.stack ?? e).slice(0, 300)}`);
+  }
   {
     // 어떤 입력이 실제로 들어왔는지 남긴다 — 순서가 또 바뀌면 여기서 드러난다.
     const io = koreaFlowInputs({ ...ctxRaw, indexLevelsMap });
@@ -7051,6 +7066,7 @@ async function generateViaOllama() {
     ...ctx,
     flows: ctx.flows + cascadeBlock,
     news: ctx.news + cascadeBlock,
+    hotTopics: hotTopicsBlock,
     indexLevels,  // [Index Levels] 블록 — macro·narrative 프롬프트가 인용
     indexLevelsMap,  // 구조화 등락% — narrative-fix 환각 대조
   };
