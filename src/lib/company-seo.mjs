@@ -29,5 +29,5 @@ export function sitemapTickers({ pool, dart, curated }) {
     const T = String(t).toUpperCase();
     if (isKr(T) && companyName(T, 'ko', { pool, dart, curated })) out.add(T);
   }
-  return out;
+  return [...out];
 }

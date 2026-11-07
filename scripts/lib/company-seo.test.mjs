@@ -23,5 +23,7 @@ assert.equal(companyCode('005930.KS'), '005930');
 assert.equal(companyCode('nvda'), 'NVDA');
 // [5] 사이트맵: 큐레이션 전부 + 풀의 한국 종목(이름 아는 것만), 중복 없이
 const sm = sitemapTickers({ pool, dart, curated });
+// 배열로 — sitemap.ts 가 for…of 로 돈다. Set 이면 이 프로젝트 tsconfig(target 없음)에서 next build 가 깨졌다(11/08 실측).
+assert.ok(Array.isArray(sm), 'sitemapTickers 는 배열이어야');
 assert.deepEqual([...sm].sort(), ['005930.KS', '035720.KS', '999999.KQ', 'AAPL', 'NVDA'].sort());
 console.log('company-seo.test: 5/5 통과');
