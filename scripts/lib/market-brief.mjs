@@ -276,3 +276,25 @@ export function recentThumbPhotos(history, n = 3) {
   const used = (history ?? []).filter((h) => h?.thumbPhoto).slice(-n);
   return { urls: new Set(used.map((h) => h.thumbPhoto.url).filter(Boolean)), shas: new Set(used.map((h) => h.thumbPhoto.sha).filter(Boolean)) };
 }
+
+/**
+ * 2026-11-07 롱폼 썸네일(사장님 '3자 상의' — agy·ChatGPT·Claude, 눈 검증 6장). 판 표시는 오전·마감을 늘 적는다
+ *   (종전엔 오전판만 '오전' — 마감판과 구분이 안 됐다).
+ */
+export const editionTag = (ed) => (ed === 'krmid' ? '오전' : '마감');
+/** 큰 글 A/B: cause(지금 — 원인 + 지수 결과) | event(그날 고유 사건·주체 + 시장 반응). 반반, 광고 차례(n%2)와 겹치지 않게 두 편씩. */
+export const thumbArmFor = (n) => (Math.floor(Math.max(0, Number(n) || 0) / 2) % 2 === 0 ? 'cause' : 'event');
+/**
+ * event 칸 두 줄. 줄마다 2~8자·숫자·물음표 없음(숫자는 칩에만), 칩의 지수 이름을 되풀이하지 않고 '급락/급등/하락/상승' 만으로 된 줄도 안 됨,
+ * 한 줄 이상에 그날 이야기 장 이름(회사·이슈)의 낱말이 들어가야 한다. 못 맞추면 null(→ 대조군 글).
+ */
+export function pickEventLines(raw, { chipName, headings = [] } = {}) {
+  const lines = (raw ?? []).map((x) => String(x).replace(/[?？!]/g, '').trim()).slice(0, 2);
+  if (lines.length !== 2) return null;
+  if (lines.some((x) => x.length < 2 || x.length > 8 || /\d/.test(x))) return null;
+  if (chipName && lines.some((x) => x.includes(chipName))) return null;
+  if (lines.some((x) => /^(급락|급등|하락|상승|폭락|폭등)$/.test(x.replace(/\s+/g, '')))) return null;
+  const words = new Set(headings.flatMap((h) => String(h).split(/[\s·,]+/)).filter((w) => w.length >= 2));
+  if (!lines.some((x) => [...words].some((w) => x.includes(w) || w.includes(x.split(/\s+/)[0])))) return null;
+  return lines;
+}

@@ -26,7 +26,7 @@ import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { mixBgm } from '../lib/bgm-mix.mjs';
 import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
-import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL, staleMoves, isLateDoc, thumbPhoto, recentThumbPhotos } from '../lib/market-brief.mjs';
+import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL, staleMoves, isLateDoc, thumbPhoto, recentThumbPhotos, editionTag, thumbArmFor, pickEventLines } from '../lib/market-brief.mjs';
 import { createHash } from 'crypto';
 
 const argv = process.argv.slice(2);
@@ -169,6 +169,7 @@ const scriptPrompt = [
   'hook: 오늘 시장의 핵심을 말하는 결론형 한 줄(22자 이내, 물음표 금지 — 영상이 답하지 않는 질문은 낚시다). **가장 크게 움직인 지수의 이유**(market 장의 이유)에서 뽑아라 — 이야기 장 하나의 곁가지 회사로 낚지 마라. 숫자를 넣지 마라(제목 앞에 숫자가 따로 붙는다).',
   '  이미 일어난 일을 "~할까요?" 로 묻지 마라(10/22 시험: 이미 오른 장을 "반등할까요?"). 묻는다면 아직 안 정해진 것(합병 성사, 상승 지속, 오늘 밤 지표)을 묻는다.',
   'thumb_lines: 썸네일 큰 글 **정확히 2줄**, 오늘 시장의 결론(market 장의 이유). 각 줄 띄어쓰기 포함 **8자 이하** 명사구(예 ["AI 투자 불안", "반도체 급락"]). 숫자·물음표 없이.',
+  'thumb_lines_event: 썸네일 큰 글을 한 벌 더 **정확히 2줄** — 첫 줄은 오늘만의 사건·주체(이야기 장의 회사·이슈 이름이 들어가게), 둘째 줄은 시장 반응. 각 줄 8자 이하, 숫자·물음표 없이. 지수 이름(코스피·코스닥·나스닥·S&P·다우·반도체)을 쓰지 말고, "급락"·"급등" 한 낱말만으로 된 줄 금지. 기사에 있는 사실만.',
   'calendar_ko: [일정] 각 줄 번호 i 의 한국어 이름(14자 이내, 예 "신규 실업수당 청구건수", 실적은 "프록터앤드갬블 실적"). 숫자는 넣지 마라.', '',
   '[지수]', ...FACTS, '',
   '[일정]', ...(calLines.length ? calLines : ['(없음)']), '',
@@ -238,6 +239,14 @@ const thumbLines = (() => {
   log(`[썸네일] 2줄 못 씀(${JSON.stringify(raw)}) — 이야기 장 제목으로`);
   return chapters.filter((c) => c.kind === 'story').map((c) => c.heading.slice(0, 8)).slice(0, 2);
 })();
+// 2026-11-07 큰 글 A/B(사장님 '3자 상의' — agy·ChatGPT·Claude, 눈 검증 6장: 둘째 줄이 칩 되풀이·날마다 같은 글). 두 편씩 번갈아(광고 차례와 안 겹침).
+const THUMB_ARM_WANT = thumbArmFor(history.filter((h) => h?.id).length);
+const eventLines = THUMB_ARM_WANT === 'event'
+  ? pickEventLines(script.thumb_lines_event, { chipName: MOVE?.chip?.split(' ')[0], headings: chapters.filter((c) => c.kind === 'story').map((c) => c.heading) })
+  : null;
+if (THUMB_ARM_WANT === 'event' && !eventLines) log(`[썸네일] event 칸인데 글이 규칙에 안 맞다(${JSON.stringify(script.thumb_lines_event ?? null)}) — 대조군 글로`);
+const THUMB_ARM = eventLines ? 'event' : 'cause';
+if (eventLines) thumbLines.splice(0, 2, ...eventLines);
 const thumbLine = thumbLines.join(' ');
 const title = briefTitle({ edition: ED, move: MOVE, hook, day: DAY });
 rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true });
@@ -464,7 +473,7 @@ let drawThumb = null;
 .chip{position:absolute;left:44px;top:110px;padding:6px 30px 14px;border-radius:14px;color:#fff;font-size:116px;font-weight:900;white-space:nowrap;letter-spacing:-3px}
 .l{position:absolute;left:52px;font-size:112px;font-weight:900;white-space:nowrap;letter-spacing:-4px;text-shadow:0 4px 0 rgba(0,0,0,.35)}</style>
 ${pic ? `<img class="ph" src="data:image/jpeg;base64,${readFileSync(pic.file).toString('base64')}">` : '<div class="nb"></div>'}
-<div class="pan"></div><div class="bar"></div><div class="brand">FLOWVIUM <span style="color:#cbd5e1">· ${esc(ED === 'us' ? '미국' : '한국')} ${esc(DAY.slice(5).replace('-', '/').replace(/^0/, '').replace('/0', '/'))}${ED === 'krmid' ? ' 오전' : ''}</span></div>
+<div class="pan"></div><div class="bar"></div><div class="brand">FLOWVIUM <span style="color:#cbd5e1">· ${esc(ED === 'us' ? '미국' : '한국')} ${esc(DAY.slice(5).replace('-', '/').replace(/^0/, '').replace('/0', '/'))} ${esc(editionTag(ED))}</span></div>
 ${MOVE ? `<div class="chip" style="background:${MOVE.up ? '#E5262B' : MOVE.pct < 0 ? '#1F5BFF' : '#475569'}">${esc(MOVE.chip)}</div>` : ''}
 <div class="l" style="top:${MOVE ? 300 : 200}px;color:#FFD400">${esc(lines[0] ?? '')}</div><div class="l" style="top:${MOVE ? 450 : 350}px;color:#fff">${esc(lines[1] ?? '')}</div>`);
   await tp.evaluate(() => { for (const el of document.querySelectorAll('.chip,.l')) { let f = parseFloat(getComputedStyle(el).fontSize); while (el.getBoundingClientRect().right > 680 && f > 56) { f -= 4; el.style.fontSize = `${f}px`; } } });
@@ -534,7 +543,7 @@ if (UPLOAD) {
   const th = await setThumbnail(u.id, THUMB);
   log(`✅ 올림 ${u.url} (${publishAt ? `예약 ${new Date(Date.parse(publishAt) + 9 * 3600e3).toISOString().slice(11, 16)} KST` : UPLOAD}) · 썸네일 ${th.ok ? '적용' : `실패 ${th.reason}`}`);
   if (gate) { const { appendGateLog } = await import('../lib/thumb-gate.mjs'); appendGateLog({ event: 'uploaded', kind: 'long', edition: ED, id: u.id, title, ...gate }, resolve(ROOT, 'logs/thumb-gate.jsonl')); }
-  history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), thumbPhoto: THUMB_PHOTO, at: new Date().toISOString() });
+  history.push({ edition: ED, date: DATE, promo: PROMO.name, id: u.id, privacy: UPLOAD, publishAt, title, seconds: Math.round(LEN), thumbPhoto: THUMB_PHOTO, thumbArm: THUMB_ARM, thumbArmWanted: THUMB_ARM_WANT, at: new Date().toISOString() });
   writeFileSync(HIST, JSON.stringify(history, null, 2));
   // 예약 공개 편은 여기서 달지 않는다 — 공개 전(비공개)엔 댓글 칸이 없어 실패만 센다(10/23 h_nRYqiJDEg 실패 2회 → 고정 댓글 없이 공개).
   //   공개되면 pin-watch(cron-runner, 10분마다 yt-pin-comment --due)가 채널 업로드 목록에서 잡아 달고 +10분·+24시간 재확인한다.

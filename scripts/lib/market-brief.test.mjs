@@ -237,6 +237,25 @@ const M = await import('./market-brief.mjs');
     ? ok('[19g] 롱폼 aisvi 는 v45 판이 있으면 그것, 없으면 v16') : bad(`[19g] ${JSON.stringify([v16only, v45])}`);
   (/brief-ad-aisvi\.mp4$/.test(old.path) && !old.version) ? ok('[19e] 판 카드가 없으면 옛 긴 광고') : bad(`[19e] ${JSON.stringify(old)}`);
 }
+// [23] 2026-11-07 롱폼 썸네일(사장님 '3자 상의', 노출 클릭률 1.12%). 눈 검증 6장: 둘째 줄이 칩을 되풀이("코스피 ▼6.0%"+"코스피 급락"),
+//   날마다 "AI 규제 우려 / 코스피 급락" — 새 편인지 구분이 안 됨. agy·ChatGPT 둘 다 '그날 고유한 사건·주체' 쪽을 시험하자고 함.
+{
+  // [23a] 판 표시: 마감판도 '마감' 을 적는다(종전엔 오전판만 '오전' — ChatGPT·agy 둘 다 시점 구분이 안 된다고 짚음)
+  (M.editionTag?.('krmid') === '오전' && M.editionTag('krclose') === '마감' && M.editionTag('us') === '마감' && M.editionTag('kreu') === '마감')
+    ? ok('[23a] 판 표시 오전·마감') : bad(`[23a] ${['krmid', 'krclose', 'us', 'kreu'].map((e) => M.editionTag?.(e)).join(',')}`);
+  // [23b] 칸: 반반, 광고 차례(n%2)와 겹치지 않게
+  const arms = Array.from({ length: 400 }, (_, n) => M.thumbArmFor?.(n));
+  const bShare = arms.filter((a) => a === 'event').length / 400;
+  const inAis = arms.filter((a, n) => a === 'event' && n % 2 === 0).length / Math.max(1, arms.filter((a) => a === 'event').length);
+  (bShare > 0.45 && bShare < 0.55 && inAis > 0.4 && inAis < 0.6 && arms.every((a) => a === 'event' || a === 'cause')) ? ok(`[23b] event ${Math.round(bShare * 100)}% · 그 안 aisvi 차례 ${Math.round(inAis * 100)}%`) : bad(`[23b] ${bShare} ${inAis}`);
+  // [23c] event 칸 글: 이야기 장 이름(그날 고유 주체)이 들어가고, 칩 지수 이름·'급락/급등' 단독을 되풀이하지 않는다. 아니면 null(→ 대조군 글)
+  const heads = ['SK하이닉스', '데이터센터 규제', '삼성전자'];
+  const okB = M.pickEventLines?.(['데이터센터 규제', '하닉 매도 확산'], { chipName: '코스피', headings: heads });
+  (Array.isArray(okB) && okB[0] === '데이터센터 규제') ? ok('[23c] 고유 사건 + 반응') : bad(`[23c] ${JSON.stringify(okB)}`);
+  (M.pickEventLines?.(['AI 규제 우려', '코스피 급락'], { chipName: '코스피', headings: heads }) === null) ? ok('[23d] 칩 되풀이·고유 주체 없음 → null') : bad('[23d]');
+  (M.pickEventLines?.(['삼성전자', '급락'], { chipName: '코스피', headings: heads }) === null) ? ok('[23e] 급락 단독 줄 → null') : bad('[23e]');
+  (M.pickEventLines?.(['삼성전자 3%', '매도 확산'], { chipName: '코스피', headings: heads }) === null) ? ok('[23f] 숫자 든 줄 → null(숫자는 칩에만)') : bad('[23f]');
+}
 // [20] 마감판 등락률·주가는 장 끝난 뒤 근거에서만 — 10/23 첫 마감판 "삼성E&A는 … 6.5% 급등했습니다": 10시 [특징주] 기사의 장중 숫자
 //   (실제 마감 +7.22%, 네이버). 관련 기사는 아침부터 모으므로 장중 숫자가 마감 결과처럼 읽혔다. 금액(억·조)·실적은 장중 기사도 근거가 된다.
 {
