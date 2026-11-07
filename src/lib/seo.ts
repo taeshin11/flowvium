@@ -1,15 +1,13 @@
 import { Metadata } from 'next';
+import { routing } from '@/i18n/routing';
+import { alternateLanguages } from './seo-alternates.mjs';
 
 const BASE_URL = 'https://flowvium.net';
 const SITE_NAME = 'Flowvium';
 const DEFAULT_DESC =
   'Track where smart money flows through the supply chain. Free institutional flow tracker, supply chain maps, and leader-to-midcap cascade analysis.';
 
-/** All supported locales — must match sitemap.ts and [locale] routing */
-const ALL_LOCALES = [
-  'en', 'ko', 'ja', 'zh-CN', 'zh-TW', 'es', 'de', 'fr',
-  'pt', 'hi', 'ar', 'vi', 'th', 'id', 'ru', 'tr',
-] as const;
+// 언어 목록은 i18n/routing 하나에서만 — 따로 들고 있다가 없는 13개 언어판을 구글에 알렸다(lib/seo-alternates 머리말).
 
 export function generateSeoMetadata({
   title,
@@ -32,13 +30,7 @@ export function generateSeoMetadata({
   const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
 
   // Build hreflang — English uses root path (no /en/ prefix), others use /{locale}/
-  const languages: Record<string, string> = {
-    'x-default': `${BASE_URL}${path}`,
-    'en': `${BASE_URL}${path}`,
-  };
-  for (const loc of ALL_LOCALES.filter(l => l !== 'en')) {
-    languages[loc] = `${BASE_URL}/${loc}${path}`;
-  }
+  const languages: Record<string, string> = alternateLanguages(path, routing.locales, BASE_URL);
 
   return {
     title: fullTitle,

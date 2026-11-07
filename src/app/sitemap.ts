@@ -1,6 +1,7 @@
 import { routing } from '@/i18n/routing';
 import { MetadataRoute } from 'next';
-import { allCompanies } from '@/data/companies';
+import { sitemapTickers } from '@/lib/company-seo.mjs';
+import { companySeoData } from '@/lib/company-seo-data';
 import { sectors } from '@/data/sectors';
 import { blogPosts } from '@/data/blog-posts';
 import { glossaryTerms } from '@/data/glossary';
@@ -10,6 +11,7 @@ const locales = routing.locales;   // 목록은 i18n/routing 하나에서만 정
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: MetadataRoute.Sitemap = [];
+  const companyTickers = sitemapTickers(companySeoData());
 
   // Static pages
   const staticPages = [
@@ -49,9 +51,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
 
     // Company pages
-    for (const company of allCompanies) {
+    // 2026-11-07: 큐레이션 + 종목 풀의 한국 종목(이름 아는 것) — 종전엔 한국 종목 3개뿐이었다(lib/company-seo).
+    for (const ticker of companyTickers) {
       routes.push({
-        url: localeBase(locale, `/company/${company.ticker}`),
+        url: localeBase(locale, `/company/${ticker}`),
         lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.6,

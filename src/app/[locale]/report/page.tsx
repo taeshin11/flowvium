@@ -9,9 +9,10 @@ export async function generateMetadata({
   params: { locale: string };
 }): Promise<Metadata> {
   const t = await getTranslations({ locale: params.locale, namespace: 'report' });
+  const ts = await getTranslations({ locale: params.locale, namespace: 'seo' });
   return generateSeoMetadata({
     title: t('title'),
-    description: 'AI-powered daily brief: global money flows, institutional signals, supply chain alerts',
+    description: ts('reportDescription'),   // 2026-11-07: 한국어 화면에 영어 설명이 나가고 있었다
     path: '/report',
     locale: params.locale,
     keywords: ['AI report', 'market brief', 'institutional signals', 'money flows'],

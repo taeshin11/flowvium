@@ -656,7 +656,11 @@
     "watchlistTitle": "ウォッチリスト — Flowvium",
     "watchlistDescription": "ウォッチリストに銘柄を追加し、リアルタイム株価と日次変動率を一目で確認。",
     "volatilityTitle": "内在ボラティリティ・スクリーナー — Flowvium",
-    "volatilityDescription": "ブルームバーグ方式の内在ボラティリティ。コール・プット・パリティでフォワード抽出+ブレント逆算。30d/90d ATM IV、25デルタスキュー、期間傾斜、IVランク。"
+    "volatilityDescription": "ブルームバーグ方式の内在ボラティリティ。コール・プット・パリティでフォワード抽出+ブレント逆算。30d/90d ATM IV、25デルタスキュー、期間傾斜、IVランク。",
+    "companyTitle": "{name}({code}) 株価・業績・主要取引先",
+    "companyDescription": "{name}の株価推移、事業別売上、主要な顧客・仕入先・競合を1ページで。",
+    "reportDescription": "AIが1日5回書く市場レポート。KOSPI・米国株の動き、外国人の売買動向、買い・売り候補と根拠。",
+    "companyTitleCode": "{code} 株価・業績・主要取引先"
   },
   "pro": {
     "upgradeTitle": "Flowvium Proを利用する",

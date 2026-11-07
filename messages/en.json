@@ -749,7 +749,11 @@
     "watchlistTitle": "Watchlist — Flowvium",
     "watchlistDescription": "Add tickers to your watchlist and monitor real-time prices and daily changes at a glance.",
     "volatilityTitle": "Implied Volatility Screener — Flowvium",
-    "volatilityDescription": "Bloomberg-style options implied volatility: call-put parity forward extraction + Brent inversion. 30d/90d ATM IV, 25Δ skew, term slope, IV rank."
+    "volatilityDescription": "Bloomberg-style options implied volatility: call-put parity forward extraction + Brent inversion. 30d/90d ATM IV, 25Δ skew, term slope, IV rank.",
+    "companyTitle": "{name} ({code}) Stock, Earnings & Key Partners",
+    "companyDescription": "{name} price trend, revenue by segment, and key customers, suppliers and competitors on one page.",
+    "reportDescription": "An AI-written market report five times a day: KOSPI and US market moves, foreign flows, and buy/sell candidates with reasons.",
+    "companyTitleCode": "{code} Stock, Earnings & Key Partners"
   },
   "pro": {
     "upgradeTitle": "Unlock Flowvium Pro",

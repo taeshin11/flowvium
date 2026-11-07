@@ -1108,6 +1108,14 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 
 ## 18. 백엔드·인프라 기능
 
+### 검색엔진 노출 (2026-11-07 — 사장님 "사이트 방문자수 늘리려면?", ChatGPT·agy·Claude 상의)
+- 실측: 방문자 하루 3~10명, 외부 가입 0, 유튜브 설명란 링크 클릭 45일 29회.
+- 언어판 주소(hreflang): `src/lib/seo-alternates.mjs` — 사이트 언어(i18n/routing en·ko·ja)만. 종전엔 16개를 알려 13개가 404.
+- 종목 페이지 제목·설명: `src/lib/company-seo.mjs`(+`company-seo-data.ts`) — 한국어 화면은 "삼성전자(005930) 주가·실적·주요 거래처". 이름은 종목 풀 → DART 기업코드표 → 큐레이션 순. 문구 `messages/*.json` seo.companyTitle·companyTitleCode·companyDescription.
+- 사이트맵 종목: 큐레이션 + 종목 풀 한국 종목 중 이름 아는 것(종전 한국 3개).
+- 보고서 설명 `seo.reportDescription`(종전 한국어 화면에 영어).
+- 남은 일(상의 순서): 네이버 서치어드바이저·빙 등록(운영자 로그인) → 날짜별 대표 보고서 1편/일 주소 → 유튜브 설명란 문구.
+
 ### API 라우트 전체 목록
 
 Redis 미설정 환경에서는 `@/lib/memory-cache` 모듈 레벨 in-memory cache 가 warm
