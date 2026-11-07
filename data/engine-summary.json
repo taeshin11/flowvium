@@ -1,10 +1,10 @@
 {
- "at": "2026-11-07T07:45:15.692Z",
+ "at": "2026-11-07T22:45:17.434Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 114,
- "signals": 11632,
- "newSignals": 4704,
+ "ledgerLines": 117,
+ "signals": 12134,
+ "newSignals": 4868,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -345,11 +345,11 @@
    "t": null
   },
   "sell|us|1": {
-   "new": 66,
+   "new": 69,
    "ok": 65,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1,
+   "pending": 4,
    "noData": 0,
    "days": 21,
    "meanNet": -0.00209,
@@ -357,11 +357,11 @@
    "t": -0.66
   },
   "sell|us|5": {
-   "new": 66,
+   "new": 69,
    "ok": 59,
    "stale": 0,
    "mismatch": 0,
-   "pending": 7,
+   "pending": 10,
    "noData": 0,
    "days": 17,
    "meanNet": -0.00613,
@@ -369,11 +369,11 @@
    "t": -1.06
   },
   "sell|us|20": {
-   "new": 66,
+   "new": 69,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 66,
+   "pending": 69,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -381,11 +381,11 @@
    "t": null
   },
   "sell|us|60": {
-   "new": 66,
+   "new": 69,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 66,
+   "pending": 69,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -393,11 +393,11 @@
    "t": null
   },
   "control|us|1": {
-   "new": 2400,
+   "new": 2500,
    "ok": 2300,
    "stale": 0,
    "mismatch": 0,
-   "pending": 100,
+   "pending": 200,
    "noData": 0,
    "days": 23,
    "meanNet": 0.00162,
@@ -405,11 +405,11 @@
    "t": 1.39
   },
   "control|us|5": {
-   "new": 2400,
+   "new": 2500,
    "ok": 1900,
    "stale": 0,
    "mismatch": 0,
-   "pending": 500,
+   "pending": 600,
    "noData": 0,
    "days": 19,
    "meanNet": 0.0152,
@@ -417,11 +417,11 @@
    "t": 4.7
   },
   "control|us|20": {
-   "new": 2400,
+   "new": 2500,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2400,
+   "pending": 2500,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -429,11 +429,11 @@
    "t": null
   },
   "control|us|60": {
-   "new": 2400,
+   "new": 2500,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2400,
+   "pending": 2500,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -441,11 +441,11 @@
    "t": null
   },
   "control|kr|1": {
-   "new": 1440,
+   "new": 1500,
    "ok": 1380,
    "stale": 0,
    "mismatch": 0,
-   "pending": 60,
+   "pending": 120,
    "noData": 0,
    "days": 23,
    "meanNet": -0.00471,
@@ -453,11 +453,11 @@
    "t": -1.79
   },
   "control|kr|5": {
-   "new": 1440,
+   "new": 1500,
    "ok": 1140,
    "stale": 0,
    "mismatch": 0,
-   "pending": 300,
+   "pending": 360,
    "noData": 0,
    "days": 19,
    "meanNet": -0.01106,
@@ -465,11 +465,11 @@
    "t": -1
   },
   "control|kr|20": {
-   "new": 1440,
+   "new": 1500,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1440,
+   "pending": 1500,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -477,11 +477,11 @@
    "t": null
   },
   "control|kr|60": {
-   "new": 1440,
+   "new": 1500,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1440,
+   "pending": 1500,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -969,11 +969,11 @@
    "t": null
   },
   "funnel_veto_other|us|1": {
-   "new": 90,
+   "new": 91,
    "ok": 85,
    "stale": 0,
    "mismatch": 0,
-   "pending": 5,
+   "pending": 6,
    "noData": 0,
    "days": 8,
    "meanNet": -0.00196,
@@ -981,11 +981,11 @@
    "t": null
   },
   "funnel_veto_other|us|5": {
-   "new": 90,
+   "new": 91,
    "ok": 50,
    "stale": 0,
    "mismatch": 0,
-   "pending": 40,
+   "pending": 41,
    "noData": 0,
    "days": 4,
    "meanNet": -0.00068,
@@ -993,11 +993,11 @@
    "t": null
   },
   "funnel_veto_other|us|20": {
-   "new": 90,
+   "new": 91,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 90,
+   "pending": 91,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1005,11 +1005,11 @@
    "t": null
   },
   "funnel_veto_other|us|60": {
-   "new": 90,
+   "new": 91,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 90,
+   "pending": 91,
    "noData": 0,
    "days": 0,
    "meanNet": null,
