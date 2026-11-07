@@ -139,3 +139,12 @@ export function hotTopicsPromptBlock(text) {
     '- "폭락 임박", "반드시 하락", "확실한 악재" 같은 단정 표현 금지. 근거 없이 "불확실성 해소"로 결론내지 마라.',
   ].join('\n');
 }
+
+/**
+ * 앞날을 단정하는 표현 — 프롬프트에서 금지한 꼴을 발간 뒤에도 잡는다(ChatGPT·agy 둘 다 "프롬프트만으론 안 막힌다").
+ * 지난 사실("어제 6% 폭락했다")·조건부("~할 수 있다는 분석")는 잡지 않는다.
+ */
+const CERTAINTY = /폭락\s*임박|반드시\s*(?:하락|상승|떨어|오르|반등)|확실한\s*(?:악재|호재)|(?:하락|상승|폭락|반등|급락)(?:이|은|는)?\s*불가피|(?:하락|상승|반등|폭락)\s*확실/g;
+export function certaintyClaims(text) {
+  return [...String(text ?? '').matchAll(CERTAINTY)].map((m) => m[0]);
+}

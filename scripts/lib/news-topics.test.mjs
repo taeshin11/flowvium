@@ -1,7 +1,7 @@
 // news-topics.test.mjs — 많이 보도된 이슈 고르기(11/07 사장님 "민주당이 이길 거라는 것도 뉴스 전반을 뒤지면 예측 가능하지 않았을까?").
 // node scripts/lib/news-topics.test.mjs
 import assert from 'node:assert/strict';
-import { hotTopics, formatHotTopics, topicTokens, hotTopicsPromptBlock } from './news-topics.mjs';
+import { hotTopics, formatHotTopics, topicTokens, hotTopicsPromptBlock, certaintyClaims } from './news-topics.mjs';
 
 const now = Date.parse('2026-11-03T20:00:00Z');
 const SCAN = new Set(['A', 'B', 'C', 'D', 'E', 'SPAM']);
@@ -72,4 +72,7 @@ assert.ok(!/[<>]|thumb\.mt/.test(html), html);
 assert.match(html, /AI주가 하루 만에 5% 내렸다/);
 const onlyTag = formatHotTopics([{ word: 'x', base: 0, recent: 1, sources: 3, examples: [{ headline: '제목', source: 'M', at: now, summary: '<img src=a.jpg>' }] }]);
 assert.ok(!onlyTag.includes(' — '), onlyTag);
-console.log('news-topics.test: 13/13 통과');
+// [14] 단정 표현 검사(보고서 검증기가 쓴다) — 프롬프트 금지 목록과 같은 꼴을 잡고, 조건부·지난 사실은 놔둔다
+for (const bad of ['폭락 임박', '반도체주는 반드시 하락할 것', '확실한 악재', '하락이 불가피하다', '반등 확실']) assert.ok(certaintyClaims(bad).length, bad);
+for (const ok of ['압승 시 AI주에 부담이 될 수 있다는 분석(야데니)', '어제 KOSPI 가 6% 폭락했다', '하락 가능성이 거론된다', '불확실성이 남아 있다']) assert.deepEqual(certaintyClaims(ok), [], ok);
+console.log('news-topics.test: 14/14 통과');

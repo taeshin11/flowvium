@@ -431,6 +431,22 @@ export async function verifyReport(file, { silent = false } = {}) {
     }
   }
   if (!magMis) log('  ✅ 변동폭 표현 정상(급락/급등 과장 없음)');
+  // (c3) 앞날 단정 — "폭락 임박"·"반드시 하락"·"확실한 악재". 2026-11-07: 많이 보도된 이슈(선거 등)를 보고서에 넣으며
+  //   ChatGPT·agy 가 둘 다 "프롬프트 금지만으론 안 막힌다, 발간 뒤 검사를 같이" 라고 했다. AI 가 쓴 칸만 본다(기사 제목 인용 제외).
+  {
+    const { certaintyClaims } = await import('./lib/news-topics.mjs');
+    let nCert = 0;
+    const fields = [['thesis', r.thesis], ['macroAnalysis', r.macroAnalysis], ['story', r.marketNarrative?.story], ['why', r.marketNarrative?.why], ['watch', r.marketNarrative?.watch],
+      ...Object.entries(r.regionStances ?? {}).map(([k, v]) => [`regionStances.${k}`, v?.thesis])];
+    for (const [field, text] of fields) {
+      for (const hit of certaintyClaims(text)) {
+        nCert++;
+        log(`  ❌ ${field} 앞날 단정 "${hit}" (기사에 나온 견해를 조건부로만)`);
+        defects.push({ ticker: field, defect_type: 'certainty_claim', llm_value: hit, correct_value: '"~할 수 있다는 분석(출처)" 꼴의 조건부 서술', severity: 'medium' });
+      }
+    }
+    if (!nCert) log('  ✅ 앞날 단정 표현 없음');
+  }
   // (d) FOMC 시제 — 이미 끝난(보고서 월 이하) FOMC 를 "기대/전망/예상"(미래형)으로 서술하면 결함.
   //   2026-06-18 사건: 6월 FOMC 완료(데이터도 next=7/29 인지)인데 "6월 FOMC 동결 기대(100%)" 라이브 노출.
   let fomcTense = 0;
