@@ -682,7 +682,8 @@ const MAINT_JOBS = [
   //   보고서 중에도 돈다 — 창 없는 브라우저 하나·몇 편이라 가볍고, 늦으면 '15분 안' 을 못 지킨다.
   // 2026-10-27 사장님(Mac mini2 경유): 시청자 댓글엔 늦어도 24시간·매시 보면 1시간 안에 1~2줄 답글. 규칙은 lib/comment-reply.
   //   정치·욕설·스팸은 건너뛴다(지우지 않는다). 영상당 하루 5·계정 하루 20. 할 일 없으면 조용히 끝난다.
-  { label: 'yt-reply',             script: 'scripts/yt-reply-comments.mjs',          timeoutMs: 900000,  commitPaths: [], duringReport: true,                  schedules: ['23 * * * *'],                 maxAgeH: 3 },
+  // 2026-11-09 사장님(Mac mini2 경유): 팬 댓글 점검은 하루 한 번 — 매시 → 18:23 KST(09:23 UTC). 최근 7일 댓글을 보니 하루 한 번이라도 빠지는 댓글은 없다.
+  { label: 'yt-reply',             script: 'scripts/yt-reply-comments.mjs',          timeoutMs: 900000,  commitPaths: [], duringReport: true,                  schedules: ['23 9 * * *'],                 maxAgeH: 30 },
   // 2026-11-02 사장님(Mac mini2 경유): 새 롱폼(11/02~)에 최종 화면(시청자 맞춤 동영상 + 구독) — Data API 에 없어 스튜디오 헤드리스(youtube-profile 잠금).
   //   올린 지 30분 지난 공개 편만, 편당 최대 3번. 할 일 없으면 브라우저를 안 띄운다. 11/16 클릭률 측정. 근거 lib/endscreen-due.test.
   { label: 'yt-endscreen',         script: 'scripts/yt-endscreen.mjs',               timeoutMs: 900000,  commitPaths: [],                                     schedules: ['25,55 * * * *'],              maxAgeH: 2 },
