@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T13:01:09.005Z",
+  "generatedAt": "2026-11-08T13:01:04.242Z",
   "universe": "US",
   "scanned": 352,
   "count": 4,
@@ -25,22 +25,6 @@
       "official": null
     },
     {
-      "ticker": "JOF",
-      "name": "Japan Smaller Capitalization Fu",
-      "tier": "watch",
-      "score": 25,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
-      ],
-      "runup20dPct": -13.6,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 801983,
-      "smartAccum": false,
-      "official": null
-    },
-    {
       "ticker": "CLM",
       "name": "Cornerstone Strategic Value Fd",
       "tier": "watch",
@@ -54,6 +38,22 @@
       "runup20dPct": -9.1,
       "runup5dPct": -0.2,
       "medDollarVolUsd": 13753547,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "GOLD",
+      "name": "Gold.com, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -7.5,
+      "runup5dPct": -1.1,
+      "medDollarVolUsd": 19462416,
       "smartAccum": false,
       "official": null
     },
