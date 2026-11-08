@@ -1,9 +1,9 @@
 {
- "at": "2026-11-07T22:45:17.434Z",
+ "at": "2026-11-08T07:45:16.306Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 117,
- "signals": 12134,
+ "ledgerLines": 119,
+ "signals": 12355,
  "newSignals": 4868,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
