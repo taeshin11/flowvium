@@ -1114,8 +1114,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 종목 페이지 제목·설명: `src/lib/company-seo.mjs`(+`company-seo-data.ts`) — 한국어 화면은 "삼성전자(005930) 주가·실적·주요 거래처". 이름은 종목 풀 → DART 기업코드표 → 큐레이션 순. 문구 `messages/*.json` seo.companyTitle·companyTitleCode·companyDescription.
 - 사이트맵 종목: 큐레이션 + 종목 풀 한국 종목 중 이름 아는 것(종전 한국 3개).
 - 보고서 설명 `seo.reportDescription`(종전 한국어 화면에 영어).
-- 반영 2026-11-08 03:33 KST(빌드 ZiIUX6NX…). 네이버 소유 확인 태그: `.env.local` NEXT_PUBLIC_NAVER_SITE_VERIFICATION → `src/lib/seo.ts` verification.other(모든 페이지 head). 빙은 아직 코드 미수령.
-- 남은 일(상의 순서): 빙 등록(운영자 로그인) → 네이버 사이트맵 제출 → 날짜별 대표 보고서 1편/일 주소.
+- 반영 2026-11-08 03:33 KST(빌드 ZiIUX6NX…). 네이버 소유 확인 태그: `.env.local` NEXT_PUBLIC_NAVER_SITE_VERIFICATION → `src/lib/seo.ts` verification.other(모든 페이지 head). 빙(msvalidate.01)·구글 새 속성 코드 2026-11-08 21:31 반영. 구글은 기존 코드도 남겨 둘 다 낸다 — 환경변수 한 칸에 쉼표로 여러 개(`src/lib/seo-verification.mjs`). 기존 값 끝의 줄바꿈도 이때 없어졌다.
+- 네이버: 11/08 20:13 소유 확인·사이트맵 제출(Mac mini2). 남은 일: 날짜별 대표 보고서 1편/일 주소.
 
 ### API 라우트 전체 목록
 

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { routing } from '@/i18n/routing';
 import { alternateLanguages } from './seo-alternates.mjs';
+import { verificationCodes } from './seo-verification.mjs';
 
 const BASE_URL = 'https://flowvium.net';
 const SITE_NAME = 'Flowvium';
@@ -78,12 +79,13 @@ export function generateSeoMetadata({
       },
     },
     verification: {
-      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
+      // 쉼표로 여러 개 — 새 코드를 받아도 기존 코드는 남긴다(2026-11-08, lib/seo-verification).
+      google: verificationCodes(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION),
       // Bing Webmaster (also covers Yahoo Japan, DuckDuckGo)
       other: {
-        'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || '',
+        'msvalidate.01': verificationCodes(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION),
         // Naver Search Advisor (Korea)
-        'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION || '',
+        'naver-site-verification': verificationCodes(process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION),
         // Baidu Webmaster (China)
         'baidu-site-verification': process.env.NEXT_PUBLIC_BAIDU_SITE_VERIFICATION || '',
         // Yandex Webmaster (Russia)
