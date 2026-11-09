@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-08T22:20:24.089Z",
+  "generatedAt": "2026-11-09T07:20:25.163Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 5,
-  "strongCount": 2,
-  "watchCount": 3,
+  "count": 6,
+  "strongCount": 1,
+  "watchCount": 5,
   "officialFewAccount": 1,
   "watchlist": [
     {
@@ -15,12 +15,12 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 5.8× 급증(가격 평탄)",
+        "거래량 6.2× 급증(가격 평탄)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
       ],
-      "runup20dPct": -11.4,
-      "runup5dPct": 7.5,
-      "medDollarVolUsd": 54905,
+      "runup20dPct": -12.6,
+      "runup5dPct": 2,
+      "medDollarVolUsd": 54715,
       "smartAccum": false,
       "official": {
         "category": "caution",
@@ -32,17 +32,17 @@
     {
       "ticker": "121600.KQ",
       "name": "나노신소재",
-      "tier": "strong",
-      "score": 46,
+      "tier": "watch",
+      "score": 41,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)",
+        "거래량 3.6× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 0.5,
-      "runup5dPct": 3.7,
+      "runup20dPct": 1,
+      "runup5dPct": -10.2,
       "medDollarVolUsd": 2813351,
       "smartAccum": true,
       "official": null
@@ -54,13 +54,13 @@
       "score": 40,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.9× 상승(지속 매집)",
+        "거래량 추세 3.2× 상승(지속 매집)",
         "종가 일중 상단 60%",
         "아래꼬리 매집 5개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 4.4,
-      "runup5dPct": 4.8,
+      "runup20dPct": 7,
+      "runup5dPct": 6.2,
       "medDollarVolUsd": 5998537,
       "smartAccum": true,
       "official": null
@@ -73,13 +73,13 @@
       "coFire": 2,
       "lead": [
         "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 90%(강한 매수 흡수)",
-        "아래꼬리 매집 7개(저가 매수받침)",
+        "종가 일중 상단 100%(강한 매수 흡수)",
+        "아래꼬리 매집 8개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -1.5,
-      "runup5dPct": -1.3,
-      "medDollarVolUsd": 33459,
+      "runup20dPct": -0.4,
+      "runup5dPct": -0.7,
+      "medDollarVolUsd": 32717,
       "smartAccum": true,
       "official": null
     },
@@ -95,9 +95,26 @@
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -13.4,
-      "runup5dPct": 2.7,
-      "medDollarVolUsd": 257355,
+      "runup20dPct": -10.9,
+      "runup5dPct": 1.3,
+      "medDollarVolUsd": 260409,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "046890.KQ",
+      "name": "서울반도체",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 6.4× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -10.7,
+      "runup5dPct": -21.3,
+      "medDollarVolUsd": 1187816,
       "smartAccum": true,
       "official": null
     }
