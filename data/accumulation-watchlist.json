@@ -1,27 +1,28 @@
 {
-  "generatedAt": "2026-11-09T07:20:25.163Z",
+  "generatedAt": "2026-11-09T22:20:23.439Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 6,
+  "count": 5,
   "strongCount": 1,
-  "watchCount": 5,
+  "watchCount": 4,
   "officialFewAccount": 1,
   "watchlist": [
     {
       "ticker": "065500.KQ",
       "name": "오리엔트정공",
       "tier": "strong",
-      "score": 53,
+      "score": 63,
       "coFire": 2,
       "lead": [
         "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 6.2× 급증(가격 평탄)",
+        "거래량 6.3× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
       ],
       "runup20dPct": -12.6,
       "runup5dPct": 2,
       "medDollarVolUsd": 54715,
-      "smartAccum": false,
+      "smartAccum": true,
       "official": {
         "category": "caution",
         "reason": "매매관여과다종목",
@@ -80,24 +81,6 @@
       "runup20dPct": -0.4,
       "runup5dPct": -0.7,
       "medDollarVolUsd": 32717,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "048870.KQ",
-      "name": "시너지이노베이션",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -10.9,
-      "runup5dPct": 1.3,
-      "medDollarVolUsd": 260409,
       "smartAccum": true,
       "official": null
     },
