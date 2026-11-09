@@ -1,5 +1,5 @@
 {
- "at": "2026-11-06T23:35:30.694Z",
+ "at": "2026-11-09T07:30:00.124Z",
  "version": "v2",
  "primary": "allDays",
  "forecasts": [
@@ -59,7 +59,7 @@
   },
   "E2": {
    "n": 38,
-   "missing": "진입 전(2026-11-09)",
+   "missing": [],
    "h5": "pending",
    "h20": "pending"
   }
