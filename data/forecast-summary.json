@@ -1,7 +1,7 @@
 {
- "at": "2026-11-09T07:20:00.111Z",
- "recorded": 68,
- "scored": 68,
+ "at": "2026-11-09T22:20:00.072Z",
+ "recorded": 70,
+ "scored": 70,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 17,
-   "recorded": 17,
+   "sessions": 16,
+   "recorded": 16,
    "missing": []
   },
   "us": {
-   "sessions": 17,
-   "recorded": 17,
+   "sessions": 18,
+   "recorded": 18,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 32,
+   "n": 34,
    "report": {
     "calls": 16,
     "hits": 6,
-    "abstain": 16,
+    "abstain": 18,
     "hitRate": 0.375
    },
    "base": {
-    "brier": 0.24348719307318198,
+    "brier": 0.24112324238405314,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 32,
-      "meanP": 0.4508798757952903,
-      "observed": 0.40625
+      "n": 34,
+      "meanP": 0.45087949265706234,
+      "observed": 0.38235294117647056
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.24348719307318198,
+    "brier": 0.24112324238405314,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 32,
-      "meanP": 0.4508798757952903,
-      "observed": 0.40625
+      "n": 34,
+      "meanP": 0.45087949265706234,
+      "observed": 0.38235294117647056
      }
     ],
     "skill": 0
@@ -502,11 +502,44 @@
      ],
      "skill": 0
     }
+   },
+   "us": {
+    "n": 2,
+    "report": {
+     "calls": 0,
+     "hits": 0,
+     "abstain": 2,
+     "hitRate": null
+    },
+    "base": {
+     "brier": 0.20330003135799174,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.45087336244541487,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    },
+    "clim": {
+     "brier": 0.20330003135799174,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.45087336244541487,
+       "observed": 0
+      }
+     ],
+     "skill": 0
+    }
    }
   }
  },
  "missByType": {
-  "미분류": 18,
+  "미분류": 20,
   "변동성 급등": 3
  },
  "misses": [
@@ -655,6 +688,20 @@
    "ret": -0.055233274896064,
    "types": [
     "변동성 급등"
+   ]
+  },
+  {
+   "id": "us-S&P500-2026-11-09",
+   "ret": 0.023462568265193218,
+   "types": [
+    "미분류"
+   ]
+  },
+  {
+   "id": "us-NASDAQ-2026-11-09",
+   "ret": 0.027409463642584786,
+   "types": [
+    "미분류"
    ]
   }
  ]
