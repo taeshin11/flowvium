@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-08T13:01:04.242Z",
+  "generatedAt": "2026-11-09T13:01:03.664Z",
   "universe": "US",
   "scanned": 352,
-  "count": 4,
+  "count": 5,
   "strongCount": 0,
-  "watchCount": 4,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -21,6 +21,22 @@
       "runup20dPct": -4,
       "runup5dPct": 14.8,
       "medDollarVolUsd": 2870820,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "JOF",
+      "name": "Japan Smaller Capitalization Fu",
+      "tier": "watch",
+      "score": 25,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+      ],
+      "runup20dPct": -13.6,
+      "runup5dPct": -2.4,
+      "medDollarVolUsd": 801983,
       "smartAccum": false,
       "official": null
     },
