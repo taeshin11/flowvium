@@ -1,26 +1,27 @@
 {
-  "generatedAt": "2026-11-09T13:01:03.664Z",
+  "generatedAt": "2026-11-09T22:43:20.258Z",
   "universe": "US",
-  "scanned": 352,
-  "count": 5,
-  "strongCount": 0,
-  "watchCount": 5,
+  "scanned": 488,
+  "count": 11,
+  "strongCount": 1,
+  "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "LENZ",
-      "name": "LENZ Therapeutics, Inc.",
-      "tier": "watch",
-      "score": 30,
-      "coFire": 2,
+      "ticker": "BTSGU",
+      "name": "BrightSpring Health Services, I",
+      "tier": "strong",
+      "score": 46,
+      "coFire": 3,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "종가 일중 상단 60%",
+        "거래량 추세 25.6× 상승(지속 매집)",
+        "거래량 6.0× 급증(가격 평탄)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -4,
-      "runup5dPct": 14.8,
-      "medDollarVolUsd": 2870820,
+      "runup20dPct": 10.2,
+      "runup5dPct": 4.1,
+      "medDollarVolUsd": 380589,
       "smartAccum": false,
       "official": null
     },
@@ -31,29 +32,12 @@
       "score": 25,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 추세 3.0× 상승(지속 매집)",
         "흡수 매집봉 2개(대량거래·변동폭 억제)"
       ],
-      "runup20dPct": -13.6,
-      "runup5dPct": -2.4,
-      "medDollarVolUsd": 801983,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CLM",
-      "name": "Cornerstone Strategic Value Fd",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -9.1,
-      "runup5dPct": -0.2,
-      "medDollarVolUsd": 13753547,
+      "runup20dPct": -13,
+      "runup5dPct": -2.9,
+      "medDollarVolUsd": 814064,
       "smartAccum": false,
       "official": null
     },
@@ -64,29 +48,143 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 추세 2.3× 상승(지속 매집)",
         "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": -7.5,
-      "runup5dPct": -1.1,
+      "runup20dPct": -3.5,
+      "runup5dPct": -4.5,
       "medDollarVolUsd": 19462416,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "IRS",
-      "name": "IRSA Inversiones Y Representaci",
+      "ticker": "FOXF",
+      "name": "Fox Factory Holding Corp.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 3.7,
+      "runup5dPct": 14.9,
+      "medDollarVolUsd": 10934196,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "LU",
+      "name": "Lufax Holding Ltd",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.0× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -14.7,
+      "runup5dPct": -5.5,
+      "medDollarVolUsd": 1446429,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BBAI",
+      "name": "BigBear.ai, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 6.5,
+      "runup5dPct": -5,
+      "medDollarVolUsd": 47234496,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BRCC",
+      "name": "BRC Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)"
+      ],
+      "runup20dPct": 1.6,
+      "runup5dPct": -20.4,
+      "medDollarVolUsd": 1065120,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "EBON",
+      "name": "Ebang International Holdings In",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.8× 상승(지속 매집)",
+        "거래량 3.3× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -8.2,
+      "runup5dPct": -11.1,
+      "medDollarVolUsd": 7449,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "PNTG",
+      "name": "The Pennant Group, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -10.5,
+      "runup5dPct": -10.5,
+      "medDollarVolUsd": 10050480,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AORT",
+      "name": "Artivion, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -5.3,
+      "runup5dPct": -12.5,
+      "medDollarVolUsd": 13966836,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "ROCK",
+      "name": "Gibraltar Industries, Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "거래량 3.2× 급증(가격 평탄)"
       ],
       "runup20dPct": -7.9,
-      "runup5dPct": -11.7,
-      "medDollarVolUsd": 2249592,
+      "runup5dPct": -18.3,
+      "medDollarVolUsd": 13527192,
       "smartAccum": false,
       "official": null
     }
