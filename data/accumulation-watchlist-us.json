@@ -1,43 +1,76 @@
 {
-  "generatedAt": "2026-11-10T13:01:20.980Z",
+  "generatedAt": "2026-11-10T22:43:20.410Z",
   "universe": "US",
   "scanned": 488,
-  "count": 11,
-  "strongCount": 1,
+  "count": 10,
+  "strongCount": 0,
   "watchCount": 10,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "BTSGU",
-      "name": "BrightSpring Health Services, I",
-      "tier": "strong",
-      "score": 46,
-      "coFire": 3,
+      "ticker": "BRKRP",
+      "name": "Bruker Corporation - 6.375% Man",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
       "lead": [
-        "거래량 추세 25.6× 상승(지속 매집)",
-        "거래량 6.0× 급증(가격 평탄)",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 3개(저가 매수받침)"
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 4.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 10.2,
-      "runup5dPct": 4.1,
-      "medDollarVolUsd": 380589,
+      "runup20dPct": 9.1,
+      "runup5dPct": 9.7,
+      "medDollarVolUsd": 1111131,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "JOF",
-      "name": "Japan Smaller Capitalization Fu",
+      "ticker": "PNTG",
+      "name": "The Pennant Group, Inc.",
       "tier": "watch",
-      "score": 25,
+      "score": 24,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.0× 상승(지속 매집)",
-        "흡수 매집봉 2개(대량거래·변동폭 억제)"
+        "거래량 추세 1.6× 상승",
+        "거래량 2.8× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": -13,
-      "runup5dPct": -2.9,
-      "medDollarVolUsd": 814064,
+      "runup20dPct": -8.5,
+      "runup5dPct": -10.8,
+      "medDollarVolUsd": 10608808,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "AORT",
+      "name": "Artivion, Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.0× 상승",
+        "거래량 2.7× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": -4.2,
+      "runup5dPct": -13.7,
+      "medDollarVolUsd": 13966836,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "HLLY",
+      "name": "Holley Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "거래량 2.7× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
+      ],
+      "runup20dPct": 2.8,
+      "runup5dPct": -3.3,
+      "medDollarVolUsd": 2397680,
       "smartAccum": false,
       "official": null
     },
@@ -48,143 +81,93 @@
       "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)"
+        "거래량 추세 2.5× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)"
       ],
-      "runup20dPct": -3.5,
-      "runup5dPct": -4.5,
-      "medDollarVolUsd": 19462416,
+      "runup20dPct": -6.8,
+      "runup5dPct": -4.2,
+      "medDollarVolUsd": 19765216,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "FOXF",
-      "name": "Fox Factory Holding Corp.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
-      ],
-      "runup20dPct": 3.7,
-      "runup5dPct": 14.9,
-      "medDollarVolUsd": 10934196,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "LU",
-      "name": "Lufax Holding Ltd",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -14.7,
-      "runup5dPct": -5.5,
-      "medDollarVolUsd": 1446429,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "BBAI",
-      "name": "BigBear.ai, Inc.",
+      "ticker": "KMDA",
+      "name": "Kamada Ltd.",
       "tier": "watch",
       "score": 23,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.7× 상승",
         "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)"
+        "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 6.5,
-      "runup5dPct": -5,
-      "medDollarVolUsd": 47234496,
+      "runup20dPct": 5.3,
+      "runup5dPct": 11.7,
+      "medDollarVolUsd": 880498,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "BRCC",
-      "name": "BRC Inc.",
+      "ticker": "RC",
+      "name": "Ready Capital Corporation",
       "tier": "watch",
-      "score": 23,
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "거래량 3.1× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -9.8,
+      "runup5dPct": -7.3,
+      "medDollarVolUsd": 1870890,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "UEIC",
+      "name": "Universal Electronics Inc.",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.0× 상승",
+        "거래량 2.8× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 5.3,
+      "runup5dPct": 2.5,
+      "medDollarVolUsd": 273920,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "BGSF",
+      "name": "BGSF, Inc.",
+      "tier": "watch",
+      "score": 16,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.9× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
+        "거래량 3.0× 급증(가격 평탄)"
       ],
-      "runup20dPct": 1.6,
-      "runup5dPct": -20.4,
-      "medDollarVolUsd": 1065120,
+      "runup20dPct": -10.5,
+      "runup5dPct": -2.9,
+      "medDollarVolUsd": 37200,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "EBON",
-      "name": "Ebang International Holdings In",
+      "ticker": "LINC",
+      "name": "Lincoln Educational Services Co",
       "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -8.2,
-      "runup5dPct": -11.1,
-      "medDollarVolUsd": 7449,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "PNTG",
-      "name": "The Pennant Group, Inc.",
-      "tier": "watch",
-      "score": 16,
+      "score": 15,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.6× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
+        "종가 일중 상단 60%"
       ],
-      "runup20dPct": -10.5,
-      "runup5dPct": -10.5,
-      "medDollarVolUsd": 10050480,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "AORT",
-      "name": "Artivion, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.6× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -5.3,
-      "runup5dPct": -12.5,
-      "medDollarVolUsd": 13966836,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ROCK",
-      "name": "Gibraltar Industries, Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 3.2× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -7.9,
-      "runup5dPct": -18.3,
-      "medDollarVolUsd": 13527192,
+      "runup20dPct": -1.9,
+      "runup5dPct": 12.2,
+      "medDollarVolUsd": 17947235,
       "smartAccum": false,
       "official": null
     }
