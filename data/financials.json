@@ -749,11 +749,11 @@
     "fy": "2025"
   },
   "EMR": {
-    "revUsd": 18016000000,
-    "revYoYPct": 3,
+    "revUsd": 18982000000,
+    "revYoYPct": 5.4,
     "opMarginPct": null,
-    "roePct": 11.3,
-    "fy": "2025"
+    "roePct": 13,
+    "fy": "2026"
   },
   "CTAS": {
     "revUsd": 11264761000,
@@ -3206,11 +3206,11 @@
     "fy": "2026"
   },
   "TEL": {
-    "revUsd": 17262000000,
-    "revYoYPct": 8.9,
-    "opMarginPct": 18.6,
-    "roePct": 14.6,
-    "fy": "2025"
+    "revUsd": 19885000000,
+    "revYoYPct": 15.2,
+    "opMarginPct": 20.1,
+    "roePct": 24,
+    "fy": "2026"
   },
   "TPL": {
     "revUsd": 798190000,
@@ -3850,11 +3850,11 @@
     "fy": "2026"
   },
   "BEN": {
-    "revUsd": 8770700000,
-    "revYoYPct": 3.5,
-    "opMarginPct": 6.9,
-    "roePct": 4.3,
-    "fy": "2025"
+    "revUsd": 9415300000,
+    "revYoYPct": 7.3,
+    "opMarginPct": 12.5,
+    "roePct": 9,
+    "fy": "2026"
   },
   "IVZ": {
     "revUsd": 6377100000,
