@@ -1,5 +1,5 @@
 {
- "at": "2026-11-09T07:30:00.124Z",
+ "at": "2026-11-10T07:30:00.115Z",
  "version": "v2",
  "primary": "allDays",
  "forecasts": [
@@ -55,7 +55,11 @@
  "engine": {
   "E1": {
    "kospi20d": "pending",
-   "firstNonDefensive": "not yet"
+   "firstNonDefensive": {
+    "at": "2026-11-09T11:27:00.069Z",
+    "verdict": "neutral",
+    "kospiClose": 5018.85009765625
+   }
   },
   "E2": {
    "n": 38,
