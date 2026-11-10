@@ -1,26 +1,27 @@
 {
-  "generatedAt": "2026-11-09T22:20:23.439Z",
+  "generatedAt": "2026-11-10T07:20:23.788Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 5,
+  "count": 7,
   "strongCount": 1,
-  "watchCount": 4,
+  "watchCount": 6,
   "officialFewAccount": 1,
   "watchlist": [
     {
       "ticker": "065500.KQ",
       "name": "오리엔트정공",
       "tier": "strong",
-      "score": 63,
+      "score": 71,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "거래량 6.3× 급증(가격 평탄)",
+        "거래량 추세 3.4× 상승(지속 매집)",
+        "거래량 5.0× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)",
         "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
       ],
-      "runup20dPct": -12.6,
-      "runup5dPct": 2,
+      "runup20dPct": -7.7,
+      "runup5dPct": -1.6,
       "medDollarVolUsd": 54715,
       "smartAccum": true,
       "official": {
@@ -31,38 +32,56 @@
       }
     },
     {
+      "ticker": "041830.KQ",
+      "name": "인바디",
+      "tier": "watch",
+      "score": 41,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -14.8,
+      "runup5dPct": -8.1,
+      "medDollarVolUsd": 2373126,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "089600.KQ",
+      "name": "KT나스미디어",
+      "tier": "watch",
+      "score": 41,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 4.2,
+      "runup5dPct": 1.9,
+      "medDollarVolUsd": 178791,
+      "smartAccum": true,
+      "official": null
+    },
+    {
       "ticker": "121600.KQ",
       "name": "나노신소재",
       "tier": "watch",
       "score": 41,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.6× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 1,
-      "runup5dPct": -10.2,
-      "medDollarVolUsd": 2813351,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "035900.KQ",
-      "name": "JYP Ent.",
-      "tier": "watch",
-      "score": 40,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.2× 상승(지속 매집)",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 7,
-      "runup5dPct": 6.2,
-      "medDollarVolUsd": 5998537,
+      "runup20dPct": 2.9,
+      "runup5dPct": 0.8,
+      "medDollarVolUsd": 2820950,
       "smartAccum": true,
       "official": null
     },
@@ -78,26 +97,44 @@
         "아래꼬리 매집 8개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -0.4,
-      "runup5dPct": -0.7,
+      "runup20dPct": 1.2,
+      "runup5dPct": 1.2,
       "medDollarVolUsd": 32717,
       "smartAccum": true,
       "official": null
     },
     {
-      "ticker": "046890.KQ",
-      "name": "서울반도체",
+      "ticker": "069510.KQ",
+      "name": "에스텍",
       "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 6.4× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)",
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 2.9× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -10.7,
-      "runup5dPct": -21.3,
-      "medDollarVolUsd": 1187816,
+      "runup20dPct": 11.5,
+      "runup5dPct": 5.3,
+      "medDollarVolUsd": 51811,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "035900.KQ",
+      "name": "JYP Ent.",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.8× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 6.1,
+      "runup5dPct": 6.4,
+      "medDollarVolUsd": 6400365,
       "smartAccum": true,
       "official": null
     }
