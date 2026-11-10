@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T07:20:23.788Z",
+  "generatedAt": "2026-11-10T22:20:24.397Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 7,
@@ -56,7 +56,7 @@
       "score": 41,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 추세 2.7× 상승(지속 매집)",
         "거래량 2.8× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
@@ -104,37 +104,37 @@
       "official": null
     },
     {
+      "ticker": "048870.KQ",
+      "name": "시너지이노베이션",
+      "tier": "watch",
+      "score": 37,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -4.5,
+      "runup5dPct": 4.7,
+      "medDollarVolUsd": 266869,
+      "smartAccum": true,
+      "official": null
+    },
+    {
       "ticker": "069510.KQ",
       "name": "에스텍",
       "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.6× 상승(지속 매집)",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 추세 2.7× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
       "runup20dPct": 11.5,
       "runup5dPct": 5.3,
       "medDollarVolUsd": 51811,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "035900.KQ",
-      "name": "JYP Ent.",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 6.1,
-      "runup5dPct": 6.4,
-      "medDollarVolUsd": 6400365,
       "smartAccum": true,
       "official": null
     }
