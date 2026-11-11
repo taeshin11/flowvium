@@ -28,10 +28,14 @@ try {
   const r = await fetch('https://m.stock.naver.com/api/news/stock/005930?pageSize=3&page=1',
     { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(10000) });
   const d = await r.json();
-  const x = d?.[0]?.items?.[0];
-  (r.ok && Array.isArray(d) && x && x.title && /^\d{12}$/.test(x.datetime ?? '') && (x.mobileNewsUrl || x.articleId))
-    ? ok(`출처 형식 그대로 — ${x.officeName} · ${x.datetime}`)
-    : bad(`출처 형식이 바뀌었다: HTTP ${r.status} ${JSON.stringify(x ?? d).slice(0, 80)}`);
+  // 묶음마다 첫 기사를 route 와 같은 잣대(titleFull||title · 12자리 시각 · 링크)로 본다. 맨 앞 한 건만 보면
+  //   막 올라온 기사(필드가 몇 분 뒤 채워짐)에 걸려 실패했다(11/11 16:06 한국경제TV — 2분 뒤엔 정상). route 는 그런 건을 건너뛴다.
+  //   형식이 바뀐 것 = 앞 묶음 중 쓸 수 있는 기사가 하나도 없음.
+  const heads = Array.isArray(d) ? d.slice(0, 3).map((g) => g?.items?.[0]).filter(Boolean) : [];
+  const usable = heads.filter((x) => (x.titleFull || x.title) && /^\d{12}$/.test(x.datetime ?? '') && (x.mobileNewsUrl || x.articleId));
+  (r.ok && usable.length)
+    ? ok(`출처 형식 그대로 — ${usable[0].officeName} · ${usable[0].datetime} (앞 ${heads.length}묶음 중 ${usable.length})`)
+    : bad(`출처 형식이 바뀌었다: HTTP ${r.status} ${JSON.stringify(heads[0] ?? d).slice(0, 80)}`);
 } catch (e) { skip(`네트워크 없음 — 출처 형식 확인 건너뜀 (${String(e.message).slice(0, 40)})`); }
 
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
