@@ -254,7 +254,7 @@ export async function claudeJudge({ image, prompt, anchors = null, timeoutMs = 1
   if (!bin) throw new Error('claude 실행파일 없음');
   const { dir, file, anchorFiles } = stage(image, anchors);
   try {
-    const r = await runCli(bin, ['-p', prompt(file, anchorFiles), '--allowedTools', 'Read', '--max-turns', '4', '--output-format', 'json'], { cwd: dir, timeoutMs });
+    const r = await runCli(bin, ['-p', prompt(file, anchorFiles), '--model', 'sonnet', '--allowedTools', 'Read', '--max-turns', '4', '--output-format', 'json'], { cwd: dir, timeoutMs });
     if (r.code !== 0) throw new Error(`종료 ${r.code}: ${r.err.slice(0, 120)}`);
     const j = firstJson(r.out);
     if (!j) throw new Error('출력을 못 읽음');
