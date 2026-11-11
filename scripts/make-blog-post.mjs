@@ -211,6 +211,28 @@ L.push(`**${SITE}** 에서 하루 다섯 번 시장을 정리하고 있습니다
 L.push('');
 L.push(`👉 **${(await import('./lib/site-link.mjs')).trackedUrl({ source: 'blog', medium: 'daily-blog' })}**`);   // 2026-10-02 출처 꼬리표
 L.push('');
+// 2026-11-11 성장 점검 E: 그날 한국 증시 마감 기록·글에 나온 한국 종목 페이지로도 잇는다(블로그→사이트 7일 1건, 링크가 /ko/report 하나였다).
+{
+  const { blogSiteLinks } = await import('./lib/blog-site-links.mjs');
+  const { closeDates } = await import('../src/lib/market-close.mjs');
+  const { companyName } = await import('../src/lib/company-seo.mjs');
+  const { trackedUrl } = await import('./lib/site-link.mjs');
+  const { readdirSync, existsSync } = await import('fs');
+  const readJson = (f) => { try { return JSON.parse(readFileSync(resolve(ROOT, f), 'utf8')); } catch { return null; } };
+  const pool = readJson('data/candidate-tickers.json') ?? {};
+  const dart = readJson('data/dart-corp-codes.json')?.map ?? {};
+  const inPool = new Set((pool.tickers ?? []).map((t) => String(t).toUpperCase()));
+  const closeDir = resolve(ROOT, 'data/market-close');
+  const links = blogSiteLinks({
+    postDate: row.kst_date,
+    closeDates: existsSync(closeDir) ? closeDates(readdirSync(closeDir)) : [],
+    picks,
+    // 사이트맵과 같은 기준 — 풀에 있고 한국어 이름을 아는 종목만(빈 페이지로 보내지 않는다)
+    nameOf: (t) => (inPool.has(t) ? companyName(t, 'ko', { pool, dart, curated: [] }) : null),
+  });
+  for (const l of links) L.push(`- ${l.label}: ${trackedUrl({ source: 'blog', medium: 'daily-blog', path: l.path })}`);
+  if (links.length) L.push('');
+}
 if (CH) {
   L.push('### 1분 영상으로도 올립니다');
   L.push('');

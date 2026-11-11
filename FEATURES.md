@@ -955,7 +955,8 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 본문이 한국어뿐 — 다른 언어판은 noindex + canonical=한국어판, 사이트맵엔 한국어판만.
 - 기록: `make-market-brief --edition krclose` 가 대본 확정 뒤 `data/market-close/<날짜>.json`(cron 자동 커밋). 오전판(krmid)은 장중 숫자라 남기지 않는다. 규칙 `src/lib/market-close.mjs`, 읽기 `src/lib/market-close-data.ts`, 테스트 `scripts/lib/market-close.test.mjs`.
 - 보고서 지표 줄 아래 '지난 한국 증시 마감 기록 →' 링크.
-- 아직 없음: 반대 견해 문단(마감판 대본에 없다), 블로그 글에서 이 페이지로의 링크(개선안 E). 재측정 12/09·12/23(18개+ 페이지, 색인 10+, 7일 검색 클릭 5+).
+- 블로그(개선안 E, 11/11): 아침 블로그 글(make-blog-post → 네이버·Blogger 같은 md) 끝에 그날 이전 가장 최근 마감 기록 + 글에 나온 한국 종목 페이지(풀에 있고 한국어 이름을 아는 것) 링크, utm_source=blog·utm_medium=daily-blog. `scripts/lib/blog-site-links.mjs`(+test).
+- 아직 없음: 반대 견해 문단(마감판 대본에 없다). 재측정 12/09·12/23(18개+ 페이지, 색인 10+, 7일 검색 클릭 5+).
 
 ## 14. 비교 분석 (`/compare/[slug]`)
 
