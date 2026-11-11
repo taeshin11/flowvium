@@ -48,7 +48,8 @@
     "share": "Share",
     "terms": "Terms of Service",
     "mail": "Email settings",
-    "trackRecord": "Past picks"
+    "trackRecord": "Past picks",
+    "marketClose": "Korea market close"
   },
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
@@ -712,7 +713,8 @@
     "donationGoalDesc": "Buy/sell picks, options flow, block trades and institutional flows are all already free. Donations upgrade Yahoo's 15-min delay to real-time data and cover server costs 🙏",
     "donationBankLabel": "🇰🇷 Kakao Bank",
     "donationAccountHolder": "Account holder: Kim Taeshin",
-    "trackRecord": "Past picks"
+    "trackRecord": "Past picks",
+    "marketClose": "Korea market close"
   },
   "emailCta": {
     "title": "Get Weekly Supply Chain Insights",

@@ -48,7 +48,8 @@
     "share": "공유",
     "terms": "이용약관",
     "mail": "메일 설정",
-    "trackRecord": "추천 성적"
+    "trackRecord": "추천 성적",
+    "marketClose": "한국 증시 마감 기록"
   },
   "hero": {
     "title": "숨겨진 공급망 리스크를 발견하세요",
@@ -628,7 +629,8 @@
     "donationGoalDesc": "매수·매도 추천, 옵션 flow, 블록 트레이드, 기관 수급까지 전부 이미 무료로 제공 중입니다. 후원금은 Yahoo 15분 지연을 실시간(무지연) 데이터로 올리고 서버 비용에 쓰입니다 · 도와주십쇼 🙏",
     "donationBankLabel": "🇰🇷 카카오뱅크",
     "donationAccountHolder": "예금주: 김태신",
-    "trackRecord": "추천 성적"
+    "trackRecord": "추천 성적",
+    "marketClose": "한국 증시 마감 기록"
   },
   "seo": {
     "homeTitle": "Flowvium — AI 투자 리서치 플랫폼",

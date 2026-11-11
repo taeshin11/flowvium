@@ -48,7 +48,8 @@
     "share": "共有",
     "terms": "利用規約",
     "mail": "メール設定",
-    "trackRecord": "推奨成績"
+    "trackRecord": "推奨成績",
+    "marketClose": "韓国市場 終値の記録"
   },
   "hero": {
     "title": "隠れたサプライチェーンリスクを発見",
@@ -628,7 +629,8 @@
     "donationGoalDesc": "売買推奨・オプションflow・ブロック取引・機関需給はすべて既に無料。寄付はYahoo15分遅延をリアルタイムに引き上げ、サーバー費に充てます 🙏",
     "donationBankLabel": "🇰🇷 カカオバンク",
     "donationAccountHolder": "口座名義: キム・テシン",
-    "trackRecord": "推奨成績"
+    "trackRecord": "推奨成績",
+    "marketClose": "韓国市場 終値の記録"
   },
   "seo": {
     "homeTitle": "Flowvium — AI投資リサーチプラットフォーム",

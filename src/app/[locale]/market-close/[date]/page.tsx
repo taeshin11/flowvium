@@ -17,6 +17,11 @@ export const revalidate = 3600;
 const NS = 'marketClose';
 const BASE_URL = 'https://flowvium.net';
 const KO = 'ko';
+// JSON-LD 고정값(화면에 안 보임)
+const LD_CONTEXT = 'https://schema.org';
+const LD_ARTICLE = 'NewsArticle';
+const LD_ORG = 'Organization';
+const PUBLISHER = 'FlowVium';
 const pathOf = (date: string) => `/market-close/${date}`;
 const koUrl = (date: string) => `${BASE_URL}/${KO}${pathOf(date)}`;
 const ymd = (date: string) => { const [y, m, d] = date.split('-').map(Number); return { y, m, d }; };
@@ -50,13 +55,13 @@ export default async function MarketClosePage({ params }: { params: { locale: st
   const older = i >= 0 && i < dates.length - 1 ? dates[i + 1] : null;
   const companies = closeCompanyLinks(rec);
   const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'NewsArticle',
+    '@context': LD_CONTEXT,
+    '@type': LD_ARTICLE,
     headline: t('title', ymd(rec.date)),
     datePublished: `${rec.date}T18:00:00+09:00`,
     inLanguage: KO,
     mainEntityOfPage: koUrl(rec.date),
-    publisher: { '@type': 'Organization', name: 'FlowVium' },
+    publisher: { '@type': LD_ORG, name: PUBLISHER },
     citation: rec.chapters.flatMap((c) => c.sources.map((s) => s.link)),
   };
 
