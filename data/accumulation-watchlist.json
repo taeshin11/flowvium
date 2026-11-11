@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-11T07:20:23.366Z",
+  "generatedAt": "2026-11-11T22:20:22.562Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,8 +14,8 @@
       "score": 41,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.1× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
+        "거래량 추세 3.2× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
@@ -40,24 +40,6 @@
       "runup20dPct": -0.1,
       "runup5dPct": 0.5,
       "medDollarVolUsd": 29619,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "048870.KQ",
-      "name": "시너지이노베이션",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -5.3,
-      "runup5dPct": 1.6,
-      "medDollarVolUsd": 266869,
       "smartAccum": true,
       "official": null
     }
