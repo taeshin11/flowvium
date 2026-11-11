@@ -128,6 +128,7 @@ import { resolveCompanyName } from './lib/company-name.mjs';
 import { normalizeCurrencyText } from './lib/currency-format.mjs';
 import { computeKrVerdict, overnightTailRisk } from './lib/kr-verdict.mjs';  // 2026-10-15: KR 판정 lib 로 + 전날 밤 SOX 거부권
 import { finOnce } from './lib/fin-once.mjs';  // 2026-10-20: 매수 고르기와 심판이 같은 재무를 본다(fin-once.test)
+import { marketPhases } from '../src/lib/market-phase.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -1038,33 +1039,38 @@ const KR_PRIORITY = [
   'Sector Valuations (KR 업종 밸류에이션)',
   'Institutional 신호 (글로벌 13F — KR ADR/대형주 한정)',
 ];
+// 2026-11-11: 장 phase 는 회차 이름이 아니라 *실행 시각*에서 계산한다(lib/market-phase). 회차가 14:30 등으로
+//   옮겨지고 서머타임이 끝나 상수 다섯 중 넷이 틀렸다 — 14:35 보고서가 장중 숫자를 '당일 종가 확정'이라 썼다.
+//   데이터를 받는 실행 시작 시각 한 번으로 고정한다.
+const RUN_PHASES = marketPhases(new Date());
+const short = (ph) => ph.label.split(' (')[0];
 function getSessionFocus(session) {
   switch (session) {
     case 'morning':
       return {
         primary: 'us',
         secondary: ['global'],
-        label: 'US 장 마감 직후 (전일 close)',
+        label: `US ${short(RUN_PHASES.us)}`,
         marketWeight: { us: 60, kr: 20, global: 20 },
-        marketPhases: { kr: '개장 전 (전일 종가 기준)', us: '마감 직후 (전일 close 확정)' },
+        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
         dataPriority: US_PRIORITY,
       };
     case 'afternoon':
       return {
         primary: 'kr',
         secondary: ['japan', 'china'],
-        label: 'KR 장 마감 직후 + 아시아',
+        label: `KR ${short(RUN_PHASES.kr)} + 아시아`,
         marketWeight: { kr: 50, us: 25, asia: 25 },
-        marketPhases: { kr: '마감 직후 (당일 종가 확정)', us: '개장 전 (전일 마감·프리마켓 전)' },
+        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
         dataPriority: KR_PRIORITY,
       };
     case 'evening':
       return {
         primary: 'us',
         secondary: ['premarket', 'global'],
-        label: 'US 장 시작 직후 (premarket → open)',
+        label: `US ${short(RUN_PHASES.us)}`,
         marketWeight: { us: 70, global: 20, kr: 10 },
-        marketPhases: { kr: '마감 (당일 종료)', us: '장 시작 직후 (개장)' },
+        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
         dataPriority: US_PRIORITY,
       };
     case 'noon':
@@ -1072,9 +1078,9 @@ function getSessionFocus(session) {
       return {
         primary: 'kr',
         secondary: ['china', 'japan'],
-        label: 'KR 장중 + 아시아 (점심)',
+        label: `KR ${short(RUN_PHASES.kr)} + 아시아`,
         marketWeight: { kr: 50, asia: 30, us: 20 },
-        marketPhases: { kr: '장중 (오전→점심)', us: '마감 (전일 close)' },
+        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
         dataPriority: KR_PRIORITY,
       };
     case 'midnight':
@@ -1082,9 +1088,9 @@ function getSessionFocus(session) {
       return {
         primary: 'us',
         secondary: ['global'],
-        label: 'US 장중 (자정)',
+        label: `US ${short(RUN_PHASES.us)}`,
         marketWeight: { us: 65, global: 20, kr: 15 },
-        marketPhases: { kr: '마감 (당일 종료)', us: '장중 (전반)' },
+        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
         dataPriority: US_PRIORITY,
       };
     default:
@@ -6446,7 +6452,8 @@ function buildOpportunityPrompt(ctx) {
 function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
   // 2026-06-17 (사용자 "왜 미국장 시작했는데 한국장 얘기"): midnight=00:00 KST=11:00 EST → 미국장 *장중*
   //   (마감 아님). 기존 '미국장 마감' 오라벨이 LLM 을 KR 중심 내러티브로 유도 + getSessionFocus('US 장중') 와 모순.
-  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : session === 'noon' ? '한국장 장중(점심)·아시아 거래중' : session === 'midnight' ? '미국장 장중·아시아 개장 전' : '미국장 개장 전';
+  // 2026-11-11: 회차 이름별 상수 → 실행 시각의 장 phase(RUN_PHASES). 상수는 회차 시각이 바뀌자 '마감 직후'로 거짓말했다.
+  const sc = `한국장 ${short(RUN_PHASES.kr)} · 미국장 ${short(RUN_PHASES.us)}`;
   const focus = getSessionFocus(session);
   return [
     `You are a market narrative writer. Session: ${sc} ${TODAY}. Write in ${TARGET_LANG}.`,

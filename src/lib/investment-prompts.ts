@@ -19,6 +19,7 @@
 
 import { buildGroundingFacts } from '@/lib/grounding';
 import { getGuruPromptContext } from '@/lib/guru-methodologies';
+import { marketPhases } from './market-phase.mjs';
 
 const LOCALE_LANG: Record<string, string> = {
   ko: 'Korean', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
@@ -50,7 +51,10 @@ export function buildMacroPrompt(ctx: CtxForPrompts, vix: string, locale = 'en',
   const today = new Date().toISOString().slice(0, 10);
   const lang = LOCALE_LANG[locale];
   const li = lang ? `\nWrite ALL text in ${lang} except tickers/numbers/JSON keys.\n` : '';
-  const sc = session === 'morning' ? 'Post US-close' : session === 'afternoon' ? 'Post Asia-close' : 'Pre US-open';
+  // 2026-11-11: 회차 이름 상수 → 지금 시각의 장 상황(lib/market-phase). open = 숫자가 확정 종가 아님.
+  void session;
+  const phNow = marketPhases();
+  const sc = `KR market ${phNow.kr.code}, US market ${phNow.us.code} (open = intraday, not a final close)`;
 
   return [
     `You are a macro strategist. Session: ${sc} ${today}.${li}`,
@@ -271,7 +275,11 @@ export function buildRiskMgmtPrompt(input: RiskMgmtInput, locale = 'en'): string
 export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', locale = 'en', sectorPe = ''): string {
   const today = new Date().toISOString().slice(0, 10);
   const lang = LOCALE_LANG[locale] ?? 'Korean';
-  const sc = session === 'morning' ? '미국장 마감 직후' : session === 'afternoon' ? '아시아장 마감 직후' : '미국장 개장 전';
+  // 2026-11-11: 회차 이름이 아니라 지금 시각의 장 상황(lib/market-phase) — 14:30 회차가 장중인데 '마감 직후'라 썼다.
+  //   session 인자는 다른 호출부와의 호환을 위해 남긴다.
+  void session;
+  const ph = marketPhases();
+  const sc = `한국장 ${ph.kr.label} · 미국장 ${ph.us.label}`;
   return [
     `You are a market narrative writer. Session: ${sc} ${today}. Write in ${lang}.`,
     '',
