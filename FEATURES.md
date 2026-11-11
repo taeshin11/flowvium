@@ -23,6 +23,7 @@
 12. [리더→미드캡 캐스케이드 (/cascade)](#12-리더미드캡-캐스케이드-cascade)
 13. [AI 리포트 (/report)](#13-ai-리포트-report)
 13b. [지난 추천 성적 (/track-record)](#13b-지난-추천-성적-track-record)
+13c. [한국 증시 마감 기록 (/market-close)](#13c-한국-증시-마감-기록-market-close)
 14. [비교 분석 (/compare/slug)](#14-비교-분석-compareslug)
 15. [OSINT 인텔리전스 (/osint)](#15-osint-인텔리전스-osint)
 16. [어드민 로그 (/admin/logs)](#16-어드민-로그-adminlogs)
@@ -946,6 +947,16 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 
 ---
 
+## 13c. 한국 증시 마감 기록 (`/market-close`) — 신규 (2026-11-11)
+
+11/11 성장 점검 개선안 A(Claude·agy·ChatGPT 3/3): /report 는 한 주소가 하루 다섯 번 바뀌어 검색에 쌓이는 게 없다 → 날짜마다 주소 하나.
+- `/ko/market-close/YYYY-MM-DD` — 마감 지수(네이버 금융) · 장별 문단(마감판 영상 대본의 관문을 지난 문장: 숫자 근거·당위 문장·장중 숫자·agy 대조) · 장마다 그 문장이 기댄 기사 출처 · 본문에 나온 종목 → 종목 페이지(사이트맵과 같은 집합, 긴 이름 우선, 두 글자 이름은 장 제목일 때만) · 앞뒤 날짜 · 보고서 링크. NewsArticle JSON-LD. 서버 렌더(revalidate 1h).
+- `/ko/market-close` — 날짜 목록(최신순).
+- 본문이 한국어뿐 — 다른 언어판은 noindex + canonical=한국어판, 사이트맵엔 한국어판만.
+- 기록: `make-market-brief --edition krclose` 가 대본 확정 뒤 `data/market-close/<날짜>.json`(cron 자동 커밋). 오전판(krmid)은 장중 숫자라 남기지 않는다. 규칙 `src/lib/market-close.mjs`, 읽기 `src/lib/market-close-data.ts`, 테스트 `scripts/lib/market-close.test.mjs`.
+- 보고서 지표 줄 아래 '지난 한국 증시 마감 기록 →' 링크.
+- 아직 없음: 반대 견해 문단(마감판 대본에 없다), 블로그 글에서 이 페이지로의 링크(개선안 E). 재측정 12/09·12/23(18개+ 페이지, 색인 10+, 7일 검색 클릭 5+).
+
 ## 14. 비교 분석 (`/compare/[slug]`)
 
 **파일**: `src/components/pages/ComparePage.tsx`
@@ -1119,6 +1130,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 11/11 성장 점검 3/3 상의(Claude·agy·ChatGPT, 그림 첨부) 채택 D·B·A — `reports/growth-2026-11-11.md`. 반영(11/11 16:44): 홈 과장 문구 → 사실 문구(ko·en·ja hero), 보고서의 모델 이름·'캐시됨' 표시 제거, 보고서 회차 이름 noon·midnight 한국어(`investment-strategy/history`), 한국어 종목 화면 제목·경로를 그 언어 회사명으로(`displayName`), `/api/price-history` 를 달력 N일로 자름(`src/lib/price-window.mjs` — '90일'이 105일이던 것, 삼성전자 −1.44%→−23.5%). 남은 일 A(날짜 주소 마감 시황 페이지). 재측정 11/18(D)·12/09·12/23(A·B). 남은 일: 날짜별 대표 보고서 1편/일 주소.
 - 11/11 보고서 FOMC 배지: 인하 확률만 보여 시장이 인상 100% 인 날 'Dec 10 0%' 로 본문과 반대로 읽혔다(agy 검수). 가장 유력한 결과(인상·동결·인하, 인하는 25·50·75bp 합)와 확률을 보인다 — `src/lib/fomc-headline.mjs`, 테스트 `scripts/lib/fomc-headline.test.mjs`. 본문의 '12월 인상 100%'는 Yahoo ZQF27 95.82(내재 4.18% vs 실효 3.88%)로 맞음.
 - 11/11 보고서 '장 상황'(한국장·미국장 개장 전/장중/마감)을 회차 이름 상수가 아니라 실행 시각으로 계산 — `src/lib/market-phase.mjs`(KRX 09:00~15:30 KST, NYSE 09:30~16:00 ET·프리마켓 04:00, 서머타임은 시간대로). 회차가 14:30·05:30·20:00·22:30 으로 옮겨지고 서머타임이 끝나 다섯 중 넷이 틀렸다(14:35 보고서가 장중 숫자를 '당일 종가 확정'이라 씀, agy 검수). generate-report-local 의 sessionFocus·내러티브 프롬프트, `src/lib/investment-prompts.ts` 두 곳. 거래소 휴일은 모름(평일=개장). 테스트 `scripts/lib/market-phase.test.mjs`.
+- 11/11 보고서 지난 회차 탭 이름표·시각도 만든 시각에서 — '오후 (아시아장 마감 후)·16:00' 이 14:35 회차(한국장 장중)에 붙어 있었다. `sessionTabLabel`(lib/market-phase) → '오후 (한국장 장중)', 시각은 generatedAt(KST).
 
 ### API 라우트 전체 목록
 

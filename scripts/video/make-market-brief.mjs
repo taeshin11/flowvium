@@ -28,6 +28,8 @@ import { verifyChain } from '../lib/agy-models.mjs';
 import { articleLines, dropSharedLines, ungroundedNumbers, hangulNumerals, isEditorial, flattenKoNumbers } from '../lib/weekly-explainer.mjs';
 import { EDITIONS, naverIndexUrl, parseNaverIndex, factLine, publishTargetMs, inWindow, sessionCheck, calendarRows, pickArticles, briefTitle, headlineMove, kstClock, claimPhotos, pickCalendar, briefPromo, SESSION_LABEL, staleMoves, isLateDoc, thumbPhoto, recentThumbPhotos, editionTag, thumbArmFor, pickEventLines } from '../lib/market-brief.mjs';
 import { createHash } from 'crypto';
+import { renameSync } from 'fs';
+import { closePageRecord } from '../../src/lib/market-close.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (k, d = null) => { const i = argv.indexOf(`--${k}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
@@ -253,6 +255,16 @@ rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true 
 writeFileSync(join(OUT, 'script.json'), JSON.stringify({ edition: ED, date: DATE, day: DAY, title, hook, thumbLines, facts: FACTS, calendar: CAL, chapters, docs: docs.map((d) => ({ source: d.source, headline: d.headline, link: d.link })) }, null, 2));
 log(`[대본] 제목 "${title}" · 썸네일 "${thumbLine}" → ${join(OUT, 'script.json')}`);
 if (SCRIPT_ONLY) process.exit(0);
+// 2026-11-11 성장 점검 A(3/3): 마감판 대본은 관문을 다 지난 문장이다 — 날짜별 '한국 증시 마감' 페이지로 남긴다.
+//   임시 폴더(OUT)는 다음 실행이 지운다. 영상 업로드와 별개(글은 영상이 실패해도 사실이다). 오전판은 장중 숫자라 남기지 않는다.
+{
+  const rec = closePageRecord({ edition: ED, date: DATE, day: DAY, title, facts: FACTS, chapters, docs: docs.map((d) => ({ source: d.source, headline: d.headline, link: d.link })) });
+  if (rec) {
+    const dir = join(ROOT, 'data/market-close'); mkdirSync(dir, { recursive: true });
+    const f = join(dir, `${rec.date}.json`); writeFileSync(`${f}.tmp`, JSON.stringify(rec, null, 2)); renameSync(`${f}.tmp`, f);
+    log(`[마감 페이지] ${f}`);
+  }
+}
 
 // ── 5. 음성 ─────────────────────────────────────────────────────────────────────
 const { synthesizeKoreanAuto } = await import('../lib/tts-korean.mjs');

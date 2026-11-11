@@ -46,3 +46,14 @@ test('문구에 확정 종가 여부가 드러난다', () => {
   assert.doesNotMatch(p.kr.label, /종가 확정/);
   assert.match(at('2026-11-11T07:00:00Z').kr.label, /종가 확정/);
 });
+
+// 11/11 눈검증: 보고서 지난 회차 탭이 14:35 회차를 "오후 (아시아장 마감 후)·16:00" 으로 보였다 — 이름표도 만든 시각에서.
+import { sessionTabLabel } from '../../src/lib/market-phase.mjs';
+test('지난 회차 이름표 — 회차 이름 + 만든 시각의 주력 시장 상황', () => {
+  assert.equal(sessionTabLabel('afternoon', '2026-11-11T05:35:48Z'), '오후 (한국장 장중)');
+  assert.equal(sessionTabLabel('afternoon', '2026-11-10T09:05:50Z'), '오후 (한국장 마감)');
+  assert.equal(sessionTabLabel('morning', '2026-11-10T20:36:00Z'), '오전 (미국장 장중)');
+  assert.equal(sessionTabLabel('midnight', '2026-11-10T13:39:36Z'), '밤 (미국장 프리마켓)');
+  assert.equal(sessionTabLabel('noon', '2026-11-11T01:37:16Z'), '점심 (한국장 장중)');
+  assert.equal(sessionTabLabel('weird', 'bad'), 'weird');
+});

@@ -43,3 +43,18 @@ export function marketPhases(now = new Date()) {
     us: phase(now, 'America/New_York', [[0, 'pre'], [4 * 60, 'premarket'], [9 * 60 + 30, 'open'], [16 * 60, 'closed']], US),
   };
 }
+
+// 지난 회차 탭 이름표. 11/11 눈검증: 회차별 상수 "오후 (아시아장 마감 후)" 가 14:35 회차(한국장 장중)에 붙어 있었다.
+//   회차 이름은 두고, 괄호 안은 만든 시각의 주력 시장 상황(회차의 주력 = generate-report-local getSessionFocus.primary).
+const SESSION_WORD = { morning: '오전', noon: '점심', afternoon: '오후', evening: '저녁', midnight: '밤' };
+const SESSION_PRIMARY = { morning: 'us', noon: 'kr', afternoon: 'kr', evening: 'us', midnight: 'us' };
+const MARKET_KO = { kr: '한국장', us: '미국장' };
+
+/** @param {string} session @param {string} generatedAt ISO @returns {string} */
+export function sessionTabLabel(session, generatedAt) {
+  const word = SESSION_WORD[session];
+  const at = new Date(generatedAt);
+  if (!word || Number.isNaN(at.getTime())) return word ?? String(session);
+  const m = SESSION_PRIMARY[session];
+  return `${word} (${MARKET_KO[m]} ${marketPhases(at)[m].label.split(' (')[0]})`;
+}

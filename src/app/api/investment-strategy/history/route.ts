@@ -4,18 +4,13 @@ import { gateReport, MEMBER_RESPONSE_HEADERS } from '@/lib/report-gate';
 import { createRedis } from '@/lib/redis';
 import type { InvestmentStrategy } from '@/app/api/investment-strategy/route';
 import { memGetReport, memGetArray } from '@/lib/investment-strategy-memory';
+import { sessionTabLabel } from '@/lib/market-phase.mjs';
 
 export const dynamic = 'force-dynamic';
 
 const HISTORY_KEY = 'flowvium:investment-strategy:history:arr:v1'; // JSON array stored via loggedRedisSet
-const SESSION_KO: Record<string, string> = {
-  morning: '오전 (미국장 마감 후)',
-  afternoon: '오후 (아시아장 마감 후)',
-  evening: '저녁 (미국장 개장 전)',
-  // 2026-11-11: noon·midnight 이 빠져 화면에 영어 'noon' 이 그대로 나왔다(눈검증).
-  noon: '점심 (한국장 중간)',
-  midnight: '밤 (미국장 개장 뒤)',
-};
+// 2026-11-11: 회차별 상수 이름표("오후 (아시아장 마감 후)")가 14:35 회차(한국장 장중)에 붙어 있었다(눈검증).
+//   만든 시각으로 계산한다 — lib/market-phase sessionTabLabel.
 
 // 2026-06-17 (전수조사 #2): serve-time fallback 차단 — in-memory 캐시(memGetReport/memGetArray)는
 //   purge-fallback 의 Redis SCAN 이 닿지 못하는 사각지대(라우트 가드 회귀 시 사용자 노출 위험). serve
@@ -90,7 +85,7 @@ export async function GET(req: NextRequest) {
       .slice(0, 30);
     const items: HistoryMeta[] = merged.flatMap(m => {
       if (!m?.key || !m?.generatedAt) return [];
-      m.sessionLabel = SESSION_KO[m.session] ?? m.session;
+      m.sessionLabel = sessionTabLabel(m.session, m.generatedAt);
       return [m];
     });
     // dedup: 같은 (kstDate-day, session) 의 보고서가 여러 개면 더 최신 (generatedAt 큰) 우선
@@ -110,7 +105,7 @@ export async function GET(req: NextRequest) {
     if (memArr?.length) {
       const items = memArr.flatMap(m => {
         if (!m?.key || !m?.generatedAt || isFallbackSrc(m.source)) return [];
-        m.sessionLabel = SESSION_KO[m.session] ?? m.session;
+        m.sessionLabel = sessionTabLabel(m.session, m.generatedAt);
         return [m];
       });
       return NextResponse.json({ items, fromMemory: true });

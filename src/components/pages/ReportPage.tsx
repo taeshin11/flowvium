@@ -751,7 +751,8 @@ export default function ReportPage() {
               >
                 <span className="font-medium flex items-center gap-1">
                   <span className={stanceColor(item.stance)}>{stanceIcon(item.stance)}</span>
-                  {item.kstDate}
+                  {/* 2026-11-11: kstDate 는 회차 칸 시각(16:00)이라 14:35 회차가 16:00 으로 보였다 — 만든 시각을 보인다 */}
+                  {new Date(item.generatedAt).toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16)}
                   {item.source && item.source === 'fallback' && (
                     <span className="text-[9px] opacity-40 font-normal">F</span>
                   )}
@@ -813,6 +814,10 @@ export default function ReportPage() {
         <Pill loading={fomc.loading} error={fomc.error} label="FOMC" cls="bg-violet-50 text-violet-700 border-violet-200"
           body={fomc.value ? `${fomc.value.label} ${t(`fomc_${fomc.value.kind}`)} ${fomc.value.prob}%` : '-'} tooltip={t('tipFomc')} />
       </div>
+      {/* 2026-11-11 날짜별 한국 증시 마감 기록(성장 점검 A) — 보고서는 하루 다섯 번 바뀌고, 지난 마감은 저기 남는다 */}
+      <p className="-mt-3 mb-5 text-xs">
+        <Link href={`/${locale}/market-close`} className="text-violet-700 hover:text-violet-900 hover:underline">{t('closeArchive')}</Link>
+      </p>
 
       {/* ── No data / fallback 차단 → 준비 중 빈상태 (가짜 fallback 절대 표시 안 함) ── */}
       {(!data || isFallbackReport) && (

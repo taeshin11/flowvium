@@ -1215,6 +1215,7 @@
     "tipCurve": "10Y minus 2Y Treasury yield spread (bp). Negative (inverted) historically signals recession. Positive=normal.",
     "tipHyOas": "High-yield bond risk premium. >5%=credit stress, 4-5%=caution, <4%=safe. Higher = more credit risk.",
     "tipVix": "Market fear index. <20=calm, 20-25=normal, 25-30=caution, >30=extreme fear zone.",
+    "closeArchive": "Past Korea market closes →",
     "tipFomc": "Most likely outcome of the next FOMC meeting (hike, hold or cut) and its probability, from fed funds futures.",
     "fomc_hike": "hike",
     "fomc_hold": "hold",
@@ -2080,6 +2081,21 @@
   "privacy": {
     "mailTitle": "1.4 Membership Email and Morning Report Emails",
     "mailBody": "If you register as a member, we store your email address to give you access to members-only reports. We send you the daily morning report by email only if you separately agree to receive it, either by ticking the optional box when you register or by pressing the confirmation button in a one-time invitation email. Every morning report email contains an unsubscribe link, and you can stop receiving it at any time. Emails are delivered through our email service provider, Resend, which processes your email address only to deliver our messages. We keep your email address until you unsubscribe or ask us to delete it. These emails are for information only and are not investment advice."
+  },
+  "marketClose": {
+    "title": "Korea market close — {m}/{d}/{y}",
+    "metaTitle": "KOSPI and KOSDAQ close — {m}/{d}/{y}",
+    "dayLabel": "{m}/{d}",
+    "archiveTitle": "Korea market close archive",
+    "archiveLead": "After each session: the KOSPI and KOSDAQ closing numbers and why they moved, with news sources, one page per day.",
+    "indices": "Closing levels",
+    "indicesSource": "Index levels: Naver Finance closing values",
+    "source": "Source",
+    "related": "Stocks mentioned",
+    "toReport": "Today's market report",
+    "koOnly": "This record is available in Korean only.",
+    "empty": "No records yet.",
+    "disclaimer": "Not investment advice. Each sentence was checked against its source articles; sentences without support were removed."
   },
   "trackRecord": {
     "metaTitle": "Past Picks — Flowvium",

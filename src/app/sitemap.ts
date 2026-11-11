@@ -5,6 +5,7 @@ import { companySeoData } from '@/lib/company-seo-data';
 import { sectors } from '@/data/sectors';
 import { blogPosts } from '@/data/blog-posts';
 import { glossaryTerms } from '@/data/glossary';
+import { listCloseDates } from '@/lib/market-close-data';
 
 const BASE_URL = 'https://flowvium.net';
 const locales = routing.locales;   // 목록은 i18n/routing 하나에서만 정한다
@@ -23,6 +24,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // localePrefix: 'as-needed' — default locale (en) has no /en/ prefix
   const localeBase = (locale: string, path: string) =>
     locale === 'en' ? `${BASE_URL}${path}` : `${BASE_URL}/${locale}${path}`;
+
+  // 2026-11-11 날짜별 한국 증시 마감(성장 점검 A): 본문이 한국어뿐이라 한국어판만 싣는다(다른 언어판은 noindex·canonical=ko).
+  routes.push({ url: `${BASE_URL}/ko/market-close`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.8 });
+  for (const date of listCloseDates()) {
+    routes.push({ url: `${BASE_URL}/ko/market-close/${date}`, lastModified: new Date(`${date}T18:00:00+09:00`), changeFrequency: 'monthly', priority: 0.7 });
+  }
 
   for (const locale of locales) {
     for (const page of staticPages) {
