@@ -1117,6 +1117,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 반영 2026-11-08 03:33 KST(빌드 ZiIUX6NX…). 네이버 소유 확인 태그: `.env.local` NEXT_PUBLIC_NAVER_SITE_VERIFICATION → `src/lib/seo.ts` verification.other(모든 페이지 head). 빙(msvalidate.01)·구글 새 속성 코드 2026-11-08 21:31 반영. 구글은 기존 코드도 남겨 둘 다 낸다 — 환경변수 한 칸에 쉼표로 여러 개(`src/lib/seo-verification.mjs`). 기존 값 끝의 줄바꿈도 이때 없어졌다.
 - 네이버: 11/08 20:13 소유 확인·사이트맵 제출(Mac mini2).
 - 11/11 성장 점검 3/3 상의(Claude·agy·ChatGPT, 그림 첨부) 채택 D·B·A — `reports/growth-2026-11-11.md`. 반영(11/11 16:44): 홈 과장 문구 → 사실 문구(ko·en·ja hero), 보고서의 모델 이름·'캐시됨' 표시 제거, 보고서 회차 이름 noon·midnight 한국어(`investment-strategy/history`), 한국어 종목 화면 제목·경로를 그 언어 회사명으로(`displayName`), `/api/price-history` 를 달력 N일로 자름(`src/lib/price-window.mjs` — '90일'이 105일이던 것, 삼성전자 −1.44%→−23.5%). 남은 일 A(날짜 주소 마감 시황 페이지). 재측정 11/18(D)·12/09·12/23(A·B). 남은 일: 날짜별 대표 보고서 1편/일 주소.
+- 11/11 보고서 FOMC 배지: 인하 확률만 보여 시장이 인상 100% 인 날 'Dec 10 0%' 로 본문과 반대로 읽혔다(agy 검수). 가장 유력한 결과(인상·동결·인하, 인하는 25·50·75bp 합)와 확률을 보인다 — `src/lib/fomc-headline.mjs`, 테스트 `scripts/lib/fomc-headline.test.mjs`. 본문의 '12월 인상 100%'는 Yahoo ZQF27 95.82(내재 4.18% vs 실효 3.88%)로 맞음.
 
 ### API 라우트 전체 목록
 

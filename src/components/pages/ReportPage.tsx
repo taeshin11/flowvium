@@ -9,6 +9,7 @@ import { UNIVERSE_SEARCH } from '@/data/universe-search';
 import { useTranslatedText } from '@/hooks/useTranslatedText';
 import { useSectorLabel } from '@/hooks/useSectorLabel';
 import { pickNextMeeting } from '@/lib/fedwatch-next';
+import { fomcHeadline } from '@/lib/fomc-headline.mjs';
 
 // 2026-06-12: 주력사업 세그먼트명 번역 (사용자 "번역이 안 되는 경우") — XBRL 추출 세그먼트명은
 //   영문. 숫자(%·YoY)는 번역 LLM 에 노출하지 않고 이름부만 번역 — 숫자 환각/훼손 원천 차단.
@@ -528,7 +529,7 @@ export default function ReportPage() {
   const [spy,   setSpy]   = useState<KpiState<{ ret1w: number }>>({ loading: true, error: false, value: null });
   const [curve, setCurve] = useState<KpiState<{ spread: number; inverted: boolean }>>({ loading: true, error: false, value: null });
   const [vix,   setVix]   = useState<KpiState<{ level: number | null }>>({ loading: true, error: false, value: null });
-  const [fomc,  setFomc]  = useState<KpiState<{ label: string; probCut: number }>>({ loading: true, error: false, value: null });
+  const [fomc,  setFomc]  = useState<KpiState<{ label: string; kind: 'hike' | 'hold' | 'cut'; prob: number }>>({ loading: true, error: false, value: null });
   const [spySpark, setSpySpark] = useState<number[] | null>(null);
   const kpiAbortRef = useRef<AbortController | null>(null);
 
@@ -628,11 +629,9 @@ export default function ReportPage() {
       //   차기는 9/17). /api/fedwatch 는 nextMeeting 을 이미 내려주고, 다른 소비처
       //   (judge-chat · latest-updates · investment-strategy · daily-brief)는 모두
       //   pickNextMeeting 으로 옮겨갔는데 화면에서 가장 잘 보이는 이 배지만 남아 있었다.
-      const picked = pickNextMeeting(j) as { label?: unknown; probCut25?: unknown } | null;
-      // label 이 없으면 값이 아니라 error 로 둔다 — 빈 라벨을 그리면 '데이터 있음' 으로 오인된다.
-      const next = typeof picked?.label === 'string' && picked.label
-        ? { label: picked.label, probCut: typeof picked.probCut25 === 'number' ? picked.probCut25 : 0 }
-        : null;
+      // 2026-11-11: 인하 확률만 보이면 인상 100% 인 날 "Dec 10 0%" 가 된다 — 가장 유력한 결과를 보인다.
+      //   label·확률이 없으면 null → error. 빈 라벨을 그리면 '데이터 있음' 으로 오인된다.
+      const next = fomcHeadline(pickNextMeeting(j));
       if (!signal.aborted) setFomc({ loading: false, error: !next, value: next });
     }).catch(() => { if (!signal.aborted) setFomc({ loading: false, error: true, value: null }); });
 
@@ -812,7 +811,7 @@ export default function ReportPage() {
         <Pill loading={vix.loading} error={vix.error} label="VIX" cls={`${vix.value && (vix.value.level ?? 0) > 25 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
           body={vix.value?.level != null ? `${vix.value.level.toFixed(1)}` : '-'} tooltip={t('tipVix')} />
         <Pill loading={fomc.loading} error={fomc.error} label="FOMC" cls="bg-violet-50 text-violet-700 border-violet-200"
-          body={fomc.value ? `${fomc.value.label} ${fomc.value.probCut}%` : '-'} tooltip={t('tipFomc')} />
+          body={fomc.value ? `${fomc.value.label} ${t(`fomc_${fomc.value.kind}`)} ${fomc.value.prob}%` : '-'} tooltip={t('tipFomc')} />
       </div>
 
       {/* ── No data / fallback 차단 → 준비 중 빈상태 (가짜 fallback 절대 표시 안 함) ── */}
