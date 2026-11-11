@@ -1,54 +1,12 @@
 {
-  "generatedAt": "2026-11-10T22:20:24.397Z",
+  "generatedAt": "2026-11-11T07:20:23.366Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 7,
-  "strongCount": 1,
-  "watchCount": 6,
-  "officialFewAccount": 1,
+  "count": 3,
+  "strongCount": 0,
+  "watchCount": 3,
+  "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "065500.KQ",
-      "name": "오리엔트정공",
-      "tier": "strong",
-      "score": 71,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 5.0× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)",
-        "🚨 거래소 소수계좌 거래집중(공식 2026-11-04)"
-      ],
-      "runup20dPct": -7.7,
-      "runup5dPct": -1.6,
-      "medDollarVolUsd": 54715,
-      "smartAccum": true,
-      "official": {
-        "category": "caution",
-        "reason": "매매관여과다종목",
-        "fewAccount": true,
-        "designatedDate": "2026-11-04"
-      }
-    },
-    {
-      "ticker": "041830.KQ",
-      "name": "인바디",
-      "tier": "watch",
-      "score": 41,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.2× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -14.8,
-      "runup5dPct": -8.1,
-      "medDollarVolUsd": 2373126,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "089600.KQ",
       "name": "KT나스미디어",
@@ -56,32 +14,14 @@
       "score": 41,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)",
+        "거래량 추세 3.1× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)",
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 4.2,
-      "runup5dPct": 1.9,
+      "runup20dPct": 3.6,
+      "runup5dPct": 3.2,
       "medDollarVolUsd": 178791,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "121600.KQ",
-      "name": "나노신소재",
-      "tier": "watch",
-      "score": 41,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 2.9,
-      "runup5dPct": 0.8,
-      "medDollarVolUsd": 2820950,
       "smartAccum": true,
       "official": null
     },
@@ -97,9 +37,9 @@
         "아래꼬리 매집 8개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 1.2,
-      "runup5dPct": 1.2,
-      "medDollarVolUsd": 32717,
+      "runup20dPct": -0.1,
+      "runup5dPct": 0.5,
+      "medDollarVolUsd": 29619,
       "smartAccum": true,
       "official": null
     },
@@ -107,34 +47,17 @@
       "ticker": "048870.KQ",
       "name": "시너지이노베이션",
       "tier": "watch",
-      "score": 37,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -4.5,
-      "runup5dPct": 4.7,
-      "medDollarVolUsd": 266869,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "069510.KQ",
-      "name": "에스텍",
-      "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 3.0× 급증(가격 평탄)",
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 11.5,
-      "runup5dPct": 5.3,
-      "medDollarVolUsd": 51811,
+      "runup20dPct": -5.3,
+      "runup5dPct": 1.6,
+      "medDollarVolUsd": 266869,
       "smartAccum": true,
       "official": null
     }
