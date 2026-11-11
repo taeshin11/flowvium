@@ -53,7 +53,7 @@
   "hero": {
     "title": "Uncover Hidden Supply Chain Risks",
     "subtitle": "Before They Become Headlines",
-    "description": "🔓 We broke through every information barrier — KRX few-account concentration, SEC trading suspensions and more. Now 1,300+ stocks are analyzed across supply chains, news, flows, macro and official KR/US exchange alerts to catch manipulation before the run-up — buy/sell picks, early risk warnings, 5 daily reports, all automated.",
+    "description": "We analyze 1,300+ stocks across supply chains, news, fund flows and macro data, plus official KRX and SEC market alerts (caution lists, trading halts). Buy/sell candidates with reasons, risk alerts, and five market reports a day.",
     "cta": "Start Exploring",
     "ctaSecondary": "Watch Demo",
     "features": {
@@ -527,7 +527,7 @@
     "axisIbActivity": "IB Activity Score"
   },
   "home": {
-    "heroHeadline": "<accent>AI</accent> catches smart-money flows and accumulation before the run-up, and writes your daily report",
+    "heroHeadline": "<accent>AI</accent> reads fund flows, supply chains and news, and writes five market reports a day",
     "exploreSupplyChains": "Explore Supply Chains",
     "viewSignals": "Track Institutional Accumulation",
     "livePreview": "Live Supply Chain Preview",
@@ -607,7 +607,7 @@
     "ctaSeeRecs": "See today's AI stock picks",
     "ctaSeeRecsDesc": "Buy/sell picks · entry · stop & target",
     "ctaYoutube": "Watch on YouTube",
-    "ctaYoutubeDesc": "Daily US politics & economy briefing",
+    "ctaYoutubeDesc": "Daily market news shorts",
     "breadth": "Breadth"
   },
   "feedback": {

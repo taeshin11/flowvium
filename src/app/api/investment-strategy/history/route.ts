@@ -12,6 +12,9 @@ const SESSION_KO: Record<string, string> = {
   morning: '오전 (미국장 마감 후)',
   afternoon: '오후 (아시아장 마감 후)',
   evening: '저녁 (미국장 개장 전)',
+  // 2026-11-11: noon·midnight 이 빠져 화면에 영어 'noon' 이 그대로 나왔다(눈검증).
+  noon: '점심 (한국장 중간)',
+  midnight: '밤 (미국장 개장 뒤)',
 };
 
 // 2026-06-17 (전수조사 #2): serve-time fallback 차단 — in-memory 캐시(memGetReport/memGetArray)는

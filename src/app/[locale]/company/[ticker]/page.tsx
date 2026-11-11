@@ -33,5 +33,7 @@ export async function generateMetadata({
 }
 
 export default function Page({ params }: { params: { locale: string; ticker: string } }) {
-  return <CompanyPage ticker={params.ticker} />;
+  // 2026-11-11: 화면 제목도 그 언어의 회사명 — 한국어 화면에 'Samsung Electronics' 가 떴다(눈검증, 3/3 상의).
+  const name = companyName(params.ticker, params.locale, companySeoData());
+  return <CompanyPage ticker={params.ticker} displayName={name ?? undefined} />;
 }

@@ -504,15 +504,6 @@ function RiskEventRow({ event }: { event: RiskEvent }) {
   );
 }
 
-// ── Source badge ──────────────────────────────────────────────────────────────
-function sourceBadge(src: string): { label: string; cls: string } {
-  const s = src.toLowerCase();
-  if (s.includes('70b') || s.includes('groq')) return { label: 'GROQ 70b', cls: 'bg-violet-100 text-violet-700 border-violet-200' };
-  if (s.includes('gemini')) return { label: 'Gemini', cls: 'bg-blue-100 text-blue-700 border-blue-200' };
-  if (s.includes('fallback') || s.includes('data')) return { label: 'Fallback', cls: 'bg-gray-100 text-gray-600 border-gray-200' };
-  return { label: src || 'AI', cls: 'bg-gray-100 text-gray-600 border-gray-200' };
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ReportPage() {
   const t = useTranslations('report');
@@ -708,7 +699,6 @@ export default function ReportPage() {
   const ageMs = data ? nowTick - new Date(data.generatedAt).getTime() : 0;
   // 2026-06-22: fallback 보고서는 절대 표시 안 함 — 실보고서 없으면 "준비 중" 빈상태(가짜 fallback 렌더·배지 차단)
   const isFallbackReport = !!data && ((typeof data.source === 'string' && data.source.startsWith('fallback')) || (data as { noData?: boolean }).noData === true);
-  const sb = (data && !isFallbackReport) ? sourceBadge(data.source) : null;
 
   // ── Loading: data 없을 때만 최소 스피너 (보통은 stale/fallback이 즉시 옴) ──
   if (loading && !data) {
@@ -793,9 +783,7 @@ export default function ReportPage() {
           <p className="text-sm text-gray-500 mt-0.5">{t('pageDesc')}</p>
         </div>
         <div className="flex items-center gap-2">
-          {sb && (
-            <span className={`text-[10px] px-2 py-1 rounded border font-medium ${sb.cls}`}>{sb.label}</span>
-          )}
+          {/* 2026-11-11: 글을 쓴 모델 이름(Gemini 등)·'캐시됨' 표시는 독자에게 쓸모없는 개발자 말이라 뺐다(3/3 상의). */}
           {data && !isFallbackReport && (
             <span className="flex items-center gap-1 text-[10px] text-gray-400">
               <span className={`w-1.5 h-1.5 rounded-full ${freshnessDot(ageMs)}`} />
@@ -904,7 +892,6 @@ export default function ReportPage() {
               <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${riskCfg!.bg} ${riskCfg!.color}`}>
                 {t('riskLabel')} {riskLevelLabel}
               </span>
-              {data.cached && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{t('cached')}</span>}
             </div>
             {data.dataAsOf && (
               <p className="text-[10px] text-gray-400 mt-0.5 mb-1.5">

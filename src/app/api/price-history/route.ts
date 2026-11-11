@@ -13,6 +13,7 @@ import { createRedis } from '@/lib/redis';
 import type { Redis } from '@upstash/redis';
 import { logger, loggedRedisSet } from '@/lib/logger';
 import { createMemoryCache } from '@/lib/memory-cache';
+import { withinDays } from '@/lib/price-window.mjs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -131,7 +132,7 @@ export async function GET(req: NextRequest) {
   if (!ticker) return NextResponse.json({ error: 'ticker required' }, { status: 400 });
 
   const redis = createRedis();
-  const cacheKey = `flowvium:price-history:v2:${ticker}:${days}`;
+  const cacheKey = `flowvium:price-history:v3:${ticker}:${days}`;  // v3: 달력 N일로 자름(11/11, lib/price-window)
 
   if (redis) {
     try {
@@ -170,6 +171,8 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // 2026-11-11: 공급원마다 여유분을 붙여 받는다 — 화면의 'N일'이 실제 N일이 되게 날짜로 자른다(lib/price-window).
+  points = withinDays(points, days);
   logger.info('price-history', 'fetched', { ticker, days, count: points.length, source });
 
   if (points.length === 0) {

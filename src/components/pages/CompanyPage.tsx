@@ -222,7 +222,7 @@ function formatLiveValue(label: string, val: number): string {
   return val.toFixed(2);
 }
 
-export default function CompanyPage({ ticker }: { ticker: string }) {
+export default function CompanyPage({ ticker, displayName }: { ticker: string; displayName?: string }) {
   const t = useTranslations('company');
   const tNav = useTranslations('nav');
   // 2026-08-22: 종전엔 데이터의 role/type 을 CSS `capitalize` 로 찍었다.
@@ -1147,7 +1147,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <Breadcrumbs overrides={{ [company.ticker]: { label: company.name } }} />
+      <Breadcrumbs overrides={{ [company.ticker]: { label: displayName ?? company.name } }} />
 
       {/* Back */}
       <Link
@@ -1162,7 +1162,7 @@ export default function CompanyPage({ ticker }: { ticker: string }) {
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-3 mb-3">
           <h1 className="text-3xl font-heading font-bold text-cf-text-primary">
-            {company.name}
+            {displayName ?? company.name}
           </h1>
           <span className="font-mono text-sm font-bold bg-cf-primary/10 text-cf-primary px-3 py-1 rounded-lg">
             {company.ticker}
