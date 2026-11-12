@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T22:43:26.542Z",
+  "generatedAt": "2026-11-12T13:01:26.478Z",
   "universe": "US",
   "scanned": 488,
   "count": 8,
@@ -53,7 +53,7 @@
       ],
       "runup20dPct": -9.8,
       "runup5dPct": -16.4,
-      "medDollarVolUsd": 10608808,
+      "medDollarVolUsd": 10669815,
       "smartAccum": false,
       "official": null
     },
@@ -115,7 +115,7 @@
       "coFire": 2,
       "lead": [
         "거래량 추세 1.8× 상승",
-        "거래량 2.8× 급증(가격 평탄)"
+        "거래량 2.9× 급증(가격 평탄)"
       ],
       "runup20dPct": -14.2,
       "runup5dPct": 2.5,
