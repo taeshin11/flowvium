@@ -1,29 +1,12 @@
 {
-  "generatedAt": "2026-11-12T13:01:26.478Z",
+  "generatedAt": "2026-11-12T22:43:32.568Z",
   "universe": "US",
   "scanned": 488,
-  "count": 8,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 8,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "AORT",
-      "name": "Artivion, Inc.",
-      "tier": "watch",
-      "score": 31,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.0× 상승(지속 매집)",
-        "거래량 2.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -6.6,
-      "runup5dPct": -24,
-      "medDollarVolUsd": 13741332,
-      "smartAccum": false,
-      "official": null
-    },
     {
       "ticker": "BRKRP",
       "name": "Bruker Corporation - 6.375% Man",
@@ -31,111 +14,29 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 4.9× 상승(지속 매집)",
-        "거래량 7.3× 급증(가격 평탄)"
+        "거래량 추세 4.8× 상승(지속 매집)",
+        "거래량 6.5× 급증(가격 평탄)"
       ],
-      "runup20dPct": 10,
-      "runup5dPct": -1.1,
+      "runup20dPct": 5.9,
+      "runup5dPct": 3.6,
       "medDollarVolUsd": 1111131,
       "smartAccum": false,
       "official": null
     },
     {
-      "ticker": "PNTG",
-      "name": "The Pennant Group, Inc.",
+      "ticker": "CRTO",
+      "name": "Criteo S.A.",
       "tier": "watch",
-      "score": 24,
+      "score": 27,
       "coFire": 2,
       "lead": [
         "거래량 추세 1.7× 상승",
-        "거래량 2.8× 급증(가격 평탄)",
+        "종가 일중 상단 70%(강한 매수 흡수)",
         "아래꼬리 매집 4개(저가 매수받침)"
       ],
-      "runup20dPct": -9.8,
-      "runup5dPct": -16.4,
-      "medDollarVolUsd": 10669815,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "ROCK",
-      "name": "Gibraltar Industries, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 3.4× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)"
-      ],
-      "runup20dPct": -11,
-      "runup5dPct": -25.1,
-      "medDollarVolUsd": 13571415,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "KMDA",
-      "name": "Kamada Ltd.",
-      "tier": "watch",
-      "score": 23,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 6개(저가 매수받침)"
-      ],
-      "runup20dPct": 7,
-      "runup5dPct": 9.6,
-      "medDollarVolUsd": 883820,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "RC",
-      "name": "Ready Capital Corporation",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 3.5× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -13.1,
-      "runup5dPct": -18.4,
-      "medDollarVolUsd": 1870890,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "SMCIP",
-      "name": "Super Micro Computer, Inc. - De",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.8× 상승",
-        "거래량 2.9× 급증(가격 평탄)"
-      ],
-      "runup20dPct": -14.2,
-      "runup5dPct": 2.5,
-      "medDollarVolUsd": 27291781,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "HLLY",
-      "name": "Holley Inc.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 2.7× 급증(가격 평탄)"
-      ],
-      "runup20dPct": 1.2,
-      "runup5dPct": -13.4,
-      "medDollarVolUsd": 2397680,
+      "runup20dPct": 10.6,
+      "runup5dPct": 13.3,
+      "medDollarVolUsd": 4706760,
       "smartAccum": false,
       "official": null
     }
