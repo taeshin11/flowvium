@@ -26,3 +26,4 @@
 {"at":"2026-11-10T22:10:43.986Z","universe":1105,"failed":13,"kr":{"n":421,"below200":374,"deadCross":333,"either":387,"pct":0.919},"us":{"n":662,"below200":279,"deadCross":332,"either":387,"pct":0.585}}
 {"at":"2026-11-11T07:10:49.848Z","universe":1105,"failed":13,"kr":{"n":421,"below200":370,"deadCross":333,"either":383,"pct":0.91},"us":{"n":662,"below200":279,"deadCross":332,"either":387,"pct":0.585}}
 {"at":"2026-11-11T22:10:45.520Z","universe":1105,"failed":13,"kr":{"n":421,"below200":370,"deadCross":333,"either":383,"pct":0.91},"us":{"n":662,"below200":271,"deadCross":335,"either":379,"pct":0.573}}
+{"at":"2026-11-12T07:10:48.161Z","universe":1105,"failed":13,"kr":{"n":421,"below200":372,"deadCross":334,"either":385,"pct":0.914},"us":{"n":662,"below200":271,"deadCross":335,"either":379,"pct":0.573}}
