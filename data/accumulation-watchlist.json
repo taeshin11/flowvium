@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-12T07:20:27.972Z",
+  "generatedAt": "2026-11-12T22:20:22.963Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
@@ -7,24 +7,6 @@
   "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "089600.KQ",
-      "name": "KT나스미디어",
-      "tier": "watch",
-      "score": 41,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.8× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 5.5,
-      "runup5dPct": 4,
-      "medDollarVolUsd": 178791,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "065690.KQ",
       "name": "파커스",
@@ -40,6 +22,24 @@
       "runup20dPct": 1.2,
       "runup5dPct": 0.9,
       "medDollarVolUsd": 29499,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "253450.KQ",
+      "name": "스튜디오드래곤",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 7.8,
+      "runup5dPct": -3.3,
+      "medDollarVolUsd": 821557,
       "smartAccum": true,
       "official": null
     }
