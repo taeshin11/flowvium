@@ -819,11 +819,11 @@
     "fy": "2025"
   },
   "ROK": {
-    "revUsd": 8342000000,
-    "revYoYPct": 0.9,
-    "opMarginPct": 20.4,
-    "roePct": 23.8,
-    "fy": "2025"
+    "revUsd": 8989000000,
+    "revYoYPct": 7.8,
+    "opMarginPct": null,
+    "roePct": 39.7,
+    "fy": "2026"
   },
   "DOV": {
     "revUsd": 8092571000,
@@ -2926,11 +2926,11 @@
     "fy": "2025"
   },
   "JCI": {
-    "revUsd": 23596000000,
-    "revYoYPct": 2.8,
+    "revUsd": 25666000000,
+    "revYoYPct": 8.8,
     "opMarginPct": null,
-    "roePct": 25.5,
-    "fy": "2025"
+    "roePct": 21,
+    "fy": "2026"
   },
   "KVUE": {
     "revUsd": 15124000000,
