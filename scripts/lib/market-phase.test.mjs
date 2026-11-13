@@ -57,3 +57,22 @@ test('지난 회차 이름표 — 회차 이름 + 만든 시각의 주력 시장
   assert.equal(sessionTabLabel('noon', '2026-11-11T01:37:16Z'), '점심 (한국장 장중)');
   assert.equal(sessionTabLabel('weird', 'bad'), 'weird');
 });
+
+// 11/12 실측: 프롬프트에 "장중 (숫자는 확정 종가 아님)" 을 값으로 넣자 모델이 그 괄호를 문장에 그대로 옮겼다
+//   ("한국 시장은 장중 (숫자는 확정 종가 아님) KOSPI가…"). 값은 짧은 말, 규칙은 따로.
+import { phaseWord, phaseNote } from '../../src/lib/market-phase.mjs';
+test('프롬프트 값은 괄호 없는 짧은 말', () => {
+  const p = at('2026-11-12T05:35:45Z');
+  assert.equal(phaseWord(p.kr), '장중');
+  assert.equal(phaseWord(p.us), '개장 전');
+  assert.doesNotMatch(phaseWord(p.kr), /[()]/);
+});
+test('규칙 문장: 장중이면 마감·종가라 쓰지 말라고, 괄호를 옮기지 말라고', () => {
+  const n = phaseNote(at('2026-11-12T05:35:45Z'));
+  assert.match(n, /한국 숫자는 장중 값/);
+  assert.match(n, /'마감'·'종가'/);
+  assert.match(n, /미국 숫자는 전일 종가/);
+  const closed = phaseNote(at('2026-11-12T11:09:18Z'));
+  assert.match(closed, /한국 숫자는 당일 확정 종가/);
+  assert.doesNotMatch(closed, /쓰지 말 것.*한국|한국.*쓰지 말 것/);
+});

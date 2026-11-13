@@ -128,7 +128,7 @@ import { resolveCompanyName } from './lib/company-name.mjs';
 import { normalizeCurrencyText } from './lib/currency-format.mjs';
 import { computeKrVerdict, overnightTailRisk } from './lib/kr-verdict.mjs';  // 2026-10-15: KR 판정 lib 로 + 전날 밤 SOX 거부권
 import { finOnce } from './lib/fin-once.mjs';  // 2026-10-20: 매수 고르기와 심판이 같은 재무를 본다(fin-once.test)
-import { marketPhases } from '../src/lib/market-phase.mjs';
+import { marketPhases, phaseWord, phaseNote } from '../src/lib/market-phase.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dir, '..');
@@ -1043,7 +1043,8 @@ const KR_PRIORITY = [
 //   옮겨지고 서머타임이 끝나 상수 다섯 중 넷이 틀렸다 — 14:35 보고서가 장중 숫자를 '당일 종가 확정'이라 썼다.
 //   데이터를 받는 실행 시작 시각 한 번으로 고정한다.
 const RUN_PHASES = marketPhases(new Date());
-const short = (ph) => ph.label.split(' (')[0];
+const short = phaseWord;
+const PHASE_NOTE = phaseNote(RUN_PHASES);
 function getSessionFocus(session) {
   switch (session) {
     case 'morning':
@@ -1052,7 +1053,7 @@ function getSessionFocus(session) {
         secondary: ['global'],
         label: `US ${short(RUN_PHASES.us)}`,
         marketWeight: { us: 60, kr: 20, global: 20 },
-        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
+        marketPhases: { kr: phaseWord(RUN_PHASES.kr), us: phaseWord(RUN_PHASES.us) },
         dataPriority: US_PRIORITY,
       };
     case 'afternoon':
@@ -1061,7 +1062,7 @@ function getSessionFocus(session) {
         secondary: ['japan', 'china'],
         label: `KR ${short(RUN_PHASES.kr)} + 아시아`,
         marketWeight: { kr: 50, us: 25, asia: 25 },
-        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
+        marketPhases: { kr: phaseWord(RUN_PHASES.kr), us: phaseWord(RUN_PHASES.us) },
         dataPriority: KR_PRIORITY,
       };
     case 'evening':
@@ -1070,7 +1071,7 @@ function getSessionFocus(session) {
         secondary: ['premarket', 'global'],
         label: `US ${short(RUN_PHASES.us)}`,
         marketWeight: { us: 70, global: 20, kr: 10 },
-        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
+        marketPhases: { kr: phaseWord(RUN_PHASES.kr), us: phaseWord(RUN_PHASES.us) },
         dataPriority: US_PRIORITY,
       };
     case 'noon':
@@ -1080,7 +1081,7 @@ function getSessionFocus(session) {
         secondary: ['china', 'japan'],
         label: `KR ${short(RUN_PHASES.kr)} + 아시아`,
         marketWeight: { kr: 50, asia: 30, us: 20 },
-        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
+        marketPhases: { kr: phaseWord(RUN_PHASES.kr), us: phaseWord(RUN_PHASES.us) },
         dataPriority: KR_PRIORITY,
       };
     case 'midnight':
@@ -1090,7 +1091,7 @@ function getSessionFocus(session) {
         secondary: ['global'],
         label: `US ${short(RUN_PHASES.us)}`,
         marketWeight: { us: 65, global: 20, kr: 15 },
-        marketPhases: { kr: RUN_PHASES.kr.label, us: RUN_PHASES.us.label },
+        marketPhases: { kr: phaseWord(RUN_PHASES.kr), us: phaseWord(RUN_PHASES.us) },
         dataPriority: US_PRIORITY,
       };
     default:
@@ -4971,6 +4972,7 @@ function buildMacroPrompt(ctx, vix, session, flowEvidence = null) {
   return [
     `You are a macro strategist. Session: ${sc} ${TODAY}.${li}`,
     `⚠️ 주력시장을 세션 시간대로 *고정하지 말 것* — 입력 데이터에서 *그날 시그널(지수 변동폭·모멘텀·리스크 이벤트·수급)이 가장 강한 시장*을 네가 판단해 macroAnalysis·thesis 를 그 시장 중심으로 *먼저* 리드하라 (KR 이 강하면 KOSPI 외국인/기관 수급·원달러·아시아, US 가 강하면 S&P500/Nasdaq·연준/CPI/빅테크). 단, KR·US *양 시장 모두* 각자의 현재 장 phase(KR: ${focus.marketPhases?.kr ?? '—'} / US: ${focus.marketPhases?.us ?? '—'}) 맥락을 반드시 포함 — 어느 쪽도 생략 금지. 한쪽이 주력이어도 다른 쪽 장 상황(개장 전/장중/마감)은 짧게라도 다뤄라.`,
+    PHASE_NOTE,   // 2026-11-13: 숫자 성격(장중/종가)은 값 대신 규칙 한 문장으로 — lib/market-phase phaseNote
     '',
     `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Macro Indicators] ${ctx.macro || 'No data'}`,
@@ -6243,6 +6245,7 @@ function buildPortfolioPrompt(ctx, sectorPe, earnings, priceData, buyCandidates 
   const focus = getSessionFocus(session);
   const priorityLines = (focus.dataPriority ?? []).map((d, i) => `   ${i + 1}. ${d}`).join('\n');
   const focusBlock = `[Session Focus] ${session.toUpperCase()} (${focus.label})\n` +
+    `${PHASE_NOTE}\n` +
     `장 phase — KR: ${focus.marketPhases?.kr ?? '—'} | US: ${focus.marketPhases?.us ?? '—'}\n` +
     `→ 포트폴리오는 *지역 무관* — 시그널(score) 강한 종목을 지역 비율 신경쓰지 말고 확신순으로 선별. US/KR 비율 자유(한쪽 0 가능), 지역 균형 맞추려 약한 종목 padding 금지.\n` +
     // 2026-06-05 (b) 세션 가중: 8B attention 을 세션 핵심 신호에 집중시킴.
@@ -6460,6 +6463,7 @@ function buildNarrativePrompt(ctx, session, sectorPe, institutional) {
     // 2026-06-17 (사용자 "미국장 장중인데 KOSPI 로 시작"): US-primary 규칙을 KR 과 대칭으로 명시 추가.
     //   기존엔 KR-primary 만 명시돼 midnight(US 장중)인데 데이터가 KR-heavy 면 LLM 이 KOSPI 로 리드.
     `⚠️ 주력시장을 세션으로 고정하지 말 것 — story·why·watch 를 *그날 시그널(지수 변동폭·수급·리스크)이 가장 강한 시장* 중심으로 리드하라. KR 이 강하면 KOSPI/KOSDAQ 등락·외국인/기관 수급·한국 기업/공시·아시아를 *먼저*, US 가 강하면 S&P500/Nasdaq·미국 빅테크/섹터·연준·매크로를 *먼저*. 단 KR·US 양 시장 모두 각자 장 phase(KR: ${focus.marketPhases?.kr ?? '—'} / US: ${focus.marketPhases?.us ?? '—'}) 맥락을 반드시 포함 — 어느 쪽도 완전 생략 금지(주력 아닌 시장도 한 줄은 다뤄라).`,
+    PHASE_NOTE,   // 2026-11-13: 숫자 성격(장중/종가)은 값 대신 규칙 한 문장으로 — lib/market-phase phaseNote
     '',
     `[Index Levels] ${ctx.indexLevels || 'No data'}`,
     `[Capital Flow Story] ${ctx.flows || 'No data'}`,

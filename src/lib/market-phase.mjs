@@ -58,3 +58,18 @@ export function sessionTabLabel(session, generatedAt) {
   const m = SESSION_PRIMARY[session];
   return `${word} (${MARKET_KO[m]} ${marketPhases(at)[m].label.split(' (')[0]})`;
 }
+
+// 프롬프트용. 11/12 실측: 괄호 설명이 든 label 을 값으로 넣자 모델이 괄호째 문장에 옮겼다("장중 (숫자는 확정 종가 아님) KOSPI가").
+//   값은 짧은 말(phaseWord), 숫자의 성격과 금지어는 따로 한 문장(phaseNote)으로 준다.
+/** @param {{ label: string }} ph */
+export const phaseWord = (ph) => ph.label.split(' (')[0];
+
+const NUMBER_KIND = {
+  pre: '전일 종가', premarket: '전일 종가(프리마켓 시세 아님)', open: '장중 값이다 — 확정 종가가 아니니 \'마감\'·\'종가\'라고 쓰지 말 것',
+  closed: '당일 확정 종가', weekend: '직전 거래일 종가',
+};
+/** @param {{ kr: { code: string }, us: { code: string } }} p @returns {string} */
+export function phaseNote(p) {
+  return `숫자의 성격: 한국 숫자는 ${NUMBER_KIND[p.kr.code]}. 미국 숫자는 ${NUMBER_KIND[p.us.code]}.`
+    + ' 장 상황은 자연스러운 말로 쓰고 괄호 설명을 문장에 옮기지 말 것.';
+}

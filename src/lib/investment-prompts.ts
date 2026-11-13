@@ -19,7 +19,7 @@
 
 import { buildGroundingFacts } from '@/lib/grounding';
 import { getGuruPromptContext } from '@/lib/guru-methodologies';
-import { marketPhases } from './market-phase.mjs';
+import { marketPhases, phaseWord, phaseNote } from './market-phase.mjs';
 
 const LOCALE_LANG: Record<string, string> = {
   ko: 'Korean', ja: 'Japanese', 'zh-CN': 'Simplified Chinese', 'zh-TW': 'Traditional Chinese',
@@ -279,7 +279,8 @@ export function buildNarrativePrompt(ctx: CtxForPrompts, session = 'morning', lo
   //   session 인자는 다른 호출부와의 호환을 위해 남긴다.
   void session;
   const ph = marketPhases();
-  const sc = `한국장 ${ph.kr.label} · 미국장 ${ph.us.label}`;
+  // 2026-11-13: 괄호 설명이 든 label 을 넣으면 모델이 괄호째 옮긴다 — 짧은 말 + 규칙 한 문장(phaseNote).
+  const sc = `한국장 ${phaseWord(ph.kr)} · 미국장 ${phaseWord(ph.us)}. ${phaseNote(ph)}`;
   return [
     `You are a market narrative writer. Session: ${sc} ${today}. Write in ${lang}.`,
     '',
