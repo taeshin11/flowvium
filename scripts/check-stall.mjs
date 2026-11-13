@@ -629,6 +629,23 @@ async function checkOnce() {
     issues.push(`상시 쇼츠 풀 판독 실패: ${String(e?.message).slice(0, 60)}`);
   }
 
+  // [14] 로그아웃 공개 화면 기준 마지막 실제 공개 (2026-11-13 사장님 지시 — 48시간 넘으면 비상).
+  //     우리 DB(shorts_published)는 '올렸다'이지 '보인다'가 아니다. 채널 RSS 는 로그인 없이 공개 영상만 싣는다.
+  //     못 읽으면 ok 가 아니라 이슈 — 확인 못 한 것을 괜찮다고 두지 않는다.
+  try {
+    const { feedUrl, parseFeed, lastPublic, EMERGENCY_HOURS } = await import('./lib/public-upload.mjs');
+    const res = await fetch(feedUrl(process.env.YOUTUBE_CHANNEL_ID ?? ''), { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    const last = res.ok ? lastPublic(parseFeed(await res.text())) : null;
+    if (!last) issues.push(`공개 화면 확인 실패 — 채널 RSS HTTP ${res.status}, 공개 영상을 못 읽음`);
+    else {
+      const age = ageHours(last.published);
+      if (age > EMERGENCY_HOURS) issues.push(`🚨 마지막 실제 공개 ${age.toFixed(0)}시간 전(${last.published}) — ${EMERGENCY_HOURS}시간 넘음, 시청자에게 새 영상이 안 보인다`);
+      else info.push(`공개 화면 ✓ 마지막 공개 ${age.toFixed(1)}시간 전 (${last.videoId})`);
+    }
+  } catch (e) {
+    issues.push(`공개 화면 확인 실패: ${String(e?.message).slice(0, 60)}`);
+  }
+
   // [12] 교정기 드리프트 (2026-08-22 신설).
   //      이 세션에서 근본원인 7건 중 5건이 같은 형태였다 —
   //      **증상을 고치는 코드가 이미 있었고 그게 원인을 몇 달간 가렸다.**
