@@ -18,7 +18,7 @@ try {
 
 const pool = listSpares(evergreenDir()).filter((x) => !x.dir.endsWith('.part')).length;
 const news = listSpares(spareDir()).filter((x) => Date.now() - x.createdAt <= 6 * 3600e3).length;
-const perDay = openDb().prepare("SELECT COUNT(*) / 7.0 AS r FROM shorts_published WHERE published_at >= datetime('now','-7 days')").get().r;
+const perDay = openDb().prepare("SELECT COUNT(*) / 7.0 AS r FROM shorts_published WHERE datetime(published_at) >= datetime('now','-7 days')").get().r;
 const hours = perDay > 0 ? Math.round(((pool + news) / perDay) * 24) : 0;
 
 const line = firstLine({ last, hours });
