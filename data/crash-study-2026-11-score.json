@@ -1,23 +1,49 @@
 {
- "at": "2026-11-12T07:30:00.163Z",
+ "at": "2026-11-13T07:30:00.175Z",
  "version": "v2",
  "primary": "allDays",
  "forecasts": [
   {
    "id": "F1-KOSPI",
    "q": "5거래일 뒤(11/13) KOSPI 종가 > 5059.69",
-   "outcome": null,
-   "decidedOn": null,
-   "value": null,
-   "score": "pending"
+   "outcome": 1,
+   "decidedOn": "2026-11-13",
+   "value": 5290.52978515625,
+   "score": {
+    "allDays": {
+     "brier": 0.1552,
+     "log": 0.5009
+    },
+    "firstDay": {
+     "brier": 0.103,
+     "log": 0.3871
+    },
+    "clim": {
+     "brier": 0.1989,
+     "log": 0.5906
+    }
+   }
   },
   {
    "id": "F1-KOSDAQ",
    "q": "5거래일 뒤(11/13) KOSDAQ 종가 > 644.27",
-   "outcome": null,
-   "decidedOn": null,
-   "value": null,
-   "score": "pending"
+   "outcome": 1,
+   "decidedOn": "2026-11-13",
+   "value": 699.6599731445312,
+   "score": {
+    "allDays": {
+     "brier": 0.1149,
+     "log": 0.414
+    },
+    "firstDay": {
+     "brier": 0.0713,
+     "log": 0.3106
+    },
+    "clim": {
+     "brier": 0.2043,
+     "log": 0.6015
+    }
+   }
   },
   {
    "id": "F2-KOSPI",
