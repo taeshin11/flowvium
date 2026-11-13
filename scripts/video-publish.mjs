@@ -236,23 +236,23 @@ if (USE_EXISTING) {
     try { TREND_ENV = (await import('./lib/explore-slot.mjs')).trendFor((await import('./lib/db.mjs')).shortsPublishedCount()) ? '1' : '0'; }
     catch { /* 모르면 안 함 */ }
   }
-  // 2026-10-03 화면 배분 A/B(classic|zoom). SHORTS_LAYOUT 이 주어지면 그 값.
+  // 2026-11-13 구성 갈래(화면 배치·첫 문장·첫 장면 움직임)는 주간 채널 지침(data/channel-guide/flowvium-shorts.json)만 따른다
+  //   — 사장님 11/12 "템플릿 복붙 줄이고 편마다 구성 다르게, 제작은 그 파일만". 종전 explore-slot 고정 비율(25/75·50/50·50/50)은
+  //   지침이 없거나 깨졌을 때의 기본값으로만 남는다(lib/channel-guide DEFAULT_GUIDE). 바로 앞 편과 셋이 같으면 하나를 바꾼다.
+  //   SHORTS_LAYOUT·SHORTS_OPENER·SHORTS_MOTION 이 주어지면 그 값(손 실행·시험).
   let LAYOUT_ENV = process.env.SHORTS_LAYOUT ?? 'classic';
-  if (isShorts && process.env.SHORTS_LAYOUT == null) {
-    try { LAYOUT_ENV = (await import('./lib/explore-slot.mjs')).layoutFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
-    catch { /* 모르면 지금 모습 */ }
-  }
-  // 2026-10-11 첫 문장 A/B(anchor|question) → 10/20 종료, 모든 편 question. SHORTS_OPENER 가 주어지면 그 값.
   let OPENER_ENV = process.env.SHORTS_OPENER ?? 'question';
-  if (isShorts && process.env.SHORTS_OPENER == null) {
-    try { OPENER_ENV = (await import('./lib/explore-slot.mjs')).openerFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
-    catch { /* 모르면 지금 모습 */ }
-  }
-  // 2026-10-17 첫 장면 움직임 A/B(push|still). SHORTS_MOTION 이 주어지면 그 값.
   let MOTION_ENV = process.env.SHORTS_MOTION ?? 'still';
-  if (isShorts && process.env.SHORTS_MOTION == null) {
-    try { MOTION_ENV = (await import('./lib/explore-slot.mjs')).motionFor((await import('./lib/db.mjs')).shortsPublishedCount()); }
-    catch { /* 모르면 지금 모습 */ }
+  if (isShorts) {
+    try {
+      const { loadGuide, pickCombo } = await import('./lib/channel-guide.mjs');
+      const db = await import('./lib/db.mjs');
+      const combo = pickCombo(db.shortsPublishedCount(), loadGuide(), db.lastShortsCombo());
+      if (process.env.SHORTS_LAYOUT == null) LAYOUT_ENV = combo.layout;
+      if (process.env.SHORTS_OPENER == null) OPENER_ENV = combo.opener;
+      if (process.env.SHORTS_MOTION == null) MOTION_ENV = combo.motion;
+      log(`구성: ${combo.layout}·${combo.opener}·${combo.motion} (채널 지침)`);
+    } catch (e) { log(`채널 지침을 못 읽음 — 기본 구성: ${String(e?.message ?? e).slice(0, 80)}`); }
   }
   // 2026-11-02 기업·증시 칸(45%) — lib/explore-slot marketFor, shorts-market-slot.test. SHORTS_MARKET 이 주어지면 그 값.
   let MARKET_ENV = process.env.SHORTS_MARKET ?? '0';

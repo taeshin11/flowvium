@@ -2257,6 +2257,12 @@ export function recentEpisodesForFollowup(hours = 72) {
 }
 
 /** 지금까지 낸 쇼츠 편수. 국뽕 앞머리를 편마다 돌리는 씨앗으로 쓴다(무작위 아닌 결정론). */
+/** 바로 앞 쇼츠의 구성(lib/channel-guide pickCombo 의 prev). 없으면 null. 2026-11-13. */
+export function lastShortsCombo() {
+  const r = openDb().prepare('SELECT layout, opener, motion FROM shorts_published ORDER BY published_at DESC LIMIT 1').get();
+  return r ? { layout: r.layout ?? null, opener: r.opener ?? null, motion: r.motion ?? null } : null;
+}
+
 export function shortsPublishedCount() {
   const db = openDb();
   return db.prepare('SELECT COUNT(*) AS n FROM shorts_published').get()?.n ?? 0;

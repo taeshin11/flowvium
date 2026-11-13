@@ -19,6 +19,7 @@
 import { chromium } from 'playwright';
 import ffmpegPath from 'ffmpeg-static';
 import { spawnSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync, renameSync, appendFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
@@ -50,6 +51,8 @@ const DATA = JSON.parse(readFileSync(resolve(ROOT, 'data/evergreen-shorts.json')
 const POOL = evergreenDir();
 const IMG_CACHE = resolve(ROOT, 'reports/video/evergreen-img');
 const KEY_PREFIX = '주식 상식:';
+// 2026-11-13 첫 장면 움직임 — 채널 지침(lib/channel-guide)이 편마다 고른다(--fill 이 SHORTS_LAYOUT·SHORTS_MOTION 을 주고 자식으로 굽는다).
+const MOTION = process.env.SHORTS_MOTION === 'push' ? 'push' : 'still';
 const RESET_FILE = resolve(ROOT, 'logs/agy-image-reset.json');
 
 /** 이미 나간 상시 쇼츠 id — 같은 설명을 두 번 올리지 않는다. 대장은 키를 정규화해 적는다(db normalizeIssueKey: '주식상식per'). */
@@ -125,7 +128,7 @@ async function render(item) {
   const parts = [];
   for (let i = 0; i < scenes.length; i++) {
     const { dur, cues } = scenes[i];
-    let chain = mediaFilter('0:v', 'v0', { motion: false });
+    let chain = mediaFilter('0:v', 'v0', { motion: MOTION === 'push' && i === 0 });
     cues.forEach((c, k) => {
       const from = Math.max(0, c.start).toFixed(2);
       const to = Math.min(dur, k === cues.length - 1 ? dur : c.end).toFixed(2);
@@ -181,7 +184,7 @@ async function render(item) {
     headlines: [item.title], hooks: scenes.map((s) => s.hook), hookLines: scenes.map((s) => hookLines(s.hook)), bodies: [scenes.map((s) => s.say).join(' ')],
     keyword: `${KEY_PREFIX}${item.id}`, topic: '주식 상식', brief: false, synthetic: false, subCta: false,
     thumb: thumbMeta,   // 썸네일 글·원문 — 썸네일 관문(video-publish)
-    promo: pick.path ? 'flowvium' : null, explore: false, layout: LAYOUT, opener: null, motion: 'still', trend: false,
+    promo: pick.path ? 'flowvium' : null, explore: false, layout: LAYOUT, opener: null, motion: MOTION, trend: false,
     seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),
   };
   writeFileSync(`${WORK}/shorts-ko-meta.json`, JSON.stringify(meta, null, 2));
@@ -265,13 +268,24 @@ mkdirSync(POOL, { recursive: true });
 // 대장을 못 읽으면 멈춘다 — '나간 것 없음'으로 넘기면 이미 올린 설명을 또 만든다.
 const done = publishedIds(await import('../lib/db.mjs'));
 const inPool = new Set(listSpares(POOL).filter((s) => !s.dir.endsWith('.part')).map((s) => s.meta.id));
+// 그림 할당량이 바닥났을 때 — 다음 실행 시각을 남긴다(--fill 과 --id 자식이 같이 쓴다).
+//   매시 도는 채우기가 그 전엔 그림을 부르지 않는다. 10/28 Mac mini2 합의: 창(약 12장)을 번갈아 쓴다 — 이쪽 다음 리셋 창은
+//   まちのナゼ(실제 예비 부족) 몫이라 **리셋 + 한 창(EVERGREEN_YIELD_H, 기본 3시간)** 뒤에 다시 잡는다. 리셋 시각을 모르면 1시간 + 한 창.
+const onQuota = (e) => {
+  const yieldMs = Number(process.env.EVERGREEN_YIELD_H ?? 3) * 3600e3;
+  const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + yieldMs + 60e3).toISOString();
+  writeFileSync(RESET_FILE, JSON.stringify({ resetAt: at, reason: e.message }));
+  log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). ${at.slice(11, 16)}Z 뒤 첫 실행이 이어서 채운다`);
+};
 const ID = arg('--id', null);
 const FILL = Number(arg('--fill', 0));
 if (ID) {
   const item = DATA.items.find((x) => x.id === ID);
   if (!item) { console.error(`없는 id: ${ID}`); process.exit(2); }
   if (done.has(ID) && !argv.includes('--force')) { log(`${ID} 는 이미 나갔다 — 다시 만들지 않는다(--force)`); process.exit(0); }
-  process.exit((await render(item)) ? 0 : 1);
+  // 할당량이면 종료코드 3 — --fill 부모가 그 자리에서 멈춘다.
+  try { process.exit((await render(item)) ? 0 : 1); }
+  catch (e) { if (!e.quota) throw e; onQuota(e); process.exit(3); }
 }
 if (FILL > 0) {
   // 한 번에 하나만 — 10/28 오전 크론 따라잡기(재기동마다)·매시 실행·손 실행이 겹쳐 네다섯 개가 같은 그림 할당량을 나눠 쓰고
@@ -284,12 +298,7 @@ if (FILL > 0) {
   let have = inPool.size;
   if (canDraw) log(`풀 ${have}편 · 목표 ${FILL}편 · 이미 나간 주제 ${done.size}개`);
   // 표지 점검 먼저 — 한 편에 그림 0~1장이라 새 편(4장)보다 싸고, 이미 풀에 있는 편이 곧 나간다.
-  const onQuota = (e) => {
-    const yieldMs = Number(process.env.EVERGREEN_YIELD_H ?? 3) * 3600e3;
-    const at = new Date(Date.now() + (e.resetAfterMs ?? 3600e3) + yieldMs + 60e3).toISOString();
-    writeFileSync(RESET_FILE, JSON.stringify({ resetAt: at, reason: e.message }));
-    log(`그림 할당량 소진 — 여기서 멈춘다(${e.message}). ${at.slice(11, 16)}Z 뒤 첫 실행이 이어서 채운다`);
-  };
+
   let quotaHit = false;
   for (const sp of listSpares(POOL).filter((x) => !x.dir.endsWith('.part'))) {
     if (!(await import('../lib/thumb-gate.mjs')).gateOn()) break;   // 11/02: 관문 꺼짐 — 표지 점검 안 함
@@ -312,6 +321,9 @@ if (FILL > 0) {
       log(`  표지 점검 실패(${sp.meta.id}) — 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`);   // 발행이 그 편을 막 가져갔을 수 있다
     }
   }
+  const { loadGuide, pickCombo } = await import('../lib/channel-guide.mjs');
+  const guide = loadGuide();
+  let prevCombo = (() => { const last = listSpares(POOL).filter((x) => !x.dir.endsWith('.part'))[0]?.meta; return last ? { layout: last.layout, motion: last.motion } : null; })();
   for (const item of DATA.items) {
     if (have >= FILL || quotaHit || !canDraw) break;
     if (inPool.has(item.id) || done.has(item.id)) continue;
@@ -321,15 +333,16 @@ if (FILL > 0) {
       if (w === 0) log('보고서 생성 중 — 끝날 때까지 기다린다');
       await new Promise((r) => setTimeout(r, 300_000));
     }
-    try { if (await render(item)) have++; }
-    catch (e) {
-      if (!e.quota) throw e;
-      // 다음에 그림을 부를 시각을 남긴다 — 매시 도는 채우기가 그 전엔 그림을 부르지 않는다.
-      //   10/28 Mac mini2 합의: 창(약 12장)을 번갈아 쓴다 — 이쪽 다음 리셋 창은 まちのナゼ(실제 예비 부족) 몫이라
-      //   **리셋 + 한 창(EVERGREEN_YIELD_H, 기본 3시간)** 뒤에 다시 잡는다. 리셋 시각을 모르면 1시간 + 한 창.
-      onQuota(e);
-      break;
-    }
+    // 2026-11-13 편마다 채널 지침(data/channel-guide)대로 화면 배치·첫 장면 움직임을 고르고, 자식 프로세스로 굽는다 —
+    //   배치(LAYOUT)는 lib/shorts-layout 이 읽을 때 정해지는 값이라 한 프로세스 안에서는 편마다 못 바꾼다(10/28~11/13 전부 classic·still).
+    //   바로 앞에 만든 편과 같으면 하나를 바꾼다. 할당량이면 자식이 3 으로 끝나고 여기서 멈춘다.
+    const combo = pickCombo(DATA.items.indexOf(item), guide, prevCombo, ['layout', 'motion']);
+    log(`구성: ${combo.layout}·${combo.motion} (채널 지침) — ${item.id}`);
+    const child = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--id', item.id],
+      { stdio: 'inherit', timeout: 2 * 3600e3, env: { ...process.env, SHORTS_LAYOUT: combo.layout, SHORTS_MOTION: combo.motion } });
+    if (child.status === 0) { have++; prevCombo = combo; }
+    else if (child.status === 3) { quotaHit = true; break; }
+    else log(`  굽기 실패(${item.id}) — 종료 ${child.status ?? child.signal}, 다음 대본으로`);
   }
   if (!canDraw) process.exit(0);   // 그림 창이 아니면 조용히(매시 돈다) — 표지 점검 줄은 위에서 남겼다
   const left = DATA.items.filter((x) => !done.has(x.id) && !existsSync(join(POOL, x.id))).length;   // 아직 안 만든 대본

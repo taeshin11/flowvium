@@ -1134,6 +1134,7 @@ NVDA/MSFT/AAPL/META/GOOGL/AMZN/TSLA/AMD/MU/AVGO/ARM/TSM/ASML/AMAT/LRCX/KLAC/JPM/
 - 11/13 장 상황을 프롬프트에 짧은 말(장중·마감·개장 전)로 넣고, 숫자의 성격·금지어('마감'·'종가')는 따로 한 문장(`phaseNote`) — 괄호 설명이 든 값을 넣자 모델이 "장중 (숫자는 확정 종가 아님) KOSPI가" 처럼 괄호째 옮겼다(11/12 14:35 실측).
 - 11/11 보고서 지난 회차 탭 이름표·시각도 만든 시각에서 — '오후 (아시아장 마감 후)·16:00' 이 14:35 회차(한국장 장중)에 붙어 있었다. `sessionTabLabel`(lib/market-phase) → '오후 (한국장 장중)', 시각은 generatedAt(KST).
 - 11/13 '마지막 실제 공개' (사장님 지시): 22:00 보고 첫 줄 = `node scripts/report-first-line.mjs` → "마지막 실제 공개 MM/DD HH:MM · 예비 N시간". 공개 시각은 채널 RSS(로그인 없이 공개 영상만, DB 아님), 48시간 넘거나 못 읽으면 🚨 비상(종료코드 2). check-stall [14] 가 20분마다 같은 기준으로 감시. `scripts/lib/public-upload.mjs`(+test).
+- 11/13 쇼츠 주간 채널 지침(사장님 11/12 — 반복·대량생산 정책 대비): 매주 월 09:00 KST `scripts/channel-guide.mjs`(cron-runner `channel-guide`)가 지난 주(2~9일 전 공개, 내린 편 제외) 48시간 조회 ÷ 같은 날 또래 중앙값으로 구성 갈래(화면 배치 classic/zoom·첫 문장 anchor/question·첫 장면 움직임 push/still) 비중을 다시 쓴다 → `data/channel-guide/flowvium-shorts.json`(제작이 읽음) + `.md`(지침 1장). 비중은 lift 비례·바닥 20%, 표본 8편 미만이면 반반. 제작은 이 파일만: video-publish 가 편마다 고르고(종전 explore-slot 고정 25/75·50/50·50/50 은 지침이 없을 때 기본값), 바로 앞 편과 셋이 같으면 하나를 바꾼다. 상시 쇼츠도 편마다 배치·움직임을 지침대로(자식 프로세스로 굽는다 — 10/28~11/13 전부 classic·still 이었다). `scripts/lib/channel-guide.mjs`(+test 9).
 
 ### API 라우트 전체 목록
 
