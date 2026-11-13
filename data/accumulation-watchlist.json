@@ -1,12 +1,30 @@
 {
-  "generatedAt": "2026-11-12T22:20:22.963Z",
+  "generatedAt": "2026-11-13T07:20:26.528Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "035900.KQ",
+      "name": "JYP Ent.",
+      "tier": "watch",
+      "score": 41,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.1× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 11.4,
+      "runup5dPct": 5.3,
+      "medDollarVolUsd": 6400365,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "065690.KQ",
       "name": "파커스",
@@ -19,9 +37,9 @@
         "아래꼬리 매집 8개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 1.2,
-      "runup5dPct": 0.9,
-      "medDollarVolUsd": 29499,
+      "runup20dPct": 1.1,
+      "runup5dPct": 1.4,
+      "medDollarVolUsd": 29383,
       "smartAccum": true,
       "official": null
     },
@@ -37,8 +55,8 @@
         "아래꼬리 매집 4개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 7.8,
-      "runup5dPct": -3.3,
+      "runup20dPct": -0.4,
+      "runup5dPct": -0.6,
       "medDollarVolUsd": 821557,
       "smartAccum": true,
       "official": null
