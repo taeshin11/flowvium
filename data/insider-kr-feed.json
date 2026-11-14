@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-13T22:30:10.273Z",
+  "generatedAt": "2026-11-14T07:30:01.597Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
-  "totalRecent": 940,
+  "totalRecent": 933,
   "feed": [
     {
       "ticker": "005930.KS",
@@ -133,24 +133,6 @@
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261113000318"
     },
     {
-      "ticker": "055550.KS",
-      "name": "신한지주",
-      "rceptNo": "20261113001395",
-      "filedAt": "2026-11-13",
-      "kind": "insider",
-      "reporter": "최영권",
-      "role": "등기임원",
-      "title": "사외이사",
-      "relation": null,
-      "sharesAfter": 3000,
-      "sharesDelta": 1000,
-      "ratioAfter": 0,
-      "ratioDelta": 0,
-      "direction": "buy",
-      "reason": null,
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261113001395"
-    },
-    {
       "ticker": "035420.KS",
       "name": "NAVER",
       "rceptNo": "20261113000976",
@@ -185,6 +167,24 @@
       "direction": "buy",
       "reason": null,
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261113000885"
+    },
+    {
+      "ticker": "055550.KS",
+      "name": "신한지주",
+      "rceptNo": "20261113001395",
+      "filedAt": "2026-11-13",
+      "kind": "insider",
+      "reporter": "최영권",
+      "role": "등기임원",
+      "title": "사외이사",
+      "relation": null,
+      "sharesAfter": 3000,
+      "sharesDelta": 1000,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "buy",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261113001395"
     },
     {
       "ticker": "017800.KS",
