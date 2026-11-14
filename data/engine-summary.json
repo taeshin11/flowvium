@@ -1,10 +1,10 @@
 {
- "at": "2026-11-14T07:45:18.444Z",
+ "at": "2026-11-14T22:45:16.802Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 149,
- "signals": 16585,
- "newSignals": 5941,
+ "ledgerLines": 152,
+ "signals": 17079,
+ "newSignals": 6102,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -393,35 +393,35 @@
    "t": null
   },
   "control|us|1": {
-   "new": 3100,
-   "ok": 2974,
-   "stale": 0,
-   "mismatch": 22,
-   "pending": 104,
-   "noData": 0,
-   "days": 30,
-   "meanNet": 0.00027,
-   "se": 0.00111,
-   "t": 0.24
-  },
-  "control|us|5": {
-   "new": 3100,
-   "ok": 2574,
+   "new": 3200,
+   "ok": 2993,
    "stale": 0,
    "mismatch": 0,
-   "pending": 526,
+   "pending": 207,
+   "noData": 0,
+   "days": 30,
+   "meanNet": 0.00028,
+   "se": 0.00111,
+   "t": 0.25
+  },
+  "control|us|5": {
+   "new": 3200,
+   "ok": 2593,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 607,
    "noData": 0,
    "days": 26,
-   "meanNet": 0.01004,
-   "se": 0.00416,
-   "t": 2.41
+   "meanNet": 0.01007,
+   "se": 0.0042,
+   "t": 2.4
   },
   "control|us|20": {
-   "new": 3100,
+   "new": 3200,
    "ok": 495,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2605,
+   "pending": 2705,
    "noData": 0,
    "days": 5,
    "meanNet": 0.03851,
@@ -429,11 +429,11 @@
    "t": null
   },
   "control|us|60": {
-   "new": 3100,
+   "new": 3200,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 3100,
+   "pending": 3200,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -441,11 +441,11 @@
    "t": null
   },
   "control|kr|1": {
-   "new": 1860,
+   "new": 1920,
    "ok": 1800,
    "stale": 0,
    "mismatch": 0,
-   "pending": 60,
+   "pending": 120,
    "noData": 0,
    "days": 30,
    "meanNet": -0.00494,
@@ -453,11 +453,11 @@
    "t": -2.32
   },
   "control|kr|5": {
-   "new": 1860,
+   "new": 1920,
    "ok": 1560,
    "stale": 0,
    "mismatch": 0,
-   "pending": 300,
+   "pending": 360,
    "noData": 0,
    "days": 26,
    "meanNet": -0.00857,
@@ -465,11 +465,11 @@
    "t": -0.97
   },
   "control|kr|20": {
-   "new": 1860,
+   "new": 1920,
    "ok": 300,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1560,
+   "pending": 1620,
    "noData": 0,
    "days": 5,
    "meanNet": -0.03618,
@@ -477,11 +477,11 @@
    "t": null
   },
   "control|kr|60": {
-   "new": 1860,
+   "new": 1920,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1860,
+   "pending": 1920,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -969,11 +969,11 @@
    "t": null
   },
   "funnel_veto_other|us|1": {
-   "new": 103,
+   "new": 104,
    "ok": 101,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2,
+   "pending": 3,
    "noData": 0,
    "days": 14,
    "meanNet": -0.00355,
@@ -981,11 +981,11 @@
    "t": -1.13
   },
   "funnel_veto_other|us|5": {
-   "new": 103,
+   "new": 104,
    "ok": 91,
    "stale": 0,
    "mismatch": 0,
-   "pending": 12,
+   "pending": 13,
    "noData": 0,
    "days": 10,
    "meanNet": 0.00653,
@@ -993,11 +993,11 @@
    "t": 0.86
   },
   "funnel_veto_other|us|20": {
-   "new": 103,
+   "new": 104,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 103,
+   "pending": 104,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1005,11 +1005,11 @@
    "t": null
   },
   "funnel_veto_other|us|60": {
-   "new": 103,
+   "new": 104,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 103,
+   "pending": 104,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1146,9 +1146,9 @@
   },
   "H1 pick-control|us|5": {
    "days": 23,
-   "mean": -0.01363,
-   "se": 0.00696,
-   "t": -1.96
+   "mean": -0.01367,
+   "se": 0.00703,
+   "t": -1.94
   },
   "H2 pick-cand_unpicked|us|5": {
    "days": 21,
@@ -1360,9 +1360,9 @@
   "contrasts": {
    "H1 pick-control|us|1": {
     "days": 14,
-    "mean": -0.0053,
-    "se": 0.00318,
-    "t": -1.67
+    "mean": -0.00533,
+    "se": 0.00317,
+    "t": -1.68
    },
    "H2 pick-cand_unpicked|us|1": {
     "days": 12,
@@ -1390,8 +1390,8 @@
    },
    "H1 pick-control|us|5": {
     "days": 10,
-    "mean": -0.01138,
-    "se": 0.00896,
+    "mean": -0.01147,
+    "se": 0.00902,
     "t": -1.27
    },
    "H2 pick-cand_unpicked|us|5": {
