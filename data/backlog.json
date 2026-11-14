@@ -367,8 +367,8 @@
   },
   "EMR": {
     "rpoUsd": 9600000000,
-    "rpoYoYPct": 7.9,
-    "end": "2026-06-30",
+    "rpoYoYPct": 11.6,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "NSC": {
@@ -396,9 +396,9 @@
     "tag": "RPO"
   },
   "ROK": {
-    "rpoUsd": 1375000000,
-    "rpoYoYPct": -2.1,
-    "end": "2026-06-30",
+    "rpoUsd": 1370000000,
+    "rpoYoYPct": 96719.8,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "DOV": {
@@ -450,9 +450,9 @@
     "tag": "deferred"
   },
   "TDG": {
-    "rpoUsd": 161000000,
-    "rpoYoYPct": -0.6,
-    "end": "2026-06-27",
+    "rpoUsd": 166000000,
+    "rpoYoYPct": 10.7,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "BA": {
@@ -582,9 +582,9 @@
     "tag": "RPO"
   },
   "TTWO": {
-    "rpoUsd": 1271200000,
-    "rpoYoYPct": 7.2,
-    "end": "2026-06-30",
+    "rpoUsd": 1492500000,
+    "rpoYoYPct": 0,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "OMC": {
@@ -1410,9 +1410,9 @@
     "tag": "deferred"
   },
   "CTVA": {
-    "rpoUsd": 155000000,
-    "rpoYoYPct": 9.9,
-    "end": "2026-06-30",
+    "rpoUsd": 158000000,
+    "rpoYoYPct": 7.5,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "CSGP": {
@@ -1554,9 +1554,9 @@
     "tag": "RPO"
   },
   "JCI": {
-    "rpoUsd": 26300000000,
-    "rpoYoYPct": 19.5,
-    "end": "2026-03-31",
+    "rpoUsd": 29300000000,
+    "rpoYoYPct": 29.1,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "KEY": {
@@ -1734,9 +1734,9 @@
     "tag": "RPO"
   },
   "VST": {
-    "rpoUsd": 7128000000,
-    "rpoYoYPct": 166.4,
-    "end": "2026-06-30",
+    "rpoUsd": 7847000000,
+    "rpoYoYPct": 116.1,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "WAB": {
@@ -1776,9 +1776,9 @@
     "tag": "deferred"
   },
   "WAT": {
-    "rpoUsd": 495000000,
-    "rpoYoYPct": 48.3,
-    "end": "2026-07-04",
+    "rpoUsd": 463000000,
+    "rpoYoYPct": 53.6,
+    "end": "2026-10-03",
     "tag": "RPO"
   },
   "HSIC": {
@@ -2022,9 +2022,9 @@
     "tag": "RPO"
   },
   "RKLB": {
-    "rpoUsd": 2355949000,
-    "rpoYoYPct": 136.7,
-    "end": "2026-06-30",
+    "rpoUsd": 3572965000,
+    "rpoYoYPct": 226,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "ENPH": {
