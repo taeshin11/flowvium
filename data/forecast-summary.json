@@ -1,7 +1,7 @@
 {
- "at": "2026-11-16T07:20:00.156Z",
- "recorded": 88,
- "scored": 88,
+ "at": "2026-11-16T22:20:00.168Z",
+ "recorded": 90,
+ "scored": 90,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 22,
-   "recorded": 22,
+   "sessions": 21,
+   "recorded": 21,
    "missing": []
   },
   "us": {
-   "sessions": 22,
-   "recorded": 22,
+   "sessions": 23,
+   "recorded": 23,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 42,
+   "n": 44,
    "report": {
     "calls": 18,
     "hits": 6,
-    "abstain": 24,
+    "abstain": 26,
     "hitRate": 0.3333333333333333
    },
    "base": {
-    "brier": 0.24796154366643083,
+    "brier": 0.2503907661365555,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 42,
-      "meanP": 0.45087391800140186,
-      "observed": 0.4523809523809524
+      "n": 44,
+      "meanP": 0.45088005388640034,
+      "observed": 0.4772727272727273
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.24796154366643083,
+    "brier": 0.2503907661365555,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 42,
-      "meanP": 0.45087391800140186,
-      "observed": 0.4523809523809524
+      "n": 44,
+      "meanP": 0.45088005388640034,
+      "observed": 0.4772727272727273
      }
     ],
     "skill": 0
@@ -588,11 +588,44 @@
      ],
      "skill": 0
     }
+   },
+   "us": {
+    "n": 2,
+    "report": {
+     "calls": 0,
+     "hits": 0,
+     "abstain": 2,
+     "hitRate": null
+    },
+    "base": {
+     "brier": 0.30140443800917227,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.4510089074713688,
+       "observed": 1
+      }
+     ],
+     "skill": 0
+    },
+    "clim": {
+     "brier": 0.30140443800917227,
+     "calibration": [
+      {
+       "bin": "0.4-0.5",
+       "n": 2,
+       "meanP": 0.4510089074713688,
+       "observed": 1
+      }
+     ],
+     "skill": 0
+    }
    }
   }
  },
  "missByType": {
-  "미분류": 24,
+  "미분류": 25,
   "변동성 급등": 3,
   "반도체 야간 급등": 2
  },
@@ -796,6 +829,13 @@
   {
    "id": "kr-KOSDAQ-2026-11-16",
    "ret": -0.048609253117075424,
+   "types": [
+    "미분류"
+   ]
+  },
+  {
+   "id": "us-NASDAQ-2026-11-16",
+   "ret": -0.024924610152318172,
    "types": [
     "미분류"
    ]
