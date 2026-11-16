@@ -1,5 +1,5 @@
 {
- "at": "2026-11-13T07:30:00.175Z",
+ "at": "2026-11-16T07:30:00.185Z",
  "version": "v2",
  "primary": "allDays",
  "forecasts": [
@@ -90,7 +90,12 @@
   "E2": {
    "n": 38,
    "missing": [],
-   "h5": "pending",
+   "h5": {
+    "to": "2026-11-16",
+    "n": 38,
+    "meanExcess": 0.0144,
+    "positive": 21
+   },
    "h20": "pending"
   }
  }
