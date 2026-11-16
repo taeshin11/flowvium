@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-15T22:20:24.804Z",
+  "generatedAt": "2026-11-16T07:20:42.464Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 4,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 4,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,14 +14,14 @@
       "score": 41,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.9× 상승(지속 매집)",
-        "거래량 3.3× 급증(가격 평탄)",
-        "아래꼬리 매집 4개(저가 매수받침)",
+        "거래량 추세 4.1× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 4.8,
-      "runup5dPct": 5.8,
-      "medDollarVolUsd": 176372,
+      "runup20dPct": 1.1,
+      "runup5dPct": 2.5,
+      "medDollarVolUsd": 145524,
       "smartAccum": true,
       "official": null
     },
@@ -32,50 +32,14 @@
       "score": 41,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.3× 상승(지속 매집)",
-        "거래량 3.1× 급증(가격 평탄)",
+        "거래량 추세 2.2× 상승(지속 매집)",
+        "거래량 3.5× 급증(가격 평탄)",
         "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 11.4,
-      "runup5dPct": 5.3,
-      "medDollarVolUsd": 6400365,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "065690.KQ",
-      "name": "파커스",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 100%(강한 매수 흡수)",
-        "아래꼬리 매집 8개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 1.1,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 29383,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "253450.KQ",
-      "name": "스튜디오드래곤",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -0.4,
-      "runup5dPct": -0.6,
-      "medDollarVolUsd": 821557,
+      "runup20dPct": 8.9,
+      "runup5dPct": 9.2,
+      "medDollarVolUsd": 5998537,
       "smartAccum": true,
       "official": null
     }
