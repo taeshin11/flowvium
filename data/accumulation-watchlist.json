@@ -1,30 +1,12 @@
 {
-  "generatedAt": "2026-11-16T07:20:42.464Z",
+  "generatedAt": "2026-11-16T22:20:24.153Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "089600.KQ",
-      "name": "KT나스미디어",
-      "tier": "watch",
-      "score": 41,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 4.1× 상승(지속 매집)",
-        "거래량 3.5× 급증(가격 평탄)",
-        "아래꼬리 매집 3개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 1.1,
-      "runup5dPct": 2.5,
-      "medDollarVolUsd": 145524,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "035900.KQ",
       "name": "JYP Ent.",
