@@ -103,8 +103,10 @@ const src = readFileSync(resolve(ROOT, 'scripts/backup-takeover.mjs'), 'utf8');
 // 주석 줄은 제외한다 — 이 파일의 수정 이력 주석에 `await fsp.unlink(localDb)` 가 인용돼 있어
 //   그대로 세면 자기 설명글을 결함으로 잡는다(첫 판이 실제로 그랬다).
 const tailIdx = src.lastIndexOf('process.exit(0)');
-const tail = src.slice(Math.max(0, tailIdx - 600), tailIdx)
-  .split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+// 2026-11-17: 글자 수(600)로 자르면 창이 주석 줄 한가운데서 시작해 그 줄을 코드로 읽었다(gzip 정리 한 줄 추가로 창이 밀림).
+//   줄 단위로 자른다 — 마지막 15줄.
+const tail = src.slice(0, tailIdx).split('\n').slice(-15)
+  .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
 /await\s+fsp\./.test(tail)
   ? bad('process.exit 직전에 await fsp.* 가 있다 — 스레드풀이 막히면 exit 에 도달 못 한다')
   : ok('process.exit 직전 정리가 스레드풀에 의존하지 않는다');
