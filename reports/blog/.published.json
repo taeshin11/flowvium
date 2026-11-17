@@ -871,5 +871,17 @@
   "skipped": true,
   "reason": "same-day:2026-11-16-morning.md",
   "at": "2026-11-16T22:15:00.449Z"
+ },
+ "2026-11-17-evening.md": {
+  "id": "4260573976013155776",
+  "url": "https://flowvium.blogspot.com/2026/11/11-17-125000.html",
+  "status": "LIVE",
+  "at": "2026-11-17T22:15:02.732Z"
+ },
+ "2026-11-18-morning.md": {
+  "id": "1440661264707498198",
+  "url": "https://flowvium.blogspot.com/2026/11/elastic-nvestc-11-18.html",
+  "status": "LIVE",
+  "at": "2026-11-17T22:15:04.704Z"
  }
 }
