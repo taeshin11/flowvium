@@ -147,11 +147,11 @@
     "fy": "2026"
   },
   "DIS": {
-    "revUsd": 94425000000,
-    "revYoYPct": 3.4,
-    "opMarginPct": 18.6,
-    "roePct": 11.3,
-    "fy": "2025"
+    "revUsd": 102344000000,
+    "revYoYPct": 8.4,
+    "opMarginPct": 19.3,
+    "roePct": 8.9,
+    "fy": "2026"
   },
   "NFLX": {
     "revUsd": 45183036000,
@@ -1351,11 +1351,11 @@
     "fy": "2025"
   },
   "ATO": {
-    "revUsd": 4702755000,
-    "revYoYPct": 12.9,
-    "opMarginPct": 33.2,
-    "roePct": 8.8,
-    "fy": "2025"
+    "revUsd": 4980252000,
+    "revYoYPct": 5.9,
+    "opMarginPct": 37.3,
+    "roePct": 9.2,
+    "fy": "2026"
   },
   "AWK": {
     "revUsd": 5121000000,
