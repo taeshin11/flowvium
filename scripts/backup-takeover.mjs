@@ -33,6 +33,7 @@ import fsp from 'fs/promises';
 import { existsSync, mkdirSync, statSync, unlinkSync } from 'fs';
 import { resolve, join } from 'path';
 import { tmpdir } from 'os';
+import { remoteDbName, remoteRetention } from './lib/backup-names.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 // 2026-08-20: 기본값이 Windows 드라이브 문자였다. 환경변수 없으면 그냥 실패시킨다 —
@@ -182,7 +183,8 @@ reaper.unref();
 
 // ── 1. SQLite 정합 백업 — 로컬로 뜨고 완성본만 복사 (원칙 ①)
 const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10); // KST 날짜
-const dbDest = join(DEST, `flowvium-${today}.db`);
+// 2026-11-17: Drive 로는 gzip 사본만 — 800MB .db 는 창 안에 한 번도 못 올라갔다(lib/backup-names.test 머리말). 로컬 2차는 .db 그대로.
+const dbDest = join(DEST, remoteDbName(today));
 const localDb = join(tmpdir(), `flowvium-backup-${today}.db`);
 const localDbKeep = localDb;
 {
@@ -219,12 +221,22 @@ try {
   log(`로컬 2차 백업 → ${LOCAL_DEST} (DB + 시크릿, 최근 ${KEEP}개 유지)`);
 } catch (e) { log(`⚠️ 로컬 2차 백업 실패: ${String(e.message).slice(0, 70)}`); }
 
+// ── 1b'. Drive 로 보낼 gzip 사본 — 로컬에서 만든다(Drive 를 만지기 전). 자식+상한: gzip 이 멈춰도 이 프로세스는 안 선다.
+const localGz = `${localDb}.gz`;
+let gzOk = false;
+{
+  const t = Date.now();
+  const r = await remoteExec(['/bin/sh', '-c', 'gzip -6 -c -- "$1" > "$2"', 'sh', localDb, localGz], 10 * 60_000);
+  gzOk = r.ok && existsSync(localGz) && statSync(localGz).size > 0;
+  log(gzOk ? `DB gzip 사본 ${(statSync(localGz).size / 1048576).toFixed(1)} MB (${((Date.now() - t) / 1000).toFixed(1)}s)` : `⚠️ DB gzip 실패: ${r.reason ?? '빈 파일'}`);
+}
+
 // ── 1c. 여기서부터 Drive. 대상 디렉터리 생성도 자식 프로세스로 한다 —
 //   mkdirSync 는 이 프로세스의 메인 스레드를 걸 수 있고, 그러면 아무것도 못 구한다.
 {
   const t = Date.now();
   const made = await withTimeout('원격 대상 디렉터리 준비', sh('exec mkdir -p -- "$1"', DEST));
-  if (made && await replaceFile(`DB 복사 → ${dbDest}`, localDb, dbDest)) {
+  if (made && gzOk && await replaceFile(`DB 복사 → ${dbDest}`, localGz, dbDest)) {
     log(`DB → ${dbDest} (복사 ${((Date.now() - t) / 1000).toFixed(1)}s)`);
   }
 }
@@ -288,8 +300,8 @@ if (remoteGaveUp) {
 } else {
   const listed = await sh('cd "$1" 2>/dev/null && ls -1', DEST);
   if (!listed.ok) log(`  ⚠️ 원격 목록 조회 실패: ${listed.reason}`);
-  const files = String(listed.out ?? '').split('\n').filter((f) => /^flowvium-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort();
-  for (const old of files.slice(0, Math.max(0, files.length - KEEP))) {
+  // 11/17: .db.gz 만 센다 — 옛 .db 0바이트 자리표시는 정상 파일 확인 뒤 사람이 정리(mini2).
+  for (const old of remoteRetention(String(listed.out ?? '').split('\n'), KEEP)) {
     if (overBudget()) { log(`⏱ 예산 초과 — 남은 삭제(${old} 등)는 다음 주기로`); break; }
     if (await withTimeout(`오래된 백업 삭제 ${old}`, sh('exec rm -f -- "$1"', join(DEST, old)))) log(`오래된 DB 백업 삭제: ${old}`);
   }
@@ -302,6 +314,7 @@ log(fails ? `⚠️ 백업 완료 (건너뛴 파일 ${fails}건 — 다음 주�
 //   process.exit 에 영영 도달하지 못했다(5시간 좀비의 마지막 한 칸). 동기 호출은
 //   호출 스레드에서 돌아 기아의 영향을 받지 않는다.
 try { unlinkSync(localDb); } catch { /* 이미 없음 */ }
+try { unlinkSync(localGz); } catch { /* 이미 없음 */ }
 // 감시자 해제. **그룹째** 죽인다 — reaper.kill() 은 sh 만 죽이고 그 자식 `sleep` 은
 //   PPID 1 로 고아가 되어 23분간 남는다(실측으로 2개가 떠 있었다). 하루 한 번이라도
 //   쌓이는 건 쌓이는 것이고, 애초에 좀비를 없애려고 넣은 장치가 좀비를 남기면 안 된다.

@@ -20,6 +20,8 @@ const CFG_PATH = process.env.RESOURCE_THRESHOLDS_PATH ?? resolve(ROOT, 'data/res
 // backup-takeover.mjs 와 같은 기본값을 쓴다 — 판정과 실행이 다른 데를 보면 안 된다.
 const LOCAL_DEST = () => process.env.FLOWVIUM_BACKUP_LOCAL_DIR || resolve(process.env.HOME ?? '.', 'flowvium_backups');
 const DB_RE = /^flowvium-\d{4}-\d{2}-\d{2}\.db$/;
+// 2026-11-17: Drive 쪽은 gzip 사본(.db.gz) — lib/backup-names. 옛 .db 도 남아 있으니 둘 다 센다(신선도는 최신 것).
+const REMOTE_RE = /^flowvium-\d{4}-\d{2}-\d{2}\.db(\.gz)?$/;
 
 // 2026-08-22: 원격(Drive) 판독은 *자식 프로세스* 로만 한다.
 //   1차 회귀: 상한 없는 readdirSync 하나가 check-stall 을 170s cron 상한까지 끌고 가
@@ -67,14 +69,14 @@ export async function backupStatus() {
   if (dest) {
     // 이름과 mtime(epoch)을 한 번에. run() 이 null 이면 '못 읽었다' — '없다' 와 구분한다.
     const listed = await run('/bin/sh', ['-c',
-      `cd ${JSON.stringify(dest)} 2>/dev/null && /usr/bin/stat -f '%m %N' *.db 2>/dev/null`], REMOTE_TIMEOUT_MS);
+      `cd ${JSON.stringify(dest)} 2>/dev/null && for f in *.db *.db.gz; do [ -e \"$f\" ] && /usr/bin/stat -f '%m %N' \"$f\"; done; true`], REMOTE_TIMEOUT_MS);
     if (listed === null) {
       remoteUnknown = true;
       issues.push('원격 백업 상태 확인 불가(응답 없음) — 로컬 백업만 보장된다. Drive 접근 권한 부여 전까지 정상');
     } else {
       destExists = true;
       const rows = listed.split('\n').map((l) => l.match(/^(\d+)\s+(.+)$/)).filter(Boolean)
-        .map((m) => ({ mtime: Number(m[1]) * 1000, name: m[2] })).filter((r) => DB_RE.test(r.name))
+        .map((m) => ({ mtime: Number(m[1]) * 1000, name: m[2] })).filter((r) => REMOTE_RE.test(r.name))
         .sort((a, b) => a.mtime - b.mtime);
       newest = rows.length ? rows[rows.length - 1].name : null;
       if (!newest) issues.push('DB 백업 파일이 하나도 없다');

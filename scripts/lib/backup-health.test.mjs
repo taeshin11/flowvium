@@ -68,7 +68,7 @@ console.log('\nSQLite 백업이 네트워크 파일시스템에 직접 쓰지 �
   if (!m) bad('db.backup() 호출을 못 찾음 — 테스트 앵커가 낡았다');
   else if (/dbDest/.test(m[1])) bad(`db.backup(${m[1].trim()}) — 대상(Drive)에 직접 쓴다. 멈춘다`);
   else ok(`db.backup(${m[1].trim()}) — 로컬 임시 경로로 뜬다`);
-  /replaceFile\([^)]*localDb\s*,\s*dbDest\)|fsp\.copyFile\(\s*localDb\s*,\s*dbDest\s*\)/.test(bk)
+  /replaceFile\([^)]*local(Db|Gz)\s*,\s*dbDest\)|fsp\.copyFile\(\s*local(Db|Gz)\s*,\s*dbDest\s*\)/.test(bk)   // 11/17: Drive 로는 gzip 사본(localGz)
     ? ok('완성본을 대상으로 복사한다')
     : bad('로컬 백업본을 대상으로 복사하는 단계가 없다');
 }
