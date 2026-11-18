@@ -48,7 +48,7 @@ export function pickSkeleton(seed, recent = []) {
 
 const FLOOR = 0.15;   // 가장 짧은 장면도 저장 요소·한 문장은 담게
 /** 대본 프롬프트에 넣을 규칙. 장면 4개 기준. */
-export function skeletonRule(sk, budget) {
+export function skeletonRule(sk, budget, { save = 'numbers' } = {}) {
   const raw = sk.beats.map((b) => Math.max(FLOOR, b.share));
   const tot = raw.reduce((a, b) => a + b, 0);
   const chars = raw.map((s) => Math.round((budget * s) / tot));
@@ -57,7 +57,9 @@ export function skeletonRule(sk, budget) {
 - **이번 편의 구성(뼈대) — 순서와 분량을 따른다.** 다른 영상의 내용·문장을 베끼지 말고, 이 기사 사실로만 채운다.
 ${lines.join('\n')}
 - **1번 장면 첫 문장은 15자 이내의 '${sk.open}'으로 연다** — 첫 3초 자막이 된다. 기사에 있는 사실로만.
-- **${sk.beats.length}번 장면에 '저장할 이유'를 넣는다** — 앞에서 말한 숫자 둘셋을 "기억할 숫자는 …"처럼 다시 짚는다(새 숫자를 만들지 마라).`;
+${save === 'checklist'
+    ? `- **${sk.beats.length}번 장면은 다시 볼 만한 정리로 끝낸다** — 이 기사엔 다시 볼 숫자가 없으니 "기억할 것 둘. 첫째, …. 둘째, …." 로 꼽는다(기사에 있는 사실만, 숫자를 지어내지 마라). '저장'이라는 말은 화면·대사에 쓰지 마라.`
+    : `- **${sk.beats.length}번 장면은 다시 볼 만한 정리로 끝낸다** — 앞에서 말한 숫자 둘셋을 "기억할 숫자는 …"처럼 다시 짚는다(새 숫자를 만들지 마라). '저장'이라는 말은 화면·대사에 쓰지 마라.`}`;
 }
 
 const noSpace = (t) => String(t ?? '').replace(/\s+/g, '');
@@ -65,9 +67,19 @@ const noSpace = (t) => String(t ?? '').replace(/\s+/g, '');
 export const firstCaptionOk = (t) => { const n = noSpace(t).length; return n > 0 && n <= 15; };
 
 // 날짜·차례·시각(17일·11월·2026년·3차·9시)은 '다시 볼 숫자' 가 아니다 — 기사 뼈대일 뿐이다.
-const NUM = /(?<![\d,.])\d[\d,.]*(?![\d,.])\s*(?!일|월|년|차|시(?!간)|분(?!의)|주년)/g;
-/** 저장 요소 — 다시 볼 숫자가 둘 이상. */
-export const saveItemOk = (say) => (String(say ?? '').match(NUM) ?? []).length >= 2;
+//   0으로 시작하는 숫자(종목코드 001720 등)도 양이 아니다. 단위가 붙으면 단위까지 한 항목으로 남긴다.
+const NUM = /(?<![\d,.])(?!0\d)\d[\d,.]*(?![\d,.])(?!\s*(?:일|월|년|차|시(?!간)|분(?!의)|주년))(?:\s*(?:%|퍼센트|억달러|만달러|조원|억원|만원|달러|원|조|억|만|천|배|명|건|개월|개|위|포인트|p))?/g;
+const CHECK = /(?:첫째|둘째|셋째|넷째)[,\s]*([^.。!?]*)/g;
+/** 저장 요소 항목 — numbers: 다시 볼 숫자 · checklist: 첫째·둘째로 꼽은 것. 판정과 메타가 같은 것을 센다. */
+export function saveItems(say, mode = 'numbers') {
+  const t = String(say ?? '');
+  if (mode === 'checklist') return [...t.matchAll(CHECK)].map((m) => m[1].trim()).filter(Boolean);
+  return (t.match(NUM) ?? []).map((x) => x.trim());
+}
+/** 저장 요소 — 항목이 둘 이상. */
+export const saveItemOk = (say, mode = 'numbers') => saveItems(say, mode).length >= 2;
+/** 원문(헤드라인·본문)에 다시 볼 숫자가 둘 이상이면 숫자, 아니면 체크리스트 — 없는 숫자를 짜내게 하지 않는다. */
+export const saveMode = (sourceText) => (saveItems(sourceText).length >= 2 ? 'numbers' : 'checklist');
 
 const CTA = [
   (k) => `${k}, 이어지는 소식도 바로 정리해 드립니다. 구독해 두세요.`,

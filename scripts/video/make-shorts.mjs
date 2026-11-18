@@ -52,7 +52,7 @@ import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey, shortsPublishedCount, recentShortsSkeletons } from '../lib/db.mjs';
-import { SKELETONS, pickSkeleton, skeletonRule, firstCaptionOk, saveItemOk, subCtaLine } from '../lib/shorts-skeleton.mjs';
+import { SKELETONS, pickSkeleton, skeletonRule, firstCaptionOk, saveItemOk, saveItems, saveMode, subCtaLine } from '../lib/shorts-skeleton.mjs';
 import { keyNumber, openingCuts, openingFilter } from '../lib/shorts-opening.mjs';
 
 loadEnvLocal();
@@ -861,10 +861,6 @@ const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: pr
 // 한국어는 초당 약 6.7자로 읽힌다(Piper 실측: 47자 / 7.0초).
 const CPS = 6.7;
 const budget = Math.round(TARGET_SEC * CPS);
-// 2026-11-18: 한 이슈 편은 질문형 첫 문장(OPENER_RULE) 대신 뼈대 규칙 — 사장님 5원칙 1)이 '결론·위기·반전'으로 바로 열라고 했다.
-const SKELETON_RULE = `${skeletonRule(SKELETON, budget)}
-- 아래 hook 규칙의 '답을 다 말하지 말고 궁금하게'보다 위 구성(첫 문장 갈래)이 먼저다.`;
-if (!BRIEF) log(`[대본] 뼈대: ${SKELETON.name}(${SKELETON.id}) · 출처 ${SKELETON.src}`);
 
 // 기사 본문을 한 번만 뽑아 둔다. 프롬프트도 이걸 쓰고, 발행 기록에도 이걸 남긴다.
 //   2026-09-20: 종전에는 프롬프트 안에서만 뽑아 쓰고 버렸다. 그래서 쇼츠를 글로 풀 때
@@ -896,6 +892,13 @@ if (BRIEF) {
 //   붙는다. 빈 자리는 빈 자리로 남겨 둔다(프롬프트가 `(기사: …)` 를 통째로 생략한다).
 //   단일 이슈 모드는 위에서 이미 40자·중복을 걸렀고 번호 짝이 없으므로 그대로 둔다.
 if (!BRIEF) bodies = bodies.filter(Boolean);
+
+// 2026-11-18: 한 이슈 편은 질문형 첫 문장(OPENER_RULE) 대신 뼈대 규칙 — 사장님 5원칙 1)이 '결론·위기·반전'으로 바로 열라고 했다.
+//   저장 요소는 원문에 다시 볼 숫자가 둘 이상일 때만 숫자, 아니면 체크리스트(16:20 SW5ngOooIqc — 숫자 없는 기사에서 세 번 다 실패).
+const SAVE_MODE = saveMode([...headlines, ...bodies].join(' '));
+const SKELETON_RULE = `${skeletonRule(SKELETON, budget, { save: SAVE_MODE })}
+- 아래 hook 규칙의 '답을 다 말하지 말고 궁금하게'보다 위 구성(첫 문장 갈래)이 먼저다.`;
+if (!BRIEF) log(`[대본] 뼈대: ${SKELETON.name}(${SKELETON.id}) · 출처 ${SKELETON.src} · 저장 요소 ${SAVE_MODE === 'numbers' ? '숫자' : '체크리스트'}`);
 
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
 ${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
@@ -1135,10 +1138,10 @@ for (let a = 1; a <= 3; a++) {
     // 2026-11-18 5원칙 1)·4): 첫 문장 15자 이내, 마지막 장면에 다시 볼 숫자 둘 이상(뼈대 규칙). 브리핑 편은 해당 없음.
     const firstSentence = String(scenes[0]?.say ?? '').split(/(?<=[.!?])\s/)[0];
     const firstLong = !BRIEF && scenes[0] && !firstCaptionOk(firstSentence);
-    const noSave = !BRIEF && scenes.length && !saveItemOk(scenes[scenes.length - 1].say);
+    const noSave = !BRIEF && scenes.length && !saveItemOk(scenes[scenes.length - 1].say, SAVE_MODE);
     if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle && !noSubject && !firstLong && !noSave
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${firstLong ? ` · 첫 문장이 15자를 넘는다("${firstSentence.slice(0, 24)}")` : ''}${noSave ? ' · 마지막 장면에 다시 볼 숫자가 없다' : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${firstLong ? ` · 첫 문장이 15자를 넘는다("${firstSentence.slice(0, 24)}")` : ''}${noSave ? ` · 마지막 장면에 저장 요소(${SAVE_MODE === 'numbers' ? '숫자 둘' : '첫째·둘째'})가 없다` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) {
     log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
     // 모델이 없으면 다시 써 봐야 같은 결과다 — 이 회차를 접는다(발행 쪽이 예비·다음 슬롯으로 메운다).
@@ -2544,7 +2547,9 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   skeleton: BRIEF ? null : SKELETON.id,
   skeletonSrc: BRIEF ? null : SKELETON.src,
   firstCaption: scenes.find((x) => !x.isOutro)?.cues?.[0]?.text ?? null,
-  saveItem: BRIEF ? null : (scenes.filter((x) => !x.isOutro).at(-1)?.say ?? '').match(/\d[\d,.]*\s*[^\s,.]*/g)?.slice(0, 3) ?? null,
+  // 판정(saveItemOk)과 같은 것을 센다 — 통과 못 했으면 null(보고서에 '없음').
+  saveItem: BRIEF ? null : (() => { const it = saveItems(scenes.filter((x) => !x.isOutro).at(-1)?.say, SAVE_MODE); return it.length >= 2 ? it.slice(0, 3) : null; })(),
+  saveMode: BRIEF ? null : SAVE_MODE,
   openingCard: KEY_NUM,
   subCtaText: SUB_CTA_TEXT,
   thumb: THUMB_META,   // 2026-10-28: 썸네일 글·원문 — 썸네일 관문(video-publish)이 고칠 글의 숫자를 원문과 대조

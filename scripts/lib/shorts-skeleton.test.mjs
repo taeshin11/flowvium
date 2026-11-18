@@ -18,7 +18,7 @@
  *   vs     g1sZdE5hmRA 한국경제TV 773,254회 44초 "삼성전자 VS 하이닉스" 0~10 결론 먼저+주장 · 10~28 양쪽 숫자 비교 · 28~40 핵심 · 40~44 한 줄
  *   twist  zOt7Z_v8AXE 슈카월드 508,788회 71초 "적금 깨고 주식 사도 되나요?" 0~14 놀라운 사실+숫자 · 14~33 내 일로 바꾼 질문 · 33~55 답·반전 · 55~71 처음으로 돌아가 정리
  */
-import { SKELETONS, pickSkeleton, skeletonRule, firstCaptionOk, saveItemOk, subCtaLine } from './shorts-skeleton.mjs';
+import { SKELETONS, pickSkeleton, skeletonRule, firstCaptionOk, saveItemOk, saveItems, saveMode, subCtaLine } from './shorts-skeleton.mjs';
 
 let fail = 0;
 const ok = (m) => console.log(`  ✅ ${m}`);
@@ -74,6 +74,26 @@ firstCaptionOk('코스피 5000 붕괴') && !firstCaptionOk('국민의힘 윤리�
 // [5b] 날짜·차례는 '다시 볼 숫자' 가 아니다 — 11/18 15:10 발행분(bUeDZRSsBh8)이 "기억할 숫자는 17일과 55명" 으로 통과했다
 (!saveItemOk('기억할 숫자는 17일과 55명입니다.') && !saveItemOk('2026년 11월 3차 회의') && saveItemOk('기억할 숫자는 55명과 3조 원입니다.'))
   ? ok('[5b] 날짜·차례 숫자는 세지 않는다') : bad('[5b] 날짜를 저장 숫자로 셌다');
+
+// [5c] 숫자가 없는 기사(11/18 16:20 SW5ngOooIqc — CSR 캠페인 소식)는 숫자를 짜낼 수 없다. 세 번 다 '다시 볼 숫자 없음' 으로
+//   다시 쓰고 마지막 것을 냈고, 메타는 다른 정규식으로 "18일과·001720(종목코드)" 을 저장 요소라 적었다.
+//   → 원문에 진짜 숫자가 둘 미만이면 저장 요소를 '체크리스트(첫째·둘째)' 로 바꾼다(사장님 4원칙: 숫자·체크리스트·단계). 메타도 같은 판정으로.
+{
+  const src = "▲ 신영증권[001720]은 김대일 대표이사 사장이 '사람 살리는 금융' 릴레이 캠페인에 동참했다고 18일 밝혔다.";
+  saveMode(src) === 'checklist' ? ok('[5c] 날짜·종목코드뿐인 기사 → 체크리스트') : bad(`[5c] ${saveMode(src)}`);
+  saveMode('ICT 수출 703억달러…증가율 202%') === 'numbers' ? ok('[5d] 숫자 둘 이상 기사 → 숫자') : bad('[5d]');
+  !saveItemOk('신영증권[001720]은 18일 동참했습니다.') ? ok('[5e] 0으로 시작하는 코드는 숫자로 세지 않는다') : bad('[5e]');
+  const say = '기억할 것 둘. 첫째, 불법사금융 피해는 서민금융진흥원에 알린다. 둘째, 릴레이는 다음 금융사로 이어진다.';
+  (saveItemOk(say, 'checklist') && !saveItemOk('앞으로가 주목됩니다.', 'checklist') && saveItems(say, 'checklist').length === 2)
+    ? ok(`[5f] 체크리스트 판정 ${JSON.stringify(saveItems(say, 'checklist'))}`) : bad(`[5f] ${JSON.stringify(saveItems(say, 'checklist'))}`);
+  JSON.stringify(saveItems('기억할 숫자는 703억달러, 그리고 202%입니다.')) === JSON.stringify(['703억달러', '202%'])
+    ? ok('[5g] 메타에 남길 숫자 = 판정이 센 숫자') : bad(`[5g] ${JSON.stringify(saveItems('기억할 숫자는 703억달러, 그리고 202%입니다.'))}`);
+  const rc = skeletonRule(SKELETONS[0], 200, { save: 'checklist' });
+  (/첫째/.test(rc) && /둘째/.test(rc) && !/기억할 숫자/.test(rc)) ? ok('[5h] 체크리스트 모드 규칙 문구') : bad('[5h]');
+  // [5i] 11/18 dry: 모델이 규칙 말('저장할 이유')을 그대로 훅·대사에 썼다("[저장할 핵심 사항] 저장할 이유입니다.") — 두 모드 다 그 말을 쓰지 말라고 한다
+  [rc, skeletonRule(SKELETONS[0], 200)].every((r) => /'저장'이라는 말은 (화면|자막)·대사에 쓰지 마라/.test(r) && /기억할/.test(r))
+    ? ok('[5i] 규칙 말을 화면에 옮기지 말라는 문구 · 자연스러운 첫마디(기억할 …)') : bad('[5i]');
+}
 
 // [6] 구독 권유: 편마다 그 사안 이름이 들어가고, 링크·주소 없음, 연속 두 편이 같은 문장이 아니다
 {
