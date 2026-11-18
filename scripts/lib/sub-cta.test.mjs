@@ -25,5 +25,11 @@ const bad = (m) => { console.log(`  FAIL  ${m}`); fail++; };
 }
 // [3] 권유에 '이유' 가 있다(매일·40초 — 무엇을 받는지)
 /매일/.test(SUB_CTA_LINE) && /구독/.test(SUB_CTA_LINE) ? ok(`[3] "${SUB_CTA_LINE}"`) : bad('[3]');
+// [4] 2026-11-18: 편마다 다른 문장(lib/shorts-skeleton subCtaLine)을 받으면 그걸 붙인다 — 같은 문장 매 편 반복 금지(AI 감지 방지·3-AI C).
+{
+  const line = 'ICT 수출 후속, 구독해 두시면 놓치지 않습니다.';
+  const out = withSubCta([{ say: '가.' }, { say: '나.' }], line);
+  (out[1].say.endsWith(line) && !out[1].say.includes(SUB_CTA_LINE)) ? ok('[4] 받은 문장을 붙인다') : bad(`[4] ${JSON.stringify(out)}`);
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

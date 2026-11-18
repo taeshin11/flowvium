@@ -33,7 +33,9 @@ void layoutFor; void promoFor;
 const src = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const pub = src('video-publish.mjs'), ms = src('video/make-shorts.mjs');
 (/SHORTS_OPENER: OPENER_ENV/.test(pub) && /opener: last\.opener/.test(pub)) ? ok('[3a] 발행이 칸을 정하고 기록') : bad('[3a]');
-(/OPENER === 'question'/.test(ms) && /OPENER_RULE/.test(ms) && /opener: OPENER/.test(ms)) ? ok('[3b] question 칸에서만 첫 문장 규칙을 붙이고 meta.opener') : bad('[3b]');
+// 2026-11-18 사장님 5원칙: 한 이슈 편의 첫 문장은 뼈대 규칙(결론·위기·반전, 15자 — lib/shorts-skeleton)이 정한다.
+//   질문형 OPENER_RULE 은 프롬프트에서 빠지고, meta.opener 는 브리핑 편에만 남는다(안 쓴 갈래를 성적에 섞지 않게).
+(/금지\.\$\{SKELETON_RULE\}/.test(ms) && !/\$\{OPENER_RULE\}/.test(ms) && /opener: BRIEF \? OPENER : null/.test(ms)) ? ok('[3b] 한 이슈 편은 뼈대 규칙, opener 기록은 브리핑만') : bad('[3b]');
 (/SHORTS_OPENER \?\? 'question'/.test(pub) && /SHORTS_OPENER === 'anchor' \? 'anchor' : 'question'/.test(ms)) ? ok('[3e] 모를 때(값 없음·DB 실패) 기본도 question') : bad('[3e] 기본값이 아직 anchor');
 !/\[이번 편 실험\]/.test(ms) ? ok('[3f] 첫 문장 규칙이 더는 실험이라고 말하지 않는다') : bad('[3f]');
 /기사에 있는 사실만/.test(ms.match(/const OPENER_RULE[\s\S]{0,900}/)?.[0] ?? '') ? ok('[3c] 질문형도 기사에 있는 사실만(낚시 금지)') : bad('[3c] 사실 제한 문구 없음');

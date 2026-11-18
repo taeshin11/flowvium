@@ -239,7 +239,9 @@ export const TRIM = {
 /**
  * @param {{motion?:boolean}} o  motion: 4초 동안 12% 천천히 키운다(첫 장면 A/B, lib/shorts-motion-ab.test). 프레임마다 다시 계산한다.
  */
-export function mediaFilter(inLabel, outLabel, { motion = false, zoom: zoomOn = LAYOUT === 'zoom' } = {}) {
+// 2026-11-18: tag 는 한 필터 그래프에 이 체인을 여러 번 넣을 때 중간 이름이 겹치지 않게(lib/shorts-opening 첫 3초 컷).
+//   tight = {f, y}: 같은 사진을 바짝 당긴 컷 — 가운데 폭·높이 f 만 남기고, 세로 위치는 y(0=위, 0.5=가운데).
+export function mediaFilter(inLabel, outLabel, { motion = false, zoom: zoomOn = LAYOUT === 'zoom', tag = '', tight = null } = {}) {
   const g = SHORTS;
   const { W } = g;
   const MH = g.media.height;
@@ -254,12 +256,14 @@ export function mediaFilter(inLabel, outLabel, { motion = false, zoom: zoomOn = 
   // zoom: 영역 비율(약 4:3)까지만 가운데를 잘라 사진을 키운다. 폭은 70% 아래로 안 자른다(가장자리 인물 보호).
   // 10/28: 장면별로도 켠다(zoomOn) — 첫 화면 미리 매기기에서 '주인공이 작다'면 같은 사진을 가운데로 당긴다(make-shorts 5b).
   const zoom = zoomOn ? `crop='max(iw*0.7\\,min(iw\\,ih*${(W / MH).toFixed(4)}))':ih,` : '';
+  const tc = tight ? `crop=iw*${tight.f}:ih*${tight.f}:(iw-ow)/2:(ih-oh)*${tight.y},` : '';
+  const M = `mrg${tag}`, M2 = `mrg2${tag}`;
   return [
     // 소재가 잘리지 않게 영역 안에 넣고, 남는 자리는 검정으로 채워 가운데 정렬한다.
-    `[${inLabel}]${trim}${zoom}scale=${W}:${MH}:force_original_aspect_ratio=decrease,pad=${W}:${MH}:(ow-iw)/2:(oh-ih)/2:black[mrg]`,
+    `[${inLabel}]${trim}${tc}${zoom}scale=${W}:${MH}:force_original_aspect_ratio=decrease,pad=${W}:${MH}:(ow-iw)/2:(oh-ih)/2:black[${M}]`,
     // 소재 영역을 화면의 제자리에 앉힌다. 위아래는 오버레이의 검은 띠가 덮는다.
-    ...(motion ? [`[mrg]scale=w='trunc(${W}*(1+0.12*min(t/4\\,1))/2)*2':h='trunc(${MH}*(1+0.12*min(t/4\\,1))/2)*2':eval=frame,crop=${W}:${MH}[mrg2]`] : []),
-    `[${motion ? 'mrg2' : 'mrg'}]pad=${W}:${g.H}:0:${g.media.top}:black,fps=${g.FPS},setsar=1[${outLabel}]`,
+    ...(motion ? [`[${M}]scale=w='trunc(${W}*(1+0.12*min(t/4\\,1))/2)*2':h='trunc(${MH}*(1+0.12*min(t/4\\,1))/2)*2':eval=frame,crop=${W}:${MH}[${M2}]`] : []),
+    `[${motion ? M2 : M}]pad=${W}:${g.H}:0:${g.media.top}:black,fps=${g.FPS},setsar=1[${outLabel}]`,
   ].join(';');
 }
 

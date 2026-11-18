@@ -51,7 +51,9 @@ import { isCoherentIssue, isSameStory, hasParticle, isTopicKeyword, itemsOnTopic
 import { attributionIssues } from '../lib/attribution.mjs';
 import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
-import { recentShortsIssues, normalizeIssueKey, shortsPublishedCount } from '../lib/db.mjs';
+import { recentShortsIssues, normalizeIssueKey, shortsPublishedCount, recentShortsSkeletons } from '../lib/db.mjs';
+import { SKELETONS, pickSkeleton, skeletonRule, firstCaptionOk, saveItemOk, subCtaLine } from '../lib/shorts-skeleton.mjs';
+import { keyNumber, openingCuts, openingFilter } from '../lib/shorts-opening.mjs';
 
 loadEnvLocal();
 const argv = process.argv.slice(2);
@@ -358,6 +360,10 @@ const TREND = process.env.SHORTS_TREND === '1';
 const OPENER = process.env.SHORTS_OPENER === 'anchor' ? 'anchor' : 'question';   // 10/20 A/B 종료 — 기본 question
 // 2026-10-17 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor, shorts-motion-ab.test 머리말.
 const MOTION = process.env.SHORTS_MOTION === 'push' ? 'push' : 'still';
+// 2026-11-18 사장님 5원칙(lib/shorts-skeleton.test 머리말): 대본은 50만+ 경제 쇼츠의 뼈대 넷을 돌려 쓴다 — 직전 편과 같은 뼈대는 피한다.
+//   SHORTS_SKELETON=<id> 면 그 뼈대(손 실행·시험). 브리핑 편(뉴스 여럿)은 뼈대를 쓰지 않는다(아래 BRIEF).
+const SKELETON = SKELETONS.find((x) => x.id === process.env.SHORTS_SKELETON)
+  ?? pickSkeleton(shortsPublishedCount(), (() => { try { return recentShortsSkeletons(1); } catch { return []; } })());
 const OPENER_RULE = OPENER === 'question' ? `
 - **1번 장면 say 의 첫 문장만은 앵커 단정 대신 질문 또는 시청자 이해관계로 연다.** 둘째 문장부터는 위 앵커 규칙 그대로.
   · 좋음: "현대차에 무슨 일이 생긴 걸까요?" / "이번 누리호에는 왜 위성이 15기나 실렸을까요?" / "삼성전자 주식 가진 분이라면 이 소식이 중요합니다."
@@ -855,6 +861,10 @@ const llm = { url: process.env.VIDEO_LLM_URL ?? resolveLlm('web').url, model: pr
 // 한국어는 초당 약 6.7자로 읽힌다(Piper 실측: 47자 / 7.0초).
 const CPS = 6.7;
 const budget = Math.round(TARGET_SEC * CPS);
+// 2026-11-18: 한 이슈 편은 질문형 첫 문장(OPENER_RULE) 대신 뼈대 규칙 — 사장님 5원칙 1)이 '결론·위기·반전'으로 바로 열라고 했다.
+const SKELETON_RULE = `${skeletonRule(SKELETON, budget)}
+- 아래 hook 규칙의 '답을 다 말하지 말고 궁금하게'보다 위 구성(첫 문장 갈래)이 먼저다.`;
+if (!BRIEF) log(`[대본] 뼈대: ${SKELETON.name}(${SKELETON.id}) · 출처 ${SKELETON.src}`);
 
 // 기사 본문을 한 번만 뽑아 둔다. 프롬프트도 이걸 쓰고, 발행 기록에도 이걸 남긴다.
 //   2026-09-20: 종전에는 프롬프트 안에서만 뽑아 쓰고 버렸다. 그래서 쇼츠를 글로 풀 때
@@ -943,7 +953,7 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
 - **정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.** 줄이거나 바꾸지 마라.
   실측으로 나간 오기: "국민의힘"→"국민힘", "정부"→"청와대"(현 정부는 대통령실이다).
   뉴스 채널에서 이름을 틀리면 그 한 글자가 신뢰를 깎는다.
-- **1번 장면이 훅이다.** 첫 세 어절에 가장 강한 사실을 박아라. "오늘은", "이번 소식은" 금지.${OPENER_RULE}
+- **1번 장면이 훅이다.** 첫 세 어절에 가장 강한 사실을 박아라. "오늘은", "이번 소식은" 금지.${SKELETON_RULE}
 - **앵커 어투로 쓴다.** 사실을 **단정적으로** 전한다:
   · 좋음: "미국이 반도체 표적관세를 예고했습니다." "설비투자가 살아나고 있습니다."
   · 나쁨(전문·추측 어투 — 앵커는 이렇게 말하지 않는다):
@@ -1122,9 +1132,13 @@ for (let a = 1; a <= 3; a++) {
     const echoTitle = scenes[0] && headlines[0] && (repeatsTitle(scenes[0].hook, headlines[0]) || restatesTitle(scenes[0].say, headlines[0]));
     // 11/02 벤치마크(경제 쇼츠 상위 10편 첫 화면은 늘 주어부터, 자문 agy·Claude 2/3): 첫 훅에 헤드라인 주어가 없으면 다시 쓴다(lib/hook-overlap namesSubject).
     const noSubject = scenes[0] && headlines[0] && !namesSubject(scenes[0].hook, headlines[0], issue.keyword);
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle && !noSubject
+    // 2026-11-18 5원칙 1)·4): 첫 문장 15자 이내, 마지막 장면에 다시 볼 숫자 둘 이상(뼈대 규칙). 브리핑 편은 해당 없음.
+    const firstSentence = String(scenes[0]?.say ?? '').split(/(?<=[.!?])\s/)[0];
+    const firstLong = !BRIEF && scenes[0] && !firstCaptionOk(firstSentence);
+    const noSave = !BRIEF && scenes.length && !saveItemOk(scenes[scenes.length - 1].say);
+    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle && !noSubject && !firstLong && !noSave
         && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
-    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
+    log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${firstLong ? ` · 첫 문장이 15자를 넘는다("${firstSentence.slice(0, 24)}")` : ''}${noSave ? ' · 마지막 장면에 다시 볼 숫자가 없다' : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) {
     log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
     // 모델이 없으면 다시 써 봐야 같은 결과다 — 이 회차를 접는다(발행 쪽이 예비·다음 슬롯으로 메운다).
@@ -1232,14 +1246,17 @@ if (DRY) { log('--dry — 여기까지'); process.exit(0); }
 // 2026-09-27 구독 권유 A/B — video-publish 가 편마다 절반에 SHORTS_SUB_CTA=1 을 준다(lib/sub-cta 머리말).
 //   마지막 내용 장면 끝에 '이유 있는 권유' 한 줄. 자막·소리 모두 나간다. 메타에 남겨 구독 전환을 나눠 잰다.
 const SUB_CTA = process.env.SHORTS_SUB_CTA === '1';
+let SUB_CTA_TEXT = null;
 // 2026-10-17 IG 릴스(desktop1 사양 "통신사 사진 금지 · 권리 분명한 그림만"): SHORTS_LICENSED_ONLY=1 이면
 //   라이선스가 기록된 그림(공공누리 1유형·CC BY/BY-SA·PD)만 남긴다 — 기사 사진·유튜브 영상은 소재 단계 끝에서 뺀다(lib/footage keepRightsClear).
 //   빠진 자리는 카드가 되고, 아래 '절반은 채워야 낸다' 관문이 그 주제를 쓸 수 있는지 정한다.
 const LICENSED_ONLY = process.env.SHORTS_LICENSED_ONLY === '1';
 if (SUB_CTA) {
   const { withSubCta } = await import('../lib/sub-cta.mjs');
-  scenes = withSubCta(scenes);
-  log('[대본] 구독 권유 한 줄을 끝에 붙인다(A/B)');
+  // 2026-11-18: 고정 문장 대신 그 사안 이름이 든 문장을 편마다 돌린다(lib/shorts-skeleton subCtaLine — 3-AI C·같은 문장 반복 금지).
+  SUB_CTA_TEXT = subCtaLine(issue.keyword, shortsPublishedCount());
+  scenes = withSubCta(scenes, SUB_CTA_TEXT);
+  log(`[대본] 구독 권유: "${SUB_CTA_TEXT}"`);
 }
 
 // ── 3. 음성 ─────────────────────────────────────────────────────────────────────
@@ -2111,7 +2128,7 @@ for (let i = 0; i < scenes.length; i++) {
   //   쇼츠는 화면이 짧아 그게 오히려 산만하다 — 장면당 한 덩어리로 간다.
   // 캡션 폭 실측: 폰트 76px · 좌우 여백 44px → 가용 992px. 한글은 글자당 약 76px 이라 12자가 한계다.
   //   16자로 뒀더니 "…합니 / 다." 로 넘쳤다(첫 렌더에서 확인).
-  const cues = fillGaps(cuesFromAlignment(scenes[i].alignment, { maxChars: 12, maxLines: 2, maxDur: 4.0 }), 1.2);
+  const cues = fillGaps(cuesFromAlignment(scenes[i].alignment, { maxChars: 12, maxLines: 1, maxDur: 4.0 }), 1.2);
   // 캡션은 **말을 따라가야 한다.** 종전엔 장면당 첫 큐 하나를 8초 내내 띄웠는데,
   //   그러면 3초 뒤부터 화면 글자와 목소리가 어긋난다(첫 렌더 실측).
   //   큐마다 오버레이를 만들고 아래 합성에서 시간 구간으로 얹는다.
@@ -2129,6 +2146,17 @@ for (let i = 0; i < scenes.length; i++) {
     scenes[i].ov.push(f);
   }
 }
+// 2026-11-18 첫 3초 컷(lib/shorts-opening.test 머리말): 2~3초 컷에 쓸 핵심 숫자 카드 — 헤드라인(원문)의 숫자만.
+//   브리핑 편은 첫 장면과 첫 헤드라인 짝이 보장되지 않아 카드를 안 쓴다(당긴 컷 둘로 간다).
+const KEY_NUM = BRIEF ? null : keyNumber(headlines);
+let CARD_PNG = null;
+if (KEY_NUM) {
+  const { numberCardHtml } = await import('../lib/shorts-opening.mjs');
+  await page.setContent(numberCardHtml(KEY_NUM));
+  CARD_PNG = `${WORK}/numcard.png`;
+  await page.screenshot({ path: CARD_PNG, omitBackground: true });
+}
+log(`[첫 3초] 컷: 사진 → 당긴 컷 → ${KEY_NUM ? `숫자 카드 "${KEY_NUM.label} ${KEY_NUM.value}"` : '다른 높이로 당긴 컷(헤드라인에 숫자 없음)'} · 자막 한 줄씩`);
 
 // ── 5b. 첫 화면 미리 매기기 (2026-10-28 Mac mini2 — 사장님 썸네일 기준) ─────────────────
 //   쇼츠 피드는 영상 첫 화면을 보여 주고, 발행 직전 관문(video-publish gateShortsOpening)이 그 0.5초 화면으로 막는다.
@@ -2309,7 +2337,12 @@ for (let i = 0; i < scenes.length; i++) {
   const ovInputs = scenes[i].ov.flatMap((f) => ['-i', f]);
   // 첫 장면(정지 사진일 때만 — 영상 클립은 이미 움직인다)에 push 칸이면 천천히 다가간다.
   const firstScene = scenes.findIndex((x) => !x.isOutro);
-  let chain = mediaFilter('0:v', 'v0', { motion: MOTION === 'push' && i === firstScene && !isVid, ...(scenes[i].zoom ? { zoom: true } : {}) });   // zoom: 5b 첫 화면 미리 매기기
+  const audioIdxPre = 1 + scenes[i].ov.length;
+  const opening = i === firstScene;
+  // 2026-11-18: 첫 장면은 0~3초를 세 컷으로(사진 → 당긴 컷 → 숫자 카드/다른 높이). 카드 입력은 소리 다음 번호.
+  let chain = opening
+    ? openingFilter('0:v', 'v0', { cuts: openingCuts({ dur, hasCard: !!CARD_PNG }), cardInput: CARD_PNG ? audioIdxPre + 1 : null, motion: MOTION === 'push' && !isVid, ...(scenes[i].zoom ? { zoom: true } : {}) })
+    : mediaFilter('0:v', 'v0', { motion: false, ...(scenes[i].zoom ? { zoom: true } : {}) });   // zoom: 5b 첫 화면 미리 매기기
   cues.forEach((c, k) => {
     const from = Math.max(0, c.start).toFixed(2);
     const to = Math.min(dur, k === cues.length - 1 ? dur : c.end).toFixed(2);
@@ -2321,6 +2354,7 @@ for (let i = 0; i < scenes.length; i++) {
     ...(isVid ? ['-stream_loop', '-1', '-t', String(dur), '-i', src] : ['-loop', '1', '-t', String(dur), '-i', src]),
     ...ovInputs,
     '-i', scenes[i].audio,
+    ...(opening && CARD_PNG ? ['-loop', '1', '-t', String(dur), '-i', CARD_PNG] : []),
     '-filter_complex', chain,
     '-map', `[v${cues.length}]`, '-map', `${audioIdx}:a`,
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
@@ -2504,8 +2538,15 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   adVersion: AD_VERSION_USED,   // 2026-10-28: aisvi 카드 판(lib/ad-line) — 실제로 붙은 것
   explore: EXPLORE,    // 2026-09-30: 실험 칸 편인가(lib/explore-slot) — 따로 잰다
   layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
-  opener: OPENER,      // 2026-10-11: 첫 문장 A/B(anchor|question) — lib/explore-slot openerFor
+  opener: BRIEF ? OPENER : null,   // 2026-10-11 첫 문장 A/B → 2026-11-18 한 이슈 편은 뼈대 규칙이 첫 문장을 정한다(질문형 안 씀)
   motion: MOTION,      // 2026-10-17: 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor
+  // 2026-11-18 사장님 5원칙 — 편마다 22:00 보고에 한 줄(첫 3초 자막·뼈대 출처·저장 요소)
+  skeleton: BRIEF ? null : SKELETON.id,
+  skeletonSrc: BRIEF ? null : SKELETON.src,
+  firstCaption: scenes.find((x) => !x.isOutro)?.cues?.[0]?.text ?? null,
+  saveItem: BRIEF ? null : (scenes.filter((x) => !x.isOutro).at(-1)?.say ?? '').match(/\d[\d,.]*\s*[^\s,.]*/g)?.slice(0, 3) ?? null,
+  openingCard: KEY_NUM,
+  subCtaText: SUB_CTA_TEXT,
   thumb: THUMB_META,   // 2026-10-28: 썸네일 글·원문 — 썸네일 관문(video-publish)이 고칠 글의 숫자를 원문과 대조
   trend: TREND_USED,   // 2026-10-02: 트렌드 칸에서 트렌드 주제어가 겹친 후보로 갔는가 — 48h 성적 따로
   seconds: Number(totalSec.toFixed(1)), createdAt: new Date().toISOString(),

@@ -7,12 +7,13 @@
 export const SUB_CTA_LINE = '이런 뉴스, 매일 40초로 정리해 드립니다. 구독해 두세요.';
 export const subCtaFor = (_seed) => true;
 
-/** 마지막 내용 장면(isOutro 아님)의 대사 끝에 붙인다. 이미 있으면 그대로. 새 배열을 돌려준다. */
-export function withSubCta(scenes) {
+/** 마지막 내용 장면(isOutro 아님)의 대사 끝에 붙인다. 이미 있으면 그대로. 새 배열을 돌려준다.
+ *  2026-11-18: line 을 받으면 그 문장(편마다 다른 문장 — lib/shorts-skeleton subCtaLine). */
+export function withSubCta(scenes, line = SUB_CTA_LINE) {
   const out = scenes.map((s) => ({ ...s }));
   for (let i = out.length - 1; i >= 0; i--) {
     if (out[i].isOutro) continue;
-    if (!String(out[i].say ?? '').includes(SUB_CTA_LINE)) out[i].say = `${String(out[i].say ?? '').trim()} ${SUB_CTA_LINE}`.trim();
+    if (!String(out[i].say ?? '').includes(line)) out[i].say = `${String(out[i].say ?? '').trim()} ${line}`.trim();
     break;
   }
   return out;

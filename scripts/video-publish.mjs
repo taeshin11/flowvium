@@ -245,13 +245,16 @@ if (USE_EXISTING) {
   let MOTION_ENV = process.env.SHORTS_MOTION ?? 'still';
   if (isShorts) {
     try {
-      const { loadGuide, pickCombo } = await import('./lib/channel-guide.mjs');
+      const { loadGuide, pickCombo, armFor } = await import('./lib/channel-guide.mjs');
       const db = await import('./lib/db.mjs');
-      const combo = pickCombo(db.shortsPublishedCount(), loadGuide(), db.lastShortsCombo());
+      // 2026-11-18: 한 이슈 편의 첫 문장은 대본 뼈대(lib/shorts-skeleton, make-shorts 가 고름)가 정한다 — opener 는 브리핑 편에만 쓰인다.
+      //   그래서 '앞 편과 같은 구성이면 하나 바꾸기' 는 실제로 화면이 달라지는 배치·움직임으로만 한다(opener 를 바꿔 피한 척하지 않게).
+      const guide = loadGuide(), seed = db.shortsPublishedCount();
+      const combo = pickCombo(seed, guide, db.lastShortsCombo(), ['layout', 'motion']);
       if (process.env.SHORTS_LAYOUT == null) LAYOUT_ENV = combo.layout;
-      if (process.env.SHORTS_OPENER == null) OPENER_ENV = combo.opener;
+      if (process.env.SHORTS_OPENER == null) OPENER_ENV = armFor(seed, 'opener', guide);
       if (process.env.SHORTS_MOTION == null) MOTION_ENV = combo.motion;
-      log(`구성: ${combo.layout}·${combo.opener}·${combo.motion} (채널 지침)`);
+      log(`구성: ${combo.layout}·${combo.motion} (채널 지침) · 브리핑 첫 문장 ${OPENER_ENV}`);
     } catch (e) { log(`채널 지침을 못 읽음 — 기본 구성: ${String(e?.message ?? e).slice(0, 80)}`); }
   }
   // 2026-11-02 기업·증시 칸(45%) — lib/explore-slot marketFor, shorts-market-slot.test. SHORTS_MARKET 이 주어지면 그 값.
@@ -627,7 +630,7 @@ if (isShorts && last.keyword) {
       const m = String(probe.stderr).match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
       if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]);
     } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null, layout: last.layout ?? null, opener: last.opener ?? null, motion: last.motion ?? null });
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null, layout: last.layout ?? null, opener: last.opener ?? null, motion: last.motion ?? null, skeleton: last.skeleton ?? null });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
     if (TRIAL && videoId) {
       try { recordTrialVideo(resolve(ROOT, 'logs/slot-trial.json'), { trial: TRIAL_ARG, videoId }); log(`시험 칸 원장: ${videoId} → logs/slot-trial.json`); }

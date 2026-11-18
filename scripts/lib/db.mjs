@@ -2181,7 +2181,7 @@ export function setShortsTopic(videoId, topic) {
 }
 
 /** 편성 확정 기록. 렌더가 끝난 뒤에만 부른다 — 실패한 편을 "다뤘다"고 남기면 그 뉴스를 영영 놓친다. */
-export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null, titleStyle = null, subCta = null, promo = null, explore = null, trend = null, layout = null, opener = null, motion = null }) {
+export function markShortsPublished({ issueKey, headline, videoId = null, headlines = [], durationSec = null, hooks = [], bodies = [], topic = null, titleStyle = null, subCta = null, promo = null, explore = null, trend = null, layout = null, opener = null, motion = null, skeleton = null }) {
   const db = openDb();
   ensureTitleStyleColumn(db);
   // 2026-09-27 구독 권유 A/B — 실제로 붙었는가(1/0). 구독 전환을 나눠 잰다.
@@ -2198,6 +2198,7 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
   if (!db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'opener')) db.exec('ALTER TABLE shorts_published ADD COLUMN opener TEXT');
   // 2026-10-17 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor.
   if (!db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'motion')) db.exec('ALTER TABLE shorts_published ADD COLUMN motion TEXT');
+  ensureSkeletonColumn(db);
   ensureHeadlinesColumn(db);
   ensureHooksColumn(db);
   ensureBodiesColumn(db);
@@ -2211,8 +2212,8 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
   // 기사 본문. 글로 풀 때의 재료다 — 훅만으로는 알맹이가 300자를 못 넘는다(위 주석 참고).
   const bodyList = (bodies ?? []).map((b) => String(b ?? '').trim()).filter(Boolean).slice(0, 8);
   db.prepare(
-    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic, title_style, sub_cta, promo, explore, trend, layout, opener, motion)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO shorts_published (issue_key, headline, video_id, published_at, headlines_json, duration_sec, hooks_json, bodies_json, topic, title_style, sub_cta, promo, explore, trend, layout, opener, motion, skeleton)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(normalizeIssueKey(issueKey), String(headline ?? '').slice(0, 300), videoId,
     new Date().toISOString(), all.length > 1 ? JSON.stringify(all) : null,
     Number.isFinite(durationSec) ? durationSec : null,
@@ -2226,7 +2227,19 @@ export function markShortsPublished({ issueKey, headline, videoId = null, headli
     trend === true ? 1 : trend === false ? 0 : null,
     layout === 'zoom' || layout === 'classic' ? layout : null,
     opener === 'question' || opener === 'anchor' ? opener : null,
-    motion === 'push' || motion === 'still' ? motion : null);
+    motion === 'push' || motion === 'still' ? motion : null,
+    skeleton ? String(skeleton).slice(0, 20) : null);
+}
+
+// 2026-11-18 대본 뼈대(lib/shorts-skeleton) — 같은 틀 연속을 피하고 뼈대별 성적을 잰다.
+function ensureSkeletonColumn(db) {
+  if (!db.prepare('PRAGMA table_info(shorts_published)').all().some((c) => c.name === 'skeleton')) db.exec('ALTER TABLE shorts_published ADD COLUMN skeleton TEXT');
+}
+/** 최근 쇼츠의 뼈대 id(최신이 앞, 기록 없는 편은 건너뜀). */
+export function recentShortsSkeletons(n = 3) {
+  const db = openDb();
+  ensureSkeletonColumn(db);
+  return db.prepare('SELECT skeleton FROM shorts_published WHERE skeleton IS NOT NULL ORDER BY published_at DESC LIMIT ?').all(n).map((r) => r.skeleton);
 }
 
 /** 최근 days 일에 낸 쇼츠의 주제별 편수(내린 편 제외). 실험 칸이 '적게 다룬 주제' 를 고를 때 쓴다(2026-09-30). */
