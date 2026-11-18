@@ -2198,11 +2198,11 @@
     "fy": "2025"
   },
   "ACM": {
-    "revUsd": 16139622000,
-    "revYoYPct": 0.2,
-    "opMarginPct": 6.4,
-    "roePct": 22.5,
-    "fy": "2025"
+    "revUsd": 15096370000,
+    "revYoYPct": -6.5,
+    "opMarginPct": 4.1,
+    "roePct": 12.8,
+    "fy": "2026"
   },
   "TDY": {
     "revUsd": 6115400000,
@@ -2786,11 +2786,11 @@
     "fy": "2025"
   },
   "FFIV": {
-    "revUsd": 3088072000,
-    "revYoYPct": 9.7,
-    "opMarginPct": 24.8,
-    "roePct": 19.3,
-    "fy": "2025"
+    "revUsd": 3416669000,
+    "revYoYPct": 10.6,
+    "opMarginPct": 23.9,
+    "roePct": 18,
+    "fy": "2026"
   },
   "FDS": {
     "revUsd": 2476256000,
