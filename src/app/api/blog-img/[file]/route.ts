@@ -8,11 +8,11 @@ const DIR = () => join(process.cwd(), 'reports/blog-img');
 const NAME = /^[a-z0-9-]{1,80}\.jpg$/;
 
 export async function GET(_req: Request, { params }: { params: { file: string } }) {
-  if (!NAME.test(params.file)) return new Response('not found', { status: 404 });
+  if (!NAME.test(params.file)) return new Response(null, { status: 404 });
   try {
     const buf = await readFile(join(DIR(), params.file));
     return new Response(buf, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=31536000, immutable' } });
   } catch {
-    return new Response('not found', { status: 404 });
+    return new Response(null, { status: 404 });
   }
 }
