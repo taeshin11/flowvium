@@ -20,6 +20,10 @@ import { mdToHtml, extractTitle, stripFrontComment } from './lib/blog-html.mjs';
 import { withBlogAd, adVersionFor } from './lib/ad-line.mjs';
 import { insertPost, updatePost, listBlogs, tokenPresent } from './lib/blogger.mjs';
 import { checkQuality } from './lib/blog-quality.mjs';
+import { prepareCardImages } from './lib/blog-cards.mjs';
+import { pickBlogShort, relinkVideo } from './lib/blog-video.mjs';
+import { openDb } from './lib/db.mjs';
+const shortsRows = () => openDb().prepare('SELECT video_id, topic, published_at FROM shorts_published WHERE retracted_at IS NULL ORDER BY published_at DESC LIMIT 200').all();
 
 loadEnvLocal?.();
 const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ? process.argv[i + 1] : null; };
@@ -64,7 +68,7 @@ for (const file of files) {
     continue;
   }
   // 2026-10-28 AISVI 광고 새 판(lib/ad-line) — 본문 끝 면책 위 한 단락, utm_source=blogger. 판은 파일 이름에서(글마다 돌아간다).
-  const html = mdToHtml(withBlogAd(stripFrontComment(md), { source: 'blogger', medium: 'post_body', version: adVersionFor(key) }));
+  let html = mdToHtml(withBlogAd(stripFrontComment(md), { source: 'blogger', medium: 'post_body', version: adVersionFor(key) }));
 
   // 저품질 관문 (사용자 "블로그도 저품질 블로그로 걸리면 안 된다").
   //   얇음·중복·광고과다를 발행 **전에** 잡는다. 이미 올린 글과 비교해야 하므로 원문을 읽어 준다.
@@ -112,6 +116,14 @@ if (!blogId) {
     process.exit(2);
   }
 }
+
+  // 2026-11-19 사장님: 글마다 그림 3~6장(제목 아래 1장 + 소제목마다 1장) — 글에 있는 숫자로 직접 만든 카드와 우리 영상 썸네일만.
+  //   그림은 flowvium.net/api/blog-img 로 건다(Blogger API 엔 그림 올리기가 없다). 주소가 그림을 안 주면 이 글은 실패로 남긴다.
+  //   영상은 증시·기업 쪽 쇼츠(lib/blog-video) — 글을 처음 올린 시각 이전 편 중에서. 끝 링크도 같은 영상으로 맞춘다.
+  const vid = pickBlogShort(shortsRows(), { before: ledger[key]?.at ?? new Date().toISOString() })?.video_id ?? null;
+  const pics = await prepareCardImages(relinkVideo(stripFrontComment(md), vid), key, { outDir: resolve(ROOT, 'reports/blog-img') });
+  html = mdToHtml(withBlogAd(pics.md, { source: 'blogger', medium: 'post_body', version: adVersionFor(key) }));
+  console.log(`  그림 ${pics.cards.length}장: ${pics.cards.map((c) => c.kind).join('·')}`);
 
   // 라벨은 검색이 아니라 블로그 안 분류용이다. 날짜가 아니라 주제로 붙인다.
   const labels = ['증시브리핑', '주식', ...(/코스피|코스닥/.test(md) ? ['국내증시'] : []), ...(/나스닥|S&P500/.test(md) ? ['미국증시'] : [])];

@@ -21,6 +21,7 @@
  * 사용: node scripts/make-blog-post.mjs [--session morning] [--date 2026-09-18] [--no-llm]
  */
 import { openDb } from './lib/db.mjs';
+import { pickBlogShort } from './lib/blog-video.mjs';
 import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
@@ -43,7 +44,8 @@ const r = JSON.parse(row.full_json);
 
 const SITE = process.env.SITE_URL || 'flowvium.net';
 const CH = process.env.YOUTUBE_CHANNEL_ID ? `https://www.youtube.com/channel/${process.env.YOUTUBE_CHANNEL_ID}` : null;
-const latestShort = db.prepare('SELECT video_id, headline FROM shorts_published WHERE retracted_at IS NULL ORDER BY published_at DESC LIMIT 1').get();
+// 2026-11-19: 증시 글엔 증시·기업 쪽 쇼츠를 건다(lib/blog-video) — 가장 최근 편을 걸었더니 정치 편이 증시 글 본문에 들어갔다.
+const latestShort = pickBlogShort(db.prepare('SELECT video_id, headline, topic, published_at FROM shorts_published WHERE retracted_at IS NULL ORDER BY published_at DESC LIMIT 200').all());
 
 /** 보고서 원문에는 소수점이 길게 남아 있다(+2.392873302328341%). 읽는 글에는 두 자리로 줄인다. */
 const tidy = (t) => String(t ?? '').replace(/-?\d+\.\d{3,}/g, (n) => Number(n).toFixed(2)).trim();

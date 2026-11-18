@@ -84,6 +84,15 @@ export function mdToHtml(md) {
 
     if (/^---+$/.test(line)) { flush(); out.push('<hr>'); continue; }
 
+    // 그림 줄 ![alt](https://… "캡션") — 2026-11-19 블로그 그림(lib/blog-cards). https 주소만 그림으로 만든다.
+    const img = /^!\[([^\]]*)\]\((https:\/\/[^\s)"]+)(?:\s+"([^"]*)")?\)$/.exec(line.trim());
+    if (img) {
+      flush();
+      const at = (t) => String(t).replace(/[<>&"]/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[ch]));
+      out.push(`<figure style="margin:16px 0;text-align:center"><img src="${at(img[2])}" alt="${at(img[1])}" style="max-width:100%;height:auto" loading="lazy">${img[3] ? `<figcaption>${at(img[3])}</figcaption>` : ''}</figure>`);
+      continue;
+    }
+
     const li = /^[-*]\s+(.*)$/.exec(line);
     if (li) { flushPara(); (list ??= []).push(li[1]); continue; }
 

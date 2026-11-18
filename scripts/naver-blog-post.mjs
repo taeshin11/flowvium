@@ -27,6 +27,10 @@ import { withBlogAd, adVersionFor } from './lib/ad-line.mjs';  // 2026-10-28 AIS
 import { checkQuality } from './lib/blog-quality.mjs';
 import { kstDate } from './lib/scorecard.mjs';
 import { NAVER_CATEGORY as CATEGORY, naverHtml, tagsFor, pickFiles, postedLogNo } from './lib/naver-blog.mjs';
+import { prepareCardImages } from './lib/blog-cards.mjs';
+import { pickBlogShort, relinkVideo } from './lib/blog-video.mjs';
+import { openDb } from './lib/db.mjs';
+const shortsRows = () => openDb().prepare('SELECT video_id, topic, published_at FROM shorts_published WHERE retracted_at IS NULL ORDER BY published_at DESC LIMIT 200').all();
 
 const PROFILE = join(ROOT, 'secrets/naver-profile');
 const BLOG_JSON = join(ROOT, 'secrets/naver-blog.json');
@@ -63,7 +67,10 @@ await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'htt
 let failed = 0;
 try {
   if (!(await ctx.cookies('https://naver.com')).some((c) => c.name === 'NID_AUT')) {
-    throw new Error('로그인이 풀렸다 — node scripts/naver-login.mjs 로 다시 로그인 필요');
+    // 2026-11-19: 종전엔 여기서 던진 오류가 run.log 에 안 남아 11/15~19 닷새 동안 '브라우저 닫음' 만 찍혔다.
+    failed += 1;
+    log('❌ 로그인이 풀렸다 — node scripts/naver-login.mjs 로 다시 로그인 필요(사람이 한다)');
+    todo.length = 0;
   }
   for (const { file, key } of todo) {
     const md = readFileSync(file, 'utf8');
@@ -80,7 +87,10 @@ try {
       const logNo = UPDATE ? (/\/(\d{9,})$/.exec(ledger[key]?.url ?? '') ?? [])[1] : null;
       if (UPDATE && !logNo) throw new Error('고칠 글의 주소가 기록에 없다');
       if (!UPDATE && ledger[key]?.url && !DRY) { log(`이미 올린 글이다(${ledger[key].url}) — 고치려면 --update`); continue; }
-      const r = await postOne(ctx, { key, title, html: naverHtml(mdToHtml(withBlogAd(stripFrontComment(md), { source: 'naver', medium: 'post_body', version: adVersionFor(key) }))), md, tags: tagsFor(key, md), logNo });
+      // 2026-11-19 사장님: 글마다 그림 3~6장(lib/blog-cards — 글 숫자로 직접 만든 카드 + 우리 증시 쇼츠 썸네일). Blogger 와 같은 그림.
+      const vid = pickBlogShort(shortsRows(), { before: ledger[key]?.at ?? new Date().toISOString() })?.video_id ?? null;
+      const pics = await prepareCardImages(relinkVideo(stripFrontComment(md), vid), key, { outDir: join(ROOT, 'reports/blog-img') });
+      const r = await postOne(ctx, { key, title, html: naverHtml(mdToHtml(withBlogAd(pics.md, { source: 'naver', medium: 'post_body', version: adVersionFor(key) }))), md, tags: tagsFor(key, md), logNo, images: pics.cards.length });
       if (r.url) {
         ledger[key] = { ...ledger[key], url: r.url, title, ...(logNo ? { updatedAt: new Date().toISOString() } : { at: new Date().toISOString() }) };
         writeFileSync(LEDGER, JSON.stringify(ledger, null, 1));
@@ -106,7 +116,7 @@ try {
 process.exit(failed ? 1 : 0);
 
 /** 글 하나를 스마트에디터에 채우고 발행한다. 발행 뒤에는 글 주소를 열어 제목이 보이는지 확인한다. */
-async function postOne(ctx, { key, title, html, md, tags, logNo: editNo = null }) {
+async function postOne(ctx, { key, title, html, md, tags, logNo: editNo = null, images = 0 }) {
   const page = await ctx.newPage();
   // '작성 중인 글이 있습니다' 같은 브라우저 대화상자는 이어 쓰지 않는다(취소).
   page.on('dialog', (d) => d.dismiss().catch(() => {}));
@@ -150,7 +160,10 @@ async function postOne(ctx, { key, title, html, md, tags, logNo: editNo = null }
     // 고치기에서 옛 본문이 남으면 같은 문장이 두 번 나온다.
     const twice = probes.filter((p) => body.split(p).length > 2);
     if (twice.length) { await shot('fill-dup'); throw new Error(`옛 본문이 남았다: ${twice.join(' | ')}`); }
-    log(`${key}: 제목·본문 채움 (${body.length}자)`);
+    // 그림이 실제로 편집기에 들어갔는지 센다 — 붙여 넣은 그림이 빠지면 그림 없는 글이 조용히 올라간다.
+    const got = await page.locator('.se-content .se-component.se-image, .se-content .se-component.se-imageStrip').count();
+    if (got < images) { await shot('image-fail'); throw new Error(`그림이 ${images}장 중 ${got}장만 들어갔다`); }
+    log(`${key}: 제목·본문 채움 (${body.length}자 · 그림 ${got}장)`);
     // 편집기는 안쪽 상자가 스크롤된다(전체 화면 찍기로는 첫 화면만 나온다) — 그 상자를 내려가며 찍는다.
     const scroller = () => [...document.querySelectorAll('*')].find((e) => e.scrollHeight > e.clientHeight + 50 && /auto|scroll/.test(getComputedStyle(e).overflowY));
     await page.evaluate(`(${scroller})()?.scrollTo(0, 0)`);
