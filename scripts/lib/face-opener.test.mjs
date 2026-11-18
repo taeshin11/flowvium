@@ -68,6 +68,17 @@ const faces = (m) => (k) => m[k];
   const r = faceOpenerIndex(s, { facesAt: faces([0, 3]) });
   r === -1 ? ok('[7] 끝 장면(outro)은 후보가 아니다') : bad(`[7] ${r}`);
 }
+// [11] 2026-11-18 15:10 발행분(bUeDZRSsBh8): "최민희 사퇴 압박 확산" 첫 화면에 정청래 얼굴이 들어갔다.
+//   그 사진의 기사 제목은 '정청래 "최민희 징계 강력반대"…' — 최민희는 **따옴표 안**(남의 말 속)에만 있고, 사진 속 사람은 말한 사람(정청래)이다.
+//   바꾸기는 얼굴을 더하는 선택이라 엄격하게: 따옴표 밖에 이름이 있어야 그 사람 사진으로 친다.
+{
+  const s = [sc('최민희 사퇴 압박 확산', 'a.jpg', "與초선 55명, '최민희 신속 징계' 요청"),
+    sc('정청래 징계 강력 반대', 'b.jpg', '정청래 "최민희 징계 강력반대"…金에 "신천지가 더 큰 해당행위"')];
+  const r = faceOpenerIndex(s, { facesAt: faces([0, 1]), firstIsPerson: true });
+  r === -1 ? ok('[11] 이름이 따옴표 안에만 있으면 그 사람 사진이 아니다 — 바꾸지 않는다') : bad(`[11] ${r} — 정청래 사진을 최민희 첫 화면에 넣었다`);
+  const t = [sc('최민희 사퇴 압박 확산', 'a.jpg', 't'), sc('b', 'b.jpg', '최민희 "징계 부당" 반발')];
+  faceOpenerIndex(t, { facesAt: faces([0, 1]), firstIsPerson: true }) === 1 ? ok('[11b] 따옴표 밖(말한 사람)이면 바꾼다') : bad('[11b]');
+}
 {
   const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
   /faceOpenerIndex\(/.test(ms) ? ok('[8] make-shorts 가 첫 화면 얼굴 규칙을 부른다') : bad('[8] make-shorts 에 연결 안 됨');

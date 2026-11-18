@@ -3,6 +3,10 @@
  */
 import { leadName, personMismatch } from './face-check.mjs';
 
+// 제목에서 따옴표로 묶인 말을 뺀다 — '정청래 "최민희 징계 강력반대"' 의 사진 속 사람은 말한 사람이다(11/18).
+//   짝이 안 맞는 따옴표는 그대로 둔다.
+const outsideQuotes = (t) => String(t ?? '').replace(/"[^"]*"|“[^”]*”|'[^']*'|‘[^’]*’/g, ' ');
+
 /**
  * 첫 장면과 그림을 바꿀 장면 번호. 바꿀 것이 없거나 모르면 -1.
  * @param {Array<{hook?:string, media?:string|null, sourceTitle?:string, isOutro?:boolean}>} scenes
@@ -19,7 +23,8 @@ export function faceOpenerIndex(scenes, { facesAt, chartAt = () => 0, brief = fa
     const n = facesAt(k);
     if (!n || n < 1 || !x.sourceTitle) continue;   // 출처 제목이 없으면 누구 얼굴인지 못 댄다
     if ((chartAt(k) ?? 1) >= 0.3) continue;
-    if (personMismatch({ hook: scenes[first].hook, sourceTitle: x.sourceTitle, faces: n, isPerson: true })) continue;
+    // 바꾸기는 얼굴을 더하는 선택이라 엄격하게 — 이름이 남의 말 속에만 있으면 그 사람 사진으로 치지 않는다.
+    if (personMismatch({ hook: scenes[first].hook, sourceTitle: outsideQuotes(x.sourceTitle), faces: n, isPerson: true })) continue;
     return k;
   }
   return -1;
