@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T07:20:26.434Z",
+  "generatedAt": "2026-11-18T22:20:24.845Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 1,
@@ -8,20 +8,19 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "038870.KQ",
-      "name": "에코심플렉스",
+      "ticker": "054450.KQ",
+      "name": "텔레칩스",
       "tier": "watch",
-      "score": 34,
+      "score": 26,
       "coFire": 2,
       "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 4개(저가 매수받침)",
+        "거래량 추세 1.7× 상승",
+        "거래량 3.2× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -8.2,
-      "runup5dPct": -3.1,
-      "medDollarVolUsd": 11638,
+      "runup20dPct": -11.6,
+      "runup5dPct": -5.4,
+      "medDollarVolUsd": 275925,
       "smartAccum": true,
       "official": null
     }
