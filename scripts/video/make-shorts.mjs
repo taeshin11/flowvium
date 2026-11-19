@@ -53,6 +53,7 @@ import { resolveMediaRoot } from '../lib/media-root.mjs';
 import { searchGoogleImages, closeGoogleImages, googleCoolingDown } from '../lib/google-images.mjs';
 import { recentShortsIssues, normalizeIssueKey, shortsPublishedCount, recentShortsSkeletons } from '../lib/db.mjs';
 import { SKELETONS, pickSkeleton, skeletonRule, firstCaptionOk, saveItemOk, saveItems, saveMode, subCtaLine } from '../lib/shorts-skeleton.mjs';
+import { brokenRules, pickAttempt } from '../lib/script-attempts.mjs';
 import { keyNumber, openingCuts, openingFilter } from '../lib/shorts-opening.mjs';
 
 loadEnvLocal();
@@ -1059,6 +1060,9 @@ let scenes = [];
 //   실측: 140자 → 16.6초 (목표 40초, 예산 268자). 쇼츠로 내기엔 짧고 담기는 내용도 적다.
 //   길이도 조건에 넣는다. 세 번 시도해도 짧으면 그냥 간다 — 짧은 편이 거르는 것보다 낫다.
 const MIN_CHARS = Math.round(budget * 0.6);
+// 2026-11-19: 세 번 다 어기면 **마지막** 시도를 냈다 — 마지막이 가장 나은 게 아니다(11/18 8편 중 첫 문장 초과 2·저장 요소 없음 4).
+//   시도마다 어긴 규칙을 적어 두고 루프 뒤에서 가장 적게 어긴 것을 고른다(lib/script-attempts — 낙인·소속 규칙은 따로).
+const attempts = [];
 for (let a = 1; a <= 3; a++) {
   try {
     scenes = await askLLM();
@@ -1139,8 +1143,10 @@ for (let a = 1; a <= 3; a++) {
     const firstSentence = String(scenes[0]?.say ?? '').split(/(?<=[.!?])\s/)[0];
     const firstLong = !BRIEF && scenes[0] && !firstCaptionOk(firstSentence);
     const noSave = !BRIEF && scenes.length && !saveItemOk(scenes[scenes.length - 1].say, SAVE_MODE);
-    if (scenes.length >= 2 && chars >= MIN_CHARS && !plain && !dupHooks && !echoTitle && !noSubject && !firstLong && !noSave
-        && !dupSays && !sameEnding && !unattributed.length && !leftovers.length && !madeUp.length) break;
+    const broke = brokenRules({ scenes: scenes.length, chars, minChars: MIN_CHARS, plain, dupHooks, echoTitle, noSubject, firstLong, noSave,
+      dupSays, sameEnding, unattributed: unattributed.length, leftovers: leftovers.length, madeUp: madeUp.length });
+    attempts.push({ n: a, scenes, broke });
+    if (!broke.length) break;
     log(`[대본] 시도 ${a}: 장면 ${scenes.length}개 · ${chars}자${plain ? ` · 경어로 안 맺은 ${plain}장면` : ''}${dupHooks ? ` · 겹치는 훅 ${dupHooks}쌍` : ''}${echoTitle ? ` · 첫 훅·첫 대사가 헤드라인을 되풀이("${scenes[0].hook}")` : ''}${noSubject ? ` · 첫 훅에 주어가 없다("${scenes[0].hook}")` : ''}${firstLong ? ` · 첫 문장이 15자를 넘는다("${firstSentence.slice(0, 24)}")` : ''}${noSave ? ` · 마지막 장면에 저장 요소(${SAVE_MODE === 'numbers' ? '숫자 둘' : '첫째·둘째'})가 없다` : ''}${dupSays ? ` · 겹치는 대사 ${dupSays}쌍` : ''}${sameEnding ? ' · 어미가 다 같다' : ''}${unattributed.length ? ` · 출처 없는 낙인 "${unattributed[0].slice(0, 18)}"` : ''}${leftovers.length ? ` · 자막에 남은 것: ${[...new Set(leftovers)].join('·')}` : ''}${madeUp.length ? ` · 원문에 없는 소속: ${[...new Set(madeUp)].join('·')}` : ''} — 다시 쓴다`);
   } catch (e) {
     log(`[대본] 시도 ${a}: ${e.message.slice(0, 100)}`);
@@ -1148,6 +1154,14 @@ for (let a = 1; a <= 3; a++) {
     if (e instanceof NoScriptModel) { console.error(`❌ 대본을 쓸 모델이 없다 — ${e.message}`); process.exit(1); }
   }
 }
+const chosen = pickAttempt(attempts);
+if (attempts.length && !chosen) {
+  console.error('❌ 세 번 다 출처 없는 낙인이 들어갔다 — 이 이슈는 접는다(채널이 남의 공격 표현을 제 말처럼 띄우지 않게). 다른 이슈로 간다.');
+  process.exit(3);   // 3 = 낼 것이 없음 → 호출부가 다른 이슈로 재시도한다
+}
+scenes = chosen?.scenes ?? [];
+const SCRIPT_BROKE = chosen?.broke ?? [];
+if (SCRIPT_BROKE.length) log(`[대본] 세 번 다 규칙을 다 지키지 못했다 — 가장 적게 어긴 시도 ${chosen.n}번을 쓴다(어긴 것: ${SCRIPT_BROKE.join('·')})`);
 // 2026-09-08: 21:45 회차가 여기서 죽었다. 세 번 다 걸린 이유가 **"무소속" 한 낱말**이었다.
 //   모델이 "무소속 한동훈" 을 고집했고, 원문에 그 말이 없어 매번 다시 쓰게 했다.
 //   지우면 될 것을 세 번 다시 쓰다 회차를 잃었다 — **막는 것과 버리는 것은 다르다.**
@@ -2550,6 +2564,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   // 판정(saveItemOk)과 같은 것을 센다 — 통과 못 했으면 null(보고서에 '없음').
   saveItem: BRIEF ? null : (() => { const it = saveItems(scenes.filter((x) => !x.isOutro).at(-1)?.say, SAVE_MODE); return it.length >= 2 ? it.slice(0, 3) : null; })(),
   saveMode: BRIEF ? null : SAVE_MODE,
+  scriptBroke: SCRIPT_BROKE,   // 고른 대본이 어긴 규칙(lib/script-attempts) — 22:00 보고 5원칙 줄
   openingCard: KEY_NUM,
   subCtaText: SUB_CTA_TEXT,
   thumb: THUMB_META,   // 2026-10-28: 썸네일 글·원문 — 썸네일 관문(video-publish)이 고칠 글의 숫자를 원문과 대조
