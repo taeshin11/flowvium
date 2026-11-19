@@ -203,11 +203,11 @@
     "fy": "2025"
   },
   "APD": {
-    "revUsd": 12037300000,
-    "revYoYPct": -0.5,
-    "opMarginPct": -7.3,
-    "roePct": -2.6,
-    "fy": "2025"
+    "revUsd": 12990900000,
+    "revYoYPct": 7.9,
+    "opMarginPct": 0.2,
+    "roePct": 3.7,
+    "fy": "2026"
   },
   "SHW": {
     "revUsd": 23574300000,
@@ -1372,11 +1372,11 @@
     "fy": "2026"
   },
   "DHI": {
-    "revUsd": 34250400000,
-    "revYoYPct": -6.9,
+    "revUsd": 33043400000,
+    "revYoYPct": -3.5,
     "opMarginPct": null,
-    "roePct": 14.8,
-    "fy": "2025"
+    "roePct": 12.5,
+    "fy": "2026"
   },
   "LEN": {
     "revUsd": 34186934000,
