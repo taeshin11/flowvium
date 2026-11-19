@@ -1,7 +1,7 @@
 {
- "at": "2026-11-19T07:20:00.142Z",
- "recorded": 100,
- "scored": 100,
+ "at": "2026-11-19T22:20:00.136Z",
+ "recorded": 102,
+ "scored": 102,
  "contaminated": {
   "n": 4,
   "ids": [
@@ -16,45 +16,45 @@
  },
  "coverage": {
   "kr": {
-   "sessions": 25,
-   "recorded": 25,
+   "sessions": 24,
+   "recorded": 24,
    "missing": []
   },
   "us": {
-   "sessions": 25,
-   "recorded": 25,
+   "sessions": 26,
+   "recorded": 26,
    "missing": []
   }
  },
  "overall": {
   "us": {
-   "n": 48,
+   "n": 50,
    "report": {
-    "calls": 22,
-    "hits": 8,
+    "calls": 24,
+    "hits": 10,
     "abstain": 26,
-    "hitRate": 0.36363636363636365
+    "hitRate": 0.4166666666666667
    },
    "base": {
-    "brier": 0.25462821397042457,
+    "brier": 0.25649013853259356,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 48,
-      "meanP": 0.4509032627089671,
-      "observed": 0.5208333333333334
+      "n": 50,
+      "meanP": 0.4509158240610735,
+      "observed": 0.54
      }
     ],
     "skill": 0
    },
    "clim": {
-    "brier": 0.25462821397042457,
+    "brier": 0.25649013853259356,
     "calibration": [
      {
       "bin": "0.4-0.5",
-      "n": 48,
-      "meanP": 0.4509032627089671,
-      "observed": 0.5208333333333334
+      "n": 50,
+      "meanP": 0.4509158240610735,
+      "observed": 0.54
      }
     ],
     "skill": 0
@@ -596,32 +596,32 @@
     }
    },
    "us": {
-    "n": 6,
+    "n": 8,
     "report": {
-     "calls": 4,
-     "hits": 2,
+     "calls": 6,
+     "hits": 4,
      "abstain": 2,
-     "hitRate": 0.5
+     "hitRate": 0.6666666666666666
     },
     "base": {
-     "brier": 0.3012949060983807,
+     "brier": 0.3012652615799481,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 6,
-       "meanP": 0.45110867566192336,
+       "n": 8,
+       "meanP": 0.4511358308743495,
        "observed": 1
       }
      ],
      "skill": 0
     },
     "clim": {
-     "brier": 0.3012949060983807,
+     "brier": 0.3012652615799481,
      "calibration": [
       {
        "bin": "0.4-0.5",
-       "n": 6,
-       "meanP": 0.45110867566192336,
+       "n": 8,
+       "meanP": 0.4511358308743495,
        "observed": 1
       }
      ],
