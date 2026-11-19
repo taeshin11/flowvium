@@ -1,26 +1,43 @@
 {
-  "generatedAt": "2026-11-18T22:43:24.012Z",
+  "generatedAt": "2026-11-19T13:00:23.762Z",
   "universe": "US",
   "scanned": 284,
-  "count": 2,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "SWBI",
       "name": "Smith & Wesson Brands, Inc.",
       "tier": "watch",
-      "score": 27,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "종가 일중 상단 70%(강한 매수 흡수)",
+        "거래량 추세 1.7× 상승",
+        "종가 일중 상단 60%",
         "아래꼬리 매집 6개(저가 매수받침)"
       ],
-      "runup20dPct": 9.1,
-      "runup5dPct": 4,
-      "medDollarVolUsd": 7176224,
+      "runup20dPct": 7.2,
+      "runup5dPct": 2.3,
+      "medDollarVolUsd": 7333830,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "TRC",
+      "name": "Tejon Ranch Co",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 7.3,
+      "runup5dPct": -2.5,
+      "medDollarVolUsd": 2080748,
       "smartAccum": false,
       "official": null
     },
@@ -36,7 +53,7 @@
       ],
       "runup20dPct": 6.6,
       "runup5dPct": 9,
-      "medDollarVolUsd": 82080,
+      "medDollarVolUsd": 83848,
       "smartAccum": false,
       "official": null
     }
