@@ -876,13 +876,13 @@
   "id": "4260573976013155776",
   "url": "https://flowvium.blogspot.com/2026/11/11-17-125000.html",
   "status": "LIVE",
-  "at": "2026-11-17T22:15:02.732Z"
+  "at": "2026-11-18T23:48:25.294Z"
  },
  "2026-11-18-morning.md": {
   "id": "1440661264707498198",
   "url": "https://flowvium.blogspot.com/2026/11/elastic-nvestc-11-18.html",
   "status": "LIVE",
-  "at": "2026-11-17T22:15:04.704Z"
+  "at": "2026-11-18T23:48:20.119Z"
  },
  "2026-11-18-afternoon.md": {
   "skipped": true,
@@ -893,6 +893,11 @@
   "id": "3150604419461632783",
   "url": "https://flowvium.blogspot.com/2026/11/united-rentals-incuri-11-19.html",
   "status": "LIVE",
-  "at": "2026-11-18T22:15:03.086Z"
+  "at": "2026-11-18T23:34:10.089Z"
+ },
+ "2026-11-19-noon.md": {
+  "skipped": true,
+  "reason": "same-day:2026-11-19-morning.md",
+  "at": "2026-11-19T03:45:00.448Z"
  }
 }
