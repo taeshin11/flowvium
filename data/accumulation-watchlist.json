@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-19T22:20:23.385Z",
+  "generatedAt": "2026-11-20T07:20:25.205Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,13 +14,30 @@
       "score": 26,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.7× 상승",
-        "거래량 3.3× 급증(가격 평탄)",
+        "거래량 추세 1.6× 상승",
+        "거래량 2.9× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -5.6,
-      "runup5dPct": -0.1,
+      "runup20dPct": -12.9,
+      "runup5dPct": -11.2,
       "medDollarVolUsd": 269799,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "052600.KQ",
+      "name": "한네트",
+      "tier": "watch",
+      "score": 26,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -8,
+      "runup5dPct": -1.8,
+      "medDollarVolUsd": 16435,
       "smartAccum": true,
       "official": null
     }
