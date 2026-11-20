@@ -1,26 +1,44 @@
 {
-  "generatedAt": "2026-11-20T07:20:25.205Z",
+  "generatedAt": "2026-11-20T22:20:23.505Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 3,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 3,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "054450.KQ",
-      "name": "텔레칩스",
+      "ticker": "100790.KQ",
+      "name": "미래에셋벤처투자",
       "tier": "watch",
-      "score": 26,
+      "score": 38,
       "coFire": 2,
       "lead": [
-        "거래량 추세 1.6× 상승",
-        "거래량 2.9× 급증(가격 평탄)",
+        "거래량 추세 5.8× 상승(지속 매집)",
+        "거래량 6.9× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -12.9,
-      "runup5dPct": -11.2,
-      "medDollarVolUsd": 269799,
+      "runup20dPct": -3.1,
+      "runup5dPct": 6.4,
+      "medDollarVolUsd": 4049431,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "038870.KQ",
+      "name": "에코심플렉스",
+      "tier": "watch",
+      "score": 34,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 5개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -9.7,
+      "runup5dPct": -5.1,
+      "medDollarVolUsd": 11512,
       "smartAccum": true,
       "official": null
     },
@@ -37,7 +55,7 @@
       ],
       "runup20dPct": -8,
       "runup5dPct": -1.8,
-      "medDollarVolUsd": 16435,
+      "medDollarVolUsd": 16536,
       "smartAccum": true,
       "official": null
     }
