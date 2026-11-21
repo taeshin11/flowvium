@@ -1,8 +1,8 @@
 {
   "version": 1,
   "source": "initial-seed-with-guru-tech-fund-macro-micro",
-  "tunedAt": "2026-11-14T19:20:00.136Z",
-  "sampleSize": 2960,
+  "tunedAt": "2026-11-21T19:20:00.215Z",
+  "sampleSize": 3058,
   "note": "tune-buy-rules.mjs 가 weekly grid search 후 임계값 자동 조정. 매도와 대칭 구조. score = cumulative sum (여러 룰 충족 시 강력). | 2026-06-19: guru 모멘텀/역발상/성장주도 거장 3룰 추가(druckTrend·marksCapitulation·oneilCanslim).",
   "rules": [
     {
@@ -451,14 +451,14 @@
     }
   ],
   "outcomeStats": {
-    "total": 2960,
+    "total": 3058,
     "hits": 118,
     "stops": 484,
-    "ne": 728,
+    "ne": 729,
     "holding": 71,
     "hitRate": 19.6,
     "avgPnl": 1.4,
-    "avgAlpha": 0.5,
+    "avgAlpha": 0.6,
     "bySector": [
       {
         "sector": "pharma-biotech",
@@ -541,7 +541,7 @@
         "sector": "Technology",
         "hit": 33,
         "stop": 125,
-        "total": 807,
+        "total": 838,
         "hitRate": 20.88607594936709
       },
       {
@@ -597,14 +597,14 @@
         "sector": "Industrials",
         "hit": 1,
         "stop": 42,
-        "total": 183,
+        "total": 196,
         "hitRate": 2.3255813953488373
       },
       {
         "sector": "Energy",
         "hit": 0,
         "stop": 2,
-        "total": 54,
+        "total": 63,
         "hitRate": 0
       },
       {
@@ -618,14 +618,14 @@
         "sector": "Consumer Cyclical",
         "hit": 0,
         "stop": 0,
-        "total": 55,
+        "total": 66,
         "hitRate": 0
       },
       {
         "sector": "Utilities",
         "hit": 0,
         "stop": 0,
-        "total": 36,
+        "total": 39,
         "hitRate": 0
       },
       {
@@ -653,7 +653,7 @@
         "sector": "Healthcare",
         "hit": 0,
         "stop": 22,
-        "total": 186,
+        "total": 192,
         "hitRate": 0
       },
       {
@@ -688,7 +688,7 @@
         "sector": "ETF",
         "hit": 0,
         "stop": 0,
-        "total": 127,
+        "total": 137,
         "hitRate": 0
       },
       {
@@ -723,7 +723,7 @@
         "sector": "Consumer Defensive",
         "hit": 0,
         "stop": 47,
-        "total": 182,
+        "total": 184,
         "hitRate": 0
       },
       {
@@ -737,14 +737,14 @@
         "sector": "Financial Services",
         "hit": 0,
         "stop": 1,
-        "total": 79,
+        "total": 88,
         "hitRate": 0
       },
       {
         "sector": "Basic Materials",
         "hit": 0,
         "stop": 0,
-        "total": 31,
+        "total": 35,
         "hitRate": 0
       }
     ],
@@ -1002,7 +1002,7 @@
     }
   },
   "frozenProposals": {
-    "at": "2026-11-14T19:20:00.136Z",
+    "at": "2026-11-21T19:20:00.216Z",
     "why": "2026-10-31~2026-12-26 전향 연구 v0.3 확증 기간(8주 중간 판정까지) — 규칙 점수·임계 자동 변경 멈춤, 튜너 제안은 frozenProposals 에 기록. 10/30 ChatGPT·agy·Claude 상의. lib/rule-freeze.mjs",
     "changes": [
       {
