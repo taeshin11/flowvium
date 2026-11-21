@@ -945,11 +945,11 @@
     "fy": "2025"
   },
   "PTC": {
-    "revUsd": 2739226000,
-    "revYoYPct": 19.2,
-    "opMarginPct": 35.9,
-    "roePct": 19.2,
-    "fy": "2025"
+    "revUsd": 2733431000,
+    "revYoYPct": -0.2,
+    "opMarginPct": 32.8,
+    "roePct": 30.3,
+    "fy": "2026"
   },
   "TDC": {
     "revUsd": 1663000000,
@@ -2042,13 +2042,6 @@
     "opMarginPct": 12.2,
     "roePct": 6.2,
     "fy": "2026"
-  },
-  "ROKU": {
-    "revUsd": 4737251000,
-    "revYoYPct": 15.2,
-    "opMarginPct": -0.1,
-    "roePct": 3.3,
-    "fy": "2025"
   },
   "GTLB": {
     "revUsd": 955224000,
