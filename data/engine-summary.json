@@ -1,10 +1,10 @@
 {
- "at": "2026-11-21T07:45:17.675Z",
+ "at": "2026-11-21T22:45:17.231Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 184,
- "signals": 21670,
- "newSignals": 7202,
+ "ledgerLines": 187,
+ "signals": 22165,
+ "newSignals": 7363,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -345,11 +345,11 @@
    "t": null
   },
   "sell|us|1": {
-   "new": 92,
+   "new": 93,
    "ok": 87,
    "stale": 0,
    "mismatch": 0,
-   "pending": 5,
+   "pending": 6,
    "noData": 0,
    "days": 31,
    "meanNet": -0.00282,
@@ -357,11 +357,11 @@
    "t": -1.19
   },
   "sell|us|5": {
-   "new": 92,
+   "new": 93,
    "ok": 80,
    "stale": 0,
    "mismatch": 0,
-   "pending": 12,
+   "pending": 13,
    "noData": 0,
    "days": 29,
    "meanNet": -0.00825,
@@ -369,11 +369,11 @@
    "t": -1.28
   },
   "sell|us|20": {
-   "new": 92,
+   "new": 93,
    "ok": 46,
    "stale": 0,
    "mismatch": 0,
-   "pending": 46,
+   "pending": 47,
    "noData": 0,
    "days": 12,
    "meanNet": -0.00036,
@@ -381,11 +381,11 @@
    "t": -0.06
   },
   "sell|us|60": {
-   "new": 92,
+   "new": 93,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 92,
+   "pending": 93,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -393,11 +393,11 @@
    "t": null
   },
   "control|us|1": {
-   "new": 3800,
+   "new": 3900,
    "ok": 3667,
    "stale": 0,
    "mismatch": 22,
-   "pending": 111,
+   "pending": 211,
    "noData": 0,
    "days": 37,
    "meanNet": 0.00071,
@@ -405,11 +405,11 @@
    "t": 0.72
   },
   "control|us|5": {
-   "new": 3800,
+   "new": 3900,
    "ok": 3267,
    "stale": 4,
    "mismatch": 22,
-   "pending": 507,
+   "pending": 607,
    "noData": 0,
    "days": 33,
    "meanNet": 0.009,
@@ -417,11 +417,11 @@
    "t": 2.46
   },
   "control|us|20": {
-   "new": 3800,
+   "new": 3900,
    "ok": 1188,
    "stale": 4,
    "mismatch": 22,
-   "pending": 2586,
+   "pending": 2686,
    "noData": 0,
    "days": 16,
    "meanNet": 0.0232,
@@ -429,11 +429,11 @@
    "t": 3.03
   },
   "control|us|60": {
-   "new": 3800,
+   "new": 3900,
    "ok": 0,
    "stale": 4,
    "mismatch": 22,
-   "pending": 3774,
+   "pending": 3874,
    "noData": 0,
    "days": 4,
    "meanNet": -0.01795,
@@ -441,11 +441,11 @@
    "t": null
   },
   "control|kr|1": {
-   "new": 2280,
+   "new": 2340,
    "ok": 2220,
    "stale": 0,
    "mismatch": 0,
-   "pending": 60,
+   "pending": 120,
    "noData": 0,
    "days": 37,
    "meanNet": -0.0032,
@@ -453,11 +453,11 @@
    "t": -1.71
   },
   "control|kr|5": {
-   "new": 2280,
+   "new": 2340,
    "ok": 1980,
    "stale": 0,
    "mismatch": 0,
-   "pending": 300,
+   "pending": 360,
    "noData": 0,
    "days": 33,
    "meanNet": -0.0029,
@@ -465,11 +465,11 @@
    "t": -0.37
   },
   "control|kr|20": {
-   "new": 2280,
+   "new": 2340,
    "ok": 720,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1560,
+   "pending": 1620,
    "noData": 0,
    "days": 12,
    "meanNet": -0.01405,
@@ -477,11 +477,11 @@
    "t": -2.26
   },
   "control|kr|60": {
-   "new": 2280,
+   "new": 2340,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2280,
+   "pending": 2340,
    "noData": 0,
    "days": 0,
    "meanNet": null,
