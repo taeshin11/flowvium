@@ -108,9 +108,9 @@
     "tag": "RPO"
   },
   "DIS": {
-    "rpoUsd": 16000000000,
-    "rpoYoYPct": 0,
-    "end": "2026-06-27",
+    "rpoUsd": 18000000000,
+    "rpoYoYPct": 12.5,
+    "end": "2026-10-03",
     "tag": "RPO"
   },
   "TMUS": {
@@ -134,7 +134,7 @@
   "APD": {
     "rpoUsd": 28000000000,
     "rpoYoYPct": 7.7,
-    "end": "2026-06-30",
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "ECL": {
@@ -152,7 +152,7 @@
   "HD": {
     "rpoUsd": 1000000000,
     "rpoYoYPct": 0,
-    "end": "2026-08-02",
+    "end": "2026-11-01",
     "tag": "RPO"
   },
   "TJX": {
@@ -192,9 +192,9 @@
     "tag": "RPO"
   },
   "CSCO": {
-    "rpoUsd": 46734000000,
-    "rpoYoYPct": 7.4,
-    "end": "2026-07-25",
+    "rpoUsd": 46169000000,
+    "rpoYoYPct": 7.7,
+    "end": "2026-10-24",
     "tag": "RPO"
   },
   "ADP": {
@@ -204,9 +204,9 @@
     "tag": "deferred"
   },
   "PANW": {
-    "rpoUsd": 21200000000,
-    "rpoYoYPct": 34.2,
-    "end": "2026-07-31",
+    "rpoUsd": 21000000000,
+    "rpoYoYPct": 35.5,
+    "end": "2026-10-31",
     "tag": "RPO"
   },
   "ANET": {
@@ -498,9 +498,9 @@
     "tag": "RPO"
   },
   "PTC": {
-    "rpoUsd": 2417700000,
-    "rpoYoYPct": 4.7,
-    "end": "2026-06-30",
+    "rpoUsd": 2740000000,
+    "rpoYoYPct": -4.6,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "TDC": {
@@ -714,9 +714,9 @@
     "tag": "deferred"
   },
   "DHI": {
-    "rpoUsd": 112800000,
-    "rpoYoYPct": 5.8,
-    "end": "2026-06-30",
+    "rpoUsd": 121100000,
+    "rpoYoYPct": 48.6,
+    "end": "2026-09-30",
     "tag": "deferred"
   },
   "PHM": {
@@ -1146,9 +1146,9 @@
     "tag": "deferred"
   },
   "ACM": {
-    "rpoUsd": 20400000000,
-    "rpoYoYPct": 14,
-    "end": "2026-06-30",
+    "rpoUsd": 21200000000,
+    "rpoYoYPct": 7.6,
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "TDY": {
@@ -1466,7 +1466,7 @@
   "FFIV": {
     "rpoUsd": 2200000000,
     "rpoYoYPct": 10,
-    "end": "2026-06-30",
+    "end": "2026-09-30",
     "tag": "RPO"
   },
   "FICO": {
@@ -2256,9 +2256,9 @@
     "tag": "RPO"
   },
   "ESTC": {
-    "rpoUsd": 1854000000,
-    "rpoYoYPct": 26.9,
-    "end": "2026-07-31",
+    "rpoUsd": 1858000000,
+    "rpoYoYPct": 23.3,
+    "end": "2026-10-31",
     "tag": "RPO"
   },
   "TXT": {
