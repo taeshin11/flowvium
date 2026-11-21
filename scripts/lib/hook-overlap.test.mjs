@@ -25,7 +25,7 @@ import('./hook-overlap.mjs').then(({ restatesTitle }) => {
   assert.ok(!restatesTitle('예금 이자가 줄어들면, 그 돈은 어디로 갈까요?', '금리를 내리면 주가가 오르는 이유'));
 });
 // [6] 심판이 낸 훅은 화면 뉴스에서 나와야 한다(10/28 20:57 "타지 철길 위 참변" — 성평등장관 편에 다른 뉴스 훅이 올랐다)
-import('./hook-overlap.mjs').then(({ sharesStory }) => {
+import('./hook-overlap.mjs').then(async ({ sharesStory }) => {
   const minister = '성평등장관 "폭력 피해자 끝까지 보호…경찰과 공동대응" 원민경 성평등가족부 장관은 28일 "폭력 피해자를 끝까지 보호하겠다"라고 말했다.';
   assert.ok(!sharesStory('타지 철길 위 참변', minister), '다른 뉴스 훅');
   assert.ok(!sharesStory('비극 부른 사고의 전말', minister), '다른 뉴스 훅');
@@ -50,5 +50,33 @@ import('./hook-overlap.mjs').then(({ sharesStory }) => {
   assert.ok(!namesSubject('가자지구 재건 공동사업', '[일문일답] 국빈방한 에르도안 "가자지구 재건에 韓과 공동사업 가능"', '에르도안'), '주인공 없는 훅은 여전히 다시 쓴다');
   assert.ok(!namesSubject('16년 만의 최악 부진', '현대차, 16년 만에 최악의 부진', '연합뉴스'), '헤드라인에 없는 키워드는 무시하고 첫 낱말로');
   assert.ok(namesSubject('투표지 전부 보전?', '野 "올공 투표지 전체 증거보전해야"'), '주어를 못 뽑으면 막지 않는다');
+  // [10] 11/21 실측(11/19~20 16편): '첫 훅에 주어 없음' 9편 중 6편이 잣대 탓이었다 — 모델은 알 수 없는 기준으로 떨어졌다.
+  //   ① 이슈 키워드가 숫자·분량("1조달러"·"120억달러"·"90만개")이어도 주어로 썼다 → 숫자 든 키워드는 주어가 아니다.
+  //   ② 키워드가 화제어("금융상품"·"부정행위")면 헤드라인 첫 낱말(진짜 주어)을 안 봤다 → 둘 중 하나만 담으면 된다.
+  //   ③ 신문 한자 약칭(李대통령·韓총리·美 상무부·美 "…")에서 주어를 못 뽑았다.
+  assert.equal(headlineSubject('李대통령 "수능 부정행위 철저히 차단…적발된 불법행위 무관용"'), '대통령', '붙은 한자 약칭은 뒤 낱말');
+  assert.equal(headlineSubject('[속보] 韓총리 "수능 와이파이·블루투스 신호 분석해 의심사례 수사"'), '총리');
+  assert.equal(headlineSubject('美 상무부, 中 AI칩 수출 90만개 승인…中 군사 지원 기업도 포함'), '상무부', '띄어 쓴 나라 약칭 뒤 기관');
+  assert.equal(headlineSubject('美 "이란, 핵심인프라 사이버 공격…최근 전산장애와는 무관"'), '미국', '약칭 뒤가 따옴표면 그 나라');
+  assert.equal(headlineSubject('靑, 한한령 해빙 기대감에 "진전 있다…공연도 가능성 열려"'), '청와대');
+  assert.ok(namesSubject('대한민국 수출 1조 달성', "수출 60% 늘었다…반도체 3배·8개 품목 신기록 쓴 '1조달러'", '1조달러'), '숫자 키워드는 주어가 아니다');
+  assert.ok(namesSubject('K푸드+ 수출 역대최대', "K푸드+ 수출 120억달러↑ '역대 최대'…라면·포도가 성장 견인", '120억달러'));
+  assert.ok(namesSubject('미래에셋 근거까지 제시', "미래에셋증권, 아마존웹서비스 AI 기반 '금융상품 지식 검색' 운영", '금융상품'), '키워드든 첫 낱말이든 하나면 된다');
+  assert.ok(namesSubject('미 상무부 제재선 균열', '美 상무부, 中 AI칩 수출 90만개 승인…中 군사 지원 기업도 포함', '90만개'));
+  assert.ok(namesSubject('미국 전산장애 배후', '美 "이란, 핵심인프라 사이버 공격…최근 전산장애와는 무관"', '사이버'));
+  // 진짜로 누구 얘기인지 빠진 훅은 여전히 다시 쓴다
+  assert.ok(!namesSubject('엔터 관련주 강세', '靑, 한한령 해빙 기대감에 "진전 있다…공연도 가능성 열려"', '한한령'));
+  assert.ok(!namesSubject('계엄 표결방해 무죄', '국힘, 추경호 1심 무죄에 "이제 내란몰이 끝나 …특검고발 검토"(종합2보)', '추경호'));
+  // [11] 생성 쪽: 모델에게 이번 회차 주어와 피할 제목 낱말을 구체적으로 준다(잣대와 같은 함수) — 그 계획대로 쓴 훅은 두 검사를 다 통과한다.
+  const { firstHookPlan } = await import('./hook-overlap.mjs');
+  const H = 'KB증권, 지역관광 AI 펀드에 20억원 출자';
+  const plan = firstHookPlan(H, 'kb증권');
+  assert.deepEqual(plan.subjects, ['KB증권']);
+  assert.ok(plan.avoid.includes('출자') && plan.avoid.includes('펀드') && !plan.avoid.includes('KB증권'), JSON.stringify(plan));
+  assert.ok(repeatsTitle('KB증권 20억원 출자', H), '실제 11/20 첫 훅 — 제목 되풀이');
+  assert.ok(!repeatsTitle('KB증권 관광 살리기 베팅', H) && namesSubject('KB증권 관광 살리기 베팅', H, 'kb증권'), '주어 + 제목에 없는 말');
+  const p2 = firstHookPlan("수출 60% 늘었다…반도체 3배·8개 품목 신기록 쓴 '1조달러'", '1조달러');
+  assert.deepEqual(p2.subjects, ['수출'], '숫자 키워드는 주어 후보에서 뺀다');
+  assert.deepEqual(firstHookPlan('野 "올공 투표지 전체 증거보전해야"', '').subjects, [], '주어를 못 뽑으면 빈 목록(규칙을 안 붙인다)');
   console.log('hook-overlap.test: ✅ 전부 통과');
 });

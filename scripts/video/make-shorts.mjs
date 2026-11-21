@@ -20,7 +20,7 @@
  */
 import { chromium } from 'playwright';
 import { cutHead, shortsThumbHtml, dataUrlOf, THUMB_BG } from '../lib/shorts-thumb.mjs';
-import { repeatsTitle, restatesTitle, sharesStory, namesSubject } from '../lib/hook-overlap.mjs';
+import { repeatsTitle, restatesTitle, sharesStory, namesSubject, firstHookPlan } from '../lib/hook-overlap.mjs';
 import ffmpegPath from 'ffmpeg-static';
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
@@ -901,6 +901,15 @@ const SKELETON_RULE = `${skeletonRule(SKELETON, budget, { save: SAVE_MODE })}
 - 아래 hook 규칙의 '답을 다 말하지 말고 궁금하게'보다 위 구성(첫 문장 갈래)이 먼저다.`;
 if (!BRIEF) log(`[대본] 뼈대: ${SKELETON.name}(${SKELETON.id}) · 출처 ${SKELETON.src} · 저장 요소 ${SAVE_MODE === 'numbers' ? '숫자' : '체크리스트'}`);
 
+// 2026-11-21: 11/19~20 14편이 세 번 다 '첫 훅 주어 없음'(10)·'제목 되풀이'(7)로 걸렸다. 주어 잣대가 모델에게 안 보였고(이슈 키워드),
+//   "주어를 담아라"와 "제목을 되풀이하지 마라"가 서로 당겼다. 검사와 같은 함수로 이번 회차의 주어 후보·피할 제목 낱말을 구체적으로 준다
+//   (lib/hook-overlap firstHookPlan — 주어 말고 제목 낱말을 안 쓰면 두 검사를 다 통과한다).
+const HOOK_PLAN = firstHookPlan(headlines[0], issue?.keyword);
+const FIRST_HOOK_RULE = HOOK_PLAN.subjects.length ? `
+  · **이번 회차 1번 장면 hook**: 주어 ${HOOK_PLAN.subjects.map((x) => `"${x}"`).join(' 또는 ')} 를 넣고, 나머지는 제목에 없는 말(결과·이유의 실마리·영향 — 기사에 있는 것만)로 채운다.
+    주어 말고는 제목 낱말(${HOOK_PLAN.avoid.slice(0, 10).join('·')})을 hook 에 쓰지 마라. 1번 장면 say 도 이 낱말을 둘 넘게 다시 쓰지 마라.` : '';
+if (HOOK_PLAN.subjects.length) log(`[대본] 첫 훅 주어 후보: ${HOOK_PLAN.subjects.join('·')} · 피할 제목 낱말 ${HOOK_PLAN.avoid.length}개`);
+
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
 ${TARGET_SEC}초 세로 쇼츠 하나로 묶어 전한다. 장면 하나에 뉴스 하나씩, 순서대로.
 
@@ -927,7 +936,7 @@ ${(BRIEF ?? []).map((p2, i) => {
 - **남의 주장은 누가 했는지 밝혀라.** 사람을 규정하는 말(카르텔·농단·3인방 …)은 발화자와 함께.
 - 정당·기관·인물 이름은 헤드라인에 적힌 그대로 옮겨라.
 - 숫자와 단위는 붙여 쓴다("6800억원", "18문"). 자릿수 사이를 띄우지 마라.
-- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라. 첫 훅과 첫 문장은 헤드라인을 되풀이하지 말고 제목에 없는 것(결과·이유의 실마리·영향 — 기사에 있는 것만)을 더하라.
+- hook: 화면에 크게 박을 문구, **12자 이내**. 장면마다 다른 말로 시작하라. 첫 훅과 첫 문장은 헤드라인을 되풀이하지 말고 제목에 없는 것(결과·이유의 실마리·영향 — 기사에 있는 것만)을 더하라.${FIRST_HOOK_RULE}
   · **첫 훅은 무슨 일이 벌어졌는지로** — 누가 무엇을 했나(갈등·사건·행동). 쇼츠는 첫 1~2초에 63% 가 넘긴다.
     실측(2026-09-26, 훅 41편): 안 넘기고 본 비율 상위 = "지지율 급락"·"최전방 부대 폭발"·"재제청 거부 이유"·"유출 고발"
     (47~63%), 하위 = "영국 기준금리 동결"·"올해 경제 성장률"·"서울 ODA 국제회의"(12~24%). 지표 이름만으로 시작하지 마라.
@@ -971,7 +980,7 @@ ${issue.__followup ? `${FOLLOWUP_LINE}
 - 영어 단위는 한글로 바꾼다(TTS 오독 방지). 예: 17 billion → 백칠십억
 - 한국이 잘한 이야기면 대놓고 자랑하라. "이게 대한민국입니다", "또 해냈습니다" 같은 말을 써도 좋다.
   단 **헤드라인에 있는 사실로만** — 없는 순위·기록·반응을 지어내면 거짓말이다.
-- hook: 화면 위에 크게 박을 문구. **12자 이내**, 명사로 끝내라. 예: "삼성 세계 1위 탈환"
+- hook: 화면 위에 크게 박을 문구. **12자 이내**, 명사로 끝내라. 예: "삼성 세계 1위 탈환"${FIRST_HOOK_RULE}
   · **훅마다 다른 말로 시작하라.** 실측: 다섯 훅이 전부 "중기부" 로 시작해 화면이 단조로웠고
     같은 훅("중기부 역할")이 두 번 나왔다. 같은 낱말로 시작하는 훅을 두 개 이상 쓰지 마라.
   · **첫 훅은 무슨 일이 벌어졌는지로** — 누가 무엇을 했나(갈등·사건·행동). 쇼츠는 첫 1~2초에 63% 가 넘긴다.

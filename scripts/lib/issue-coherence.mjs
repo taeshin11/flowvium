@@ -78,10 +78,14 @@ export function isPromotional(headline) {
   return true;
 }
 
+// 언론사 이름 — 기사마다 붙는 출처 표기라 주제가 아니다(11/21 dry: "연합뉴스" 가 키워드가 되어 헤드라인 "- 14:30" 으로 대본까지 갔다).
+const PRESS = /^(연합뉴스|연합인포맥스|뉴스1|뉴시스|머니투데이|이데일리|헤럴드경제|아시아경제|파이낸셜뉴스|서울경제|한국경제|매일경제|조선일보|중앙일보|동아일보|한겨레|경향신문|한국일보|국민일보|세계일보|문화일보|서울신문|KBS|MBC|SBS|YTN|JTBC|MBN|TV조선|채널A|연합뉴스TV|노컷뉴스|오마이뉴스|프레시안|데일리안|뉴데일리|아주경제|이투데이|비즈워치|더팩트|news1)$/i;
+
 export function isTopicKeyword(keyword) {
   const k = String(keyword ?? '').trim();
   if (k.length < 2) return false;
   if (NOT_A_TOPIC.has(k)) return false;
+  if (PRESS.test(k)) return false;
   // 연결어미로 끝나는 말은 대개 주제가 아니다("앞두고"·"맞이하고"·"대비하며").
   if (/[가-힣]{2,}(하고|하며|되며|되고|면서|으로써|에서도|에게도)$/.test(k)) return false;
   // '의' 로 끝나는 말은 **뒤에 오는 말을 꾸미는 관형어**다 — 주제는 그 뒤에 있다.

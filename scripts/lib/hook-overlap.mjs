@@ -44,21 +44,60 @@ export function sharesStory(hook, story) {
   return h.some((w) => s.has(w));
 }
 
-/** 헤드라인의 주어 — 첫 낱말(편집 표시·따옴표·끝 조사 뗌). 한 글자(野·與·靑)나 숫자면 null(판정 안 함). 11/02 벤치마크. */
+// 신문 제목의 한 글자 한자 약칭(나라·기관). 與·野 는 어느 당인지 몰라 넣지 않는다 — 판정 안 함(11/21).
+const HANJA = { 美: '미국', 中: '중국', 韓: '한국', 日: '일본', 北: '북한', 英: '영국', 露: '러시아', 獨: '독일', 佛: '프랑스', 印: '인도', 臺: '대만', 靑: '청와대' };
+
+/** 헤드라인의 주어 — 첫 낱말(편집 표시·따옴표·끝 조사 뗌). 한 글자(野·與)나 숫자면 null(판정 안 함). 11/02 벤치마크.
+ *  11/21: 한자 약칭 — 붙어 있으면 뒤 낱말(李대통령→대통령·韓총리→총리), 띄어 쓴 나라 약칭 뒤 낱말(美 상무부→상무부),
+ *  약칭 뒤가 따옴표·쉼표면 그 나라·기관(美 "…"→미국, 靑, …→청와대). */
 export function headlineSubject(headline) {
-  const t = String(headline ?? '').replace(/^\s*(\[[^\]]*\]\s*)+/, '').replace(/^[\s'"‘’“”「」]+/, '');
+  let t = String(headline ?? '').replace(/^\s*(\[[^\]]*\]\s*)+/, '').replace(/^[\s'"‘’“”「」]+/, '');
+  const hz = t.match(/^([\u4e00-\u9fff])(\s*)/);
+  if (hz) {
+    const rest = t.slice(hz[0].length);
+    const next = /^[0-9A-Za-z가-힣]/.test(rest);
+    if (!hz[2] && next) t = rest;
+    else if (HANJA[hz[1]] && next) t = rest;
+    else return HANJA[hz[1]] ?? null;
+  }
   let w = (t.match(/^[0-9A-Za-z가-힣]+/) ?? [''])[0];
   if (w.length > 2 && /[가-힣]$/.test(w) && /[이가은는의도]$/.test(w)) w = w.slice(0, -1);
   return w.length >= 2 && !/^[0-9]/.test(w) ? w : null;
 }
 
-/** 첫 훅이 헤드라인의 주어를 담나 — 어간 근사(앞 두 글자·영문 통째)로 하나라도 겹치면 된다. 주어를 못 뽑으면 true.
- *  keyword(이슈 키워드 — 이 회차가 모은 이야기의 주인공)가 헤드라인에 있으면 그게 주어다. 첫 낱말은 꾸밈말일 수 있다
+/** 첫 훅이 담아야 할 주어 후보 — 이슈 키워드(헤드라인에 있고 숫자가 없을 때)와 헤드라인 첫 낱말. 11/21: 키워드가
+ *  "1조달러"·"90만개" 같은 분량이거나 "금융상품" 같은 화제어여서 진짜 주어를 쓴 훅이 떨어졌다(11/19~20 9편 중 6편). */
+export function leadSubjects(headline, keyword) {
+  const k = String(keyword ?? '').trim();
+  const out = [];
+  if (k.length >= 2 && !/[0-9]/.test(k) && String(headline ?? '').includes(k)) out.push(k);
+  const s = headlineSubject(headline);
+  if (s && !out.some((x) => stems(x).join() === stems(s).join())) out.push(s);
+  return out;
+}
+
+/** 첫 훅이 주어 후보 중 하나를 담나 — 어간 근사(앞 두 글자·영문 통째)로 하나라도 겹치면 된다. 후보가 없으면 true.
+ *  keyword(이슈 키워드)가 헤드라인에 있으면 그것도 주어다. 첫 낱말은 꾸밈말일 수 있다
  *  (11/02 "[일문일답] 국빈방한 에르도안 …" 에서 '국빈방한' 을 주어로 뽑았다). */
 export function namesSubject(hook, headline, keyword) {
-  const k = String(keyword ?? '').trim();
-  const s = k.length >= 2 && String(headline ?? '').includes(k) ? k : headlineSubject(headline);
-  if (!s) return true;
-  const want = new Set(stems(s));
-  return stems(hook).some((w) => want.has(w));
+  const subs = leadSubjects(headline, keyword);
+  if (!subs.length) return true;
+  const have = new Set(stems(hook));
+  return subs.some((s) => stems(s).some((w) => have.has(w)));
+}
+
+/** 생성 쪽 계획(11/21) — 모델에게 이번 회차 첫 훅의 주어 후보와 피할 제목 낱말을 준다. 검사(namesSubject·repeatsTitle)와 같은 잣대.
+ *  주어 말고 제목 낱말을 안 쓰면 겹침이 하나뿐이라 repeatsTitle(둘 이상)에 안 걸린다. */
+export function firstHookPlan(headline, keyword) {
+  const subjects = leadSubjects(headline, keyword);
+  const subStems = new Set(subjects.flatMap((s) => stems(s)));
+  const seen = new Set();
+  const avoid = [];
+  for (const w of String(headline ?? '').match(/[0-9A-Za-z가-힣]+/g) ?? []) {
+    const st = stems(w);
+    if (!st.length || st.every((x) => subStems.has(x)) || seen.has(st.join())) continue;
+    seen.add(st.join());
+    avoid.push(w.replace(/(?<=[가-힣]{2})(이|가|은|는|을|를|에|에서|의|도|와|과|로|으로)$/, ''));
+  }
+  return { subjects, avoid };
 }
