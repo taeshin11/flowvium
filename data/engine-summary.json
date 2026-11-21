@@ -1,10 +1,10 @@
 {
- "at": "2026-11-20T22:45:17.445Z",
+ "at": "2026-11-21T07:45:17.675Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 182,
- "signals": 21446,
- "newSignals": 7196,
+ "ledgerLines": 184,
+ "signals": 21670,
+ "newSignals": 7202,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -154,37 +154,37 @@
   },
   "cand_unpicked|kr|1": {
    "new": 22,
-   "ok": 21,
+   "ok": 22,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1,
+   "pending": 0,
    "noData": 0,
    "days": 9,
-   "meanNet": -0.01162,
+   "meanNet": -0.01072,
    "se": null,
    "t": null
   },
   "cand_unpicked|kr|5": {
    "new": 22,
-   "ok": 12,
+   "ok": 20,
    "stale": 0,
    "mismatch": 0,
-   "pending": 10,
+   "pending": 2,
    "noData": 0,
-   "days": 7,
-   "meanNet": 0.03538,
+   "days": 8,
+   "meanNet": 0.03454,
    "se": null,
    "t": null
   },
   "cand_unpicked|kr|20": {
    "new": 22,
-   "ok": 6,
+   "ok": 7,
    "stale": 0,
    "mismatch": 0,
-   "pending": 16,
+   "pending": 15,
    "noData": 0,
-   "days": 2,
-   "meanNet": 0.00801,
+   "days": 3,
+   "meanNet": -0.03323,
    "se": null,
    "t": null
   },
@@ -256,8 +256,8 @@
    "pending": 0,
    "noData": 0,
    "days": 31,
-   "meanNet": 0.00057,
-   "se": 0.00256,
+   "meanNet": 0.00058,
+   "se": 0.00257,
    "t": 0.22
   },
   "judge_pass|us|5": {
@@ -322,13 +322,13 @@
   },
   "judge_veto|kr|20": {
    "new": 23,
-   "ok": 17,
+   "ok": 18,
    "stale": 0,
    "mismatch": 0,
-   "pending": 6,
+   "pending": 5,
    "noData": 0,
-   "days": 6,
-   "meanNet": 0.03539,
+   "days": 7,
+   "meanNet": 0.04639,
    "se": null,
    "t": null
   },
@@ -345,11 +345,11 @@
    "t": null
   },
   "sell|us|1": {
-   "new": 90,
+   "new": 92,
    "ok": 87,
    "stale": 0,
    "mismatch": 0,
-   "pending": 3,
+   "pending": 5,
    "noData": 0,
    "days": 31,
    "meanNet": -0.00282,
@@ -357,11 +357,11 @@
    "t": -1.19
   },
   "sell|us|5": {
-   "new": 90,
+   "new": 92,
    "ok": 80,
    "stale": 0,
    "mismatch": 0,
-   "pending": 10,
+   "pending": 12,
    "noData": 0,
    "days": 29,
    "meanNet": -0.00825,
@@ -369,11 +369,11 @@
    "t": -1.28
   },
   "sell|us|20": {
-   "new": 90,
+   "new": 92,
    "ok": 46,
    "stale": 0,
    "mismatch": 0,
-   "pending": 44,
+   "pending": 46,
    "noData": 0,
    "days": 12,
    "meanNet": -0.00036,
@@ -381,11 +381,11 @@
    "t": -0.06
   },
   "sell|us|60": {
-   "new": 90,
+   "new": 92,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 90,
+   "pending": 92,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -442,39 +442,39 @@
   },
   "control|kr|1": {
    "new": 2280,
-   "ok": 2160,
+   "ok": 2220,
    "stale": 0,
    "mismatch": 0,
-   "pending": 120,
+   "pending": 60,
    "noData": 0,
-   "days": 36,
-   "meanNet": -0.00325,
-   "se": 0.00193,
-   "t": -1.69
+   "days": 37,
+   "meanNet": -0.0032,
+   "se": 0.00188,
+   "t": -1.71
   },
   "control|kr|5": {
    "new": 2280,
-   "ok": 1800,
+   "ok": 1980,
    "stale": 0,
    "mismatch": 0,
-   "pending": 480,
+   "pending": 300,
    "noData": 0,
-   "days": 30,
-   "meanNet": -0.00511,
-   "se": 0.0081,
-   "t": -0.63
+   "days": 33,
+   "meanNet": -0.0029,
+   "se": 0.00789,
+   "t": -0.37
   },
   "control|kr|20": {
    "new": 2280,
-   "ok": 540,
+   "ok": 720,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1740,
+   "pending": 1560,
    "noData": 0,
-   "days": 9,
-   "meanNet": -0.02169,
-   "se": null,
-   "t": null
+   "days": 12,
+   "meanNet": -0.01405,
+   "se": 0.00623,
+   "t": -2.26
   },
   "control|kr|60": {
    "new": 2280,
@@ -490,15 +490,15 @@
   },
   "pick|kr|1": {
    "new": 19,
-   "ok": 17,
+   "ok": 19,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2,
+   "pending": 0,
    "noData": 0,
-   "days": 9,
-   "meanNet": -0.00639,
-   "se": null,
-   "t": null
+   "days": 10,
+   "meanNet": -0.0044,
+   "se": 0.00665,
+   "t": -0.66
   },
   "pick|kr|5": {
    "new": 19,
@@ -514,13 +514,13 @@
   },
   "pick|kr|20": {
    "new": 19,
-   "ok": 13,
+   "ok": 15,
    "stale": 0,
    "mismatch": 0,
-   "pending": 6,
+   "pending": 4,
    "noData": 0,
-   "days": 5,
-   "meanNet": 0.02743,
+   "days": 7,
+   "meanNet": 0.00599,
    "se": null,
    "t": null
   },
@@ -538,13 +538,13 @@
   },
   "cand_picked|kr|1": {
    "new": 11,
-   "ok": 9,
+   "ok": 11,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2,
+   "pending": 0,
    "noData": 0,
-   "days": 4,
-   "meanNet": -0.0075,
+   "days": 5,
+   "meanNet": -0.00329,
    "se": null,
    "t": null
   },
@@ -562,13 +562,13 @@
   },
   "cand_picked|kr|20": {
    "new": 11,
-   "ok": 7,
+   "ok": 8,
    "stale": 0,
    "mismatch": 0,
-   "pending": 4,
+   "pending": 3,
    "noData": 0,
-   "days": 2,
-   "meanNet": -0.02958,
+   "days": 3,
+   "meanNet": -0.05829,
    "se": null,
    "t": null
   },
@@ -586,13 +586,13 @@
   },
   "judge_pass|kr|1": {
    "new": 17,
-   "ok": 15,
+   "ok": 17,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2,
+   "pending": 0,
    "noData": 0,
-   "days": 8,
-   "meanNet": -0.00632,
+   "days": 9,
+   "meanNet": -0.00412,
    "se": null,
    "t": null
   },
@@ -610,13 +610,13 @@
   },
   "judge_pass|kr|20": {
    "new": 17,
-   "ok": 11,
+   "ok": 13,
    "stale": 0,
    "mismatch": 0,
-   "pending": 6,
+   "pending": 4,
    "noData": 0,
-   "days": 4,
-   "meanNet": 0.00398,
+   "days": 6,
+   "meanNet": -0.01322,
    "se": null,
    "t": null
   },
@@ -729,11 +729,11 @@
    "t": null
   },
   "judge_unknown|us|1": {
-   "new": 9,
+   "new": 11,
    "ok": 9,
    "stale": 0,
    "mismatch": 0,
-   "pending": 0,
+   "pending": 2,
    "noData": 0,
    "days": 8,
    "meanNet": 0.00023,
@@ -741,11 +741,11 @@
    "t": null
   },
   "judge_unknown|us|5": {
-   "new": 9,
+   "new": 11,
    "ok": 8,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1,
+   "pending": 3,
    "noData": 0,
    "days": 7,
    "meanNet": -0.0022,
@@ -753,11 +753,11 @@
    "t": null
   },
   "judge_unknown|us|20": {
-   "new": 9,
+   "new": 11,
    "ok": 4,
    "stale": 0,
    "mismatch": 0,
-   "pending": 5,
+   "pending": 7,
    "noData": 0,
    "days": 3,
    "meanNet": -0.08582,
@@ -765,11 +765,11 @@
    "t": null
   },
   "judge_unknown|us|60": {
-   "new": 9,
+   "new": 11,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 9,
+   "pending": 11,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -778,37 +778,37 @@
   },
   "sell|kr|1": {
    "new": 18,
+   "ok": 18,
+   "stale": 0,
+   "mismatch": 0,
+   "pending": 0,
+   "noData": 0,
+   "days": 8,
+   "meanNet": 0.00919,
+   "se": null,
+   "t": null
+  },
+  "sell|kr|5": {
+   "new": 18,
    "ok": 17,
    "stale": 0,
    "mismatch": 0,
    "pending": 1,
    "noData": 0,
    "days": 7,
-   "meanNet": 0.00802,
-   "se": null,
-   "t": null
-  },
-  "sell|kr|5": {
-   "new": 18,
-   "ok": 16,
-   "stale": 0,
-   "mismatch": 0,
-   "pending": 2,
-   "noData": 0,
-   "days": 6,
-   "meanNet": -0.05164,
+   "meanNet": -0.03123,
    "se": null,
    "t": null
   },
   "sell|kr|20": {
    "new": 18,
-   "ok": 8,
+   "ok": 14,
    "stale": 0,
    "mismatch": 0,
-   "pending": 10,
+   "pending": 4,
    "noData": 0,
-   "days": 3,
-   "meanNet": 0.0324,
+   "days": 4,
+   "meanNet": 0.03086,
    "se": null,
    "t": null
   },
@@ -826,13 +826,13 @@
   },
   "judge_downgrade|kr|1": {
    "new": 4,
-   "ok": 3,
+   "ok": 4,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1,
+   "pending": 0,
    "noData": 0,
-   "days": 3,
-   "meanNet": -0.02911,
+   "days": 4,
+   "meanNet": -0.01987,
    "se": null,
    "t": null
   },
@@ -874,13 +874,13 @@
   },
   "judge_downgraded|kr|1": {
    "new": 4,
-   "ok": 3,
+   "ok": 4,
    "stale": 0,
    "mismatch": 0,
-   "pending": 1,
+   "pending": 0,
    "noData": 0,
-   "days": 3,
-   "meanNet": -0.02911,
+   "days": 4,
+   "meanNet": -0.01987,
    "se": null,
    "t": null
   },
@@ -969,23 +969,23 @@
    "t": null
   },
   "funnel_veto_other|us|1": {
-   "new": 128,
+   "new": 130,
    "ok": 126,
    "stale": 0,
    "mismatch": 0,
-   "pending": 2,
+   "pending": 4,
    "noData": 0,
    "days": 20,
-   "meanNet": -0.0027,
-   "se": 0.00244,
+   "meanNet": -0.00271,
+   "se": 0.00243,
    "t": -1.11
   },
   "funnel_veto_other|us|5": {
-   "new": 128,
+   "new": 130,
    "ok": 104,
    "stale": 0,
    "mismatch": 0,
-   "pending": 24,
+   "pending": 26,
    "noData": 0,
    "days": 16,
    "meanNet": -0.00818,
@@ -993,11 +993,11 @@
    "t": -0.78
   },
   "funnel_veto_other|us|20": {
-   "new": 128,
+   "new": 130,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 128,
+   "pending": 130,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1005,11 +1005,11 @@
    "t": null
   },
   "funnel_veto_other|us|60": {
-   "new": 128,
+   "new": 130,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 128,
+   "pending": 130,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1066,25 +1066,25 @@
   },
   "funnel_veto_other|kr|1": {
    "new": 42,
-   "ok": 39,
+   "ok": 41,
    "stale": 0,
    "mismatch": 0,
-   "pending": 3,
+   "pending": 1,
    "noData": 0,
    "days": 9,
-   "meanNet": -0.00897,
+   "meanNet": -0.008,
    "se": null,
    "t": null
   },
   "funnel_veto_other|kr|5": {
    "new": 42,
-   "ok": 35,
+   "ok": 38,
    "stale": 0,
    "mismatch": 0,
-   "pending": 7,
+   "pending": 4,
    "noData": 0,
-   "days": 7,
-   "meanNet": 0.07485,
+   "days": 8,
+   "meanNet": 0.06061,
    "se": null,
    "t": null
   },
@@ -1182,7 +1182,7 @@
   },
   "H2 pick-cand_unpicked|us|20": {
    "days": 11,
-   "mean": -0.01133,
+   "mean": -0.01134,
    "se": 0.01727,
    "t": -0.66
   },
@@ -1235,14 +1235,14 @@
    "t": null
   },
   "H1 pick-control|kr|1": {
-   "days": 9,
-   "mean": 0.00035,
-   "se": null,
-   "t": null
+   "days": 10,
+   "mean": 0.00219,
+   "se": 0.00578,
+   "t": 0.38
   },
   "H2 pick-cand_unpicked|kr|1": {
-   "days": 4,
-   "mean": 0.01004,
+   "days": 5,
+   "mean": 0.00853,
    "se": null,
    "t": null
   },
@@ -1295,20 +1295,20 @@
    "t": null
   },
   "H1 pick-control|kr|20": {
-   "days": 5,
-   "mean": 0.04926,
+   "days": 7,
+   "mean": 0.0218,
    "se": null,
    "t": null
   },
   "H2 pick-cand_unpicked|kr|20": {
-   "days": 2,
-   "mean": -0.03759,
+   "days": 3,
+   "mean": -0.02506,
    "se": null,
    "t": null
   },
   "H5 judge_veto-judge_pass|kr|20": {
-   "days": 3,
-   "mean": 0.03481,
+   "days": 4,
+   "mean": 0.08313,
    "se": null,
    "t": null
   },
@@ -1479,14 +1479,14 @@
     "t": null
    },
    "H1 pick-control|kr|1": {
-    "days": 3,
-    "mean": -0.00622,
+    "days": 4,
+    "mean": 0.00003,
     "se": null,
     "t": null
    },
    "H2 pick-cand_unpicked|kr|1": {
-    "days": 2,
-    "mean": 0,
+    "days": 3,
+    "mean": 0.00083,
     "se": null,
     "t": null
    },
