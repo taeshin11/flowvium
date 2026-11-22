@@ -1,10 +1,10 @@
 {
- "at": "2026-11-21T22:45:17.231Z",
+ "at": "2026-11-22T07:45:18.145Z",
  "protocol": "docs/prospective-study-protocol.md v0.3",
  "studyStartedAt": "2026-10-15T13:20:17.795Z",
- "ledgerLines": 187,
- "signals": 22165,
- "newSignals": 7363,
+ "ledgerLines": 189,
+ "signals": 22389,
+ "newSignals": 7364,
  "priceFetchFailed": 0,
  "note": "순초과 = 종목 - 기준지수 - 왕복비용(US 15bp·KR 40bp 가정). t 는 Newey-West(lag=h-1). 확증은 24주(20일) — 그 전 숫자는 방향만.",
  "byRoleMarketH": {
@@ -969,11 +969,11 @@
    "t": null
   },
   "funnel_veto_other|us|1": {
-   "new": 130,
+   "new": 131,
    "ok": 126,
    "stale": 0,
    "mismatch": 0,
-   "pending": 4,
+   "pending": 5,
    "noData": 0,
    "days": 20,
    "meanNet": -0.00271,
@@ -981,11 +981,11 @@
    "t": -1.11
   },
   "funnel_veto_other|us|5": {
-   "new": 130,
+   "new": 131,
    "ok": 104,
    "stale": 0,
    "mismatch": 0,
-   "pending": 26,
+   "pending": 27,
    "noData": 0,
    "days": 16,
    "meanNet": -0.00818,
@@ -993,11 +993,11 @@
    "t": -0.78
   },
   "funnel_veto_other|us|20": {
-   "new": 130,
+   "new": 131,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 130,
+   "pending": 131,
    "noData": 0,
    "days": 0,
    "meanNet": null,
@@ -1005,11 +1005,11 @@
    "t": null
   },
   "funnel_veto_other|us|60": {
-   "new": 130,
+   "new": 131,
    "ok": 0,
    "stale": 0,
    "mismatch": 0,
-   "pending": 130,
+   "pending": 131,
    "noData": 0,
    "days": 0,
    "meanNet": null,
