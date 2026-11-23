@@ -1,7 +1,7 @@
 /**
  * thumb-gate.mjs — 올리기 전 썸네일 3자 채점 관문. (2026-10-28 사장님, Mac mini2 경유) 머리말 규칙은 thumb-gate.test.mjs.
  *
- * 심판 셋이 따로 10점 만점: ChatGPT · agy(gemini-4-argon-medium, 그림 첨부) · Claude(claude -p, 그림을 Read).
+ * 심판 셋이 따로 10점 만점: ChatGPT · agy(gemini-4-neon-medium — 11/23 사장님, 그 전 argon, 그림 첨부) · Claude(claude -p, 그림을 Read).
  *   통과 = 정해진 심판(need)이 모두 매겼고, 셋 다 FLOOR 이상(11/01 사장님: 7.0 하나). 못 매긴 심판은 통과가 아니다(울릴 수 없는 경보 금지).
  *   7 이하가 있으면 가장 낮은 심판이 낸 글로 부르는 쪽이 다시 굽고(rerender) 다시 매긴다 — 최대 3번, 전체 10분.
  *   그래도 안 되면 가장 나은 판(최저점 → 합)을 쓰고 flagged 에 이유를 남긴다(22:00 보고).
@@ -265,7 +265,7 @@ export async function claudeJudge({ image, prompt, anchors = null, timeoutMs = 1
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-/** agy — gemini-4-argon-medium(사장님 지정). 그림을 read_file 로 실제로 열었는지 대화 기록으로 확인한다(lib/agy-viewed). */
+/** agy — PREFERRED_VISION 1순위(11/23 사장님 gemini-4-neon-medium). 그림을 read_file 로 실제로 열었는지 대화 기록으로 확인한다(lib/agy-viewed). */
 export async function agyJudge({ image, prompt, anchors = null, timeoutMs = 240_000 }) {
   const { agyBin, agyReady } = await import('./agy.mjs');
   const { runAgy, NO_SHELL_P } = await import('./agy-run.mjs');

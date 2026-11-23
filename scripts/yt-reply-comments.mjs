@@ -105,7 +105,7 @@ for (const t of FORCE ? [] : targets) {
     '출력: {"category":"...","stock":false,"product_link":false,"reply":"..."|null}',
   ].join('\n');
   let r;
-  try { r = parseClassify(await agyReport(prompt, { model: 'gemini-4-argon-medium' })); } catch (e) { log(`분류 실패 ${t.id}: ${String(e?.message ?? e).slice(0, 80)}`); continue; }   // 원장에 안 남긴다 — 다음 시간에 다시
+  try { r = parseClassify(await agyReport(prompt, { model: 'gemini-4-neon-medium' })); } catch (e) { log(`분류 실패 ${t.id}: ${String(e?.message ?? e).slice(0, 80)}`); continue; }   // 원장에 안 남긴다 — 다음 시간에 다시
   if (!r?.category) { log(`분류를 못 받았다 ${t.id} — 다음 시간에 다시`); continue; }   // agy 실패를 '건너뜀'으로 굳히지 않는다
   if (r.category === 'question' && !DRY) { try { const { appendFileSync } = await import('fs'); appendFileSync(QLOG, JSON.stringify({ at: new Date().toISOString(), videoId: t.videoId, title: v.title, text: t.text }) + '\n'); } catch {} }
   if (['spam', 'abuse', 'politics', 'other'].includes(r.category) || !r.reply) { mark(t, 'skipped', { why: r.category, authorId: t.authorId }); continue; }

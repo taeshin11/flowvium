@@ -19,7 +19,7 @@ import { runAgy, NO_SHELL_P } from './agy-run.mjs';
 import { agyBin } from './agy.mjs';
 import { viewedImages } from './agy-viewed.mjs';
 
-export const PHOTO_STORY_MODEL = 'gemini-4-argon-medium';   // 사장님 10/15 "agy 검증에는 gemini4 argon medium"
+export const PHOTO_STORY_MODEL = 'gemini-4-neon-medium';   // 사장님 11/23 "agy 는 gemini4 neon"(10/15~ argon medium)
 export const DROP = new Set(['wrong', 'not_photo']);
 
 /** @param {{name:string, headline:string, say?:string}[]} items */

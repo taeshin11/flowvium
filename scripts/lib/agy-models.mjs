@@ -22,21 +22,22 @@ export const PREFERRED_TEXT = Object.freeze([
 ]);
 // 주제 분류(topic-classify) 전용. 2026-10-15 — 근거는 topic-classify.test.mjs [7]: 같은 60편에서 argon 82%·실패 0,
 //   flash-high 는 도구 없이도 180초 한계에 붙고 검색을 돌다 끊겼다. 짧은 분류에 긴 생각은 시간만 먹는다.
+// 2026-11-23 사장님(Mac mini2 경유): agy 는 gemini4 neon 으로(argon 대체) — 아래 네 사슬 1순위 neon-medium, argon-medium 은 다음 칸.
 export const PREFERRED_CLASSIFY = Object.freeze([
-  'gemini-4-argon-medium', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low',
+  'gemini-4-neon-medium', 'gemini-4-argon-medium', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low',
 ]);
 // 검증(사실 확인·문장 근거 판정·교차검증의 gemini 쪽·그림 검증). 2026-10-15 사장님 "agy 검증에는 gemini4 argon medium".
 //   뒤 칸은 argon 이 서버 목록에서 빠졌을 때만 쓴다(10/13 이름 퇴출로 전 호출이 떨어진 일 — agy-model-names-vanish).
 export const PREFERRED_VERIFY = Object.freeze([
-  'gemini-4-argon-medium', 'gemini-3.8-flash-high', 'gemini-3.8-flash-medium',
+  'gemini-4-neon-medium', 'gemini-4-argon-medium', 'gemini-3.8-flash-high', 'gemini-3.8-flash-medium',
 ]);
 // 그림(프레임) 보기. cross-check 는 claude 를 썼다(9/23 gemini 3.x 이미지 503 실측), video-eye 는 gemini 3.1 pro 를 썼다.
 //   10/15 실측: argon-medium 은 그림을 읽는다(테스트 그림 3장 색·위치·개수 모두 맞힘, 17~21초) → 검증 지시대로 1순위.
 export const PREFERRED_EYE = Object.freeze([
-  'gemini-4-argon-medium', 'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium',
+  'gemini-4-neon-medium', 'gemini-4-argon-medium', 'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium',
 ]);
 export const PREFERRED_VISION = Object.freeze([
-  'gemini-4-argon-medium', 'claude-opus-4-6-thinking', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium', 'gemini-3.8-flash-high',
+  'gemini-4-neon-medium', 'gemini-4-argon-medium', 'claude-opus-4-6-thinking', 'claude-opus-5-5-medium', 'claude-sonnet-5-5-medium', 'gemini-3.8-flash-high',
 ]);
 
 const TTL_MS = 60 * 60 * 1000;
