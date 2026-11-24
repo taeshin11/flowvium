@@ -1,25 +1,106 @@
 {
-  "generatedAt": "2026-11-24T02:22:26.253Z",
+  "generatedAt": "2026-11-24T13:00:39.115Z",
   "universe": "US",
-  "scanned": 284,
-  "count": 1,
+  "scanned": 469,
+  "count": 6,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 6,
   "officialFewAccount": 0,
   "watchlist": [
     {
       "ticker": "PVL",
       "name": "Permianville Royalty Trust",
       "tier": "watch",
-      "score": 28,
+      "score": 36,
       "coFire": 2,
       "lead": [
         "거래량 추세 2.5× 상승(지속 매집)",
-        "거래량 4.2× 급증(가격 평탄)"
+        "거래량 4.2× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)"
       ],
-      "runup20dPct": 0,
-      "runup5dPct": 0,
+      "runup20dPct": 2.8,
+      "runup5dPct": 2.8,
       "medDollarVolUsd": 83848,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "EROK",
+      "name": "EagleRock Land, LLC",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 7.9,
+      "runup5dPct": 3.1,
+      "medDollarVolUsd": 4149200,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "KNOP",
+      "name": "KNOT Offshore Partners LP",
+      "tier": "watch",
+      "score": 28,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -9.2,
+      "runup5dPct": 5.5,
+      "medDollarVolUsd": 494079,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "HFRO",
+      "name": "Highland Floating Rate Opportun",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.0× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -13.4,
+      "runup5dPct": 8.2,
+      "medDollarVolUsd": 651070,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "TIGR",
+      "name": "UP Fintech Holding Limited",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "거래량 2.6× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -5.4,
+      "runup5dPct": -4,
+      "medDollarVolUsd": 8830094,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "CSHR",
+      "name": "CoinShares PLC",
+      "tier": "watch",
+      "score": 16,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.9× 상승",
+        "거래량 2.5× 급증(가격 평탄)"
+      ],
+      "runup20dPct": -0.3,
+      "runup5dPct": 13.5,
+      "medDollarVolUsd": 1286436,
       "smartAccum": false,
       "official": null
     }
