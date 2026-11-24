@@ -1,19 +1,19 @@
 {
- "at": "2026-11-22T22:10:44.127Z",
+ "at": "2026-11-24T07:10:45.904Z",
  "universe": 1105,
  "failed": 12,
  "kr": {
   "n": 421,
-  "below200": 370,
-  "deadCross": 345,
-  "either": 383,
-  "pct": 0.91
+  "below200": 363,
+  "deadCross": 349,
+  "either": 381,
+  "pct": 0.905
  },
  "us": {
   "n": 662,
-  "below200": 383,
-  "deadCross": 342,
-  "either": 434,
-  "pct": 0.656
+  "below200": 339,
+  "deadCross": 340,
+  "either": 406,
+  "pct": 0.613
  }
 }
