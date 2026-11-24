@@ -20,7 +20,7 @@ import { resolve, join } from 'path';
 import { mkdirSync, readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
 import { PIN_LINE } from './lib/ad-line.mjs';
-import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks } from './lib/pin-state.mjs';
+import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks, rewriteTargets } from './lib/pin-state.mjs';
 import { appendFileSync } from 'fs';
 
 const argv = process.argv.slice(2);
@@ -31,7 +31,9 @@ const DUE = argv.includes('--due');
 const ALL = argv.includes('--all');
 const FIX = argv.includes('--fix-long-url');
 // 2026-11-25 --rewrite: 옛 문구(aisviagent) 고정 댓글을 지우지 않고 ⋮ → 수정으로 새 문구로(고정 유지). --ids 로 조회 높은 편부터, 하루 --max(20) 편.
-const REWRITE = argv.includes('--rewrite');
+// --rewrite-due: 대상을 원장(단 적 있고 안 고친 편)·조회수(API)로 스스로 고른다 — cron-runner pin-rewrite 가 매일 부른다.
+const REWRITE_DUE = argv.includes('--rewrite-due');
+const REWRITE = argv.includes('--rewrite') || REWRITE_DUE;
 const rewrittenToday = () => Object.values(state).filter((e) => e?.rewrittenAt && kstDay(e.rewrittenAt) === kstDay(new Date().toISOString())).length;   // 달지 않고 시청자 화면 재확인만(--then-verify 초 뒤, 기본 0)
 // --due 는 cron-runner 가 띄워 출력이 남지 않는다 — logs/pin-comment.log 에도 적는다(발행 직후 달기와 같은 파일).
 const log = (...a) => {
@@ -60,6 +62,20 @@ let targets = [];
 let verifyTargets = null;   // --due: [{id, check}] — null 이면 옛 동작(달기 대상 전부를 재확인)
 const ids = (arg('ids', '') ?? '').split(',').filter(Boolean);
 if (ids.length) targets = ids.map((id) => ({ id, kind: arg('kind', 'short') }));
+else if (REWRITE_DUE) {
+  const { google } = await import('googleapis');
+  const { authorizedClient } = await import('./lib/youtube.mjs');
+  const yt = google.youtube({ version: 'v3', auth: await authorizedClient() });
+  const cand = Object.entries(state).filter(([, e]) => e?.at && !e.rewrittenAt && !e.rewriteSkipped).map(([id]) => id);
+  const views = {};
+  for (let i = 0; i < cand.length; i += 50) {
+    const r = await yt.videos.list({ part: ['statistics', 'status'], id: cand.slice(i, i + 50) });
+    for (const v of r.data.items ?? []) if (v.status?.privacyStatus === 'public') views[v.id] = Number(v.statistics?.viewCount) || 0;
+  }
+  targets = rewriteTargets(state, views, { max: DAY_MAX }).map((id) => ({ id, kind: 'short' }));
+  log(`고쳐 쓰기 남은 편 ${Object.keys(views).length} · 오늘 ${targets.length}편`);
+  if (!targets.length) process.exit(0);
+}
 else if (DUE) {
   // 10분마다 돈다 — 앞 실행이 아직 돌면(첫 회 +24시간 재확인 몰림 등) 물러난다(같은 편을 두 실행이 나란히 보지 않게).
   const wl = await (await import('./lib/run-lock.mjs')).acquireRunLock(resolve(ROOT, 'logs/pin-watch.lock'), { label: 'pin-watch' });
@@ -102,7 +118,7 @@ else {
     try { const r = JSON.parse(readFileSync(resolve(ROOT, `logs/roundup-${day}.json`), 'utf8')); if (r.privacy === 'public' && r.id) targets.push({ id: r.id, kind: 'long' }); } catch { /* 그날 총정리 없음 */ }
   }
 }
-targets = targets.filter((t) => DRY || VERIFY_ONLY || FIX || needsPin(state[t.id]));   // lib/pin-state — 재확인 기록만 있는 편도 다시
+targets = targets.filter((t) => DRY || VERIFY_ONLY || FIX || REWRITE || needsPin(state[t.id]));   // lib/pin-state — 재확인 기록만 있는 편도 다시
 if (DUE) {
   if (targets.length || verifyTargets.length) log(`달 편 ${targets.length} · 재확인 ${verifyTargets.length}편`);
   if (!targets.length && !verifyTargets.length) process.exit(0);   // 10분마다 돈다 — 할 일 없으면 조용히
@@ -121,6 +137,11 @@ if (!plock.ok) { log('유튜브 프로필을 다른 작업이 쓰고 있다 — 
 else {
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
   channel: 'chrome', headless: true, viewport: { width: 1280, height: 1400 }, args: ['--disable-blink-features=AutomationControlled'] });
+// 2026-11-25: 로그아웃(11/23 15:40~ 실측: 쿠키 10개, SID 없음)이면 고쳐 쓰기를 하지 않는다 — 수정 메뉴가 없어 실패만 쌓인다.
+if (REWRITE && !(await ctx.cookies('https://www.youtube.com')).some((c) => c.name === 'SID')) {
+  log('youtube-profile 로그아웃 — 고쳐 쓰기를 하지 않는다(사람 로그인: node scripts/youtube-studio.mjs --login)');
+  await ctx.close(); plock.release(); process.exit(0);
+}
 const page = ctx.pages()[0] ?? await ctx.newPage();
 try {
   for (const t of targets) {
@@ -140,6 +161,11 @@ try {
       const rewrite = REWRITE && await mine.count() && /aisviagent/.test(await mine.innerText());
       if (rewrite && !DRY && rewrittenToday() >= DAY_MAX) { log(`오늘 고쳐 쓰기 ${DAY_MAX}개 상한 — 나머지는 내일`); break; }
       if (rewrite && DRY) { log(`${t.id} dry — 옛 문구 댓글 있음(고쳐 쓸 대상)`); continue; }
+      if (REWRITE && !rewrite) {   // 이미 새 문구이거나 우리 댓글이 안 보인다 — 새로 달지 않는다(고쳐 쓰기는 '수정'만)
+        const has = await mine.count();
+        if (!DRY) state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, ...(has ? { rewrittenAt: new Date().toISOString() } : { rewriteSkipped: '우리 댓글 안 보임' }) }));
+        log(`${t.id} ${has ? '이미 새 문구' : '우리 댓글이 안 보인다'} — 건너뜀`); continue;
+      }
       if ((FIX && await mine.count() && /utm_/.test(await mine.innerText())) || rewrite) {
         await mine.hover(); await mine.locator('button[aria-label="작업 메뉴"]').first().click(); await page.waitForTimeout(1500);
         const ed = page.getByRole('menuitem', { name: '수정' }).filter({ visible: true }).first();
@@ -184,7 +210,8 @@ try {
       done++; state[t.id] = writeEntry(STATE, t.id, () => ({ at: new Date().toISOString(), kind: t.kind })); log(`${t.id} ✅ 댓글·고정`);
     } catch (e) {
       failed++; failedNow.add(t.id); log(`${t.id} 실패: ${String(e?.message ?? e).slice(0, 100)}`);
-      if (!DRY) state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, failedTries: (prev.failedTries ?? 0) + 1, lastError: String(e?.message ?? e).slice(0, 100), lastErrorAt: new Date().toISOString() })); await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
+      if (REWRITE && !DRY) { state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, rewriteError: String(e?.message ?? e).slice(0, 100), rewriteErrorAt: new Date().toISOString() })); log('고쳐 쓰기 실패 — 여기서 멈춘다'); break; }
+      if (!DRY && !REWRITE) state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, failedTries: (prev.failedTries ?? 0) + 1, lastError: String(e?.message ?? e).slice(0, 100), lastErrorAt: new Date().toISOString() })); await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
       if (DUE && !DRY) { alert(t.id, 'comment-pin', e?.message ?? e); log('달기·고정 실패 — 여기서 멈춘다(logs/pin-alert.jsonl)'); break; }
     }
     await page.waitForTimeout(6000);

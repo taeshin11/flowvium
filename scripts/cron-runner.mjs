@@ -688,6 +688,8 @@ const MAINT_JOBS = [
   //   올린 지 30분 지난 공개 편만, 편당 최대 3번. 할 일 없으면 브라우저를 안 띄운다. 11/16 클릭률 측정. 근거 lib/endscreen-due.test.
   { label: 'yt-endscreen',         script: 'scripts/yt-endscreen.mjs',               timeoutMs: 900000,  commitPaths: [],                                     schedules: ['25,55 * * * *'],              maxAgeH: 2 },
   { label: 'pin-watch',            script: 'scripts/yt-pin-comment.mjs --due',      timeoutMs: 1500000, commitPaths: [], duringReport: true,                  schedules: ['*/10 * * * *'],               maxAgeH: 2 },
+  // 2026-11-25 사장님: 고정 댓글 옛 문구(aisviagent)를 '카톡에서 AISVI 검색' 문구로 — 지우지 않고 수정, 조회 높은 편부터 하루 20편. 12:40 KST(보고서·pin-sweep 13:00 앞).
+  { label: 'pin-rewrite',          script: 'scripts/yt-pin-comment.mjs --rewrite-due --max 20', timeoutMs: 2400000, commitPaths: [], schedules: ['40 3 * * *'], maxAgeH: 30 },
   // 2026-10-29 사장님(Mac mini2 경유): 썸네일 관문 기준을 채널 성적으로 — 지난 7일 조회 > 그 전 7일이면 7.0·7.5, 아니면 7.5·8.
   //   날마다 다시 잰다(logs/thumb-bar.json, 기록 thumb-bar.jsonl). 09:13 KST = 00:13 UTC — 보고서 시간 밖, API 몇 단위.
   { label: 'thumb-bar',            script: 'scripts/thumb-bar.mjs',                   timeoutMs: 120000,  commitPaths: [],                                     schedules: ['13 0 * * *'],                 maxAgeH: 30 },

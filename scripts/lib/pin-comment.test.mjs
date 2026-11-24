@@ -156,5 +156,21 @@ const cr = src('cron-runner.mjs');
   const tc = src('shorts-today-check.mjs');
   (/pinHealthy/.test(tc)) ? ok('[24b] 정시 점검이 고정 댓글 문제 편을 알린다') : bad('[24b] 정시 점검에 고정 댓글 없음');
 }
+// [25] 2026-11-25 옛 문구 고쳐 쓰기를 매일(하루 20편, 조회 높은 편부터) — 408편이라 약 3주. 로그아웃이면 손대지 않는다.
+{
+  const P = await import('./pin-state.mjs');
+  const now = Date.parse('2026-11-25T03:00:00Z');
+  const st = { a: { at: '2026-11-01T00:00:00Z' }, b: { at: '2026-11-02T00:00:00Z' }, c: { at: '2026-11-03T00:00:00Z', rewrittenAt: '2026-11-24T03:00:00Z' },
+    d: { at: '2026-11-04T00:00:00Z', rewrittenAt: '2026-11-25T01:00:00Z' }, e: {}, f: { at: '2026-11-05T00:00:00Z' } };
+  const views = { a: 10, b: 500, c: 9999, d: 1, f: 50 };
+  const got = P.rewriteTargets?.(st, views, { max: 3, now });
+  (JSON.stringify(got) === '["b","f"]') ? ok('[25a] 단 적 있고 안 고친 편, 조회 높은 순, 오늘 고친 1편을 빼고 상한 3까지') : bad(`[25a] ${JSON.stringify(got)}`);
+  (JSON.stringify(P.rewriteTargets?.(st, { a: 1 }, { max: 20, now })) === '["a"]') ? ok('[25b] 조회 모르는(비공개·삭제) 편은 뺀다') : bad('[25b]');
+  (/const REWRITE_DUE = argv\.includes\('--rewrite-due'\)/.test(pc) && /rewriteTargets\(state/.test(pc)) ? ok('[25c] --rewrite-due 가 원장·조회로 대상을 고른다') : bad('[25c]');
+  (/\|\| REWRITE \|\| needsPin/.test(pc)) ? ok('[25d] 이미 고정된 편도 고쳐 쓰기 대상에서 안 빠진다') : bad('[25d] needsPin 거르기가 고쳐 쓸 편을 뺀다');
+  (/REWRITE && !\(await ctx\.cookies\('https:\/\/www\.youtube\.com'\)\)\.some\(\(c\) => c\.name === 'SID'\)/.test(pc)) ? ok('[25e] 로그아웃이면 고쳐 쓰기를 안 한다(SID 쿠키 확인)') : bad('[25e]');
+  (/if \(!DRY && !REWRITE\) state\[t\.id\] = writeEntry\(STATE, t\.id, \(prev = \{\}\) => \(\{ \.\.\.prev, failedTries/.test(pc)) ? ok('[25f] 고쳐 쓰기 실패는 달기 실패 수(failedTries)를 안 올린다') : bad('[25f]');
+  /'pin-rewrite'[^\n]*yt-pin-comment\.mjs --rewrite-due/.test(src('cron-runner.mjs')) ? ok('[25g] cron-runner 매일 pin-rewrite') : bad('[25g] cron-runner 에 pin-rewrite 없음');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

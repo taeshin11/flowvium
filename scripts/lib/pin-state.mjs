@@ -89,3 +89,20 @@ export function writeEntry(file, id, fn) {
   renameSync(tmp, file);
   return all[id];
 }
+
+/**
+ * 고정 댓글 옛 문구 고쳐 쓰기 대상(2026-11-25 사장님 — '카톡에서 AISVI 검색' 문구로, 지우지 말고 수정, 조회 높은 편부터 하루 20편 이하).
+ *   단 적 있고(at) 아직 안 고쳤고(rewrittenAt·rewriteSkipped 없음) 조회를 아는(공개) 편을 조회 높은 순으로,
+ *   오늘(KST) 이미 고친 수를 빼고 max 까지.
+ * @param {Record<string, object>} state  logs/yt-pinned.json
+ * @param {Record<string, number>} views  공개 편의 조회수
+ */
+export function rewriteTargets(state, views, { max = 20, now = Date.now() } = {}) {
+  const day = (ms) => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
+  const today = day(now);
+  const doneToday = Object.values(state ?? {}).filter((e) => e?.rewrittenAt && day(Date.parse(e.rewrittenAt)) === today).length;
+  return Object.entries(state ?? {})
+    .filter(([id, e]) => e?.at && !e.rewrittenAt && !e.rewriteSkipped && Number.isFinite(views?.[id]))
+    .sort((a, b) => views[b[0]] - views[a[0]])
+    .slice(0, Math.max(0, max - doneToday)).map(([id]) => id);
+}
