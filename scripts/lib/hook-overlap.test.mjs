@@ -78,5 +78,14 @@ import('./hook-overlap.mjs').then(async ({ sharesStory }) => {
   const p2 = firstHookPlan("수출 60% 늘었다…반도체 3배·8개 품목 신기록 쓴 '1조달러'", '1조달러');
   assert.deepEqual(p2.subjects, ['수출'], '숫자 키워드는 주어 후보에서 뺀다');
   assert.deepEqual(firstHookPlan('野 "올공 투표지 전체 증거보전해야"', '').subjects, [], '주어를 못 뽑으면 빈 목록(규칙을 안 붙인다)');
+  // [12] 2026-11-24 리포트2(3곳 합의): 첫 훅의 나머지는 시청자 돈·생활에 닿는 영향 — 기사에 있을 때만.
+  //   대본 프롬프트 두 갈래(브리핑·한 뉴스)가 같은 규칙을 쓰는지 본다. 한쪽만 바꾸면 다른 쪽 편은 그대로 나간다.
+  const { STAKE_HOOK_RULE } = await import('./hook-overlap.mjs');
+  assert.ok(typeof STAKE_HOOK_RULE === 'string' && /기사에/.test(STAKE_HOOK_RULE) && /지어내/.test(STAKE_HOOK_RULE), '규칙 문구: 기사 근거·지어내기 금지');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  const hookLines = src.split('\n').filter((l) => /^- hook: 화면/.test(l));
+  assert.equal(hookLines.length, 2, '훅 규칙 줄은 두 갈래');
+  assert.ok(hookLines.every((l) => l.includes('${STAKE_RULE}')), '두 갈래 모두 STAKE_RULE');
   console.log('hook-overlap.test: ✅ 전부 통과');
 });

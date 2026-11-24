@@ -31,7 +31,7 @@ import { mixBgm } from '../lib/bgm-mix.mjs';
 import { licensedBeds } from '../lib/bgm-beds.mjs';
 import { cuesFromAlignment, fillGaps } from '../lib/subtitle.mjs';
 import { synthesizeKoreanAuto } from '../lib/tts-korean.mjs';
-import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT, hookLines } from '../lib/shorts-layout.mjs';
+import { SHORTS as G, shortsOverlayHtml, mediaFilter, audioArgs, LAYOUT, hookLines, SERIES_LABEL } from '../lib/shorts-layout.mjs';
 import { checkEvergreen, isStale } from '../lib/evergreen-check.mjs';
 import { evergreenDir, listSpares } from '../lib/shorts-spare.mjs';
 import { generateImage } from '../lib/agy-image.mjs';
@@ -108,7 +108,7 @@ async function render(item) {
       scenes[i].cues = cues.length ? cues : [{ start: 0, end: scenes[i].dur, text: scenes[i].say.slice(0, 24) }];
       scenes[i].ov = [];
       for (let k = 0; k < scenes[i].cues.length; k++) {
-        await page.setContent(shortsOverlayHtml({ hook: scenes[i].hook, caption: scenes[i].cues[k].text }));
+        await page.setContent(shortsOverlayHtml({ hook: scenes[i].hook, caption: scenes[i].cues[k].text, series: SERIES_LABEL }));
         const f = `${WORK}/ov${i}_${k}.png`;
         await page.screenshot({ path: f, omitBackground: true });
         scenes[i].ov.push(f);

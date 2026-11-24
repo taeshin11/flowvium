@@ -171,6 +171,14 @@ export function tightenNumbers(text) {
   return t;
 }
 
+/**
+ * 고정 시리즈 이름(2026-11-24 리포트2 교차검증 3곳 합의). 경제 쇼츠 구독 상위 5채널은 고정 시리즈명
+ *   ('딱, 1분이면 부자'·'마켓포커스'·'더블 밸류업')을 화면에 둔다 — 다음 편을 알아보게 하는 표지다.
+ *   10/20 에 뺀 사진 왼쪽 위 'FLOWVIUM' 글자(정보 없음, 3/3 CUT)와 달리 훅 바로 위 가운데의 시리즈 이름이다.
+ *   끄려면 SHORTS_SERIES=0. 48h 뒤 계속 시청·구독/1천으로 잰다.
+ */
+export const SERIES_LABEL = process.env.SHORTS_SERIES === '0' ? '' : '플로비움 경제 브리핑';
+
 export function shortsOverlayHtml(o = {}) {
   const [l1, l2] = hookLines(o.hook);
   const g = SHORTS;
@@ -195,11 +203,13 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',Helvetica,sans-serif;positi
 /* 출처 — 소재 위 우하단. 참고 화면과 같은 자리다. */
 .credit{position:absolute;right:26px;top:${g.media.top + g.media.height - 62}px;
   font-size:34px;font-weight:700;color:rgba(255,255,255,.92);text-shadow:0 2px 6px rgba(0,0,0,.9)}
+.series{font-size:34px;font-weight:800;color:#000;background:#ffd400;padding:6px 18px;border-radius:6px;
+  letter-spacing:.02em;margin-bottom:14px}
 .brand{position:absolute;left:26px;top:${g.hook.height + 18}px;
   font-size:28px;font-weight:900;letter-spacing:.22em;color:rgba(255,255,255,.85);
   background:rgba(0,0,0,.45);padding:8px 14px}
 </style>
-<div class="top"><div class="h1">${esc(l1)}</div><div class="h2">${esc(l2)}</div></div>
+<div class="top">${o.series ? `<div class="series">${esc(o.series)}</div>` : ''}<div class="h1">${esc(l1)}</div><div class="h2">${esc(l2)}</div></div>
 <div class="bot"><div class="cap">${esc(tightenNumbers(o.caption))}</div></div>
 ${o.credit ? `<div class="credit">${esc(o.credit)}</div>` : ''}
 ${o.brand ? `<div class="brand">${esc(o.brand)}</div>` : ''}`;

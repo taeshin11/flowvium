@@ -107,6 +107,27 @@ const g = M.SHORTS;
     ? ok('HTML 이스케이프') : bad('이스케이프가 안 된다 — 오버레이가 깨진다');
 }
 
+// ── 고정 시리즈 표지(2026-11-24 리포트2: 3곳 합의 — 벤치마크 상위 5채널은 '딱, 1분이면 부자'·'마켓포커스' 같은
+//    고정 시리즈명을 화면에 둔다. 10/20 에 뺀 'FLOWVIUM' 구석 글자와 달리 훅 바로 위 가운데에 시리즈 이름을 둔다) ──
+{
+  typeof M.SERIES_LABEL === 'string' && M.SERIES_LABEL.length >= 4 && M.SERIES_LABEL.length <= 14
+    ? ok(`시리즈 이름 상수 "${M.SERIES_LABEL}"`) : bad(`SERIES_LABEL 없음/길이 이상: ${M.SERIES_LABEL}`);
+  const html = M.shortsOverlayHtml({ hook: '두바이 하늘이 갈라졌다', caption: 'x', series: M.SERIES_LABEL });
+  const top = html.slice(html.indexOf('<div class="top">'), html.indexOf('<div class="bot">'));
+  (top.includes(`class="series"`) && top.indexOf('class="series"') < top.indexOf('class="h1"') && top.includes(M.SERIES_LABEL))
+    ? ok('시리즈 표지는 위 띠 안, 훅 위') : bad('시리즈 표지가 위 띠 안 훅 위에 없다');
+  !/class="series"/.test(M.shortsOverlayHtml({ hook: 'a b', caption: 'x' }).replace(/\.series\{[^}]*\}/, ''))
+    ? ok('series 를 안 주면 표지 없음') : bad('series 없이도 표지가 찍힌다');
+  !/<b>/.test(M.shortsOverlayHtml({ hook: 'a b', caption: 'x', series: '<b>' })) ? ok('시리즈 이스케이프') : bad('시리즈 이스케이프 안 됨');
+  // 모든 경로(뉴스 쇼츠 장면·첫 3초 컷·상시 쇼츠)가 같은 표지를 단다 — 한 곳만 달면 예비·상시 편이 빠진다
+  const { readFileSync } = await import('node:fs');
+  const src = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const calls = (s) => (s.match(/shortsOverlayHtml\(\{[^}]*\}/g) ?? []);
+  const all = [...calls(src('../video/make-shorts.mjs')), ...calls(src('../video/make-evergreen-short.mjs'))];
+  const miss = all.filter((c) => !/series:/.test(c));
+  all.length >= 3 && miss.length === 0 ? ok(`오버레이 호출 ${all.length}곳 모두 series`) : bad(`series 빠진 호출: ${miss.join(' | ').slice(0, 200)}`);
+}
+
 // ── 소재는 잘리지 않는다 ────────────────────────────────────────────────────────
 {
   const f = M.mediaFilter('0:v', 'bg');
