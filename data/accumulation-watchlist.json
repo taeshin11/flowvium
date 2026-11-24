@@ -1,10 +1,80 @@
 {
-  "generatedAt": "2026-11-24T02:21:53.920Z",
+  "generatedAt": "2026-11-24T07:20:25.918Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 0,
+  "count": 4,
   "strongCount": 0,
-  "watchCount": 0,
+  "watchCount": 4,
   "officialFewAccount": 0,
-  "watchlist": []
+  "watchlist": [
+    {
+      "ticker": "063570.KQ",
+      "name": "NICE인프라",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 4.2× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -13.5,
+      "runup5dPct": -8.4,
+      "medDollarVolUsd": 31977,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "010280.KQ",
+      "name": "아이티센엔텍",
+      "tier": "watch",
+      "score": 37,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.5× 상승",
+        "종가 일중 상단 70%(강한 매수 흡수)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 11.6,
+      "runup5dPct": 0,
+      "medDollarVolUsd": 121077,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "190510.KQ",
+      "name": "나무가",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.7× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -4.9,
+      "runup5dPct": -6.2,
+      "medDollarVolUsd": 1102975,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "100790.KQ",
+      "name": "미래에셋벤처투자",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 6.4× 상승(지속 매집)",
+        "거래량 2.8× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 4.6,
+      "runup5dPct": 0.4,
+      "medDollarVolUsd": 4049431,
+      "smartAccum": true,
+      "official": null
+    }
+  ]
 }
