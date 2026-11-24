@@ -1,63 +1,10 @@
 {
-  "generatedAt": "2026-11-22T22:20:24.370Z",
+  "generatedAt": "2026-11-24T02:21:53.920Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 0,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "100790.KQ",
-      "name": "미래에셋벤처투자",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 5.8× 상승(지속 매집)",
-        "거래량 6.9× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -3.1,
-      "runup5dPct": 6.4,
-      "medDollarVolUsd": 4049431,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "038870.KQ",
-      "name": "에코심플렉스",
-      "tier": "watch",
-      "score": 34,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -9.7,
-      "runup5dPct": -5.1,
-      "medDollarVolUsd": 11512,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "052600.KQ",
-      "name": "한네트",
-      "tier": "watch",
-      "score": 26,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -8,
-      "runup5dPct": -1.8,
-      "medDollarVolUsd": 16536,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
