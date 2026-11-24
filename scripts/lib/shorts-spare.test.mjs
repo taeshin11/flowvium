@@ -99,5 +99,24 @@ mkdirSync(join(spares, 'broken'), { recursive: true });   // 영상 없는 반�
   (JSON.stringify(got) === '[8,7.5,7]' && asked.join() === 'chatgpt') ? ok('[6a] 못 매긴 심판만 묻고 나머지는 적힌 값') : bad(`[6a] ${got} ${asked}`);
   (reuseScoredJudges(c, 'S2', base) === base) ? ok('[6b] 영상이 바뀌었으면 전부 새로 묻는다') : bad('[6b]');
 }
+// [7] 2026-11-24 구성 돌림: 예비·상시 편은 구울 때 구성(대개 classic·still)대로 나가 11/21~23 실제 발행 기준
+//   같은 구성이 6쌍 연속 나갔다(채널 지침은 '앞 편과 같은 구성 금지'). 고를 때 앞 편과 다른 구성을 먼저 고른다.
+//   다른 게 없으면 같은 것이라도 낸다 — 빈 회차가 같은 구성보다 나쁘다.
+{
+  const r7 = mkdtempSync(join(tmpdir(), 'spare-combo-'));
+  const mk7 = (name, hoursAgo, keyword, layout, motion) => {
+    const d = join(r7, name); mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, SPARE_FILES.video), 'mp4');
+    writeFileSync(join(d, SPARE_FILES.meta), JSON.stringify({ keyword, layout, motion, createdAt: new Date(Date.now() - hoursAgo * 3600e3).toISOString() }));
+  };
+  mk7('n1', 1, '새것', 'classic', 'still');
+  mk7('n2', 2, '조금전', 'zoom', 'push');
+  const prev = { layout: 'classic', motion: 'still' };
+  pickSpare({ dir: r7, prev })?.meta.keyword === '조금전' ? ok('[7a] 뉴스 예비: 앞 편과 다른 구성을 먼저') : bad(`[7a] ${pickSpare({ dir: r7, prev })?.meta.keyword}`);
+  pickSpare({ dir: r7 })?.meta.keyword === '새것' ? ok('[7b] prev 없으면 종전대로 가장 새것') : bad('[7b]');
+  pickSpare({ dir: r7, prev, isPublished: (k) => k === '조금전' })?.meta.keyword === '새것' ? ok('[7c] 다른 구성이 없으면 같은 구성이라도 낸다') : bad('[7c]');
+  pickEvergreen({ dir: r7, prev: { layout: 'zoom', motion: 'push' } })?.meta.keyword === '새것' ? ok('[7d] 상시 편도 같은 규칙') : bad(`[7d] ${pickEvergreen({ dir: r7, prev: { layout: 'zoom', motion: 'push' } })?.meta.keyword}`);
+  pickEvergreen({ dir: r7 })?.meta.keyword === '조금전' ? ok('[7e] 상시 편 prev 없으면 종전대로 오래된 것부터') : bad('[7e]');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

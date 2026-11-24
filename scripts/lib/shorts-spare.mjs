@@ -40,9 +40,20 @@ export function listSpares(dir) {
   return out.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** 쓸 수 있는 예비 하나(가장 새것) 또는 null. */
-export function pickSpare({ dir, maxAgeH = 6, isPublished = () => false, now = Date.now() }) {
-  return listSpares(dir).find((s) => now - s.createdAt <= maxAgeH * 3600e3 && !isPublished(s.meta.keyword)) ?? null;
+/**
+ * 앞 편과 구성(배치·움직임)이 다른 후보를 앞으로. 2026-11-24: 예비·상시 편은 구울 때 구성(대개 classic·still)대로 나가
+ *   11/21~23 실제 발행 기준 같은 구성이 6쌍 연속 나갔다(채널 지침 '앞 편과 같은 구성 금지'는 정규 렌더에만 걸려 있었다).
+ *   다른 게 없으면 같은 것도 그대로 둔다 — 빈 회차가 같은 구성보다 나쁘다. prev = db.lastShortsCombo().
+ */
+export function preferOtherCombo(list, prev) {
+  if (!prev?.layout && !prev?.motion) return list;
+  const same = (s) => (s.meta.layout ?? 'classic') === (prev.layout ?? 'classic') && (s.meta.motion ?? 'still') === (prev.motion ?? 'still');
+  return [...list.filter((s) => !same(s)), ...list.filter(same)];
+}
+
+/** 쓸 수 있는 예비 하나(앞 편과 다른 구성 중 가장 새것, 없으면 가장 새것) 또는 null. */
+export function pickSpare({ dir, maxAgeH = 6, isPublished = () => false, now = Date.now(), prev = null }) {
+  return preferOtherCombo(listSpares(dir).filter((s) => now - s.createdAt <= maxAgeH * 3600e3 && !isPublished(s.meta.keyword)), prev)[0] ?? null;
 }
 
 /**
@@ -86,9 +97,9 @@ export function reuseScoredJudges(c, videoSha, base) {
 }
 
 /** 풀에서 하나 — 이미 나간 주제 빼고, 먼저 만든 것부터. 만드는 중(<id>.part)은 집지 않는다. ok 로 더 거른다(표지 통과 등). */
-export function pickEvergreen({ dir, isPublished = () => false, ok = () => true }) {
-  return listSpares(dir).filter((s) => !s.dir.endsWith('.part') && !isPublished(s.meta.keyword) && ok(s))
-    .sort((a, b) => a.createdAt - b.createdAt)[0] ?? null;
+export function pickEvergreen({ dir, isPublished = () => false, ok = () => true, prev = null }) {
+  return preferOtherCombo(listSpares(dir).filter((s) => !s.dir.endsWith('.part') && !isPublished(s.meta.keyword) && ok(s))
+    .sort((a, b) => a.createdAt - b.createdAt), prev)[0] ?? null;
 }
 
 /** 오래됐거나 이미 나간 예비를 지운다. 지운 개수. */
