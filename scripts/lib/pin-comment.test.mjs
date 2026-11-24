@@ -24,7 +24,11 @@ const pc = src('yt-pin-comment.mjs');
 const { AD_LINE, withAdLine } = await import('./ad-line.mjs');
 const { uploadRequestBody } = await import('./youtube.mjs');
 (AD_LINE === '무료 AI 비서 AISVI, aisviagent.com, 가입 없이 바로 무료 체험') ? ok('[4] 광고 한 줄은 지시 그대로') : bad(`[4] AD_LINE ${AD_LINE}`);
-(/import \{ AD_LINE \} from '\.\/lib\/ad-line\.mjs'/.test(pc) && /commentFor = \(\) => AD_LINE/.test(pc)) ? ok('[5] 고정댓글(쇼츠·롱폼) = 그 한 줄') : bad('[5] 고정댓글이 그 한 줄이 아니다');
+// 2026-11-25 사장님(Mac mini2 경유, 플로비움 고정 댓글 화면을 보고): 고정 댓글은 '카톡에서 AISVI 검색' 문구로, aisviagent.com 링크는 뺀다.
+//   설명란·끝 카드(AD_LINE)는 그대로 — 바뀐 건 고정 댓글뿐이다.
+const { PIN_LINE } = await import('./ad-line.mjs');
+(PIN_LINE === "무료 AI 비서 AISVI, 카톡에서 'AISVI' 검색하면 가입 없이 바로 무료 체험") ? ok('[5a] 고정 댓글 문구는 지시 그대로') : bad(`[5a] PIN_LINE ${PIN_LINE}`);
+(/import \{[^}]*PIN_LINE[^}]*\} from '\.\/lib\/ad-line\.mjs'/.test(pc) && /commentFor = \(\) => PIN_LINE/.test(pc)) ? ok('[5] 고정댓글(쇼츠·롱폼) = PIN_LINE') : bad('[5] 고정댓글이 PIN_LINE 이 아니다');
 const lastLine = (x) => x.trimEnd().split('\n').at(-1);
 // 2026-10-28 광고 새 판(lib/ad-line): 설명란 맨 아래는 'AISVI · 한 줄 — 바로 써 보기' + utm 주소(롱폼은 눌리는 자리). 자세한 규칙은 ad-line.test.
 const { adText, adVersionFor } = await import('./ad-line.mjs');
@@ -75,8 +79,19 @@ const cr = src('cron-runner.mjs');
 // [18] 접힌 댓글에서 링크가 보여야 한다 — 10/19 사장님(차꾸 22편: 링크가 7번째 줄이라 '더보기' 전엔 안 보임).
 //   폰 폭 접힌 보기는 첫 ~3줄. 우리 댓글은 한 줄이고 링크가 그 안에 있어야 한다(한 줄 ~70자 넘으면 접힘 줄을 더 먹는다).
 //   10/19 22:5x 로그아웃 iPhone 13 폭 실측: 이 한 줄이 2줄로 그려지고 링크는 1번째 줄.
-(!/\n/.test(AD_LINE) && [...AD_LINE].length <= 70 && /aisviagent\.com/.test(AD_LINE) && /commentFor = \(\) => AD_LINE/.test(pc))
-  ? ok(`[18] 고정 댓글은 한 줄(${[...AD_LINE].length}자)이고 링크가 그 안 — 접힌 보기에서 보인다`) : bad(`[18] 댓글이 길거나 링크가 밖: ${JSON.stringify(AD_LINE)}`);
+(!/\n/.test(PIN_LINE) && [...PIN_LINE].length <= 70 && !/aisviagent/.test(PIN_LINE) && /AISVI/.test(PIN_LINE))
+  ? ok(`[18] 고정 댓글은 한 줄(${[...PIN_LINE].length}자)이고 링크 없이 AISVI 검색 안내 — 접힌 보기에서 보인다`) : bad(`[18] 댓글이 길거나 링크가 남았다: ${JSON.stringify(PIN_LINE)}`);
+// [24] 2026-11-25 우리 댓글 찾기는 'AISVI' 로 — 'aisviagent' 로 찾으면 새 문구 댓글을 못 찾아 같은 편에 또 단다(중복 게시).
+//   옛 문구도 'AISVI' 를 담고 있어 옛·새 모두 우리 댓글로 잡힌다. 옛 문구(aisviagent)를 찾으면 지우지 않고 '수정'으로 새 문구로 바꾼다.
+(/has-text\("AISVI"\)/.test(pc) && !/has-text\("aisviagent"\)/.test(pc) && /\/AISVI\/\.test\(th\.innerText\)/.test(pc))
+  ? ok('[24a] 우리 댓글·고정 판정은 AISVI 로 찾는다') : bad('[24a] 아직 aisviagent 로 찾는다 — 새 문구 댓글을 못 찾아 중복으로 단다');
+(/const REWRITE = argv\.includes\('--rewrite'\)/.test(pc) && /REWRITE && await mine\.count\(\) && \/aisviagent\/\.test\(await mine\.innerText\(\)\)/.test(pc) && /menuitem', \{ name: '수정' \}/.test(pc))
+  ? ok('[24b] --rewrite: 옛 문구 댓글은 ⋮ → 수정으로 새 문구(지우지 않음)') : bad('[24b] --rewrite 없음');
+{
+  const P = await import('./pin-state.mjs');
+  const T = (text) => P.judgeViewer([{ author: '@flowvium', text, pinned: true, moreShown: false, index: 0 }]);
+  (T(PIN_LINE).ok && T(AD_LINE).ok) ? ok('[24c] 시청자 화면 판정은 새·옛 문구 모두 우리 댓글로') : bad(`[24c] new=${JSON.stringify(T(PIN_LINE))} old=${JSON.stringify(T(AD_LINE))}`);
+}
 // [19] 2026-10-20 코드 점검(Claude·ChatGPT REAL): '이미 고정됨' 갈래가 원장 칸을 통째로 바꿔 failedTries 를 지웠다.
 //   주인 화면엔 고정돼 보이고 시청자 화면엔 안 보이는(스팸 필터) 편은 매일 '이미 있음' → 칸 초기화 → 10분 뒤 false → 다음날 또.
 //   3회 상한이 영영 안 걸린다. 시청자 화면에서 안 보이면 실패 1회로 세고, '이미 있음' 은 그 수를 지우지 않는다.

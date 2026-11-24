@@ -19,7 +19,7 @@ import { chromium } from 'playwright';
 import { resolve, join } from 'path';
 import { mkdirSync, readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
-import { AD_LINE } from './lib/ad-line.mjs';
+import { PIN_LINE } from './lib/ad-line.mjs';
 import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks } from './lib/pin-state.mjs';
 import { appendFileSync } from 'fs';
 
@@ -29,7 +29,10 @@ const DRY = argv.includes('--dry');
 const VERIFY_ONLY = argv.includes('--verify-only');
 const DUE = argv.includes('--due');
 const ALL = argv.includes('--all');
-const FIX = argv.includes('--fix-long-url');   // 달지 않고 시청자 화면 재확인만(--then-verify 초 뒤, 기본 0)
+const FIX = argv.includes('--fix-long-url');
+// 2026-11-25 --rewrite: 옛 문구(aisviagent) 고정 댓글을 지우지 않고 ⋮ → 수정으로 새 문구로(고정 유지). --ids 로 조회 높은 편부터, 하루 --max(20) 편.
+const REWRITE = argv.includes('--rewrite');
+const rewrittenToday = () => Object.values(state).filter((e) => e?.rewrittenAt && kstDay(e.rewrittenAt) === kstDay(new Date().toISOString())).length;   // 달지 않고 시청자 화면 재확인만(--then-verify 초 뒤, 기본 0)
 // --due 는 cron-runner 가 띄워 출력이 남지 않는다 — logs/pin-comment.log 에도 적는다(발행 직후 달기와 같은 파일).
 const log = (...a) => {
   const line = [new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 19), '[pin]', ...a].join(' ');
@@ -50,7 +53,8 @@ const postedToday = () => Object.values(state).filter((e) => e?.at && !e.skipped
 // 2026-10-08 사장님 "권장대로": 긴 주소(utm 붙은)는 링크 댓글 스팸 필터에 걸리기 쉽다 — 롱폼도 도메인만 짧게.
 //   (유입은 aisviagent.com 쪽 리퍼러/직접 방문으로 본다. 쇼츠 댓글 링크는 원래 안 눌린다.)
 // 2026-10-13 사장님 "광고 시간 최소화": 쇼츠·롱폼 모두 광고 한 줄(lib/ad-line)만. 새 편부터 — 이미 단 댓글은 그대로.
-export const commentFor = () => AD_LINE;
+// 2026-11-25 사장님: 고정 댓글은 '카톡에서 AISVI 검색' 문구(lib/ad-line PIN_LINE), 링크 없음.
+export const commentFor = () => PIN_LINE;
 
 let targets = [];
 let verifyTargets = null;   // --due: [{id, check}] — null 이면 옛 동작(달기 대상 전부를 재확인)
@@ -126,14 +130,17 @@ try {
       for (let k = 0; k < 6 && !(await page.locator('#simplebox-placeholder').count()); k++) { await page.mouse.wheel(0, 900); await page.waitForTimeout(1500); }
       const ph = page.locator('#simplebox-placeholder').first();
       if (!(await ph.count())) throw new Error('댓글 입력 칸이 없다(댓글 꺼짐?)');
-      // 우리 홍보 댓글이 이미 있나(@flowvium + aisviagent). 있으면 다시 달지 않는다 — 고정만 확인/보정한다.
+      // 우리 홍보 댓글이 이미 있나(@flowvium + AISVI — 11/25 새 문구엔 aisviagent 가 없다. 옛 문구도 AISVI 를 담는다). 있으면 다시 달지 않는다 — 고정만 확인/보정한다.
       //   #pinned-comment-badge 는 모든 댓글에 숨겨진 채로 있다(10/08 DOM 실측) — '보이는가' 로 판정한다.
-      const mineSel = 'ytd-comment-view-model:has-text("@flowvium"):has-text("aisviagent")';
+      const mineSel = 'ytd-comment-view-model:has-text("@flowvium"):has-text("AISVI")';
       const pinnedVisible = async () => page.evaluate((sel) => [...document.querySelectorAll('ytd-comment-thread-renderer')]
-        .some((th) => /@flowvium/.test(th.innerText) && /aisviagent/.test(th.innerText) && [...th.querySelectorAll('#pinned-comment-badge')].some((b) => b.offsetWidth || b.offsetHeight)), mineSel);
+        .some((th) => /@flowvium/.test(th.innerText) && /AISVI/.test(th.innerText) && [...th.querySelectorAll('#pinned-comment-badge')].some((b) => b.offsetWidth || b.offsetHeight)), mineSel);
       let mine = page.locator(mineSel).first();
       // --fix-long-url: 예전 긴 주소(utm_) 댓글을 짧은 판으로 고친다(⋮ → 수정 → 저장). 지우지 않는다.
-      if (FIX && await mine.count() && /utm_/.test(await mine.innerText())) {
+      const rewrite = REWRITE && await mine.count() && /aisviagent/.test(await mine.innerText());
+      if (rewrite && !DRY && rewrittenToday() >= DAY_MAX) { log(`오늘 고쳐 쓰기 ${DAY_MAX}개 상한 — 나머지는 내일`); break; }
+      if (rewrite && DRY) { log(`${t.id} dry — 옛 문구 댓글 있음(고쳐 쓸 대상)`); continue; }
+      if ((FIX && await mine.count() && /utm_/.test(await mine.innerText())) || rewrite) {
         await mine.hover(); await mine.locator('button[aria-label="작업 메뉴"]').first().click(); await page.waitForTimeout(1500);
         const ed = page.getByRole('menuitem', { name: '수정' }).filter({ visible: true }).first();
         if (!(await ed.count())) throw new Error('메뉴에 "수정" 이 없다');
@@ -146,8 +153,9 @@ try {
         for (let k = 0; k < 6 && !(await page.locator(mineSel).count()); k++) { await page.mouse.wheel(0, 900); await page.waitForTimeout(1500); }
         mine = page.locator(mineSel).first();
         const txt = (await mine.count()) ? await mine.innerText() : '';
-        if (/utm_/.test(txt) || !/aisviagent\.com/.test(txt)) throw new Error(`고친 뒤 글이 "${txt.replace(/\s+/g, ' ').slice(0, 60)}"`);
-        log(`${t.id} ✏️ 짧은 주소로 고침`);
+        if (/utm_|aisviagent/.test(txt) || !txt.includes(PIN_LINE.slice(0, 20))) throw new Error(`고친 뒤 글이 "${txt.replace(/\s+/g, ' ').slice(0, 60)}"`);
+        if (rewrite) state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, rewrittenAt: new Date().toISOString() }));
+        log(`${t.id} ✏️ 새 문구로 고침`);
       }
       if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = writeEntry(STATE, t.id, (prev) => alreadyEntry(prev, new Date().toISOString(), t.kind)); continue; }
       if (!(await mine.count())) {

@@ -45,7 +45,8 @@ export function verifiedEntry(prev = {}, r, at, check = 'v10') {
  *   (접혀 핵심 줄이 잘리지 않는다). 고정 댓글은 맨 위라 순서는 따로 안 본다.
  * @param {{author:string, text:string, pinned:boolean, moreShown:boolean}[]} threads  로그아웃 화면의 댓글 스레드들
  */
-export function judgeViewer(threads, { handle = '@flowvium', key = 'aisviagent.com' } = {}) {
+// 2026-11-25: 열쇠말은 'AISVI' — 고정 댓글 새 문구(lib/ad-line PIN_LINE)엔 aisviagent.com 이 없다. 옛 문구도 'AISVI' 를 담는다.
+export function judgeViewer(threads, { handle = '@flowvium', key = 'AISVI' } = {}) {
   const withKey = (threads ?? []).filter((t) => String(t.text ?? '').includes(key));
   const mine = withKey.find((t) => t.author === handle) ?? null;
   const missing = [];

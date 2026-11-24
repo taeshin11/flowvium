@@ -672,7 +672,7 @@ if (isShorts && last.keyword) {
         const { openSync } = await import('node:fs');
         const out = openSync(resolve(ROOT, 'logs/pin-comment.log'), 'a');
         spawn(process.execPath, [resolve(ROOT, 'scripts/yt-pin-comment.mjs'), '--ids', videoId, '--kind', 'short', '--then-verify', '600'], { detached: true, stdio: ['ignore', out, out] }).unref();
-        log('홍보 댓글(aisviagent.com) 달기·고정·확인을 뒤에서 시작했다 → logs/pin-comment.log (10분 뒤 시청자 화면 재확인)');
+        log('홍보 댓글(AISVI 카톡 검색) 달기·고정·확인을 뒤에서 시작했다 → logs/pin-comment.log (10분 뒤 시청자 화면 재확인)');
       } catch (e) { log(`⚠ 홍보 댓글 단계를 못 띄웠다(발행은 됨): ${String(e?.message ?? e).slice(0, 80)}`); }
     }
   } catch (e) {

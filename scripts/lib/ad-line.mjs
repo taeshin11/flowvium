@@ -13,6 +13,12 @@
  * 고정 댓글은 옛 한 줄(AD_LINE, 도메인만) — 긴 utm 주소는 링크 댓글 스팸 필터에 걸린다(10/08 사장님 "권장대로").
  */
 export const AD_LINE = '무료 AI 비서 AISVI, aisviagent.com, 가입 없이 바로 무료 체험';
+/**
+ * 고정 댓글 문구. 2026-11-25 사장님(Mac mini2 경유, 플로비움 고정 댓글 화면을 보고): 쇼츠 댓글 링크는 안 눌리니
+ *   '카톡에서 AISVI 검색' 으로 바꾸고 aisviagent.com 은 뺀다. 설명란·끝 카드(AD_LINE·adText)는 그대로.
+ *   우리 댓글 찾기는 'AISVI' 로 한다(yt-pin-comment) — 옛 문구도 'AISVI' 를 담아 옛·새 모두 잡힌다.
+ */
+export const PIN_LINE = "무료 AI 비서 AISVI, 카톡에서 'AISVI' 검색하면 가입 없이 바로 무료 체험";
 
 export const AD_VERSIONS = {
   a: '이번 주 경제 뉴스, 적기만 하면 3줄 요약',
