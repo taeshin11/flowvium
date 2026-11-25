@@ -1,28 +1,10 @@
 {
-  "generatedAt": "2026-11-25T07:20:24.359Z",
+  "generatedAt": "2026-11-25T22:20:23.686Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 0,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 0,
   "officialFewAccount": 0,
-  "watchlist": [
-    {
-      "ticker": "100790.KQ",
-      "name": "미래에셋벤처투자",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 7.6× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 10.1,
-      "runup5dPct": 1.4,
-      "medDollarVolUsd": 4049431,
-      "smartAccum": true,
-      "official": null
-    }
-  ]
+  "watchlist": []
 }
