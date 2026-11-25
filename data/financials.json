@@ -476,11 +476,11 @@
     "fy": "2026"
   },
   "COR": {
-    "revUsd": 321332819000,
-    "revYoYPct": 9.3,
-    "opMarginPct": 0.8,
-    "roePct": 103.1,
-    "fy": "2025"
+    "revUsd": 337397299000,
+    "revYoYPct": 5,
+    "opMarginPct": 1.2,
+    "roePct": 99.9,
+    "fy": "2026"
   },
   "ABNB": {
     "revUsd": 12241000000,
@@ -658,11 +658,11 @@
     "fy": "2025"
   },
   "BDX": {
-    "revUsd": 21840000000,
-    "revYoYPct": 8.2,
-    "opMarginPct": 11.8,
-    "roePct": 6.6,
-    "fy": "2025"
+    "revUsd": 19457000000,
+    "revYoYPct": -10.9,
+    "opMarginPct": 11.6,
+    "roePct": 4.6,
+    "fy": "2026"
   },
   "EW": {
     "revUsd": 6067600000,
@@ -2093,11 +2093,11 @@
     "fy": "2025"
   },
   "RJF": {
-    "revUsd": 15912000000,
-    "revYoYPct": 6.6,
+    "revUsd": 17539000000,
+    "revYoYPct": 10.2,
     "opMarginPct": null,
-    "roePct": 17.1,
-    "fy": "2025"
+    "roePct": 18,
+    "fy": "2026"
   },
   "VOYA": {
     "revUsd": 2255000000,
@@ -2324,11 +2324,11 @@
     "fy": "2025"
   },
   "ADI": {
-    "revUsd": 11019707000,
-    "revYoYPct": 16.9,
-    "opMarginPct": 26.6,
-    "roePct": 6.7,
-    "fy": "2025"
+    "revUsd": 15179047000,
+    "revYoYPct": 37.7,
+    "opMarginPct": 38.6,
+    "roePct": 14.7,
+    "fy": "2026"
   },
   "NOW": {
     "revUsd": 13278000000,
