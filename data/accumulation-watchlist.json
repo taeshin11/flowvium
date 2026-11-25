@@ -1,46 +1,12 @@
 {
-  "generatedAt": "2026-11-24T22:20:24.107Z",
+  "generatedAt": "2026-11-25T07:20:24.359Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 3,
+  "count": 1,
   "strongCount": 0,
-  "watchCount": 3,
+  "watchCount": 1,
   "officialFewAccount": 0,
   "watchlist": [
-    {
-      "ticker": "200130.KQ",
-      "name": "콜마비앤에이치",
-      "tier": "watch",
-      "score": 38,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 2.8× 상승(지속 매집)",
-        "거래량 4.5× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": 7.3,
-      "runup5dPct": 9.9,
-      "medDollarVolUsd": 269689,
-      "smartAccum": true,
-      "official": null
-    },
-    {
-      "ticker": "190510.KQ",
-      "name": "나무가",
-      "tier": "watch",
-      "score": 33,
-      "coFire": 2,
-      "lead": [
-        "거래량 추세 3.7× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
-        "세력 매집(기관·외인 순매수)"
-      ],
-      "runup20dPct": -4.9,
-      "runup5dPct": -6.2,
-      "medDollarVolUsd": 1102975,
-      "smartAccum": true,
-      "official": null
-    },
     {
       "ticker": "100790.KQ",
       "name": "미래에셋벤처투자",
@@ -48,12 +14,12 @@
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 6.5× 상승(지속 매집)",
-        "거래량 2.8× 급증(가격 평탄)",
+        "거래량 추세 7.6× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 4.6,
-      "runup5dPct": 0.4,
+      "runup20dPct": 10.1,
+      "runup5dPct": 1.4,
       "medDollarVolUsd": 4049431,
       "smartAccum": true,
       "official": null
