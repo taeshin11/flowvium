@@ -17,8 +17,10 @@ import { fileURLToPath } from 'url';
 // 글. 순서가 선호다. **gemini 만** — 9/24~25 실측에서 claude-opus 37회·gpt-oss 4회가 503·할당량 소진으로
 //   떨어졌고 gemini 는 0회였다(사장님 "gemini 쓰면되지", agy-chain/agy-two-tier 테스트가 지킨다).
 //   3.1 pro 가 돌아오면 다시 1차가 된다(목록에 있으면 쓴다). 10/13 지금 남은 gemini 는 3.8 flash high/medium/low.
+// 2026-11-25: 1순위 neon-medium. 11/23~24 대본 실패 17건 중 15건이 flash-high→medium 180초 시간초과였고,
+//   같은 이슈 --dry 2+2 실측에서 neon 2/2(177·206초), flash 1/2(405초·한 번은 둘 다 시간초과). 근거는 agy-models.test [7g].
 export const PREFERRED_TEXT = Object.freeze([
-  'gemini-3.1-pro-high', 'gemini-3.8-flash-high', 'gemini-3.7-flash-high', 'gemini-3.8-flash-medium',
+  'gemini-4-neon-medium', 'gemini-3.8-flash-high', 'gemini-3.1-pro-high', 'gemini-3.7-flash-high', 'gemini-3.8-flash-medium',
 ]);
 // 주제 분류(topic-classify) 전용. 2026-10-15 — 근거는 topic-classify.test.mjs [7]: 같은 60편에서 argon 82%·실패 0,
 //   flash-high 는 도구 없이도 180초 한계에 붙고 검색을 돌다 끊겼다. 짧은 분류에 긴 생각은 시간만 먹는다.

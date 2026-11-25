@@ -53,6 +53,14 @@ if (/\|\|\s*'gemini-/.test(vs)) hard.push('seed-translation-memory.mjs');
   const c = pickAvailable(AM.PREFERRED_VISION, live).find((m) => m.startsWith('claude-'));
   g === 'gemini-4-neon-medium' && /^claude-/.test(c ?? '') ? ok(`[7e] 교차검증 ${g} + ${c}`) : bad(`[7e] ${g} ${c}`);
 }
+// [7g] 글(대본·보고서) 사슬 1순위 neon-medium, 다음 flash-high. 2026-11-25 실측(같은 이슈 '미세먼지' --dry 2+2):
+//   neon 2/2 성공(177·206초, 대본 호출 111초 이하), flash 1/2(405초 — high 180초 시간초과 뒤 medium) ·
+//   한 번은 high·medium 다 시간초과로 "대본을 쓸 모델이 없다". 11/23~24 실패 17건 중 15건이 이 시간초과였다.
+{
+  const live = ['gemini-4-neon-medium', 'gemini-4-argon-medium', 'gemini-3.8-flash-high', 'gemini-3.8-flash-medium'];
+  const t = pickAvailable(PREFERRED_TEXT, live);
+  t[0] === 'gemini-4-neon-medium' && t[1] === 'gemini-3.8-flash-high' ? ok(`[7g] 글 사슬 ${t.slice(0, 3).join(' → ')}`) : bad(`[7g] ${JSON.stringify(t)}`);
+}
 // [8] 검증 호출부가 검증 사슬을 실제로 넘긴다(보고서 fact-check · 해설 문장 검증 · 인물 판정).
 {
   const src = (f) => readFileSync(new URL(f, import.meta.url), 'utf8');
