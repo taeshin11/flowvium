@@ -1166,7 +1166,10 @@ for (let a = 1; a <= 3; a++) {
 }
 const chosen = pickAttempt(attempts);
 if (attempts.length && !chosen) {
-  console.error('❌ 세 번 다 출처 없는 낙인이 들어갔다 — 이 이슈는 접는다(채널이 남의 공격 표현을 제 말처럼 띄우지 않게). 다른 이슈로 간다.');
+  // 2026-11-25: 저장 요소 없음도 여기로 온다(lib/script-attempts REJECT_RULES) — 5원칙을 어긴 편은 내지 않는다.
+  const why = [...new Set(attempts.flatMap((x) => x.broke).filter((r) => r === 'unattributed' || r === 'noSave'))]
+    .map((r) => (r === 'noSave' ? '마지막 장면에 저장 요소가 없다' : '출처 없는 낙인이 들어갔다')).join('·');
+  console.error(`❌ 세 번 다 ${why || '쓸 수 없는 대본'} — 이 이슈는 접는다. 다른 이슈로 간다.`);
   process.exit(3);   // 3 = 낼 것이 없음 → 호출부가 다른 이슈로 재시도한다
 }
 scenes = chosen?.scenes ?? [];

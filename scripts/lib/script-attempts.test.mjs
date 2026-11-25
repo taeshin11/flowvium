@@ -38,24 +38,24 @@ const flags = (o = {}) => ({ scenes: 4, chars: 270, minChars: 160, plain: 0, dup
 }
 // [3] 같으면 나중 시도
 {
-  const at = [{ n: 1, broke: ['noSave'] }, { n: 2, broke: ['firstLong'] }];
+  const at = [{ n: 1, broke: ['echoTitle'] }, { n: 2, broke: ['firstLong'] }];
   pickAttempt(at)?.n === 2 ? ok('[3] 같은 수면 나중 시도') : bad('[3]');
 }
 // [4] 낙인을 어긴 시도는 덜 어겼어도 안 고른다
 {
-  const at = [{ n: 1, broke: ['unattributed'] }, { n: 2, broke: ['firstLong', 'noSave', 'echoTitle'] }];
+  const at = [{ n: 1, broke: ['unattributed'] }, { n: 2, broke: ['firstLong', 'short', 'echoTitle'] }];
   pickAttempt(at)?.n === 2 ? ok('[4] 출처 없는 낙인 시도는 건너뛴다') : bad(`[4] ${pickAttempt(at)?.n}`);
 }
 // [5] 깨끗한 게 없으면 소속만 어긴 시도(걷어낼 수 있다), 낙인만 남으면 null
 {
-  const a = [{ n: 1, broke: ['unattributed'] }, { n: 2, broke: ['madeUp', 'noSave'] }, { n: 3, broke: ['madeUp', 'unattributed'] }];
+  const a = [{ n: 1, broke: ['unattributed'] }, { n: 2, broke: ['madeUp', 'short'] }, { n: 3, broke: ['madeUp', 'unattributed'] }];
   pickAttempt(a)?.n === 2 ? ok('[5] 소속만 어긴 시도가 차선') : bad(`[5] ${pickAttempt(a)?.n}`);
   pickAttempt([{ n: 1, broke: ['unattributed'] }, { n: 2, broke: ['unattributed', 'madeUp'] }]) === null ? ok('[5b] 낙인만 남으면 null(이슈를 접는다)') : bad('[5b]');
   pickAttempt([]) === null ? ok('[5c] 시도가 없으면 null') : bad('[5c]');
 }
 // [6] 장면이 모자란 시도(tooFew)는 다른 게 있으면 안 고른다 — 다 어긴 수가 적어도 쓸 수 없다
 {
-  const at = [{ n: 1, broke: ['tooFew'] }, { n: 2, broke: ['firstLong', 'noSave'] }];
+  const at = [{ n: 1, broke: ['tooFew'] }, { n: 2, broke: ['firstLong', 'short'] }];
   pickAttempt(at)?.n === 2 ? ok('[6] 장면 부족 시도는 고르지 않는다') : bad(`[6] ${pickAttempt(at)?.n}`);
 }
 
@@ -65,6 +65,18 @@ const flags = (o = {}) => ({ scenes: 4, chars: 270, minChars: 160, plain: 0, dup
   const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
   (/pickAttempt\(attempts\)/.test(ms) && /attempts\.push\(\{ n: a, scenes, broke \}\)/.test(ms) && /scenes = chosen\?\.scenes/.test(ms))
     ? ok('[7] make-shorts 연결') : bad('[7] make-shorts 에 연결 안 됨');
+}
+
+// [8] 2026-11-25 Mac mini2: 세 번 다 '저장 요소 없음'이면 그 이슈는 내지 않는다(사진 부족 때처럼 다른 이슈 → 셋 다 안 되면 회차 건너뜀).
+//   11/25 14:20 hMFC0r8_80c 가 세 번 다 noSave 인 채 '가장 적게 어긴' 시도로 나갔다. 5원칙을 어긴 편이 피드 평가를 깎는다.
+{
+  pickAttempt([{ n: 1, broke: ['noSave'] }, { n: 2, broke: ['noSave'] }, { n: 3, broke: ['noSave'] }]) === null ? ok('[8a] 세 번 다 저장 요소 없음 → null(이슈를 접는다)') : bad('[8a] noSave 시도를 골랐다');
+  pickAttempt([{ n: 1, broke: ['noSave'] }, { n: 2, broke: ['echoTitle', 'firstLong'] }])?.n === 2 ? ok('[8b] 저장 요소 있는 시도가 있으면 그것을(더 많이 어겼어도)') : bad('[8b]');
+  pickAttempt([{ n: 1, broke: ['noSave'] }, { n: 2, broke: ['madeUp'] }])?.n === 2 ? ok('[8c] 차선(소속만 어김)도 저장 요소가 있어야') : bad('[8c]');
+  const { readFileSync } = await import('fs');
+  const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  /attempts\.length && !chosen\)[\s\S]{0,400}process\.exit\(3\)/.test(ms) && /저장 요소/.test(ms.slice(ms.indexOf('attempts.length && !chosen'), ms.indexOf('attempts.length && !chosen') + 400))
+    ? ok('[8d] make-shorts 가 null 이면 exit 3(다른 이슈) — 저장 요소도 말한다') : bad('[8d] make-shorts 접는 메시지에 저장 요소 없음');
 }
 
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
