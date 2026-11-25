@@ -90,3 +90,30 @@ test('loadGuide: 없거나 깨진 파일 → 기본값, 맞는 파일 → 그 �
   writeFileSync(join(d, 'ok.json'), JSON.stringify(ok));
   assert.deepEqual(loadGuide(join(d, 'ok.json')).levers.layout.shares, ok.levers.layout.shares);
 });
+
+// 2026-11-26: 상시 풀이 classic·still 10/11 — 편마다 해시로 고르면(약 51%) 한쪽으로 몰린 풀이 안 풀린다(Mac mini2: zoom 등 3편 이상).
+//   새 편은 **풀에 지침 비중보다 모자란 쪽**으로. 풀이 지침 비중에 맞으면 원래 고른 대로.
+import { balanceToPool } from './channel-guide.mjs';
+test('balanceToPool: 한쪽으로 몰린 풀은 모자란 쪽으로 채운다', () => {
+  const g = { levers: { layout: { shares: { classic: 0.49, zoom: 0.51 } }, motion: { shares: { push: 0.5, still: 0.5 } } } };
+  let pool = [...Array(10)].map(() => ({ layout: 'classic', motion: 'still' })).concat([{ layout: 'zoom', motion: 'still' }]);
+  const made = [];
+  for (let i = 0; i < 4; i++) {
+    const c = balanceToPool({ layout: 'classic', motion: 'still' }, pool, g, ['layout', 'motion']);
+    made.push(c); pool = [...pool, c];
+  }
+  assert.ok(made.filter((c) => c.layout !== 'classic').length >= 3, JSON.stringify(made));
+  assert.ok(made.filter((c) => c.motion === 'push').length >= 3, JSON.stringify(made));
+});
+test('balanceToPool: 풀이 비중에 맞으면 고른 대로 · 빈 풀도 고른 대로', () => {
+  const g = { levers: { layout: { shares: { classic: 0.5, zoom: 0.5 } } } };
+  const pool = [{ layout: 'classic' }, { layout: 'zoom' }];
+  assert.deepEqual(balanceToPool({ layout: 'classic' }, pool, g, ['layout']), { layout: 'classic' });
+  assert.deepEqual(balanceToPool({ layout: 'zoom' }, pool, g, ['layout']), { layout: 'zoom' });
+  assert.deepEqual(balanceToPool({ layout: 'zoom' }, [], g, ['layout']), { layout: 'zoom' });
+});
+test('make-evergreen-short 가 balanceToPool 로 고른다', async () => {
+  const { readFileSync } = await import('fs');
+  const s = readFileSync(new URL('../video/make-evergreen-short.mjs', import.meta.url), 'utf8');
+  assert.match(s, /balanceToPool\(pickCombo\(/);
+});

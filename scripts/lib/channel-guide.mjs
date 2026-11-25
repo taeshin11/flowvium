@@ -68,6 +68,25 @@ export function pickCombo(seed, guide, prev, levers = Object.keys(LEVERS)) {
   return { ...combo, [flip]: other };
 }
 
+/**
+ * 풀(이미 구운 편들)에 맞춰 고친다 — 갈래마다 지침 비중 × (풀+1) 에서 지금 수를 뺀 '모자람'이 가장 큰 쪽.
+ * 2026-11-26: 상시 풀이 classic·still 10/11 — 편마다 해시로만 고르면 몰린 풀이 안 풀렸다. 모자람이 같으면 원래 고른 쪽.
+ * pool: [{ layout, motion, ... }] (값이 없는 편은 그 갈래 셈에서 뺀다).
+ */
+export function balanceToPool(combo, pool, guide, levers = Object.keys(combo)) {
+  const out = { ...combo };
+  for (const l of levers) {
+    const spec = LEVERS[l]; if (!spec) continue;
+    const shares = guide?.levers?.[l]?.shares ?? spec.fallback;
+    const seen = (pool ?? []).map((m) => m?.[l]).filter((v) => spec.arms.includes(v));
+    if (!seen.length) continue;
+    const lack = (a) => (Number(shares[a]) || 0) * (seen.length + 1) - seen.filter((v) => v === a).length;
+    const best = spec.arms.reduce((b, a) => (lack(a) > lack(b) + 1e-9 ? a : b), out[l]);
+    out[l] = best;
+  }
+  return out;
+}
+
 /** 지침 파일이 쓸 만한가 — 알려진 갈래·선택지만, 비중 합 1(±0.02). 아니면 부르는 쪽이 DEFAULT_GUIDE 로. */
 export function validGuide(g) {
   if (!g || typeof g !== 'object' || !g.levers || typeof g.levers !== 'object') return false;

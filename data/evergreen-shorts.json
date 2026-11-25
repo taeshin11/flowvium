@@ -469,6 +469,110 @@
           "image": "many small hands easily reaching small pieces on a table"
         }
       ]
+    },
+    {
+      "id": "ex-dividend",
+      "title": "배당락일에 주가가 빠져 보이는 이유",
+      "scenes": [
+        {
+          "hook": "배당 받으려면 언제 사야 할까",
+          "say": "배당은 기준일에 주주 명부에 이름이 있어야 받습니다. 사는 날이 아니라 결제되는 날이 기준입니다.",
+          "image": "a calendar page with a small gift box pinned to one day"
+        },
+        {
+          "hook": "결제는 2거래일 뒤",
+          "say": "우리 주식은 산 날로부터 2거래일 뒤에 결제됩니다. 그래서 기준일보다 며칠 앞서 사 둬야 명부에 오릅니다.",
+          "image": "a hand passing a stock certificate across two stepping stones"
+        },
+        {
+          "hook": "배당락, 권리가 빠진 날",
+          "say": "그 마감 다음 거래일이 배당락일입니다. 이날부터 사면 배당을 못 받으니, 그만큼 주가가 약하게 출발하는 경우가 많습니다.",
+          "image": "a water tank with a pipe draining a small amount into a bucket"
+        },
+        {
+          "hook": "확인할 것 두 가지",
+          "say": "첫째, 배당락일 하루 전 거래일 장 마감까지 갖고 있어야 받습니다. 둘째, 배당락일 당일에 팔아도 배당은 받습니다.",
+          "image": "a checklist with two ticked boxes next to a magnifying glass"
+        }
+      ]
+    },
+    {
+      "id": "sidecar-circuit-breaker",
+      "title": "사이드카와 서킷브레이커는 뭐가 다를까",
+      "scenes": [
+        {
+          "hook": "시장이 멈추는 두 가지 장치",
+          "say": "급락장 뉴스에 자주 나오는 두 단어, 둘 다 브레이크지만 멈추는 범위가 다릅니다.",
+          "image": "two different brake pedals side by side"
+        },
+        {
+          "hook": "사이드카는 한쪽 주문만 5분",
+          "say": "사이드카는 선물 가격이 급하게 움직이면 프로그램 매매 중 한쪽 주문만 5분 멈춥니다. 급락이면 파는 주문, 급등이면 사는 주문입니다.",
+          "image": "a small robot arm paused with a stop sign"
+        },
+        {
+          "hook": "서킷브레이커는 그 시장 전체",
+          "say": "서킷브레이커는 지수가 크게 떨어지면 그 시장의 모든 거래를 20분 멈추고, 10분간 주문을 모아 다시 엽니다. 가장 높은 단계면 그날 장을 닫습니다.",
+          "image": "a large switchboard with the main lever pulled down"
+        },
+        {
+          "hook": "뉴스에서 구분하는 법",
+          "say": "첫째, 사이드카는 프로그램 주문 한쪽만 5분, 일반 주문은 그대로. 둘째, 서킷브레이커는 코스피나 코스닥 중 걸린 시장 전체를 멈춥니다.",
+          "image": "a checklist with two ticked boxes beside a pause symbol"
+        }
+      ]
+    },
+    {
+      "id": "lockup-expiry",
+      "title": "보호예수가 풀리는 날 왜 긴장할까",
+      "scenes": [
+        {
+          "hook": "상장 뒤 묶여 있던 주식",
+          "say": "새로 상장한 회사의 최대주주 같은 일부 주주는 한동안 주식을 팔 수 없게 묶여 있습니다.",
+          "image": "a stack of boxes held down by a chain and padlock"
+        },
+        {
+          "hook": "의무보유, 정해진 기간만",
+          "say": "이걸 보호예수, 또는 의무보유라고 합니다. 상장 직후 한꺼번에 팔아 주가가 흔들리는 걸 막는 장치입니다.",
+          "image": "a padlock with a timer attached"
+        },
+        {
+          "hook": "풀리는 날 매물 걱정",
+          "say": "기간이 끝나 팔 수 있는 주식이 한꺼번에 늘면, 시장에 매물이 쏟아질까 걱정하는 사람이 많아집니다.",
+          "image": "an opened padlock with boxes starting to slide out"
+        },
+        {
+          "hook": "꼭 떨어지는 건 아니다",
+          "say": "풀린다는 건 팔 수 있게 된다는 뜻이지 판다는 뜻은 아닙니다. 첫째, 지금 거래되는 주식 대비 풀리는 양. 둘째, 누가 가진 주식인지.",
+          "image": "a checklist with two ticked boxes next to a pie chart without labels"
+        }
+      ]
+    },
+    {
+      "id": "rule-of-72",
+      "title": "돈이 두 배가 되는 시간, 72의 법칙",
+      "scenes": [
+        {
+          "hook": "계산기 없이 암산 한 번",
+          "say": "복잡한 계산기 없이도 대략 알 수 있는 방법이 있습니다. 72를 한 해 수익률로 나누면 됩니다.",
+          "image": "a small sapling next to a tree twice its size"
+        },
+        {
+          "hook": "복리라서 생기는 일",
+          "say": "번 돈을 다시 넣어 그 돈도 함께 불어나는 게 복리입니다. 그래서 시간이 갈수록 불어나는 속도가 빨라집니다.",
+          "image": "a snowball rolling downhill and growing larger"
+        },
+        {
+          "hook": "수익률 6이면 약 12년",
+          "say": "해마다 6퍼센트씩 꾸준히 불어나면 72 나누기 6, 약 12년 뒤 두 배가 됩니다.",
+          "image": "two hourglasses, one twice the size of the other"
+        },
+        {
+          "hook": "기억할 것 두 가지",
+          "say": "첫째, 해마다 같은 수익률이 이어진다는 가정의 대략값입니다. 둘째, 주식은 손실도 나니 정해진 답이 아닙니다.",
+          "image": "a checklist with two ticked boxes beside a growing coin stack"
+        }
+      ]
     }
   ]
 }

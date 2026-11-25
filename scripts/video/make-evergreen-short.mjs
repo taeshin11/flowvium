@@ -321,7 +321,7 @@ if (FILL > 0) {
       log(`  표지 점검 실패(${sp.meta.id}) — 건너뜀: ${String(e?.message ?? e).slice(0, 100)}`);   // 발행이 그 편을 막 가져갔을 수 있다
     }
   }
-  const { loadGuide, pickCombo } = await import('../lib/channel-guide.mjs');
+  const { loadGuide, pickCombo, balanceToPool } = await import('../lib/channel-guide.mjs');
   const guide = loadGuide();
   let prevCombo = (() => { const last = listSpares(POOL).filter((x) => !x.dir.endsWith('.part'))[0]?.meta; return last ? { layout: last.layout, motion: last.motion } : null; })();
   for (const item of DATA.items) {
@@ -336,7 +336,9 @@ if (FILL > 0) {
     // 2026-11-13 편마다 채널 지침(data/channel-guide)대로 화면 배치·첫 장면 움직임을 고르고, 자식 프로세스로 굽는다 —
     //   배치(LAYOUT)는 lib/shorts-layout 이 읽을 때 정해지는 값이라 한 프로세스 안에서는 편마다 못 바꾼다(10/28~11/13 전부 classic·still).
     //   바로 앞에 만든 편과 같으면 하나를 바꾼다. 할당량이면 자식이 3 으로 끝나고 여기서 멈춘다.
-    const combo = pickCombo(DATA.items.indexOf(item), guide, prevCombo, ['layout', 'motion']);
+    // 2026-11-26: 풀이 한쪽(classic·still 10/11)으로 몰려 있으면 모자란 쪽으로 채운다(lib/channel-guide balanceToPool).
+    const poolMetas = listSpares(POOL).filter((x) => !x.dir.endsWith('.part')).map((x) => x.meta);
+    const combo = balanceToPool(pickCombo(DATA.items.indexOf(item), guide, prevCombo, ['layout', 'motion']), poolMetas, guide, ['layout', 'motion']);
     log(`구성: ${combo.layout}·${combo.motion} (채널 지침) — ${item.id}`);
     const child = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--id', item.id],
       { stdio: 'inherit', timeout: 2 * 3600e3, env: { ...process.env, SHORTS_LAYOUT: combo.layout, SHORTS_MOTION: combo.motion } });
