@@ -138,8 +138,10 @@ else {
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
   channel: 'chrome', headless: true, viewport: { width: 1280, height: 1400 }, args: ['--disable-blink-features=AutomationControlled'] });
 // 2026-11-25: 로그아웃(11/23 15:40~ 실측: 쿠키 10개, SID 없음)이면 고쳐 쓰기를 하지 않는다 — 수정 메뉴가 없어 실패만 쌓인다.
-if (REWRITE && !(await ctx.cookies('https://www.youtube.com')).some((c) => c.name === 'SID')) {
-  log('youtube-profile 로그아웃 — 고쳐 쓰기를 하지 않는다(사람 로그인: node scripts/youtube-studio.mjs --login)');
+// 2026-11-26: 달기도 같다. 고쳐 쓰기에만 걸어 둬서 로그아웃 동안 --due 가 10분마다 달기를 시도했고, 공통 고장인데 편마다
+//   failedTries 가 3 이 되어 새 편 31편이 영영 안 골렸다. 로그아웃은 편의 실패가 아니다 — 세지 않고 물러난다.
+if (!(await ctx.cookies('https://www.youtube.com')).some((c) => c.name === 'SID')) {
+  log('youtube-profile 로그아웃 — 달기·고쳐 쓰기를 하지 않는다(사람 로그인: node scripts/youtube-studio.mjs --login)');
   await ctx.close(); plock.release(); process.exit(0);
 }
 const page = ctx.pages()[0] ?? await ctx.newPage();

@@ -168,7 +168,10 @@ const cr = src('cron-runner.mjs');
   (JSON.stringify(P.rewriteTargets?.(st, { a: 1 }, { max: 20, now })) === '["a"]') ? ok('[25b] 조회 모르는(비공개·삭제) 편은 뺀다') : bad('[25b]');
   (/const REWRITE_DUE = argv\.includes\('--rewrite-due'\)/.test(pc) && /rewriteTargets\(state/.test(pc)) ? ok('[25c] --rewrite-due 가 원장·조회로 대상을 고른다') : bad('[25c]');
   (/\|\| REWRITE \|\| needsPin/.test(pc)) ? ok('[25d] 이미 고정된 편도 고쳐 쓰기 대상에서 안 빠진다') : bad('[25d] needsPin 거르기가 고쳐 쓸 편을 뺀다');
-  (/REWRITE && !\(await ctx\.cookies\('https:\/\/www\.youtube\.com'\)\)\.some\(\(c\) => c\.name === 'SID'\)/.test(pc)) ? ok('[25e] 로그아웃이면 고쳐 쓰기를 안 한다(SID 쿠키 확인)') : bad('[25e]');
+  // [25e] 2026-11-26: 로그아웃 확인이 고쳐 쓰기에만 걸려 있었다 — 11/23 15:40~11/26 로그아웃 동안 --due 가 10분마다 달기를 시도해
+  //   새 편 31편이 failedTries 3(공통 고장인데 편마다 셈)으로 영영 안 골렸다. 달기·고쳐 쓰기 모두 먼저 SID 를 본다.
+  (/if \(!\(await ctx\.cookies\('https:\/\/www\.youtube\.com'\)\)\.some\(\(c\) => c\.name === 'SID'\)\)/.test(pc) && !/REWRITE && !\(await ctx\.cookies/.test(pc))
+    ? ok('[25e] 로그아웃이면 달기·고쳐 쓰기 모두 안 한다(실패로 안 센다)') : bad('[25e] 로그아웃 확인이 고쳐 쓰기에만 걸려 있다');
   (/if \(!DRY && !REWRITE\) state\[t\.id\] = writeEntry\(STATE, t\.id, \(prev = \{\}\) => \(\{ \.\.\.prev, failedTries/.test(pc)) ? ok('[25f] 고쳐 쓰기 실패는 달기 실패 수(failedTries)를 안 올린다') : bad('[25f]');
   /'pin-rewrite'[^\n]*yt-pin-comment\.mjs --rewrite-due/.test(src('cron-runner.mjs')) ? ok('[25g] cron-runner 매일 pin-rewrite') : bad('[25g] cron-runner 에 pin-rewrite 없음');
 }
