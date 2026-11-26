@@ -10,6 +10,7 @@
  *   node scripts/generate-report-local.mjs --upload=reports/report-YYYY-MM-DD-session-locale.json
  */
 
+import { haltedDays, isHalted } from './lib/halted-price.mjs';
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, appendFileSync } from 'fs';
 import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
@@ -5354,6 +5355,9 @@ async function fetchBuyTechSignals(tickers) {
       const oh = await fetchOHLCV(ticker, '1y');
       if (oh?.closes?.length) {
         const closes = oh.closes;
+        // 2026-11-26: 가격이 멈춘 종목(거래정지 의심) — 1년 내내 ₩2,294 인 메디콕스가 정량 최상위로 비중 13% 추천됐다(lib/halted-price.test).
+        sig.haltedDays = haltedDays(closes);
+        sig.halted = isHalted(closes, oh.volumes);
         sig.rsi = computeRSI(closes);
         sig.sma50 = computeSMA(closes, 50);
         sig.sma200 = computeSMA(closes, 200);
@@ -5600,7 +5604,8 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
     //   앵커(과매도/52주저점/극공포) 있는 분할매수는 면제(hasHardBuyVeto 내부 처리). fg 는 macro 에서.
     // 2026-06-25 (ChatGPT 리뷰): Stage2 도 riskOff 전달(종전 누락 → funnel 만 평시 임계). 다른 게이트와 일관.
     const _stage2RiskOff = macroCtx?.riskLevel === 'high' || (macroCtx?.vix ?? 0) >= 25;
-    const bVeto = hasHardBuyVeto({ ...ctx, fgScore: ctx.fgScore ?? macroCtx?.fg ?? macroCtx?.fgScore ?? null }, { riskOff: _stage2RiskOff });
+    const bVeto = sig.halted ? `가격 ${sig.haltedDays}거래일 멈춤(거래정지 의심) — 살 수 없다`
+      : hasHardBuyVeto({ ...ctx, fgScore: ctx.fgScore ?? macroCtx?.fg ?? macroCtx?.fgScore ?? null }, { riskOff: _stage2RiskOff });
     if (bVeto) c._buyVeto = bVeto;
     // 2026-09-26 종목 성적 veto — 최근 30일 이 종목 판단 3건+ 중 수익 34% 미만이면 신규매수 차단.
     //   전향 실측: 그런 종목의 다음 추천 41건 수익 34%·평균 -1.33% (그 밖 62~67%·+1.7%). lib/track-record 머리말.
@@ -5627,7 +5632,9 @@ async function buildBuyCandidates(livePrices, macroCtx = {}, topN = 30) {
         ? '낙폭 안정 확인(1d 반등 + 거래량 정상화) 후 재평가 — 하락 중 진입 금지'
         : /종목 성적 veto/.test(v)
           ? '최근 판단들이 연속으로 졌다 — 30일 안의 성적이 회복될 때까지(수익 34% 이상) 신규 진입 보류'
-          : '차단 사유 해소 시 재평가';
+          : /거래정지/.test(v)
+            ? '거래 재개(가격·거래량 움직임) 확인 뒤 재평가'
+            : '차단 사유 해소 시 재평가';
     // 2026-08-20: 종전 tickerMeta.meta[ticker].name 은 오염돼 있다 — 발간본 눈검증에서
     //   회사명 자리에 제품명이 찍혔다(EPYC Server CPUs=AMD · Networking ASICs=AVGO · Conductor Etch=LRCX).
     //   권위 소스(data/company-names.json)는 정확한 값을 갖고 있었는데 이 경로만 안 썼다.
