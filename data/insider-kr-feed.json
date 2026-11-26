@@ -1,11 +1,29 @@
 {
-  "generatedAt": "2026-11-25T22:30:11.405Z",
+  "generatedAt": "2026-11-26T07:30:03.119Z",
   "scanned": 465,
   "withFilings": 409,
   "recentDays": 60,
   "count": 60,
-  "totalRecent": 970,
+  "totalRecent": 971,
   "feed": [
+    {
+      "ticker": "005930.KS",
+      "name": "삼성전자",
+      "rceptNo": "20261126000250",
+      "filedAt": "2026-11-26",
+      "kind": "insider",
+      "reporter": "최수민",
+      "role": "비등기임원",
+      "title": "상무",
+      "relation": null,
+      "sharesAfter": 1156,
+      "sharesDelta": 1156,
+      "ratioAfter": 0,
+      "ratioDelta": 0,
+      "direction": "buy",
+      "reason": null,
+      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261126000250"
+    },
     {
       "ticker": "023790.KQ",
       "name": "동일스틸럭스",
@@ -1067,24 +1085,6 @@
       "direction": "flat",
       "reason": "- 보유주식등에 관한 계약 변경(주식담보대출 일부 상환 및 연장) · - 보유주식등에 관한 계약 변경(주식담보대출 대환 대출)",
       "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261123000078"
-    },
-    {
-      "ticker": "218410.KQ",
-      "name": "RFHIC",
-      "rceptNo": "20261123000071",
-      "filedAt": "2026-11-23",
-      "kind": "major",
-      "reporter": "조덕수",
-      "role": "일반",
-      "title": null,
-      "relation": null,
-      "sharesAfter": 8809679,
-      "sharesDelta": 0,
-      "ratioAfter": 33.1,
-      "ratioDelta": 0,
-      "direction": "flat",
-      "reason": "- 특별관계자 증여세 연부연납 납세담보 변경",
-      "filingUrl": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261123000071"
     }
   ]
 }
