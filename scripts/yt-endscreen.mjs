@@ -12,6 +12,7 @@
  *   node scripts/yt-endscreen.mjs --dry-run  # 고르기만
  */
 import { chromium } from 'playwright';
+import { STUDIO_UA } from './lib/studio-ua.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
@@ -39,7 +40,7 @@ if (!plock.ok) { log(`유튜브 프로필을 다른 작업(${plock.holder?.label
 const TEMPLATE = '[role=gridcell][aria-label="동영상 1개, 구독 1개"]';
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
   channel: 'chrome', headless: true, viewport: { width: 1500, height: 1100 }, locale: 'ko-KR',
-  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+  userAgent: STUDIO_UA,
   args: ['--disable-blink-features=AutomationControlled'] });
 
 /** 편집기를 열고 최종 화면 창까지. 지금 있는 요소 이름들을 돌려준다(없으면 []). */

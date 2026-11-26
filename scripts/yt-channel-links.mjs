@@ -15,6 +15,7 @@ import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 import { envValue } from './lib/footage.mjs';
 import { planLinkFirst } from './lib/channel-links.mjs';
+import { STUDIO_UA } from './lib/studio-ua.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
@@ -31,18 +32,24 @@ const plock = await (await import('./lib/run-lock.mjs')).acquireRunLock(resolve(
 if (!plock.ok) { log('유튜브 프로필을 다른 작업이 쓰고 있다 — 이번엔 안 한다'); process.exit(1); }
 
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
-  channel: 'chrome', headless: true, viewport: { width: 1280, height: 1600 }, args: ['--disable-blink-features=AutomationControlled'] });
+  channel: 'chrome', headless: true, viewport: { width: 1280, height: 1600 }, locale: 'ko-KR', userAgent: STUDIO_UA, args: ['--disable-blink-features=AutomationControlled'] });
 let code = 1;
 try {
   if (!(await ctx.cookies('https://www.youtube.com')).some((c) => c.name === 'SID')) throw new Error('youtube-profile 로그아웃 — 사람 로그인 필요');
   const page = ctx.pages()[0] ?? await ctx.newPage();
 
   // 링크 칸: 값이 http 로 시작하고 youtube.com 이 아닌 입력이 주소 칸, 그 바로 앞 입력이 제목 칸.
+  // 읽으면서 칸마다 data-cl 표시를 달고, 쓰기는 그 표시로 같은 칸을 집는다(11/26: 순번을 따로 세다 한 칸씩 밀려 들어갔다).
   const readRows = () => page.evaluate(() => {
     const ins = [...document.querySelectorAll('input')].filter((x) => x.offsetParent !== null);
+    ins.forEach((x) => x.removeAttribute('data-cl'));
     const rows = [];
     ins.forEach((x, i) => {
-      if (/^https?:\/\//.test(x.value || '') && !/youtube\.com/.test(x.value) && i > 0) rows.push({ ti: i - 1, ui: i, title: ins[i - 1].value, url: x.value });
+      if (/^https?:\/\//.test(x.value || '') && !/youtube\.com/.test(x.value) && i > 0) {
+        const k = rows.length;
+        ins[i - 1].setAttribute('data-cl', `t${k}`); x.setAttribute('data-cl', `u${k}`);
+        rows.push({ ti: `t${k}`, ui: `u${k}`, title: ins[i - 1].value, url: x.value });
+      }
     });
     return rows;
   });
@@ -50,9 +57,18 @@ try {
     await page.goto(`https://studio.youtube.com/channel/${CHANNEL}/editing/details`, { waitUntil: 'commit', timeout: 60_000 }).catch(() => {});
     await page.waitForTimeout(10_000);
   };
+  // Studio 는 안쪽 틀이 스크롤돼 fullPage 로는 링크 칸이 안 찍힌다 — 첫 링크 칸을 화면 가운데로 옮겨 찍는다.
+  const shot = async (name) => {
+    await page.evaluate(() => {
+      const u = [...document.querySelectorAll('input')].find((x) => x.offsetParent !== null && /^https?:\/\//.test(x.value || '') && !/youtube\.com/.test(x.value));
+      u?.scrollIntoView({ block: 'center' });
+    }).catch(() => {});
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SHOTS}/${name}.png` }).catch(() => {});
+  };
   await open();
   const rows = await readRows();
-  await page.screenshot({ path: `${SHOTS}/before.png`, fullPage: true }).catch(() => {});
+  await shot('before');
   log('지금 링크 순서:', rows.map((r, i) => `${i + 1}. ${r.title} → ${r.url}`).join(' | ') || '(못 읽음)');
   if (!rows.length) throw new Error('링크 칸을 못 찾았다 — before.png 를 본다');
   if (DRY) { code = 0; throw null; }
@@ -61,7 +77,7 @@ try {
   if (!plan.changed) { log('바꿀 것 없음 —', plan.why); code = plan.why === '이미 첫 링크다' ? 0 : 1; throw null; }
 
   const write = async (idx, val) => {
-    const el = page.locator('input').filter({ visible: true }).nth(idx);
+    const el = page.locator(`input[data-cl="${idx}"]`);
     await el.scrollIntoViewIfNeeded({ timeout: 8000 }).catch(() => {});
     await el.evaluate((x) => { x.focus(); x.setSelectionRange(0, x.value.length); });
     await page.keyboard.insertText(val);
@@ -77,17 +93,27 @@ try {
   if (mid.map((r) => r.url).join('\n') !== plan.order.map((r) => r.url).join('\n')) throw new Error('게시 전 다시 읽은 순서가 계획과 다르다');
 
   const pub = page.locator('#publish-button').last();
+  const off = () => pub.evaluate((n) => n.hasAttribute('disabled') || n.getAttribute('aria-disabled') === 'true').catch(() => true);
+  if (await off()) throw new Error('게시 버튼이 안 켜졌다 — Studio 가 입력을 바뀐 것으로 안 봤다');
   await pub.click({ timeout: 8000 });
+  // 게시 버튼은 저장 중에도, 검사 오류로 막혀도 꺼진다. 꺼짐만으론 성공이 아니다 — 오류 알림을 보고, 끝에 다시 열어 되읽는다.
+  const errToast = () => page.evaluate(() => [...document.querySelectorAll('tp-yt-paper-toast, ytcp-toast')]
+    .map((n) => n.innerText.trim()).filter((t) => /오류가 발생했습니다|오류가 있는지|error/i.test(t)).join(' / '));
   let settled = false;
   for (let k = 0; k < 15 && !settled; k++) {
-    await page.waitForTimeout(4000);
-    settled = await pub.evaluate((n) => n.hasAttribute('disabled') || n.getAttribute('aria-disabled') === 'true').catch(() => false);
+    await page.waitForTimeout(2000);
+    const err = await errToast();
+    if (err) { await shot('error'); throw new Error(`게시가 막혔다: ${err.slice(0, 80)}`); }
+    settled = await off();
   }
   if (!settled) throw new Error('게시 버튼이 계속 활성 — 반영 안 됐을 수 있다');
+  await page.waitForTimeout(6000);
+  const late = await errToast();
+  if (late) { await shot('error'); throw new Error(`게시가 막혔다: ${late.slice(0, 80)}`); }
 
   await open();
   const after = await readRows();
-  await page.screenshot({ path: `${SHOTS}/after.png`, fullPage: true }).catch(() => {});
+  await shot('after');
   log('게시 뒤 다시 읽은 순서:', after.map((r, i) => `${i + 1}. ${r.title} → ${r.url}`).join(' | '));
   code = after[0]?.url === plan.order[0].url && after.length === plan.order.length ? 0 : 1;
   log(code === 0 ? '✅ 첫 링크 바뀜' : '❌ 다시 읽은 순서가 다르다');

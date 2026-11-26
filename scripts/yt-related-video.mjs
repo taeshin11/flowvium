@@ -13,6 +13,7 @@
  *       node scripts/yt-related-video.mjs ... --top 40 --days 14      (최근 N일 조회 상위 쇼츠)
  */
 import { chromium } from 'playwright';
+import { STUDIO_UA } from './lib/studio-ua.mjs';
 import { resolve } from 'path';
 import { ROOT } from './lib/project-root.mjs';
 
@@ -47,7 +48,7 @@ const plock = await acquireRunLock(resolve(ROOT, YT_PROFILE_LOCK), { waitMs: 20 
 if (!plock.ok) { log(`유튜브 프로필을 다른 작업(${plock.holder?.label ?? '?'})이 20분 넘게 쓰고 있다 — 다음에 한다`); process.exit(0); }
 const ctx = await chromium.launchPersistentContext(resolve(ROOT, 'secrets/youtube-profile'), {
   channel: 'chrome', headless: true, viewport: { width: 1280, height: 1400 },
-  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+  userAgent: STUDIO_UA,
   args: ['--disable-blink-features=AutomationControlled'] });
 const page = ctx.pages()[0] ?? await ctx.newPage();
 const fieldText = async () => (await page.locator('body').innerText()).split('\n').map((x) => x.trim())
