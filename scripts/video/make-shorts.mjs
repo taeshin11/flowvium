@@ -2049,6 +2049,15 @@ closeGoogleImages();
     } else {
       const filled = fillMediaGaps(scenes);   // lib/face-check — 한 자리에 줄 게 없어도 다음 자리는 채운다
       if (filled) log(`[화면] 검사로 빈 자리 ${filled}곳을 통과한 사진으로 채운다`);
+      // 2026-11-26 사장님 화면(__1CTMT_Q28): 소재 2/4 로 '절반' 관문은 넘었는데 빈 자리가 **1번**이라
+      //   첫 3초가 회색 카드로 나갔다. 1번은 다른 장면 사진으로 덮고, 덮을 수 없으면(그 사람 사진 없음) 거른다.
+      const { coverFirstScene } = await import('../lib/face-check.mjs');
+      const hadFirst = !!scenes.find((x) => !x.isOutro)?.media;
+      if (!coverFirstScene(scenes)) {
+        console.error('❌ 첫 장면에 맞는 사진이 없다 — 첫 3초가 빈 화면이 된다. 이번 회차를 거른다.');
+        process.exit(3);   // 3 = 낼 것이 없음 → 다른 이슈
+      }
+      if (!hadFirst) log('[화면] 1번 장면이 비어 다른 장면 사진을 1번으로 옮겼다(첫 화면에 카드 금지)');
     }
   }
 

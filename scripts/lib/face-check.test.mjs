@@ -118,5 +118,43 @@ cases.every(([, want], i) => got[i] === want) ? ok(`[1] ${cases.map(([, w, d]) =
   const { readFileSync } = await import('fs');
   /fillMediaGaps\(scenes\)/.test(readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8')) ? ok('[8] make-shorts 가 fillMediaGaps 를 쓴다') : bad('[8] make-shorts 연결 안 됨');
 }
+{ // [9] 한자 성씨 줄임 — 「韓총리」「李 "…"」「張 "…"」 는 그 사람이다(2026-11-26 사장님 화면: 「한성숙 총리 충청 행보」 첫 장면이 회색 카드로 나감, __1CTMT_Q28).
+  //   video.log 실측: 얼굴 검사가 뺀 127건 중 한자 성씨 제목에서 뺀 이름 6명(이재명·한성숙·한동훈 등).
+  const { personMismatch, donorAllowed } = await import('./face-check.mjs');
+  const same = (hook, t) => personMismatch({ hook, sourceTitle: t, faces: 1, isPerson: true }) === false;
+  (same('한성숙 총리 충청 행보', '[포토] 韓총리, 충청 기업인과 규제 간담회')
+    && same('이재명 대통령 발언', '"대통령 혼자 딴 세상 사나" 李 \'집값 폭락 대비\'')
+    && same('장동혁 반박', '한동훈 "조작 징계 당했다" vs 張 "맞다, 언론 조작 징계했다"')
+    && same('윤석열 정상회담', '尹대통령, 오늘 조코위 인도네시아 대통령과 정상회담')
+    && same('한성숙 총리 발언', '한 총리 &ldquo;수능 블루투스 기록 수사의뢰&hellip;스마트기기 판매자'))
+    ? ok('[9] 韓총리=한성숙 · 李=이재명 · 張=장동혁 · 尹대통령=윤석열 · 한 총리=한성숙') : bad('[9] 한자 성씨 줄임을 다른 사람으로 봤다');
+  // 다른 뜻의 한자(韓=한국)·다른 성씨는 여전히 뺀다
+  (!same('한동훈 발언', '韓증시 저평가, 불합리…금융시장 정상화') && !same('한동훈 발언', '또 \'한일 경제 동맹\' 강조한 최태원…"韓日 AI 플랫폼"')
+    && !same('한성숙 총리', '李 대통령 "증시 골 깊으면 산도 높다"')
+    && !same('한동훈 발언', '대한 총리실 입장') && !same('한성숙 총리', '이 총리 "…"'))
+    ? ok('[9] 韓증시·韓日(나라 이름)·다른 성씨(李≠한)는 그대로 뺀다') : bad('[9] 나라 이름 韓 이나 다른 성씨를 같은 사람으로 봤다');
+  donorAllowed({ faceSubject: '한성숙' }, { faces: 1, sourceTitle: '韓총리 "규제 합리화 속도내야…지역 혁신으로 국가 성장"' })
+    ? ok('[9] 빈 자리 채우기도 韓총리 사진을 한성숙 자리에 넣는다') : bad('[9] donorAllowed 가 韓총리 사진을 막았다');
+}
+{ // [10] 첫 장면이 회색 카드로 나가지 않는다(2026-11-26 __1CTMT_Q28: 소재 2/4 로 '절반' 관문은 넘었는데 빈 자리가 1번이었다).
+  const M = await import('./face-check.mjs');
+  const f = M.coverFirstScene;
+  if (typeof f !== 'function') bad('[10] coverFirstScene 없음');
+  else {
+    // 1번이 비고, 3번 사진은 이미 두 번 쓰여 채우기가 못 줬다 → 3번 사진을 1번으로 옮기고 3번 자리는 다시 채운다
+    const S = [{ media: null }, { media: 'b.jpg', credit: 'cB' }, { media: 'b.jpg', credit: 'cB' }, { media: 'd.jpg', credit: 'cD' }, { media: 'd.jpg', credit: 'cD' }, { isOutro: true, media: 'o.mp4' }];
+    const r = f(S);
+    (r === true && S[0].media && S.filter((x) => !x.isOutro && !x.media).length <= 1) ? ok('[10] 1번 빈 자리를 다른 장면 사진으로 덮는다') : bad(`[10] r=${r} first=${S[0].media}`);
+    // 1번 자막 주어 사진이 없으면(다른 사람 얼굴뿐) 덮지 않고 false — 회차를 거른다
+    const T = [{ media: null, faceSubject: '김민석' }, { media: 'a.jpg', faces: 1, sourceTitle: '추미애 "…"' }, { media: 'a.jpg', faces: 1, sourceTitle: '추미애 "…"' }];
+    (f(T) === false && T[0].media === null) ? ok('[10] 다른 사람 얼굴로는 1번을 덮지 않는다(거른다)') : bad(`[10] T0=${T[0].media}`);
+    const U = [{ isOutro: true, media: 'o.mp4' }, { media: 'x.jpg' }];
+    (f(U) === true) ? ok('[10] 1번에 사진이 있으면 그대로') : bad('[10] 멀쩡한 회차를 막았다');
+  }
+  const { readFileSync } = await import('fs');
+  const ms = readFileSync(new URL('../video/make-shorts.mjs', import.meta.url), 'utf8');
+  (/coverFirstScene\(scenes\)/.test(ms) && ms.indexOf('coverFirstScene(scenes)') > ms.indexOf('fillMediaGaps(scenes)'))
+    ? ok('[10] make-shorts 가 채우기 뒤에 첫 장면을 확인한다') : bad('[10] make-shorts 연결 안 됨');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);
