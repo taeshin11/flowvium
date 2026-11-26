@@ -175,5 +175,22 @@ const cr = src('cron-runner.mjs');
   (/if \(!DRY && !REWRITE\) state\[t\.id\] = writeEntry\(STATE, t\.id, \(prev = \{\}\) => \(\{ \.\.\.prev, failedTries/.test(pc)) ? ok('[25f] 고쳐 쓰기 실패는 달기 실패 수(failedTries)를 안 올린다') : bad('[25f]');
   /'pin-rewrite'[^\n]*yt-pin-comment\.mjs --rewrite-due/.test(src('cron-runner.mjs')) ? ok('[25g] cron-runner 매일 pin-rewrite') : bad('[25g] cron-runner 에 pin-rewrite 없음');
 }
+
+// [26] 11/26: 09:20 밀린 편 따라잡기(--due --days 5)가 하루 새 댓글 20개를 다 써서 그날 새 쇼츠 8편이 하나도 못 달렸다.
+//   새 편(24시간 안)은 첫 48시간 조회가 몰리는 곳이다. 밀린 편은 하루 평균 업로드 수만큼 남겨 두고 쓴다. 상한 20 은 그대로.
+{
+  const { pinBudgetOk, freshReserve } = await import('./pin-state.mjs');
+  const T = (c, m) => (c ? ok(m) : bad(m));
+  T(freshReserve(40, 5) === 8, '[26a] 5일 40편 → 하루 8편 남김');
+  T(freshReserve(0, 2) === 0 && freshReserve(3, 0) === 0, '[26b] 업로드 없거나 기간 0 → 남김 0');
+  T(freshReserve(500, 1) === 20, '[26c] 남김은 상한(20)을 넘지 않는다');
+  T(pinBudgetOk({ posted: 11, dayMax: 20, reserve: 8, fresh: false }) === true, '[26d] 밀린 편: 11 < 20-8');
+  T(pinBudgetOk({ posted: 12, dayMax: 20, reserve: 8, fresh: false }) === false, '[26e] 밀린 편: 12 → 새 편 몫이라 멈춤');
+  T(pinBudgetOk({ posted: 19, dayMax: 20, reserve: 8, fresh: true }) === true, '[26f] 새 편은 20 까지');
+  T(pinBudgetOk({ posted: 20, dayMax: 20, reserve: 8, fresh: true }) === false, '[26g] 새 편도 20 이면 멈춤(사장님 상한)');
+  const pc = src('yt-pin-comment.mjs');
+  T(/pinBudgetOk\(\{ posted: postedToday\(\)/.test(pc) && !/postedToday\(\) >= DAY_MAX\)/.test(pc), '[26h] 달기 상한이 pinBudgetOk 로 간다');
+  T(/freshReserve\(recent\.length/.test(pc), '[26i] 남김 수는 그 기간 실제 업로드 수에서');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

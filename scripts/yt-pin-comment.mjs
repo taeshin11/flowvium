@@ -20,7 +20,7 @@ import { resolve, join } from 'path';
 import { mkdirSync, readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
 import { PIN_LINE } from './lib/ad-line.mjs';
-import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks, rewriteTargets } from './lib/pin-state.mjs';
+import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks, rewriteTargets, freshReserve, pinBudgetOk } from './lib/pin-state.mjs';
 import { appendFileSync } from 'fs';
 
 const argv = process.argv.slice(2);
@@ -59,7 +59,8 @@ const postedToday = () => Object.values(state).filter((e) => e?.at && !e.skipped
 export const commentFor = () => PIN_LINE;
 
 let targets = [];
-let verifyTargets = null;   // --due: [{id, check}] — null 이면 옛 동작(달기 대상 전부를 재확인)
+let verifyTargets = null;
+let freshKeep = 0;          // 밀린 편이 못 쓰고 남겨 둘 새 편 몫(--due 에서 그 기간 업로드 수로)   // --due: [{id, check}] — null 이면 옛 동작(달기 대상 전부를 재확인)
 const ids = (arg('ids', '') ?? '').split(',').filter(Boolean);
 if (ids.length) targets = ids.map((id) => ({ id, kind: arg('kind', 'short') }));
 else if (REWRITE_DUE) {
@@ -90,19 +91,21 @@ else if (DUE) {
   const pl = ch.data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
   if (!pl) { alert('-', 'list', '채널 업로드 목록이 없다'); log('채널 업로드 목록이 없다 — 멈춘다'); process.exit(1); }
   const recent = [];
+  const pubAt = {};
   for (let pageToken; ;) {
     const r = await yt.playlistItems.list({ part: ['contentDetails'], playlistId: pl, maxResults: 50, pageToken });
     const it = r.data.items ?? [];
-    for (const x of it) if ((x.contentDetails.videoPublishedAt ?? '') >= since) recent.push(x.contentDetails.videoId);
+    for (const x of it) if ((x.contentDetails.videoPublishedAt ?? '') >= since) { recent.push(x.contentDetails.videoId); pubAt[x.contentDetails.videoId] = x.contentDetails.videoPublishedAt; }
     pageToken = r.data.nextPageToken;
     if (!pageToken || it.some((x) => (x.contentDetails.videoPublishedAt ?? '') < since)) break;
   }
   const pub = [];
   for (let i = 0; i < recent.length; i += 50) {
     const v = await yt.videos.list({ part: ['status', 'contentDetails'], id: recent.slice(i, i + 50) });
-    for (const x of v.data.items ?? []) if (x.status?.privacyStatus === 'public') pub.push({ id: x.id, kind: /^PT(\d+S|[12]M(\d+S)?|3M)$/.test(x.contentDetails?.duration ?? '') ? 'short' : 'long' });
+    for (const x of v.data.items ?? []) if (x.status?.privacyStatus === 'public') pub.push({ id: x.id, at: pubAt[x.id], kind: /^PT(\d+S|[12]M(\d+S)?|3M)$/.test(x.contentDetails?.duration ?? '') ? 'short' : 'long' });
   }
-  targets = pub;
+  targets = pub;   // 업로드 목록 순서 = 새 편 먼저
+  freshKeep = freshReserve(recent.length, Number(arg('days', 2)), DAY_MAX);
   const now = Date.now();
   // --all(일괄 점검)은 'audit' 로 적는다 — +10분·+24시간 칸을 채우면 제때 할 재확인이 빠진다.
   verifyTargets = pub.flatMap((t) => (ALL ? ['audit'] : dueChecks(state[t.id], now)).map((check) => ({ ...t, check })));
@@ -187,7 +190,11 @@ try {
       }
       if (await mine.count() && await pinnedVisible()) { log(`${t.id} 이미 우리 댓글이 고정돼 있다 — 건너뜀`); state[t.id] = writeEntry(STATE, t.id, (prev) => alreadyEntry(prev, new Date().toISOString(), t.kind)); continue; }
       if (!(await mine.count())) {
-        if (!DRY && postedToday() >= DAY_MAX) { log(`오늘 새 댓글 ${DAY_MAX}개 상한 — 나머지는 내일`); break; }
+        const fresh = !t.at || Date.now() - Date.parse(t.at) < 24 * 3600e3;
+        if (!DRY && !pinBudgetOk({ posted: postedToday(), dayMax: DAY_MAX, reserve: freshKeep, fresh })) {
+          log(fresh ? `오늘 새 댓글 ${DAY_MAX}개 상한 — 나머지는 내일` : `밀린 편은 여기까지 — 새 편 몫 ${freshKeep}개를 남긴다`);
+          break;   // 목록은 새 편 먼저라 뒤는 더 오래된 편뿐이다
+        }
         await ph.scrollIntoViewIfNeeded(); await ph.click(); await page.waitForTimeout(1200);
         const box = page.locator('#contenteditable-root').first();
         await box.click(); await page.keyboard.insertText(commentFor(t.kind)); await page.waitForTimeout(800);

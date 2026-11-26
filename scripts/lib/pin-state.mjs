@@ -106,3 +106,14 @@ export function rewriteTargets(state, views, { max = 20, now = Date.now() } = {}
     .sort((a, b) => views[b[0]] - views[a[0]])
     .slice(0, Math.max(0, max - doneToday)).map(([id]) => id);
 }
+
+// 2026-11-26: 밀린 편 따라잡기가 하루 새 댓글 상한(사장님 20)을 다 써서 그날 새 쇼츠가 하나도 못 달렸다.
+//   새 편 몫은 그 기간 실제 하루 평균 업로드 수로 잡아 남겨 둔다(올림, 상한 넘지 않게).
+export function freshReserve(uploads, days, dayMax = 20) {
+  if (!(uploads > 0) || !(days > 0)) return 0;
+  return Math.min(dayMax, Math.ceil(uploads / days));
+}
+// 새 편(24시간 안)은 상한까지, 밀린 편은 새 편 몫을 뺀 만큼까지만 단다.
+export function pinBudgetOk({ posted, dayMax, reserve = 0, fresh = true }) {
+  return posted < (fresh ? dayMax : dayMax - reserve);
+}
