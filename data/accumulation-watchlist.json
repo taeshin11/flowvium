@@ -1,26 +1,43 @@
 {
-  "generatedAt": "2026-11-26T07:20:24.830Z",
+  "generatedAt": "2026-11-26T22:20:23.813Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 1,
+  "count": 2,
   "strongCount": 0,
-  "watchCount": 1,
+  "watchCount": 2,
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "200130.KQ",
-      "name": "콜마비앤에이치",
+      "ticker": "319400.KQ",
+      "name": "현대무벡스",
       "tier": "watch",
-      "score": 38,
+      "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.4× 상승(지속 매집)",
-        "거래량 4.0× 급증(가격 평탄)",
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.2× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": 2.8,
-      "runup5dPct": 5.1,
-      "medDollarVolUsd": 269689,
+      "runup20dPct": -1.4,
+      "runup5dPct": 1.3,
+      "medDollarVolUsd": 9452895,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "031330.KQ",
+      "name": "에스에이엠티",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.1× 상승(지속 매집)",
+        "거래량 2.6× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -9.3,
+      "runup5dPct": -8.9,
+      "medDollarVolUsd": 2444643,
       "smartAccum": true,
       "official": null
     }
