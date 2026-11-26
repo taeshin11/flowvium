@@ -10,6 +10,7 @@
  *   node scripts/generate-report-local.mjs --upload=reports/report-YYYY-MM-DD-session-locale.json
  */
 
+import { groundRsiText } from './lib/rsi-ground.mjs';
 import { haltedDays, isHalted } from './lib/halted-price.mjs';
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, appendFileSync } from 'fs';
 import { resolve, dirname, basename } from 'path';
@@ -9043,14 +9044,8 @@ async function generateViaOllama() {
         if (typeof p[f] !== 'string') continue;
         const before = p[f];
         let v = p[f];
-        if (realRsi != null) {
-          v = v.replace(/RSI\s*\d+(?:\.\d+)?%?/gi, `RSI ${realRsi}`);   // LLM RSI 값 → 2소스 검증값
-          if (realRsi >= 35) v = v.replace(/RSI\s*과매도/g, `RSI ${realRsi}`).replace(/과매도/g, realRsi >= 65 ? '과매수' : '중립');
-          if (realRsi <= 65) v = v.replace(/과매수/g, realRsi <= 35 ? '과매도' : '중립');
-        } else {
-          // 2소스 검증값 없음(price-history 실패) → RSI 값 + 과매도/과매수 제거(strip-when-uncertain)
-          v = v.replace(/[,·]?\s*RSI\s*\d+(?:\.\d+)?%?/gi, '').replace(/[,·]?\s*RSI\s*(?:과매도|과매수)/g, '').replace(/[,·]?\s*(?:과매도|과매수)\b/g, '');
-        }
+        // 2026-11-26: lib/rsi-ground — 실제 과매도(<35)일 때 "RSI 과매도" 가 숫자 없이 남았고, 값 모를 때 지우기는 한글 뒤 \b 로 안 지워졌다.
+        v = groundRsiText(v, realRsi);
         // KR 종목에 $ 단위 MA(₩여야 함, technicalData 깨짐 잔재) 제거
         if (/\.(KS|KQ)$/.test(p.ticker ?? '')) v = v.replace(/[,·]?\s*\d+MA[^,;·]*\$[\d,.]+\)?/g, '');
         // 지지가격 환각: entryRationale 의 "N 수준 지지" 가 entryZone 과 >25% 이탈 → 제거
