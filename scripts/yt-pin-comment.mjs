@@ -20,7 +20,7 @@ import { resolve, join } from 'path';
 import { mkdirSync, readFileSync } from 'fs';
 import { ROOT } from './lib/project-root.mjs';
 import { PIN_LINE } from './lib/ad-line.mjs';
-import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks, rewriteTargets, freshReserve, pinBudgetOk } from './lib/pin-state.mjs';
+import { needsPin, writeEntry, alreadyEntry, verifiedEntry, judgeViewer, dueChecks, rewriteTargets, freshReserve, pinBudgetOk, isNetworkError } from './lib/pin-state.mjs';
 import { appendFileSync } from 'fs';
 
 const argv = process.argv.slice(2);
@@ -220,6 +220,7 @@ try {
     } catch (e) {
       failed++; failedNow.add(t.id); log(`${t.id} 실패: ${String(e?.message ?? e).slice(0, 100)}`);
       if (REWRITE && !DRY) { state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, rewriteError: String(e?.message ?? e).slice(0, 100), rewriteErrorAt: new Date().toISOString() })); log('고쳐 쓰기 실패 — 여기서 멈춘다'); break; }
+      if (isNetworkError(e)) { log('네트워크가 안 닿는다 — 편의 실패로 세지 않고 멈춘다'); break; }
       if (!DRY && !REWRITE) state[t.id] = writeEntry(STATE, t.id, (prev = {}) => ({ ...prev, failedTries: (prev.failedTries ?? 0) + 1, lastError: String(e?.message ?? e).slice(0, 100), lastErrorAt: new Date().toISOString() })); await page.screenshot({ path: join(shots, `fail-${t.id}.png`) }).catch(() => {});
       if (DUE && !DRY) { alert(t.id, 'comment-pin', e?.message ?? e); log('달기·고정 실패 — 여기서 멈춘다(logs/pin-alert.jsonl)'); break; }
     }

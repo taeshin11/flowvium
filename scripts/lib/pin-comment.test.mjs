@@ -192,5 +192,18 @@ const cr = src('cron-runner.mjs');
   T(/pinBudgetOk\(\{ posted: postedToday\(\)/.test(pc) && !/postedToday\(\) >= DAY_MAX\)/.test(pc), '[26h] 달기 상한이 pinBudgetOk 로 간다');
   T(/freshReserve\(recent\.length/.test(pc), '[26i] 남김 수는 그 기간 실제 업로드 수에서');
 }
+
+// [27] 11/23: 맥이 불안하던 날 page.goto net::ERR_TIMED_OUT 3번으로 XsThh4wCM8E 가 failedTries 3 → 영영 안 골렸다.
+//   네트워크가 안 닿는 건 그 편의 실패가 아니다(로그아웃 [25e] 과 같은 공통 고장) — 세지 않고 물러난다.
+{
+  const { isNetworkError } = await import('./pin-state.mjs');
+  const T = (c, m) => (c ? ok(m) : bad(m));
+  T(isNetworkError(new Error('page.goto: net::ERR_TIMED_OUT at https://www.youtube.com/watch?v=x')), '[27a] net::ERR_TIMED_OUT');
+  T(isNetworkError('page.goto: net::ERR_INTERNET_DISCONNECTED at ...'), '[27b] net::ERR_INTERNET_DISCONNECTED');
+  T(!isNetworkError(new Error('다시 읽었더니 우리 댓글에 고정 표시가 없다')), '[27c] 고정 실패는 편의 실패');
+  T(!isNetworkError(new Error('locator.click: Timeout 8000ms exceeded')), '[27d] 화면 요소 시간 초과는 편의 실패');
+  const pc = src('yt-pin-comment.mjs');
+  T(/if \(isNetworkError\(e\)\)[^\n]*break;/.test(pc), '[27e] 네트워크 고장이면 failedTries 를 안 올리고 멈춘다');
+}
 console.log(fail ? `\n❌ ${fail}건 실패` : '\n✅ 전부 통과');
 process.exit(fail ? 1 : 0);

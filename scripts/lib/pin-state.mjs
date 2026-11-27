@@ -117,3 +117,9 @@ export function freshReserve(uploads, days, dayMax = 20) {
 export function pinBudgetOk({ posted, dayMax, reserve = 0, fresh = true }) {
   return posted < (fresh ? dayMax : dayMax - reserve);
 }
+
+// 2026-11-27: 브라우저가 네트워크에 못 닿은 것(net::ERR_*)은 그 편의 실패가 아니다 — failedTries 에 세지 않는다.
+//   11/23 맥 불안 때 XsThh4wCM8E 가 ERR_TIMED_OUT 3번으로 영영 빠졌다.
+export function isNetworkError(e) {
+  return /net::ERR_[A-Z_]+/.test(String(e?.message ?? e ?? ''));
+}
