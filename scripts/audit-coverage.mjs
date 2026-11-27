@@ -92,6 +92,8 @@ const NEW_COLUMNS = {
     why: '대본 보관을 2026-09-18 에 시작 — 그 전 편은 대본이 남지 않았다(shorts-blog 의 소재)' },
   'shorts_published.bodies_json': { since: '2026-09-20T12:00', at: 'published_at',
     why: '기사 본문 보관을 2026-09-20 에 시작 — 그 전 회차는 대본을 쓸 때 읽고 버렸다(쇼츠→블로그의 재료)' },
+  'shorts_published.arm': { since: '2026-11-27T07:15', at: 'published_at',
+    why: '11/24 변경 A/B 갈래(lib/series-ab) 기록을 2026-11-27 16:15 KST 편부터 시작 — 예비·상시 편은 미리 만들어 갈래가 없어 비어 있는 게 정상(소급하지 않는다)' },
   'shorts_published.skeleton': { since: '2026-11-18T06:00', at: 'published_at',
     why: '대본 뼈대(lib/shorts-skeleton) 기록을 2026-11-18 15:10 KST 편부터 시작 — 브리핑·상시 편은 뼈대를 안 써서 비어 있는 게 정상(소급하지 않는다)' },
   'shorts_published.motion': { since: '2026-10-17T22:00', at: 'published_at',
