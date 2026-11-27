@@ -1,12 +1,64 @@
 {
-  "generatedAt": "2026-11-27T07:20:25.459Z",
+  "generatedAt": "2026-11-27T22:20:23.227Z",
   "universe": "KOSDAQ",
   "scanned": 224,
-  "count": 2,
+  "count": 5,
   "strongCount": 0,
-  "watchCount": 2,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
+    {
+      "ticker": "214150.KQ",
+      "name": "클래시스",
+      "tier": "watch",
+      "score": 41,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)",
+        "아래꼬리 매집 3개(저가 매수받침)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -13.4,
+      "runup5dPct": 4.1,
+      "medDollarVolUsd": 4000136,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "200130.KQ",
+      "name": "콜마비앤에이치",
+      "tier": "watch",
+      "score": 38,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 3.5× 상승(지속 매집)",
+        "거래량 4.2× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": 11.1,
+      "runup5dPct": 9.6,
+      "medDollarVolUsd": 269689,
+      "smartAccum": true,
+      "official": null
+    },
+    {
+      "ticker": "063570.KQ",
+      "name": "NICE인프라",
+      "tier": "watch",
+      "score": 33,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.9× 상승(지속 매집)",
+        "거래량 3.9× 급증(가격 평탄)",
+        "세력 매집(기관·외인 순매수)"
+      ],
+      "runup20dPct": -8.5,
+      "runup5dPct": -2,
+      "medDollarVolUsd": 33634,
+      "smartAccum": true,
+      "official": null
+    },
     {
       "ticker": "026040.KQ",
       "name": "제이에스티나",
