@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T22:20:23.813Z",
+  "generatedAt": "2026-11-27T07:20:25.459Z",
   "universe": "KOSDAQ",
   "scanned": 224,
   "count": 2,
@@ -8,19 +8,20 @@
   "officialFewAccount": 0,
   "watchlist": [
     {
-      "ticker": "319400.KQ",
-      "name": "현대무벡스",
+      "ticker": "026040.KQ",
+      "name": "제이에스티나",
       "tier": "watch",
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.4× 상승(지속 매집)",
-        "거래량 3.2× 급증(가격 평탄)",
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 3개(저가 매수받침)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -1.4,
-      "runup5dPct": 1.3,
-      "medDollarVolUsd": 9452895,
+      "runup20dPct": -3.1,
+      "runup5dPct": 3.5,
+      "medDollarVolUsd": 98205,
       "smartAccum": true,
       "official": null
     },
@@ -31,13 +32,13 @@
       "score": 33,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.1× 상승(지속 매집)",
-        "거래량 2.6× 급증(가격 평탄)",
+        "거래량 추세 2.3× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)",
         "세력 매집(기관·외인 순매수)"
       ],
-      "runup20dPct": -9.3,
-      "runup5dPct": -8.9,
-      "medDollarVolUsd": 2444643,
+      "runup20dPct": -6.7,
+      "runup5dPct": -1.4,
+      "medDollarVolUsd": 2447874,
       "smartAccum": true,
       "official": null
     }
