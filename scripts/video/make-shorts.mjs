@@ -908,7 +908,7 @@ const HOOK_PLAN = firstHookPlan(headlines[0], issue?.keyword);
 const FIRST_HOOK_RULE = HOOK_PLAN.subjects.length ? `
   · **이번 회차 1번 장면 hook**: 주어 ${HOOK_PLAN.subjects.map((x) => `"${x}"`).join(' 또는 ')} 를 넣고, 나머지는 제목에 없는 말(결과·이유의 실마리·영향 — 기사에 있는 것만)로 채운다.
     주어 말고는 제목 낱말(${HOOK_PLAN.avoid.slice(0, 10).join('·')})을 hook 에 쓰지 마라. 1번 장면 say 도 이 낱말을 둘 넘게 다시 쓰지 마라.` : '';
-const STAKE_RULE = STAKE_HOOK_RULE;   // 2026-11-24 리포트2 3곳 합의 — lib/hook-overlap 머리말
+const STAKE_RULE = process.env.SHORTS_STAKE === '0' ? '' : STAKE_HOOK_RULE;   // 2026-11-24 리포트2 3곳 합의 — lib/hook-overlap 머리말. 11/27~11/30 lib/series-ab 가 편마다 번갈아 끈다
 if (HOOK_PLAN.subjects.length) log(`[대본] 첫 훅 주어 후보: ${HOOK_PLAN.subjects.join('·')} · 피할 제목 낱말 ${HOOK_PLAN.avoid.length}개`);
 
 const briefPrompt = () => `너는 한국 뉴스 쇼츠 대본 작가다. 아래 **서로 다른 뉴스 ${headlines.length}건**을
@@ -2580,6 +2580,7 @@ writeFileSync(join(OUT_DIR, 'shorts-ko-meta.json'), JSON.stringify({
   layout: LAYOUT,      // 2026-10-03: 화면 배분 A/B(classic|zoom) — lib/shorts-layout
   opener: BRIEF ? OPENER : null,   // 2026-10-11 첫 문장 A/B → 2026-11-18 한 이슈 편은 뼈대 규칙이 첫 문장을 정한다(질문형 안 씀)
   motion: MOTION,      // 2026-10-17: 첫 장면 움직임 A/B(push|still) — lib/explore-slot motionFor
+  arm: process.env.SHORTS_ARM ?? null,   // 2026-11-27: 11/24 변경 A/B 갈래(lib/series-ab) — 손 실행은 비운다
   // 2026-11-18 사장님 5원칙 — 편마다 22:00 보고에 한 줄(첫 3초 자막·뼈대 출처·저장 요소)
   skeleton: BRIEF ? null : SKELETON.id,
   skeletonSrc: BRIEF ? null : SKELETON.src,

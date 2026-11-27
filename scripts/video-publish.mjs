@@ -257,6 +257,16 @@ if (USE_EXISTING) {
       log(`구성: ${combo.layout}·${combo.motion} (채널 지침) · 브리핑 첫 문장 ${OPENER_ENV}`);
     } catch (e) { log(`채널 지침을 못 읽음 — 기본 구성: ${String(e?.message ?? e).slice(0, 80)}`); }
   }
+  // 2026-11-27 mini2: 11/24 변경(시리즈 표지·돈 훅)을 11/30 까지 편마다 번갈아(lib/series-ab). 손 실행 SHORTS_ARM 이 주어지면 그 값.
+  let ARM_ENV = {};
+  if (isShorts) {
+    try {
+      const { seriesArm, armEnv } = await import('./lib/series-ab.mjs');
+      const db = await import('./lib/db.mjs');
+      ARM_ENV = armEnv(process.env.SHORTS_ARM ?? seriesArm({ lastArm: db.lastShortsArm() }));
+      log(`11/24 변경 갈래: ${ARM_ENV.SHORTS_ARM}${ARM_ENV.SHORTS_ARM === 'B' ? ' (표지·돈 훅 끔)' : ''}`);
+    } catch (e) { log(`갈래를 못 고름 — 지금 모습(A): ${String(e?.message ?? e).slice(0, 80)}`); }
+  }
   // 2026-11-02 기업·증시 칸(45%) — lib/explore-slot marketFor, shorts-market-slot.test. SHORTS_MARKET 이 주어지면 그 값.
   let MARKET_ENV = process.env.SHORTS_MARKET ?? '0';
   if (isShorts && process.env.SHORTS_MARKET == null) {
@@ -323,7 +333,7 @@ if (USE_EXISTING) {
     const r = spawnSync(node, args, {
       cwd: ROOT,
       stdio: 'inherit',
-      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV, SHORTS_OPENER: OPENER_ENV, SHORTS_MOTION: MOTION_ENV, SHORTS_MARKET: MARKET_ENV, SHORTS_BRIEF_OK: a >= TRIES ? '1' : '0' } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
+      env: { ...process.env, ...(tried.length ? { SHORTS_EXCLUDE: tried.join(',') } : {}), ...(isShorts ? { SHORTS_SUB_CTA: SUB_CTA_ENV, SHORTS_PROMO: PROMO_ENV, SHORTS_EXPLORE: EXPLORE_ENV, SHORTS_TREND: TREND_ENV, SHORTS_LAYOUT: LAYOUT_ENV, SHORTS_OPENER: OPENER_ENV, SHORTS_MOTION: MOTION_ENV, SHORTS_MARKET: MARKET_ENV, SHORTS_BRIEF_OK: a >= TRIES ? '1' : '0', ...ARM_ENV } : {}), ...(STAGE ? { SHORTS_OUT_DIR: STAGE } : {}) },
       timeout: RENDER_TIMEOUT_MS, killSignal: 'SIGKILL',
     });
     if (r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGKILL') {
@@ -632,7 +642,7 @@ if (isShorts && last.keyword) {
       const m = String(probe.stderr).match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
       if (m) durationSec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]);
     } catch (e) { log(`⚠ 길이를 못 쟀다 — 대조 검사에서 이 편은 건너뛴다: ${String(e.message).slice(0, 50)}`); }
-    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null, layout: last.layout ?? null, opener: last.opener ?? null, motion: last.motion ?? null, skeleton: last.skeleton ?? null });
+    markShortsPublished({ issueKey: last.keyword, headline: heads[0], videoId, headlines: heads, durationSec, hooks: last.hooks ?? [], bodies: last.bodies ?? [], topic: last.topic ?? null, titleStyle, subCta: last.subCta ?? null, promo: last.promo ?? null, explore: last.explore ?? null, trend: last.trend ?? null, layout: last.layout ?? null, opener: last.opener ?? null, motion: last.motion ?? null, skeleton: last.skeleton ?? null, arm: last.arm ?? null });
     log(`편성 기록: "${last.keyword}"${videoId ? ` · ${videoId}` : ' (id 못 읽음)'} — 24시간 안에는 다시 안 고른다`);
     if (TRIAL && videoId) {
       try { recordTrialVideo(resolve(ROOT, 'logs/slot-trial.json'), { trial: TRIAL_ARG, videoId }); log(`시험 칸 원장: ${videoId} → logs/slot-trial.json`); }
