@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-11-27T13:00:36.183Z",
+  "generatedAt": "2026-11-27T22:43:19.552Z",
   "universe": "US",
   "scanned": 469,
-  "count": 4,
+  "count": 5,
   "strongCount": 0,
-  "watchCount": 4,
+  "watchCount": 5,
   "officialFewAccount": 0,
   "watchlist": [
     {
@@ -14,12 +14,62 @@
       "score": 28,
       "coFire": 2,
       "lead": [
-        "거래량 추세 3.9× 상승(지속 매집)",
-        "거래량 9.4× 급증(가격 평탄)"
+        "거래량 추세 4.0× 상승(지속 매집)",
+        "거래량 9.3× 급증(가격 평탄)"
       ],
-      "runup20dPct": 3.3,
-      "runup5dPct": 5.2,
-      "medDollarVolUsd": 4257734,
+      "runup20dPct": 7.8,
+      "runup5dPct": 8.3,
+      "medDollarVolUsd": 4501434,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "WGO",
+      "name": "Winnebago Industries, Inc.",
+      "tier": "watch",
+      "score": 24,
+      "coFire": 2,
+      "lead": [
+        "변동성 수축(coiling) — 돌파 압축",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": 8.7,
+      "runup5dPct": 6.8,
+      "medDollarVolUsd": 16201282,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "JBI",
+      "name": "Janus International Group, Inc.",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 1.6× 상승",
+        "종가 일중 상단 60%",
+        "아래꼬리 매집 4개(저가 매수받침)"
+      ],
+      "runup20dPct": -14,
+      "runup5dPct": 10.7,
+      "medDollarVolUsd": 9596412,
+      "smartAccum": false,
+      "official": null
+    },
+    {
+      "ticker": "TIGR",
+      "name": "UP Fintech Holding Limited",
+      "tier": "watch",
+      "score": 23,
+      "coFire": 2,
+      "lead": [
+        "거래량 추세 2.4× 상승(지속 매집)",
+        "거래량 3.0× 급증(가격 평탄)"
+      ],
+      "runup20dPct": 7.1,
+      "runup5dPct": 14.4,
+      "medDollarVolUsd": 8830094,
       "smartAccum": false,
       "official": null
     },
@@ -27,48 +77,15 @@
       "ticker": "KNOP",
       "name": "KNOT Offshore Partners LP",
       "tier": "watch",
-      "score": 28,
+      "score": 23,
       "coFire": 2,
       "lead": [
-        "거래량 추세 2.7× 상승(지속 매집)",
-        "거래량 4.1× 급증(가격 평탄)"
+        "거래량 추세 2.6× 상승(지속 매집)",
+        "거래량 3.7× 급증(가격 평탄)"
       ],
-      "runup20dPct": -9.9,
-      "runup5dPct": 10.3,
+      "runup20dPct": -8.8,
+      "runup5dPct": 12.8,
       "medDollarVolUsd": 510984,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "CBLL",
-      "name": "CeriBell, Inc.",
-      "tier": "watch",
-      "score": 24,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%",
-        "아래꼬리 매집 5개(저가 매수받침)"
-      ],
-      "runup20dPct": 8.2,
-      "runup5dPct": 14.9,
-      "medDollarVolUsd": 9334320,
-      "smartAccum": false,
-      "official": null
-    },
-    {
-      "ticker": "TCPC",
-      "name": "BlackRock TCP Capital Corp.",
-      "tier": "watch",
-      "score": 16,
-      "coFire": 2,
-      "lead": [
-        "변동성 수축(coiling) — 돌파 압축",
-        "종가 일중 상단 60%"
-      ],
-      "runup20dPct": 2.2,
-      "runup5dPct": 3.9,
-      "medDollarVolUsd": 2544912,
       "smartAccum": false,
       "official": null
     }
