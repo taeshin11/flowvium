@@ -201,11 +201,15 @@ export function attributePctSubjects(report, pool) {
       const tk = tickers[0];
       if (annotated.has(tk)) return m;
       // 같은 문장(마침표 경계) 안 60자 창 — 이미 주어가 있으면 불개입
-      const from = Math.max(0, offset - 60, str.lastIndexOf('.', offset) + 1);
+      // 소수점(0.6%·3.25%)은 문장 끝이 아니다 — 숫자 사이 '.' 를 빼고 마지막 문장 끝을 찾는다(11/26 오주석).
+      const before = str.slice(0, offset);
+      let cut = -1; for (const mm of before.matchAll(/[.!?](?!\d)/g)) cut = mm.index;
+      const from = Math.max(0, offset - 60, cut + 1);
       const win = str.slice(from, offset + m.length + 12);
       if (win.includes(tk)) return m;
       if (IDX_EQUIV[tk]?.test(win)) return m;                             // "S&P500 1.4%" 에 (SPY) 주석 불필요
-      if (/CPI|금리|확률|동결|YoY|매출|이익|마진|점유율/.test(win)) return m; // 재무/거시 % 문맥 오탐 방지
+      // 재무/거시 % 문맥 오탐 방지. 한국어 거시 지표 이름도 본다(11/26~27: 물가 4.08%·성장률 4.1% 에 XLRE 주석).
+      if (/CPI|PCE|PPI|GDP|금리|확률|동결|YoY|매출|이익|마진|점유율|물가|인플레|성장률|실업률|고용/.test(win)) return m;
       if (str.slice(offset + m.length, offset + m.length + 20).includes('기준)')) return m; // 이미 주석됨
       injected++; nFix++; annotated.add(tk);
       const koLabel = LABEL_KO[hits.find((h) => h.ticker === tk)?.label] ?? null;
